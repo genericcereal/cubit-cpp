@@ -1,6 +1,5 @@
 #include "ActionsPanel.h"
 #include "Canvas.h"
-#include "GLCanvas.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -45,7 +44,7 @@ private:
     }
 };
 
-ActionsPanel::ActionsPanel(QWidget *parent) : QFrame(parent), cpuCanvasRef(nullptr), glCanvasRef(nullptr) {
+ActionsPanel::ActionsPanel(QWidget *parent) : QFrame(parent), canvasRef(nullptr) {
     setObjectName("actionsPanel");
     setFixedSize(400, 50);
     setProperty("panelStyle", QVariant("true"));
@@ -82,21 +81,13 @@ void ActionsPanel::onActionClicked(Action *clickedAction) {
     
     // Update canvas mode if canvas is set
     QString mode = clickedAction->getMode();
-    if (cpuCanvasRef && cpuCanvasRef->getMode() != mode) {
-        cpuCanvasRef->setMode(mode);
-    } else if (glCanvasRef && glCanvasRef->getMode() != mode) {
-        glCanvasRef->setMode(mode);
+    if (canvasRef && canvasRef->getMode() != mode) {
+        canvasRef->setMode(mode);
     }
 }
 
 void ActionsPanel::setCanvas(Canvas *canvas) {
-    cpuCanvasRef = canvas;
-    glCanvasRef = nullptr;
-}
-
-void ActionsPanel::setGLCanvas(GLCanvas *canvas) {
-    glCanvasRef = canvas;
-    cpuCanvasRef = nullptr;
+    canvasRef = canvas;
 }
 
 void ActionsPanel::setModeSelection(const QString &modeName) {
