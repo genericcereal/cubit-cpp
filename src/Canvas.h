@@ -4,11 +4,10 @@
 #include <QString>
 #include <QList>
 
-class PanelLayer;
-class ControlLayer;
-class ElementLayer;
-class ClientRectLayer;
+class ActionsPanel;
+class Controls;
 class Element;
+class ClientRect;
 
 class Canvas : public QWidget {
     Q_OBJECT
@@ -23,6 +22,10 @@ public:
     void createFrame();
     void createText();
     void createVariable();
+    
+    // Control management
+    void showControls(const QRect &rect);
+    void hideControls();
 
 signals:
     void modeChanged(const QString &newMode);
@@ -30,21 +33,20 @@ signals:
 
 protected:
     void resizeEvent(QResizeEvent *event) override;
-    // void mousePressEvent(QMouseEvent *event) override;
-    // void mouseMoveEvent(QMouseEvent *event) override;
-    // void mouseReleaseEvent(QMouseEvent *event) override;
+    void mousePressEvent(QMouseEvent *event) override;
+    void mouseMoveEvent(QMouseEvent *event) override;
+    void mouseReleaseEvent(QMouseEvent *event) override;
 
 private:
-    PanelLayer *panelLayer;
-    ControlLayer *controlLayer;
-    ElementLayer *elementLayer;
-    ClientRectLayer *clientRectLayer;
+    ActionsPanel *actionsPanel;
+    Controls *controls;
     
     // Canvas state
     QString mode;
     
     // Element management
     QList<Element*> elements;  // Stores all types of elements (Frame, Text, Variable)
+    QList<ClientRect*> clientRects;  // Stores all client rectangles
     
     // Frame creation state
     bool isCreatingFrame;

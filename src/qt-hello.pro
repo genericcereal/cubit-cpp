@@ -4,10 +4,6 @@ CONFIG += c++11
 SOURCES += \
     main.cpp \
     Canvas.cpp \
-    PanelLayer.cpp \
-    ControlLayer.cpp \
-    ElementLayer.cpp \
-    ClientRectLayer.cpp \
     DetailPanel.cpp \
     ElementList.cpp \
     Properties.cpp \
@@ -21,10 +17,6 @@ SOURCES += \
 
 HEADERS += \
     Canvas.h \
-    PanelLayer.h \
-    ControlLayer.h \
-    ElementLayer.h \
-    ClientRectLayer.h \
     DetailPanel.h \
     ElementList.h \
     Properties.h \
