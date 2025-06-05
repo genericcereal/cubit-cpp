@@ -8,6 +8,7 @@
 class Controls;
 class Element;
 class ClientRect;
+class SelectionBox;
 
 class Canvas : public QWidget {
     Q_OBJECT
@@ -68,9 +69,11 @@ protected:
 
 private:
     Controls *controls;
+    SelectionBox *selectionBox;
     
     // Canvas state
     QString mode;
+    bool isSelecting;  // Track if we're currently drag-selecting
     
     // Element management
     QList<Element*> elements;  // Stores all types of elements (Frame, Text, Variable)

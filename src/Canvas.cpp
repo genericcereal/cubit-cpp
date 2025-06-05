@@ -7,12 +7,13 @@
 #include "ClientRect.h"
 #include "ActionsPanel.h"
 #include "FPSWidget.h"
+#include "SelectionBox.h"
 #include <QMouseEvent>
 #include <QApplication>
 #include <QPainter>
 #include <QDebug>
 
-Canvas::Canvas(QWidget *parent) : QWidget(parent), mode("Select"), panOffset(0, 0) {
+Canvas::Canvas(QWidget *parent) : QWidget(parent), mode("Select"), isSelecting(false), panOffset(0, 0) {
     setContentsMargins(0, 0, 0, 0);
     setMouseTracking(true);  // Enable mouse tracking for cursor changes
     
@@ -20,12 +21,17 @@ Canvas::Canvas(QWidget *parent) : QWidget(parent), mode("Select"), panOffset(0, 
     controls = new Controls(this);
     controls->hide();  // Initially hidden
     
+    // Create selection box
+    selectionBox = new SelectionBox(this);
+    selectionBox->hide();
+    
     // Connect controls signals
     connect(controls, &Controls::rectChanged, this, &Canvas::onControlsRectChanged);
     connect(controls, &Controls::innerRectClicked, this, &Canvas::onControlsInnerRectClicked);
     
-    // Ensure controls are on top
+    // Ensure proper z-ordering: controls first, then selection box on top
     controls->raise();
+    selectionBox->raise();
 }
 
 void Canvas::resizeEvent(QResizeEvent *event) {
@@ -38,6 +44,11 @@ void Canvas::showControls(const QRect &rect) {
         controls->updateGeometry(rect);
         controls->show();
         controls->raise();
+        
+        // Keep selection box above controls
+        if (selectionBox) {
+            selectionBox->raise();
+        }
         
         // Emit signal to raise overlay panels
         emit overlaysNeedRaise();
@@ -240,6 +251,11 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
                 controls->raise();
             }
             
+            // Keep selection box above controls
+            if (selectionBox) {
+                selectionBox->raise();
+            }
+            
             // Emit signal that a frame was created
             emit elementCreated("Frame", frame->getName());
             
@@ -249,14 +265,19 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
             // Switch back to Select mode
             setMode("Select");
             
-        } else {
-            // In Select mode or other modes, check if click is on empty canvas
+        } else if (mode == "Select") {
+            // In Select mode, check if click is on empty canvas
             QWidget *widget = childAt(event->pos());
             
-            // If clicked on canvas itself (not on any child widget), clear selection
-            if (!widget || widget == this) {
+            // If clicked on canvas itself (not on any child widget), start selection box
+            if (!widget || widget == this || widget == selectionBox) {
+                // Clear selection
                 selectedElements.clear();
                 updateControlsVisibility();
+                
+                // Start selection box
+                isSelecting = true;
+                selectionBox->startSelection(event->pos());
             }
         }
     }
@@ -266,11 +287,52 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
 }
 
 void Canvas::mouseMoveEvent(QMouseEvent *event) {
+    if (isSelecting && selectionBox) {
+        // Update selection box
+        selectionBox->updateSelection(event->pos());
+        
+        // Check for overlapping ClientRects
+        QRect selectionRect = selectionBox->getSelectionRect();
+        selectedElements.clear();
+        
+        // Find all ClientRects that intersect with the selection box
+        for (QObject *child : children()) {
+            ClientRect *clientRect = qobject_cast<ClientRect*>(child);
+            if (clientRect) {
+                // Get the visual rect of the ClientRect
+                QRect clientRectVisual = clientRect->geometry();
+                
+                // Check if it intersects with the selection box
+                if (selectionRect.intersects(clientRectVisual)) {
+                    QString elementId = QString::number(clientRect->getAssociatedElementId());
+                    if (!selectedElements.contains(elementId)) {
+                        selectedElements.append(elementId);
+                    }
+                }
+            }
+        }
+        
+        // Update controls visibility based on new selection
+        updateControlsVisibility();
+    }
+    
     // Use normal event propagation
     QWidget::mouseMoveEvent(event);
 }
 
 void Canvas::mouseReleaseEvent(QMouseEvent *event) {
+    if (isSelecting && selectionBox) {
+        // End selection
+        isSelecting = false;
+        selectionBox->endSelection();
+        
+        // Clear the selection box geometry to prevent flickering on next use
+        selectionBox->setGeometry(0, 0, 0, 0);
+        
+        // Keep the final selection
+        updateControlsVisibility();
+    }
+    
     // Use normal event propagation
     QWidget::mouseReleaseEvent(event);
 }
@@ -397,6 +459,11 @@ void Canvas::onControlsRectChanged(const QRect &newRect) {
     // Ensure controls stay on top
     if (controls) {
         controls->raise();
+    }
+    
+    // Keep selection box above controls
+    if (selectionBox) {
+        selectionBox->raise();
     }
     
     // Emit signal to raise overlay panels
