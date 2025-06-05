@@ -530,14 +530,14 @@ void Canvas::onControlsRectChanged(const QRect &newRect) {
 }
 
 void Canvas::onControlsInnerRectClicked(const QPoint &globalPos) {
-    // Convert global position to local canvas position
-    QPoint localPos = mapFromGlobal(globalPos) - panOffset;
+    // Convert global position to widget-local position
+    QPoint widgetPos = mapFromGlobal(globalPos);
     
     // Find which ClientRect is at this position
     ClientRect* clickedClientRect = nullptr;
     for (QObject *child : children()) {
         ClientRect *clientRect = qobject_cast<ClientRect*>(child);
-        if (clientRect && clientRect->geometry().contains(localPos)) {
+        if (clientRect && clientRect->geometry().contains(widgetPos)) {
             clickedClientRect = clientRect;
             break;
         }
@@ -547,6 +547,10 @@ void Canvas::onControlsInnerRectClicked(const QPoint &globalPos) {
     if (clickedClientRect) {
         QString elementId = QString::number(clickedClientRect->getAssociatedElementId());
         selectElement(elementId, false);  // false = don't add to selection, replace it
+    } else {
+        // No element found under cursor - clear selection
+        selectedElements.clear();
+        updateControlsVisibility();
     }
 }
 
