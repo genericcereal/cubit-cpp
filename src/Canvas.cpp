@@ -41,6 +41,7 @@ void Canvas::resizeEvent(QResizeEvent *event) {
 void Canvas::showControls(const QRect &rect) {
     if (controls) {
         controls->setPanOffset(panOffset);
+        controls->setZoomScale(zoomScale);
         controls->updateGeometry(rect);
         controls->show();
         controls->raise();
@@ -92,13 +93,14 @@ void Canvas::updateControlsVisibility() {
             if (QString::number(element->getId()) == id) {
                 if (element->getType() == Element::FrameType) {
                     hasFrame = true;
-                    QRect canvasRect(element->getCanvasPosition(), element->size());
+                    // Get the visual rect (with zoom applied)
+                    QRect visualRect = element->geometry();
                     if (firstFrame) {
-                        boundingRect = canvasRect;
+                        boundingRect = visualRect;
                         firstFrame = false;
                     } else {
                         // Expand bounding rect to include this frame
-                        boundingRect = boundingRect.united(canvasRect);
+                        boundingRect = boundingRect.united(visualRect);
                     }
                 }
                 break;
@@ -110,6 +112,7 @@ void Canvas::updateControlsVisibility() {
     if (hasFrame) {
         if (controls) {
             controls->setPanOffset(panOffset);
+            controls->setZoomScale(zoomScale);
         }
         showControls(boundingRect);
     } else {
@@ -134,19 +137,25 @@ void Canvas::setMode(const QString &newMode) {
 }
 
 void Canvas::setPanOffset(const QPoint &offset) {
-    if (panOffset != offset) {
-        panOffset = offset;
+    qDebug() << "setPanOffset called with offset:" << offset << "current panOffset:" << panOffset;
+    
+    // Always update elements when zooming, even if just pan offset changed
+    panOffset = offset;
+    
+    // Update controls pan offset and zoom scale
+    if (controls) {
+        controls->setPanOffset(panOffset);
+        controls->setZoomScale(zoomScale);
+    }
+    
+    qDebug() << "About to update" << elements.size() << "elements";
+    
+    // Update visual positions of all elements based on their canvas positions
+    for (Element *element : elements) {
+        qDebug() << "Updating element with panOffset:" << panOffset << "zoomScale:" << zoomScale;
+        element->updateVisualPosition(panOffset, zoomScale);
         
-        // Update controls pan offset
-        if (controls) {
-            controls->setPanOffset(panOffset);
-        }
-        
-        // Update visual positions of all elements based on their canvas positions
-        for (Element *element : elements) {
-            element->updateVisualPosition(panOffset);
-            
-            // Also update associated ClientRect if it's a Frame
+        // Also update associated ClientRect if it's a Frame
             if (element->getType() == Element::FrameType) {
                 Frame *frame = qobject_cast<Frame*>(element);
                 if (frame) {
@@ -154,7 +163,8 @@ void Canvas::setPanOffset(const QPoint &offset) {
                     for (QObject *child : children()) {
                         ClientRect *clientRect = qobject_cast<ClientRect*>(child);
                         if (clientRect && clientRect->getAssociatedElementId() == frame->getId()) {
-                            clientRect->move(element->getCanvasPosition() + panOffset);
+                            // ClientRect follows the element's geometry
+                            clientRect->setGeometry(frame->geometry());
                             break;
                         }
                     }
@@ -162,13 +172,12 @@ void Canvas::setPanOffset(const QPoint &offset) {
             }
         }
         
-        // Update controls position if visible
-        if (controls && controls->isVisible()) {
-            updateControlsVisibility();
-        }
-        
-        update();  // Trigger repaint
+    // Update controls position if visible
+    if (controls && controls->isVisible()) {
+        updateControlsVisibility();
     }
+    
+    update();  // Trigger repaint
 }
 
 void Canvas::createFrame() {
@@ -183,11 +192,14 @@ void Canvas::createText() {
     // Create a new text element with Canvas as parent
     Text *text = new Text(textId, this);
     
+    // Set the canvas size (original size)
+    text->setCanvasSize(text->size());
+    
     // Calculate canvas position (center of viewport in canvas coordinates)
-    QPoint canvasPos((width() - text->width()) / 2 - panOffset.x(),
-                     (height() - text->height()) / 2 - panOffset.y());
+    QPoint canvasPos((width() / 2 - panOffset.x()) / zoomScale - text->width() / 2,
+                     (height() / 2 - panOffset.y()) / zoomScale - text->height() / 2);
     text->setCanvasPosition(canvasPos);
-    text->updateVisualPosition(panOffset);
+    text->updateVisualPosition(panOffset, zoomScale);
     text->show();
     
     // Add to elements list
@@ -223,19 +235,19 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
             // Generate ID based on number of elements + 1
             int frameId = elements.size() + 1;
             
-            // Calculate canvas position (logical position without pan)
-            QPoint canvasPos = event->pos() - panOffset;
+            // Calculate canvas position (logical position without pan and zoom)
+            QPoint canvasPos = (event->pos() - panOffset) / zoomScale;
             
             Frame *frame = new Frame(frameId, this);
             frame->resize(400, 400);
+            frame->setCanvasSize(QSize(400, 400));
             frame->setCanvasPosition(canvasPos);
-            frame->updateVisualPosition(panOffset);
+            frame->updateVisualPosition(panOffset, zoomScale);
             frame->show();
             
             // Create a ClientRect with the same size and position
             ClientRect *clientRect = new ClientRect(frameId, this, this);
-            clientRect->resize(400, 400);
-            clientRect->move(canvasPos + panOffset);
+            clientRect->setGeometry(frame->geometry());
             clientRect->show();
             
             // Add frame to elements list (ClientRect is not an Element)
@@ -338,27 +350,65 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event) {
 }
 
 void Canvas::wheelEvent(QWheelEvent *event) {
-    // Get the scroll amount (positive = up, negative = down)
-    QPoint numPixels = event->pixelDelta();
-    QPoint numDegrees = event->angleDelta() / 8;
-    
-    int delta = 0;
-    if (!numPixels.isNull()) {
-        delta = numPixels.y();
-    } else if (!numDegrees.isNull()) {
-        delta = numDegrees.y() * 3;  // Convert degrees to pixels (approximate)
-    }
-    
-    // Update pan offset on Y axis
-    if (delta != 0) {
-        QPoint newOffset = panOffset;
-        newOffset.setY(panOffset.y() + delta);
-        setPanOffset(newOffset);
+    // Check if Ctrl is held for zooming
+    if (event->modifiers() & Qt::ControlModifier) {
+        // Get the scroll amount
+        QPoint numDegrees = event->angleDelta() / 8;
         
-        // Accept the event to prevent propagation
-        event->accept();
+        if (!numDegrees.isNull() && numDegrees.y() != 0) {
+            const qreal force = 1.05;
+            
+            // Get mouse position relative to widget
+            QPoint mousePos = event->position().toPoint();
+            int x = (mousePos.x() / 2) * 2;  // Round to even number
+            int y = (mousePos.y() / 2) * 2;  // Round to even number
+            
+            if (numDegrees.y() > 0) {
+                // Zoom in (scroll up)
+                panOffset.setX(x - (x - panOffset.x()) * force);
+                panOffset.setY(y - (y - panOffset.y()) * force);
+                zoomScale = zoomScale * force;
+            } else {
+                // Zoom out (scroll down)
+                panOffset.setX(x - (x - panOffset.x()) / force);
+                panOffset.setY(y - (y - panOffset.y()) / force);
+                zoomScale = zoomScale / force;
+            }
+            
+            qDebug() << "Zoom event - new zoomScale:" << zoomScale << "panOffset:" << panOffset;
+            qDebug() << "Number of elements:" << elements.size();
+            
+            // Update all elements with new pan and zoom
+            setPanOffset(panOffset);
+            
+            // Force a repaint to show the zoom changes
+            update();
+            
+            event->accept();
+        }
     } else {
-        QWidget::wheelEvent(event);
+        // Regular pan operation
+        QPoint numPixels = event->pixelDelta();
+        QPoint numDegrees = event->angleDelta() / 8;
+        
+        int delta = 0;
+        if (!numPixels.isNull()) {
+            delta = numPixels.y();
+        } else if (!numDegrees.isNull()) {
+            delta = numDegrees.y() * 3;  // Convert degrees to pixels (approximate)
+        }
+        
+        // Update pan offset on Y axis
+        if (delta != 0) {
+            QPoint newOffset = panOffset;
+            newOffset.setY(panOffset.y() + delta);
+            setPanOffset(newOffset);
+            
+            // Accept the event to prevent propagation
+            event->accept();
+        } else {
+            QWidget::wheelEvent(event);
+        }
     }
 }
 
@@ -375,7 +425,12 @@ void Canvas::render() {
 }
 
 void Canvas::onControlsRectChanged(const QRect &newRect) {
-    // Get the original bounding rect of selected frames
+    // Convert newRect from visual space to canvas space
+    QRect canvasNewRect;
+    canvasNewRect.setTopLeft((newRect.topLeft() - panOffset) / zoomScale);
+    canvasNewRect.setSize(newRect.size() / zoomScale);
+    
+    // Get the original bounding rect of selected frames in canvas space
     QRect originalBoundingRect;
     bool firstFrame = true;
     QList<Element*> selectedFrames;
@@ -386,7 +441,7 @@ void Canvas::onControlsRectChanged(const QRect &newRect) {
             if (QString::number(element->getId()) == id) {
                 if (element->getType() == Element::FrameType) {
                     selectedFrames.append(element);
-                    QRect canvasRect(element->getCanvasPosition(), element->size());
+                    QRect canvasRect(element->getCanvasPosition(), element->getCanvasSize());
                     if (firstFrame) {
                         originalBoundingRect = canvasRect;
                         firstFrame = false;
@@ -405,15 +460,15 @@ void Canvas::onControlsRectChanged(const QRect &newRect) {
     }
     
     // Check if we need to flip the elements
-    bool flipX = newRect.width() < 0;
-    bool flipY = newRect.height() < 0;
+    bool flipX = canvasNewRect.width() < 0;
+    bool flipY = canvasNewRect.height() < 0;
     
     // Get the normalized rectangle for proper positioning
-    QRect normalizedNewRect = newRect.normalized();
+    QRect normalizedNewRect = canvasNewRect.normalized();
     
     // Update each selected frame
     for (Element *element : selectedFrames) {
-        QRect oldCanvasRect(element->getCanvasPosition(), element->size());
+        QRect oldCanvasRect(element->getCanvasPosition(), element->getCanvasSize());
         
         // Calculate relative position within the original bounding rect
         qreal relativeX = qreal(oldCanvasRect.left() - originalBoundingRect.left()) / qreal(originalBoundingRect.width());
@@ -439,8 +494,9 @@ void Canvas::onControlsRectChanged(const QRect &newRect) {
         
         // Update the element's canvas position and size
         element->setCanvasPosition(QPoint(newX, newY));
+        element->setCanvasSize(QSize(newWidth, newHeight));
         element->resize(newWidth, newHeight);
-        element->updateVisualPosition(panOffset);
+        element->updateVisualPosition(panOffset, zoomScale);
         
         // Also update any associated ClientRect
         Frame *frame = qobject_cast<Frame*>(element);
@@ -449,7 +505,7 @@ void Canvas::onControlsRectChanged(const QRect &newRect) {
             for (QObject *child : children()) {
                 ClientRect *clientRect = qobject_cast<ClientRect*>(child);
                 if (clientRect && clientRect->getAssociatedElementId() == frame->getId()) {
-                    clientRect->setGeometry(QRect(newX + panOffset.x(), newY + panOffset.y(), newWidth, newHeight));
+                    clientRect->setGeometry(frame->geometry());
                     break;
                 }
             }

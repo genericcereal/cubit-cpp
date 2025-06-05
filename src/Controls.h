@@ -12,8 +12,9 @@ public:
     // Update the position and size of the controls
     void updateGeometry(const QRect &targetRect);
     
-    // Set the canvas pan offset
+    // Set the canvas pan offset and zoom scale
     void setPanOffset(const QPoint &offset) { panOffset = offset; }
+    void setZoomScale(qreal scale) { zoomScale = scale; }
     
     // Get the current control rectangle
     QRect getControlRect() const { return currentRect; }
@@ -70,6 +71,7 @@ private:
     // Helper to determine which bar is at a point
     DragMode getBarAt(const QPoint &pos) const;
     
-    // Canvas pan offset
+    // Canvas pan offset and zoom scale
     QPoint panOffset;
+    qreal zoomScale = 1.0;
 };

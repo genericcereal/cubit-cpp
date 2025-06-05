@@ -26,10 +26,16 @@ public:
     // Canvas position management
     void setCanvasPosition(const QPoint &pos) { canvasPosition = pos; }
     QPoint getCanvasPosition() const { return canvasPosition; }
-    void updateVisualPosition(const QPoint &panOffset);
+    void setCanvasSize(const QSize &size) { canvasSize = size; }
+    QSize getCanvasSize() const { return canvasSize; }
+    void updateVisualPosition(const QPoint &panOffset, qreal zoomScale = 1.0);
     
 protected:
     ElementType elementType;
     int elementId;
     QPoint canvasPosition;  // Logical position on canvas (independent of pan)
+    QSize canvasSize;  // Logical size on canvas (independent of zoom)
+    
+    // Override resize to track canvas size
+    void resizeEvent(QResizeEvent *event) override;
 };
