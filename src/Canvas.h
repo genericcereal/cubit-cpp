@@ -4,11 +4,9 @@
 #include <QString>
 #include <QList>
 
-class ActionsPanel;
 class Controls;
 class Element;
 class ClientRect;
-class FPSWidget;
 
 class Canvas : public QWidget {
     Q_OBJECT
@@ -43,9 +41,7 @@ protected:
     void mouseReleaseEvent(QMouseEvent *event) override;
 
 private:
-    ActionsPanel *actionsPanel;
     Controls *controls;
-    FPSWidget *fpsWidget;
     
     // Canvas state
     QString mode;
