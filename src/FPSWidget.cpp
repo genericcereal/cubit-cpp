@@ -13,14 +13,23 @@ FPSWidget::FPSWidget(QWidget *parent)
     , frameCount(0)
     , lastTime(0)
     , running(false)
+    , renderingType("Unknown")
 {
     QVBoxLayout *layout = new QVBoxLayout(this);
     layout->setContentsMargins(5, 5, 5, 5);
+    layout->setSpacing(2);
     
+    // Rendering type label
+    renderTypeLabel = new QLabel("Render: Unknown", this);
+    renderTypeLabel->setAlignment(Qt::AlignCenter);
+    renderTypeLabel->setStyleSheet("QLabel { font-family: monospace; font-size: 12px; color: #ffff00; background-color: #000000; padding: 3px; border: 1px solid #333333; }");
+    
+    // FPS label
     fpsLabel = new QLabel("FPS: 0", this);
     fpsLabel->setAlignment(Qt::AlignCenter);
     fpsLabel->setStyleSheet("QLabel { font-family: monospace; font-size: 14px; color: #00ff00; background-color: #000000; padding: 5px; border: 1px solid #333333; }");
     
+    layout->addWidget(renderTypeLabel);
     layout->addWidget(fpsLabel);
     
     updateTimer = new QTimer(this);
@@ -59,6 +68,12 @@ void FPSWidget::stop()
         currentFPS = 0;
         fpsLabel->setText("FPS: 0");
     }
+}
+
+void FPSWidget::setRenderingType(const QString &type)
+{
+    renderingType = type;
+    renderTypeLabel->setText(QString("Render: %1").arg(type));
 }
 
 void FPSWidget::updateFPS()

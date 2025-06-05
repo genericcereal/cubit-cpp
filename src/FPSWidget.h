@@ -18,6 +18,8 @@ public:
     void stop();
     bool isRunning() const { return running; }
     
+    void setRenderingType(const QString &type);
+    
 signals:
     void fpsUpdated(int fps);
     
@@ -28,10 +30,12 @@ private:
     void calculateFPS();
     
     QLabel *fpsLabel;
+    QLabel *renderTypeLabel;
     QTimer *updateTimer;
     int currentFPS;
     int targetFPS;
     int frameCount;
     qint64 lastTime;
     bool running;
+    QString renderingType;
 };

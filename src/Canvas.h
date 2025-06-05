@@ -1,54 +1,24 @@
 #pragma once
 
-#include <QWidget>
-#include <QString>
-#include <QList>
+#include "CanvasBase.h"
+#include <QPaintEvent>
 
-class Controls;
-class Element;
-class ClientRect;
-
-class Canvas : public QWidget {
+class Canvas : public CanvasBase {
     Q_OBJECT
 public:
     explicit Canvas(QWidget *parent = nullptr);
     
-    // Canvas state management
-    QString getMode() const { return mode; }
-    void setMode(const QString &newMode);
+    // Override render from CanvasBase
+    void render() override;
     
-    // Element creation
-    void createFrame();
-    void createText();
-    void createVariable();
-    
-    // Control management
-    void showControls(const QRect &rect);
-    void hideControls();
-    
-    // Selection management
-    void selectElement(const QString &elementId, bool addToSelection = false);
-    void updateControlsVisibility();
-
-signals:
-    void modeChanged(const QString &newMode);
-    void elementCreated(const QString &type, const QString &name);
+    // Get rendering type
+    QString getRenderingType() const { return "CPU"; }
 
 protected:
-    void resizeEvent(QResizeEvent *event) override;
-    void mousePressEvent(QMouseEvent *event) override;
-    void mouseMoveEvent(QMouseEvent *event) override;
-    void mouseReleaseEvent(QMouseEvent *event) override;
+    void paintEvent(QPaintEvent *event) override;
 
 private:
-    Controls *controls;
-    
-    // Canvas state
-    QString mode;
-    
-    // Element management
-    QList<Element*> elements;  // Stores all types of elements (Frame, Text, Variable)
-    QList<QString> selectedElements;  // Stores IDs of selected elements
-    
-    // Frame creation state
+    // Helper methods for CPU rendering
+    void renderFrame(QPainter &painter, const QRect &rect, const QColor &color);
+    void renderText(QPainter &painter, const QString &text, const QPoint &pos, const QFont &font);
 };

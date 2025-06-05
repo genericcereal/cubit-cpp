@@ -2,12 +2,12 @@
 #include <QFrame>
 #include <QString>
 
-class Canvas;
+class CanvasBase;
 
 class ClientRect : public QFrame {
     Q_OBJECT
 public:
-    explicit ClientRect(int associatedElementId, Canvas *canvas, QWidget *parent = nullptr);
+    explicit ClientRect(int associatedElementId, CanvasBase *canvas, QWidget *parent = nullptr);
     
     int getAssociatedElementId() const { return elementId; }
 
@@ -16,5 +16,5 @@ protected:
 
 private:
     int elementId;
-    Canvas *canvasRef;
+    CanvasBase *canvasRef;
 };
