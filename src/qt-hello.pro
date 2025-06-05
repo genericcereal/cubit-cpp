@@ -14,7 +14,8 @@ SOURCES += \
     Variable.cpp \
     ClientRect.cpp \
     Controls.cpp \
-    FPSWidget.cpp
+    FPSWidget.cpp \
+    SelectionBox.cpp
 
 HEADERS += \
     Canvas.h \
@@ -28,4 +29,5 @@ HEADERS += \
     Variable.h \
     ClientRect.h \
     Controls.h \
-    FPSWidget.h
+    FPSWidget.h \
+    SelectionBox.h
