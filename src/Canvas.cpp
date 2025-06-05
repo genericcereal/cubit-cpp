@@ -13,7 +13,7 @@
 #include <QPainter>
 #include <QDebug>
 
-Canvas::Canvas(QWidget *parent) : QWidget(parent), mode("Select"), isSelecting(false), panOffset(0, 0) {
+Canvas::Canvas(QWidget *parent) : QWidget(parent), mode("Select"), isSelecting(false), isSimulatingControlDrag(false), panOffset(0, 0) {
     setContentsMargins(0, 0, 0, 0);
     setMouseTracking(true);  // Enable mouse tracking for cursor changes
     
@@ -239,8 +239,8 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
             QPoint canvasPos = (event->pos() - panOffset) / zoomScale;
             
             Frame *frame = new Frame(frameId, this);
-            frame->resize(400, 400);
-            frame->setCanvasSize(QSize(400, 400));
+            frame->resize(5, 5);
+            frame->setCanvasSize(QSize(5, 5));
             frame->setCanvasPosition(canvasPos);
             frame->updateVisualPosition(panOffset, zoomScale);
             frame->show();
@@ -277,6 +277,16 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
             // Switch back to Select mode
             setMode("Select");
             
+            // Start dragging the bottom-right corner of the controls
+            // The controls are already visible at this point
+            if (controls && controls->isVisible()) {
+                // Start drag mode directly on the bottom-right joint
+                controls->startDragMode(Controls::BottomRightJoint, event->globalPos());
+                
+                // Store that we're in a simulated drag state
+                isSimulatingControlDrag = true;
+            }
+            
         } else if (mode == "Select") {
             // In Select mode, check if click is on empty canvas
             QWidget *widget = childAt(event->pos());
@@ -299,6 +309,12 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
 }
 
 void Canvas::mouseMoveEvent(QMouseEvent *event) {
+    // If we're simulating control drag, update the controls directly
+    if (isSimulatingControlDrag && controls && controls->isVisible()) {
+        controls->updateDragPosition(event->globalPos());
+        return;
+    }
+    
     if (isSelecting && selectionBox) {
         // Update selection box
         selectionBox->updateSelection(event->pos());
@@ -333,6 +349,13 @@ void Canvas::mouseMoveEvent(QMouseEvent *event) {
 }
 
 void Canvas::mouseReleaseEvent(QMouseEvent *event) {
+    // If we're simulating control drag, end the drag
+    if (isSimulatingControlDrag && controls && controls->isVisible()) {
+        controls->endDrag();
+        isSimulatingControlDrag = false;  // End the simulated drag
+        return;
+    }
+    
     if (isSelecting && selectionBox) {
         // End selection
         isSelecting = false;
@@ -489,8 +512,8 @@ void Canvas::onControlsRectChanged(const QRect &newRect) {
         // Calculate new geometry based on normalized rectangle
         int newX = normalizedNewRect.left() + qRound(relativeX * normalizedNewRect.width());
         int newY = normalizedNewRect.top() + qRound(relativeY * normalizedNewRect.height());
-        int newWidth = qRound(relativeWidth * normalizedNewRect.width());
-        int newHeight = qRound(relativeHeight * normalizedNewRect.height());
+        int newWidth = qMax(1, qRound(relativeWidth * normalizedNewRect.width()));  // Minimum width of 1
+        int newHeight = qMax(1, qRound(relativeHeight * normalizedNewRect.height()));  // Minimum height of 1
         
         // Update the element's canvas position and size
         element->setCanvasPosition(QPoint(newX, newY));

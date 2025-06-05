@@ -77,6 +77,7 @@ private:
     // Canvas state
     QString mode;
     bool isSelecting;  // Track if we're currently drag-selecting
+    bool isSimulatingControlDrag;  // Track if we're simulating control dragging
     
     // Element management
     QList<Element*> elements;  // Stores all types of elements (Frame, Text, Variable)

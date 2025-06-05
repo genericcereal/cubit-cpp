@@ -24,8 +24,8 @@ void Element::updateVisualPosition(const QPoint &panOffset, qreal zoomScale) {
     QPoint scaledPos = canvasPosition * zoomScale + panOffset;
     QSize scaledSize = canvasSize * zoomScale;
     
-    // Debug output
-    qDebug() << "updateVisualPosition - canvasSize:" << canvasSize << "scaledSize:" << scaledSize << "zoomScale:" << zoomScale;
+    // Debug output commented out to reduce console spam
+    // qDebug() << "updateVisualPosition - canvasSize:" << canvasSize << "scaledSize:" << scaledSize << "zoomScale:" << zoomScale;
     
     setGeometry(QRect(scaledPos, scaledSize));
 }
