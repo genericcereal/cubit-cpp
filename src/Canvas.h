@@ -8,6 +8,7 @@ class ActionsPanel;
 class Controls;
 class Element;
 class ClientRect;
+class FPSWidget;
 
 class Canvas : public QWidget {
     Q_OBJECT
@@ -44,6 +45,7 @@ protected:
 private:
     ActionsPanel *actionsPanel;
     Controls *controls;
+    FPSWidget *fpsWidget;
     
     // Canvas state
     QString mode;
