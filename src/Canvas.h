@@ -42,6 +42,12 @@ public:
     QPoint getPanOffset() const { return panOffset; }
     void setPanOffset(const QPoint &offset);
     void setPanOffset(int x, int y) { setPanOffset(QPoint(x, y)); }
+    
+    // Control drag management
+    void startControlDrag(const QPoint &globalPos);
+    void updateControlDrag(const QPoint &globalPos);
+    void endControlDrag(const QPoint &globalPos);
+    Controls* getControls() const { return controls; }
 
 signals:
     void modeChanged(const QString &newMode);

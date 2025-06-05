@@ -34,6 +34,7 @@ void Canvas::resizeEvent(QResizeEvent *event) {
 
 void Canvas::showControls(const QRect &rect) {
     if (controls) {
+        controls->setPanOffset(panOffset);
         controls->updateGeometry(rect);
         controls->show();
         controls->raise();
@@ -80,12 +81,13 @@ void Canvas::updateControlsVisibility() {
             if (QString::number(element->getId()) == id) {
                 if (element->getType() == Element::FrameType) {
                     hasFrame = true;
+                    QRect canvasRect(element->getCanvasPosition(), element->size());
                     if (firstFrame) {
-                        boundingRect = element->geometry();
+                        boundingRect = canvasRect;
                         firstFrame = false;
                     } else {
                         // Expand bounding rect to include this frame
-                        boundingRect = boundingRect.united(element->geometry());
+                        boundingRect = boundingRect.united(canvasRect);
                     }
                 }
                 break;
@@ -95,6 +97,9 @@ void Canvas::updateControlsVisibility() {
     
     // Show controls if at least one Frame is selected
     if (hasFrame) {
+        if (controls) {
+            controls->setPanOffset(panOffset);
+        }
         showControls(boundingRect);
     } else {
         hideControls();
@@ -119,15 +124,36 @@ void Canvas::setMode(const QString &newMode) {
 
 void Canvas::setPanOffset(const QPoint &offset) {
     if (panOffset != offset) {
-        QPoint delta = offset - panOffset;
         panOffset = offset;
         
-        // Update positions of all child widgets (elements, client rects, controls)
-        for (QObject *child : children()) {
-            QWidget *widget = qobject_cast<QWidget*>(child);
-            if (widget) {
-                widget->move(widget->pos() + delta);
+        // Update controls pan offset
+        if (controls) {
+            controls->setPanOffset(panOffset);
+        }
+        
+        // Update visual positions of all elements based on their canvas positions
+        for (Element *element : elements) {
+            element->updateVisualPosition(panOffset);
+            
+            // Also update associated ClientRect if it's a Frame
+            if (element->getType() == Element::FrameType) {
+                Frame *frame = qobject_cast<Frame*>(element);
+                if (frame) {
+                    // Find ClientRect with the same ID
+                    for (QObject *child : children()) {
+                        ClientRect *clientRect = qobject_cast<ClientRect*>(child);
+                        if (clientRect && clientRect->getAssociatedElementId() == frame->getId()) {
+                            clientRect->move(element->getCanvasPosition() + panOffset);
+                            break;
+                        }
+                    }
+                }
             }
+        }
+        
+        // Update controls position if visible
+        if (controls && controls->isVisible()) {
+            updateControlsVisibility();
         }
         
         update();  // Trigger repaint
@@ -146,10 +172,11 @@ void Canvas::createText() {
     // Create a new text element with Canvas as parent
     Text *text = new Text(textId, this);
     
-    // Position it at a default location or center it, accounting for pan
-    int textX = (width() - text->width()) / 2 - panOffset.x();
-    int textY = (height() - text->height()) / 2 - panOffset.y();
-    text->move(textX, textY);
+    // Calculate canvas position (center of viewport in canvas coordinates)
+    QPoint canvasPos((width() - text->width()) / 2 - panOffset.x(),
+                     (height() - text->height()) / 2 - panOffset.y());
+    text->setCanvasPosition(canvasPos);
+    text->updateVisualPosition(panOffset);
     text->show();
     
     // Add to elements list
@@ -185,19 +212,19 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
             // Generate ID based on number of elements + 1
             int frameId = elements.size() + 1;
             
-            // Create a new frame at the click position (400x400)
-            // Account for pan offset
-            QPoint adjustedPos = event->pos() - panOffset;
+            // Calculate canvas position (logical position without pan)
+            QPoint canvasPos = event->pos() - panOffset;
             
             Frame *frame = new Frame(frameId, this);
             frame->resize(400, 400);
-            frame->move(adjustedPos);
+            frame->setCanvasPosition(canvasPos);
+            frame->updateVisualPosition(panOffset);
             frame->show();
             
             // Create a ClientRect with the same size and position
             ClientRect *clientRect = new ClientRect(frameId, this, this);
             clientRect->resize(400, 400);
-            clientRect->move(adjustedPos);
+            clientRect->move(canvasPos + panOffset);
             clientRect->show();
             
             // Add frame to elements list (ClientRect is not an Element)
@@ -297,11 +324,12 @@ void Canvas::onControlsRectChanged(const QRect &newRect) {
             if (QString::number(element->getId()) == id) {
                 if (element->getType() == Element::FrameType) {
                     selectedFrames.append(element);
+                    QRect canvasRect(element->getCanvasPosition(), element->size());
                     if (firstFrame) {
-                        originalBoundingRect = element->geometry();
+                        originalBoundingRect = canvasRect;
                         firstFrame = false;
                     } else {
-                        originalBoundingRect = originalBoundingRect.united(element->geometry());
+                        originalBoundingRect = originalBoundingRect.united(canvasRect);
                     }
                 }
                 break;
@@ -323,13 +351,13 @@ void Canvas::onControlsRectChanged(const QRect &newRect) {
     
     // Update each selected frame
     for (Element *element : selectedFrames) {
-        QRect oldGeometry = element->geometry();
+        QRect oldCanvasRect(element->getCanvasPosition(), element->size());
         
         // Calculate relative position within the original bounding rect
-        qreal relativeX = qreal(oldGeometry.left() - originalBoundingRect.left()) / qreal(originalBoundingRect.width());
-        qreal relativeY = qreal(oldGeometry.top() - originalBoundingRect.top()) / qreal(originalBoundingRect.height());
-        qreal relativeWidth = qreal(oldGeometry.width()) / qreal(originalBoundingRect.width());
-        qreal relativeHeight = qreal(oldGeometry.height()) / qreal(originalBoundingRect.height());
+        qreal relativeX = qreal(oldCanvasRect.left() - originalBoundingRect.left()) / qreal(originalBoundingRect.width());
+        qreal relativeY = qreal(oldCanvasRect.top() - originalBoundingRect.top()) / qreal(originalBoundingRect.height());
+        qreal relativeWidth = qreal(oldCanvasRect.width()) / qreal(originalBoundingRect.width());
+        qreal relativeHeight = qreal(oldCanvasRect.height()) / qreal(originalBoundingRect.height());
         
         // If flipped horizontally, adjust the relative X position
         if (flipX) {
@@ -347,8 +375,10 @@ void Canvas::onControlsRectChanged(const QRect &newRect) {
         int newWidth = qRound(relativeWidth * normalizedNewRect.width());
         int newHeight = qRound(relativeHeight * normalizedNewRect.height());
         
-        // Update the element's geometry
-        element->setGeometry(QRect(newX, newY, newWidth, newHeight));
+        // Update the element's canvas position and size
+        element->setCanvasPosition(QPoint(newX, newY));
+        element->resize(newWidth, newHeight);
+        element->updateVisualPosition(panOffset);
         
         // Also update any associated ClientRect
         Frame *frame = qobject_cast<Frame*>(element);
@@ -357,7 +387,7 @@ void Canvas::onControlsRectChanged(const QRect &newRect) {
             for (QObject *child : children()) {
                 ClientRect *clientRect = qobject_cast<ClientRect*>(child);
                 if (clientRect && clientRect->getAssociatedElementId() == frame->getId()) {
-                    clientRect->setGeometry(QRect(newX, newY, newWidth, newHeight));
+                    clientRect->setGeometry(QRect(newX + panOffset.x(), newY + panOffset.y(), newWidth, newHeight));
                     break;
                 }
             }
@@ -394,5 +424,35 @@ void Canvas::onControlsInnerRectClicked(const QPoint &globalPos) {
     if (clickedClientRect) {
         QString elementId = QString::number(clickedClientRect->getAssociatedElementId());
         selectElement(elementId, false);  // false = don't add to selection, replace it
+    }
+}
+
+void Canvas::startControlDrag(const QPoint &globalPos) {
+    if (controls && controls->isVisible()) {
+        // Simulate a mouse press on the controls' inner rect
+        QPoint controlsLocalPos = controls->mapFromGlobal(globalPos);
+        QMouseEvent pressEvent(QEvent::MouseButtonPress, controlsLocalPos, globalPos,
+                               Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+        QApplication::sendEvent(controls, &pressEvent);
+    }
+}
+
+void Canvas::updateControlDrag(const QPoint &globalPos) {
+    if (controls && controls->isVisible()) {
+        // Forward mouse move to controls
+        QPoint controlsLocalPos = controls->mapFromGlobal(globalPos);
+        QMouseEvent moveEvent(QEvent::MouseMove, controlsLocalPos, globalPos,
+                              Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
+        QApplication::sendEvent(controls, &moveEvent);
+    }
+}
+
+void Canvas::endControlDrag(const QPoint &globalPos) {
+    if (controls && controls->isVisible()) {
+        // Forward mouse release to controls
+        QPoint controlsLocalPos = controls->mapFromGlobal(globalPos);
+        QMouseEvent releaseEvent(QEvent::MouseButtonRelease, controlsLocalPos, globalPos,
+                                 Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
+        QApplication::sendEvent(controls, &releaseEvent);
     }
 }

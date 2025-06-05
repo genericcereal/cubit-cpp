@@ -1,5 +1,6 @@
 #include "ClientRect.h"
 #include "Canvas.h"
+#include "Controls.h"
 #include <QMouseEvent>
 
 ClientRect::ClientRect(int associatedElementId, Canvas *canvas, QWidget *parent) 
@@ -18,7 +19,35 @@ void ClientRect::mousePressEvent(QMouseEvent *event) {
         
         // Select the associated element
         canvasRef->selectElement(QString::number(elementId), addToSelection);
+        
+        // Only start drag operation if shift is NOT held
+        if (!addToSelection) {
+            canvasRef->startControlDrag(event->globalPos());
+        }
+        
         event->accept();
     }
     QFrame::mousePressEvent(event);
+}
+
+void ClientRect::mouseMoveEvent(QMouseEvent *event) {
+    if (event->buttons() & Qt::LeftButton && canvasRef) {
+        // Only forward drag updates if shift is NOT held
+        if (!(event->modifiers() & Qt::ShiftModifier)) {
+            canvasRef->updateControlDrag(event->globalPos());
+        }
+        event->accept();
+    }
+    QFrame::mouseMoveEvent(event);
+}
+
+void ClientRect::mouseReleaseEvent(QMouseEvent *event) {
+    if (event->button() == Qt::LeftButton && canvasRef) {
+        // Only end drag operation if shift is NOT held
+        if (!(event->modifiers() & Qt::ShiftModifier)) {
+            canvasRef->endControlDrag(event->globalPos());
+        }
+        event->accept();
+    }
+    QFrame::mouseReleaseEvent(event);
 }
