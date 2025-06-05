@@ -12,6 +12,9 @@ public:
     // Update the position and size of the controls
     void updateGeometry(const QRect &targetRect);
     
+    // Set the canvas pan offset
+    void setPanOffset(const QPoint &offset) { panOffset = offset; }
+    
     // Get the current control rectangle
     QRect getControlRect() const { return currentRect; }
     
@@ -66,4 +69,7 @@ private:
     
     // Helper to determine which bar is at a point
     DragMode getBarAt(const QPoint &pos) const;
+    
+    // Canvas pan offset
+    QPoint panOffset;
 };

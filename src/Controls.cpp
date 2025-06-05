@@ -3,7 +3,7 @@
 #include <QMouseEvent>
 #include <QDebug>
 
-Controls::Controls(QWidget *parent) : QWidget(parent), dragMode(None), hasDragged(false) {
+Controls::Controls(QWidget *parent) : QWidget(parent), dragMode(None), hasDragged(false), panOffset(0, 0) {
     // Set this widget to handle mouse events
     setAttribute(Qt::WA_TransparentForMouseEvents, false);
     setMouseTracking(true);  // Enable mouse tracking for hover effects
@@ -75,7 +75,7 @@ void Controls::updateGeometry(const QRect &targetRect) {
     // Add margin for bars and joints
     int margin = 30; // To account for bar width and joint size
     resize(targetRect.width() + 2 * margin, targetRect.height() + 2 * margin);
-    move(targetRect.left() - margin, targetRect.top() - margin);
+    move(targetRect.left() - margin + panOffset.x(), targetRect.top() - margin + panOffset.y());
 }
 
 void Controls::positionControls(const QRect &rect) {
@@ -159,8 +159,8 @@ void Controls::mouseMoveEvent(QMouseEvent *event) {
     if (dragMode != None && (event->buttons() & Qt::LeftButton)) {
         QPoint delta = event->globalPos() - dragStartPos;
         
-        // Consider it a drag if mouse moved more than 3 pixels
-        if (delta.manhattanLength() > 3) {
+        // Consider it a drag if mouse moved more than 5 pixels
+        if (delta.manhattanLength() > 5) {
             hasDragged = true;
         }
         

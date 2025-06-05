@@ -1,7 +1,7 @@
 #include "Element.h"
 
 Element::Element(ElementType type, int id, QWidget *parent) 
-    : QFrame(parent), elementType(type), elementId(id) {
+    : QFrame(parent), elementType(type), elementId(id), canvasPosition(0, 0) {
 }
 
 QString Element::getTypeName() const {
@@ -15,4 +15,9 @@ QString Element::getTypeName() const {
         default:
             return "Unknown";
     }
+}
+
+void Element::updateVisualPosition(const QPoint &panOffset) {
+    // Update the widget's actual position based on canvas position + pan offset
+    move(canvasPosition + panOffset);
 }

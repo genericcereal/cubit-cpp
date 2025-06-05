@@ -23,7 +23,13 @@ public:
     ElementType getType() const { return elementType; }
     QString getTypeName() const;
     
+    // Canvas position management
+    void setCanvasPosition(const QPoint &pos) { canvasPosition = pos; }
+    QPoint getCanvasPosition() const { return canvasPosition; }
+    void updateVisualPosition(const QPoint &panOffset);
+    
 protected:
     ElementType elementType;
     int elementId;
+    QPoint canvasPosition;  // Logical position on canvas (independent of pan)
 };
