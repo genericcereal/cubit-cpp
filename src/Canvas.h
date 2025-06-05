@@ -37,24 +37,30 @@ public:
     
     // Get rendering type
     QString getRenderingType() const { return "CPU"; }
+    
+    // Pan management
+    QPoint getPanOffset() const { return panOffset; }
+    void setPanOffset(const QPoint &offset);
+    void setPanOffset(int x, int y) { setPanOffset(QPoint(x, y)); }
 
 signals:
     void modeChanged(const QString &newMode);
     void elementCreated(const QString &type, const QString &name);
     void overlaysNeedRaise();  // Signal to raise overlay panels
 
+private slots:
+    void onControlsRectChanged(const QRect &newRect);
+    void onControlsInnerRectClicked(const QPoint &globalPos);
+
 protected:
     void resizeEvent(QResizeEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
+    void wheelEvent(QWheelEvent *event) override;
     void paintEvent(QPaintEvent *event) override;
 
 private:
-    // Helper methods for CPU rendering
-    void renderFrame(QPainter &painter, const QRect &rect, const QColor &color);
-    void renderText(QPainter &painter, const QString &text, const QPoint &pos, const QFont &font);
-    
     Controls *controls;
     
     // Canvas state
@@ -63,4 +69,7 @@ private:
     // Element management
     QList<Element*> elements;  // Stores all types of elements (Frame, Text, Variable)
     QList<QString> selectedElements;  // Stores IDs of selected elements
+    
+    // Pan state
+    QPoint panOffset;  // Canvas pan offset (x, y)
 };

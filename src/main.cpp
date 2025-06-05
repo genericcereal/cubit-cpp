@@ -38,13 +38,13 @@ int main(int argc, char *argv[]) {
     Canvas *canvas = new Canvas();
     centralLayout->addWidget(canvas);
     
-    // Create ActionsPanel as overlay on canvas
-    ActionsPanel *actionsPanel = new ActionsPanel(canvas);
+    // Create ActionsPanel as overlay on centralWidget (not canvas)
+    ActionsPanel *actionsPanel = new ActionsPanel(centralWidget);
     actionsPanel->setCanvas(canvas);
     actionsPanel->raise();  // Ensure it's on top
     
-    // Create FPSWidget as overlay on canvas
-    FPSWidget *fpsWidget = new FPSWidget(canvas);
+    // Create FPSWidget as overlay on centralWidget (not canvas)
+    FPSWidget *fpsWidget = new FPSWidget(centralWidget);
     fpsWidget->setFixedSize(100, 60);
     fpsWidget->start();
     fpsWidget->raise();  // Ensure it's on top
@@ -81,21 +81,21 @@ int main(int argc, char *argv[]) {
     splitter->setSizes({600, 300});   // Set initial sizes
     
     // Function to position overlays
-    auto positionOverlays = [canvas, actionsPanel, fpsWidget]() {
-        // Position ActionsPanel at bottom center of canvas
+    auto positionOverlays = [centralWidget, canvas, actionsPanel, fpsWidget]() {
+        // Position ActionsPanel at bottom center of centralWidget
         int panelWidth = actionsPanel->width();
         int panelHeight = actionsPanel->height();
-        int x = (canvas->width() - panelWidth) / 2;
-        int y = canvas->height() - panelHeight - 10;
+        int x = (centralWidget->width() - panelWidth) / 2;
+        int y = centralWidget->height() - panelHeight - 10;
         actionsPanel->move(x, y);
         
-        // Position FPSWidget at top right of canvas
-        int fpsX = canvas->width() - fpsWidget->width() - 10;
+        // Position FPSWidget at top right of centralWidget
+        int fpsX = centralWidget->width() - fpsWidget->width() - 10;
         int fpsY = 10;
         fpsWidget->move(fpsX, fpsY);
     };
     
-    // Install event filter to catch canvas resize events
+    // Install event filter to catch centralWidget resize events
     class ResizeFilter : public QObject {
         std::function<void()> callback;
     public:
@@ -109,7 +109,7 @@ int main(int argc, char *argv[]) {
     };
     
     auto *resizeFilter = new ResizeFilter(positionOverlays);
-    canvas->installEventFilter(resizeFilter);
+    centralWidget->installEventFilter(resizeFilter);
     
     // Also reposition when splitter moves
     QObject::connect(splitter, &QSplitter::splitterMoved,

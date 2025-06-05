@@ -33,21 +33,35 @@ This project is a Qt-based C++ application with a layered UI architecture:
   - Left side: Canvas - The main drawing/interaction area
   - Right side: DetailPanel - A resizable panel with scrollable sections
 
-### Canvas Layer Architecture
+### Canvas Element Architecture
 
-The Canvas implements a Z-indexed layer system with four distinct layers:
+The Canvas renders two types of elements:
 
-1. **ElementLayer** (bottom, z-index 1): Base layer for primary content elements (Frames, Text)
-2. **ClientRectLayer** (z-index 2): Layer for client rectangles that appear with frames
-3. **ControlLayer** (z-index 3): Layer for interaction controls
-4. **PanelLayer** (top, z-index 4): Layer for UI panels, contains the ActionsPanel
+1. **Frames**: Visual frame elements (QFrame-based widgets) that serve as containers
+2. **Text**: Text display elements (QFrame-based widgets with QLabel) that are always contained within Frames
+
+#### Element Hierarchy:
+
+- **Text elements are ALWAYS created within Frame containers**
+- A Frame can contain multiple Text elements
+- Text elements cannot exist independently on the Canvas
+
+#### Important Mouse Event Handling Rules:
+
+- **Frames and Text elements do NOT handle mouse events directly**
+- Each Frame has a corresponding **ClientRect** that handles all mouse interactions for the Frame and its contents
+- ClientRects are transparent overlays positioned exactly over their associated Frame
+- Text elements inherit mouse event handling from their parent Frame's ClientRect
+- This separation ensures clean event handling and consistent interaction behavior
 
 ### UI Components
 
-- **Canvas**: Main interactive area with the layered architecture
+- **Canvas**: Main interactive area that manages elements and their interactions
 - **DetailPanel**: Resizable side panel with multiple scrollable sections
-- **ActionsPanel**: A fixed-size, semi-transparent panel positioned at the bottom of the Canvas
-- **Layer classes**: Specialized QWidget-based containers for organizing UI elements by function
+- **ActionsPanel**: A fixed-size, semi-transparent panel positioned at the bottom of the main window
+- **FPSWidget**: Performance monitoring widget positioned at the top-right of the main window
+- **Controls**: Resizable control handles that appear around selected Frame elements
+- **ClientRect**: Transparent overlay widgets that handle mouse events for Frame and Text elements
 
 ### Component Relationships
 
@@ -57,13 +71,15 @@ The Canvas implements a Z-indexed layer system with four distinct layers:
 |  +-------------+ |     | Detail Panel     |
 |  | Canvas      | |     | (QWidget)        |
 |  | (QWidget)   | |     |                  |
-|  |             | |     | - Scrollable     |
-|  | [Layers:    | |     |   sections       |
-|  |  -Element   | |     |                  |
-|  |  -Control   | |     | - Vertically     |
-|  |  -Panel]    | |     |   adjustable     |
-|  |             | |     |   splitters      |
+|  |             | |     | - Element List   |
+|  | - Frames    | |     | - Properties     |
+|  | - Text      | |     | - Scrollable     |
+|  | - ClientRects| |     |   sections       |
+|  | - Controls  | |     |                  |
+|  |             | |     |                  |
 |  +-------------+ |     |                  |
+|  | ActionsPanel| |     |                  |
+|  | FPSWidget   | |     |                  |
 +------------------+     +------------------+
 ```
 

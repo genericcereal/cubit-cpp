@@ -20,6 +20,10 @@ Text::Text(int id, QWidget *parent) : Element(ElementType::TextType, id, parent)
     setObjectName(textName);
     
     content = "Text Element";
+    
+    // IMPORTANT: Text elements should not handle mouse events directly
+    // Mouse events are handled by the associated ClientRect
+    setAttribute(Qt::WA_TransparentForMouseEvents, true);
 }
 
 void Text::setText(const QString &text) {

@@ -5,18 +5,24 @@
 #include "Text.h"
 #include "Variable.h"
 #include "ClientRect.h"
+#include "ActionsPanel.h"
+#include "FPSWidget.h"
 #include <QMouseEvent>
 #include <QApplication>
 #include <QPainter>
 #include <QDebug>
 
-Canvas::Canvas(QWidget *parent) : QWidget(parent), mode("Select") {
+Canvas::Canvas(QWidget *parent) : QWidget(parent), mode("Select"), panOffset(0, 0) {
     setContentsMargins(0, 0, 0, 0);
     setMouseTracking(true);  // Enable mouse tracking for cursor changes
     
     // Create UI controls directly on Canvas
     controls = new Controls(this);
     controls->hide();  // Initially hidden
+    
+    // Connect controls signals
+    connect(controls, &Controls::rectChanged, this, &Canvas::onControlsRectChanged);
+    connect(controls, &Controls::innerRectClicked, this, &Canvas::onControlsInnerRectClicked);
     
     // Ensure controls are on top
     controls->raise();
@@ -111,6 +117,23 @@ void Canvas::setMode(const QString &newMode) {
     }
 }
 
+void Canvas::setPanOffset(const QPoint &offset) {
+    if (panOffset != offset) {
+        QPoint delta = offset - panOffset;
+        panOffset = offset;
+        
+        // Update positions of all child widgets (elements, client rects, controls)
+        for (QObject *child : children()) {
+            QWidget *widget = qobject_cast<QWidget*>(child);
+            if (widget) {
+                widget->move(widget->pos() + delta);
+            }
+        }
+        
+        update();  // Trigger repaint
+    }
+}
+
 void Canvas::createFrame() {
     // Frame creation now happens via mouse drag events
     // This method is kept for API compatibility but does nothing
@@ -123,9 +146,9 @@ void Canvas::createText() {
     // Create a new text element with Canvas as parent
     Text *text = new Text(textId, this);
     
-    // Position it at a default location or center it
-    int textX = (width() - text->width()) / 2;
-    int textY = (height() - text->height()) / 2;
+    // Position it at a default location or center it, accounting for pan
+    int textX = (width() - text->width()) / 2 - panOffset.x();
+    int textY = (height() - text->height()) / 2 - panOffset.y();
     text->move(textX, textY);
     text->show();
     
@@ -163,15 +186,18 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
             int frameId = elements.size() + 1;
             
             // Create a new frame at the click position (400x400)
+            // Account for pan offset
+            QPoint adjustedPos = event->pos() - panOffset;
+            
             Frame *frame = new Frame(frameId, this);
             frame->resize(400, 400);
-            frame->move(event->pos());
+            frame->move(adjustedPos);
             frame->show();
             
             // Create a ClientRect with the same size and position
             ClientRect *clientRect = new ClientRect(frameId, this, this);
             clientRect->resize(400, 400);
-            clientRect->move(event->pos());
+            clientRect->move(adjustedPos);
             clientRect->show();
             
             // Add frame to elements list (ClientRect is not an Element)
@@ -222,45 +248,151 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event) {
     QWidget::mouseReleaseEvent(event);
 }
 
+void Canvas::wheelEvent(QWheelEvent *event) {
+    // Get the scroll amount (positive = up, negative = down)
+    QPoint numPixels = event->pixelDelta();
+    QPoint numDegrees = event->angleDelta() / 8;
+    
+    int delta = 0;
+    if (!numPixels.isNull()) {
+        delta = numPixels.y();
+    } else if (!numDegrees.isNull()) {
+        delta = numDegrees.y() * 3;  // Convert degrees to pixels (approximate)
+    }
+    
+    // Update pan offset on Y axis
+    if (delta != 0) {
+        QPoint newOffset = panOffset;
+        newOffset.setY(panOffset.y() + delta);
+        setPanOffset(newOffset);
+        
+        // Accept the event to prevent propagation
+        event->accept();
+    } else {
+        QWidget::wheelEvent(event);
+    }
+}
+
 void Canvas::paintEvent(QPaintEvent *) {
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
     
     // Clear background
     painter.fillRect(rect(), QColor(242, 242, 242));
-    
-    // Render all elements
-    for (Element *element : elements) {
-        if (!element->isVisible()) continue;
-        
-        if (element->getType() == Element::FrameType) {
-            Frame *frame = qobject_cast<Frame*>(element);
-            if (frame) {
-                renderFrame(painter, frame->geometry(), frame->getColor());
-            }
-        } else if (element->getType() == Element::TextType) {
-            Text *text = qobject_cast<Text*>(element);
-            if (text) {
-                renderText(painter, text->getText(), text->pos(), text->font());
-            }
-        }
-    }
 }
 
 void Canvas::render() {
     update();  // Triggers paintEvent
 }
 
-void Canvas::renderFrame(QPainter &painter, const QRect &rect, const QColor &color) {
-    painter.fillRect(rect, color);
+void Canvas::onControlsRectChanged(const QRect &newRect) {
+    // Get the original bounding rect of selected frames
+    QRect originalBoundingRect;
+    bool firstFrame = true;
+    QList<Element*> selectedFrames;
     
-    // Draw border
-    painter.setPen(QPen(color.darker(120), 1));
-    painter.drawRect(rect.adjusted(0, 0, -1, -1));
+    // Collect all selected frames and calculate original bounding rect
+    for (const QString &id : selectedElements) {
+        for (Element *element : elements) {
+            if (QString::number(element->getId()) == id) {
+                if (element->getType() == Element::FrameType) {
+                    selectedFrames.append(element);
+                    if (firstFrame) {
+                        originalBoundingRect = element->geometry();
+                        firstFrame = false;
+                    } else {
+                        originalBoundingRect = originalBoundingRect.united(element->geometry());
+                    }
+                }
+                break;
+            }
+        }
+    }
+    
+    // If no frames selected, nothing to update
+    if (selectedFrames.isEmpty()) {
+        return;
+    }
+    
+    // Check if we need to flip the elements
+    bool flipX = newRect.width() < 0;
+    bool flipY = newRect.height() < 0;
+    
+    // Get the normalized rectangle for proper positioning
+    QRect normalizedNewRect = newRect.normalized();
+    
+    // Update each selected frame
+    for (Element *element : selectedFrames) {
+        QRect oldGeometry = element->geometry();
+        
+        // Calculate relative position within the original bounding rect
+        qreal relativeX = qreal(oldGeometry.left() - originalBoundingRect.left()) / qreal(originalBoundingRect.width());
+        qreal relativeY = qreal(oldGeometry.top() - originalBoundingRect.top()) / qreal(originalBoundingRect.height());
+        qreal relativeWidth = qreal(oldGeometry.width()) / qreal(originalBoundingRect.width());
+        qreal relativeHeight = qreal(oldGeometry.height()) / qreal(originalBoundingRect.height());
+        
+        // If flipped horizontally, adjust the relative X position
+        if (flipX) {
+            relativeX = 1.0 - relativeX - relativeWidth;
+        }
+        
+        // If flipped vertically, adjust the relative Y position
+        if (flipY) {
+            relativeY = 1.0 - relativeY - relativeHeight;
+        }
+        
+        // Calculate new geometry based on normalized rectangle
+        int newX = normalizedNewRect.left() + qRound(relativeX * normalizedNewRect.width());
+        int newY = normalizedNewRect.top() + qRound(relativeY * normalizedNewRect.height());
+        int newWidth = qRound(relativeWidth * normalizedNewRect.width());
+        int newHeight = qRound(relativeHeight * normalizedNewRect.height());
+        
+        // Update the element's geometry
+        element->setGeometry(QRect(newX, newY, newWidth, newHeight));
+        
+        // Also update any associated ClientRect
+        Frame *frame = qobject_cast<Frame*>(element);
+        if (frame) {
+            // Find ClientRect with the same ID
+            for (QObject *child : children()) {
+                ClientRect *clientRect = qobject_cast<ClientRect*>(child);
+                if (clientRect && clientRect->getAssociatedElementId() == frame->getId()) {
+                    clientRect->setGeometry(QRect(newX, newY, newWidth, newHeight));
+                    break;
+                }
+            }
+        }
+    }
+    
+    // Ensure controls stay on top
+    if (controls) {
+        controls->raise();
+    }
+    
+    // Emit signal to raise overlay panels
+    emit overlaysNeedRaise();
+    
+    // Trigger a repaint
+    update();
 }
 
-void Canvas::renderText(QPainter &painter, const QString &text, const QPoint &pos, const QFont &font) {
-    painter.setFont(font);
-    painter.setPen(Qt::black);
-    painter.drawText(pos, text);
+void Canvas::onControlsInnerRectClicked(const QPoint &globalPos) {
+    // Convert global position to local canvas position
+    QPoint localPos = mapFromGlobal(globalPos) - panOffset;
+    
+    // Find which ClientRect is at this position
+    ClientRect* clickedClientRect = nullptr;
+    for (QObject *child : children()) {
+        ClientRect *clientRect = qobject_cast<ClientRect*>(child);
+        if (clientRect && clientRect->geometry().contains(localPos)) {
+            clickedClientRect = clientRect;
+            break;
+        }
+    }
+    
+    // If a ClientRect was found, select its associated element
+    if (clickedClientRect) {
+        QString elementId = QString::number(clickedClientRect->getAssociatedElementId());
+        selectElement(elementId, false);  // false = don't add to selection, replace it
+    }
 }
