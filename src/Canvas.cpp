@@ -9,8 +9,7 @@
 #include <QMouseEvent>
 #include <QApplication>
 
-Canvas::Canvas(QWidget *parent) : QWidget(parent), mode("Select"), 
-    isCreatingFrame(false), tempFrame(nullptr), tempClientRect(nullptr) {
+Canvas::Canvas(QWidget *parent) : QWidget(parent), mode("Select") {
 
     setContentsMargins(0, 0, 0, 0);
     setMouseTracking(true);  // Enable mouse tracking for cursor changes
@@ -25,10 +24,6 @@ Canvas::Canvas(QWidget *parent) : QWidget(parent), mode("Select"),
     // Ensure controls and actions panel are on top
     controls->raise();
     actionsPanel->raise();
-    
-    // For testing, show controls around a sample rectangle
-    QRect testRect(300, 200, 200, 200);
-    showControls(testRect);
 }
 
 void Canvas::resizeEvent(QResizeEvent *event) {
@@ -47,12 +42,69 @@ void Canvas::showControls(const QRect &rect) {
         controls->updateGeometry(rect);
         controls->show();
         controls->raise();
+        
+        // Ensure ActionsPanel stays on top of controls
+        if (actionsPanel) {
+            actionsPanel->raise();
+        }
     }
 }
 
 void Canvas::hideControls() {
     if (controls) {
         controls->hide();
+    }
+}
+
+void Canvas::selectElement(const QString &elementId, bool addToSelection) {
+    if (!addToSelection) {
+        selectedElements.clear();
+    }
+    
+    // Only add if not already selected
+    if (!selectedElements.contains(elementId)) {
+        selectedElements.append(elementId);
+    }
+    
+    updateControlsVisibility();
+}
+
+void Canvas::updateControlsVisibility() {
+    // Hide controls if no selection
+    if (selectedElements.isEmpty()) {
+        hideControls();
+        return;
+    }
+    
+    // Check if any selected element is a Frame and calculate bounding rect
+    bool hasFrame = false;
+    QRect boundingRect;
+    bool firstFrame = true;
+    
+    for (const QString &id : selectedElements) {
+        // Find the element with this ID
+        for (Element *element : elements) {
+            if (QString::number(element->getId()) == id) {
+                if (element->getType() == Element::FrameType) {
+                    hasFrame = true;
+                    if (firstFrame) {
+                        boundingRect = element->geometry();
+                        firstFrame = false;
+                    } else {
+                        // Expand bounding rect to include this frame
+                        boundingRect = boundingRect.united(element->geometry());
+                    }
+                }
+                break;
+            }
+        }
+    }
+    
+    // Show controls if at least one Frame is selected
+    if (hasFrame) {
+        showControls(boundingRect);
+    } else {
+        hideControls();
     }
 }
 
@@ -128,7 +180,62 @@ void Canvas::createVariable() {
 }
 
 void Canvas::mousePressEvent(QMouseEvent *event) {
-    // Use normal event propagation
+    if (event->button() == Qt::LeftButton) {
+        if (mode == "Frame") {
+            // Generate ID based on number of elements + 1
+            int frameId = elements.size() + 1;
+            
+            // Create a new frame at the click position (400x400)
+            Frame *frame = new Frame(frameId, this);
+            frame->resize(400, 400);
+            frame->move(event->pos());
+            frame->show();
+            
+            // Create a ClientRect with the same size and position
+            ClientRect *clientRect = new ClientRect(frameId, this, this);
+            clientRect->resize(400, 400);
+            clientRect->move(event->pos());
+            clientRect->show();
+            
+            // Add frame to elements list (ClientRect is not an Element)
+            elements.append(frame);
+            
+            // Add to selected elements
+            selectedElements.clear();  // Clear previous selection
+            selectedElements.append(QString::number(frame->getId()));
+            updateControlsVisibility();
+            
+            // Ensure controls and actions panel stay on top
+            if (controls) {
+                controls->raise();
+            }
+            if (actionsPanel) {
+                actionsPanel->raise();
+            }
+            
+            // Emit signal that a frame was created
+            emit elementCreated("Frame", frame->getName());
+            
+            // Switch back to Select mode
+            setMode("Select");
+            
+            // Update the ActionsPanel to reflect the mode change
+            if (actionsPanel) {
+                actionsPanel->setModeSelection("Select");
+            }
+        } else {
+            // In Select mode or other modes, check if click is on empty canvas
+            QWidget *widget = childAt(event->pos());
+            
+            // If clicked on canvas itself (not on any child widget), clear selection
+            if (!widget || widget == this) {
+                selectedElements.clear();
+                updateControlsVisibility();
+            }
+        }
+    }
+    
+    // Always propagate the event
     QWidget::mousePressEvent(event);
 }
 
