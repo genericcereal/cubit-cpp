@@ -1,8 +1,8 @@
 #include "ClientRect.h"
-#include "CanvasBase.h"
+#include "Canvas.h"
 #include <QMouseEvent>
 
-ClientRect::ClientRect(int associatedElementId, CanvasBase *canvas, QWidget *parent) 
+ClientRect::ClientRect(int associatedElementId, Canvas *canvas, QWidget *parent) 
     : QFrame(parent), elementId(associatedElementId), canvasRef(canvas) {
     // Don't set a fixed size - allow dynamic sizing
     resize(400, 400);  // Default size, but can be changed
