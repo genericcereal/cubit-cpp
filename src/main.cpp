@@ -4,10 +4,12 @@
 #include <QVBoxLayout>
 #include <QWidget>
 #include <QEvent>
+#include <QDebug>
 #include <functional>
 
 #include "DetailPanel.h"
 #include "Canvas.h"
+#include "GLCanvas.h"
 #include "ElementList.h"
 #include "ActionsPanel.h"
 #include "FPSWidget.h"
@@ -33,26 +35,56 @@ int main(int argc, char *argv[]) {
     QVBoxLayout *centralLayout = new QVBoxLayout(centralWidget);
     centralLayout->setContentsMargins(0, 0, 0, 0);
     
-    // Create canvas
-    Canvas *canvas = new Canvas();
+    // Create canvas - use OpenGL if available, otherwise fall back to CPU
+    QWidget *canvas = nullptr;
+    GLCanvas *glCanvas = nullptr;
+    Canvas *cpuCanvas = nullptr;
+    
+    if (GLCanvas::isOpenGLAvailable()) {
+        qDebug() << "Using OpenGL accelerated canvas";
+        glCanvas = new GLCanvas();
+        canvas = glCanvas;
+    } else {
+        qDebug() << "OpenGL not available, using CPU canvas";
+        cpuCanvas = new Canvas();
+        canvas = cpuCanvas;
+    }
     centralLayout->addWidget(canvas);
     
     // Create ActionsPanel as overlay on canvas
     ActionsPanel *actionsPanel = new ActionsPanel(canvas);
-    actionsPanel->setCanvas(canvas);
+    if (glCanvas) {
+        actionsPanel->setGLCanvas(glCanvas);
+    } else {
+        actionsPanel->setCanvas(cpuCanvas);
+    }
     actionsPanel->raise();  // Ensure it's on top
     
     // Create FPSWidget as overlay on canvas
     FPSWidget *fpsWidget = new FPSWidget(canvas);
-    fpsWidget->setFixedSize(100, 40);
+    fpsWidget->setFixedSize(100, 60);
     fpsWidget->start();
     fpsWidget->raise();  // Ensure it's on top
     
+    // Set rendering type in FPS widget
+    if (glCanvas) {
+        fpsWidget->setRenderingType(glCanvas->getRenderingType());
+    } else {
+        fpsWidget->setRenderingType(cpuCanvas->getRenderingType());
+    }
+    
     // Connect canvas mode changes to ActionsPanel
-    QObject::connect(canvas, &Canvas::modeChanged,
-                     [actionsPanel](const QString &mode) {
-                         actionsPanel->setModeSelection(mode);
-                     });
+    if (glCanvas) {
+        QObject::connect(glCanvas, &GLCanvas::modeChanged,
+                         [actionsPanel](const QString &mode) {
+                             actionsPanel->setModeSelection(mode);
+                         });
+    } else {
+        QObject::connect(cpuCanvas, &Canvas::modeChanged,
+                         [actionsPanel](const QString &mode) {
+                             actionsPanel->setModeSelection(mode);
+                         });
+    }
 
     QSplitter *splitter = new QSplitter(Qt::Horizontal);
     splitter->addWidget(centralWidget);
@@ -61,8 +93,13 @@ int main(int argc, char *argv[]) {
     splitter->addWidget(detailPanel);
     
     // Connect canvas element creation to element list
-    QObject::connect(canvas, &Canvas::elementCreated, 
-                     detailPanel->getElementList(), &ElementList::addElement);
+    if (glCanvas) {
+        QObject::connect(glCanvas, &GLCanvas::elementCreated, 
+                         detailPanel->getElementList(), &ElementList::addElement);
+    } else {
+        QObject::connect(cpuCanvas, &Canvas::elementCreated, 
+                         detailPanel->getElementList(), &ElementList::addElement);
+    }
 
     // Configure layout behavior
     splitter->setStretchFactor(0, 1); // Left (main content) stretches

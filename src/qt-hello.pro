@@ -1,9 +1,11 @@
-QT += widgets
+QT += widgets opengl
 CONFIG += c++11
 
 SOURCES += \
     main.cpp \
+    CanvasBase.cpp \
     Canvas.cpp \
+    GLCanvas.cpp \
     DetailPanel.cpp \
     ElementList.cpp \
     Properties.cpp \
@@ -17,7 +19,9 @@ SOURCES += \
     FPSWidget.cpp
 
 HEADERS += \
+    CanvasBase.h \
     Canvas.h \
+    GLCanvas.h \
     DetailPanel.h \
     ElementList.h \
     Properties.h \
