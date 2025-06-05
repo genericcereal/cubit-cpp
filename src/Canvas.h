@@ -44,6 +44,9 @@ public:
     void setPanOffset(const QPoint &offset);
     void setPanOffset(int x, int y) { setPanOffset(QPoint(x, y)); }
     
+    // Zoom management
+    qreal getZoomScale() const { return zoomScale; }
+    
     // Control drag management
     void startControlDrag(const QPoint &globalPos);
     void updateControlDrag(const QPoint &globalPos);
@@ -81,4 +84,7 @@ private:
     
     // Pan state
     QPoint panOffset;  // Canvas pan offset (x, y)
+    
+    // Zoom state
+    qreal zoomScale = 1.0;  // Canvas zoom scale
 };

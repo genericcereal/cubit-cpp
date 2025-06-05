@@ -1,7 +1,9 @@
 #include "Element.h"
+#include <QResizeEvent>
+#include <QDebug>
 
 Element::Element(ElementType type, int id, QWidget *parent) 
-    : QFrame(parent), elementType(type), elementId(id), canvasPosition(0, 0) {
+    : QFrame(parent), elementType(type), elementId(id), canvasPosition(0, 0), canvasSize(0, 0) {
 }
 
 QString Element::getTypeName() const {
@@ -17,7 +19,19 @@ QString Element::getTypeName() const {
     }
 }
 
-void Element::updateVisualPosition(const QPoint &panOffset) {
-    // Update the widget's actual position based on canvas position + pan offset
-    move(canvasPosition + panOffset);
+void Element::updateVisualPosition(const QPoint &panOffset, qreal zoomScale) {
+    // Update the widget's actual position and size based on canvas position, pan offset, and zoom
+    QPoint scaledPos = canvasPosition * zoomScale + panOffset;
+    QSize scaledSize = canvasSize * zoomScale;
+    
+    // Debug output
+    qDebug() << "updateVisualPosition - canvasSize:" << canvasSize << "scaledSize:" << scaledSize << "zoomScale:" << zoomScale;
+    
+    setGeometry(QRect(scaledPos, scaledSize));
+}
+
+void Element::resizeEvent(QResizeEvent *event) {
+    // Canvas size is set explicitly through setCanvasSize
+    // We don't update it here to avoid corruption from zoomed sizes
+    QFrame::resizeEvent(event);
 }

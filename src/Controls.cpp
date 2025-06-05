@@ -71,22 +71,35 @@ void Controls::updateGeometry(const QRect &targetRect) {
     // Position the controls around the target rectangle
     positionControls(targetRect);
     
+    // Calculate the actual margin based on zoom scale
+    // Bar widths and joint sizes should remain fixed visually
+    int visualBarWidth = 4;
+    int visualJointSize = 25;
+    int margin = qMax(visualJointSize, visualBarWidth * 2);
+    
     // Resize the Controls widget to encompass all control bars
-    // Add margin for bars and joints
-    int margin = 30; // To account for bar width and joint size
     resize(targetRect.width() + 2 * margin, targetRect.height() + 2 * margin);
-    move(targetRect.left() - margin + panOffset.x(), targetRect.top() - margin + panOffset.y());
+    move(targetRect.left() - margin, targetRect.top() - margin);
 }
 
 void Controls::positionControls(const QRect &rect) {
+    // Fixed visual sizes for bars and joints
+    int barWidth = 4;
+    int barHeight = 4;
+    int jointSize = 25;
+    
     // Update bar sizes to match the rectangle dimensions
-    leftBar->resize(leftBar->width(), rect.height());
-    rightBar->resize(rightBar->width(), rect.height());
-    topBar->resize(rect.width(), topBar->height());
-    bottomBar->resize(rect.width(), bottomBar->height());
+    leftBar->setFixedWidth(barWidth);
+    leftBar->setFixedHeight(rect.height());
+    rightBar->setFixedWidth(barWidth);
+    rightBar->setFixedHeight(rect.height());
+    topBar->setFixedHeight(barHeight);
+    topBar->setFixedWidth(rect.width());
+    bottomBar->setFixedHeight(barHeight);
+    bottomBar->setFixedWidth(rect.width());
     
     // Position bars relative to the Controls widget (which has been moved/resized)
-    int margin = 30;
+    int margin = qMax(jointSize, barWidth * 2);
     
     // Position left bar - forms the left edge
     leftBar->move(margin - leftBar->width(), margin);
@@ -101,7 +114,6 @@ void Controls::positionControls(const QRect &rect) {
     bottomBar->move(margin, margin + rect.height());
     
     // Position corner joints - with corners at the intersections
-    int jointSize = 25;
     
     // Top-left joint - bottom-right corner at intersection of left and top bars
     topLeftJoint->move(margin - jointSize, 
