@@ -164,7 +164,7 @@ void Controls::mouseMoveEvent(QMouseEvent *event) {
         
         // Allow bars to pass each other (no minimum width/height constraints)
         currentRect = newRect;
-        positionControls(currentRect);
+        updateGeometry(currentRect);  // This will resize the Controls widget and reposition bars
         emit rectChanged(currentRect);
     } else {
         // Update cursor based on hover
