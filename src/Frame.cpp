@@ -10,4 +10,8 @@ Frame::Frame(int id, QWidget *parent) : Element(ElementType::FrameType, id, pare
     
     // Set object name for debugging/identification
     setObjectName(frameName);
+    
+    // IMPORTANT: Frames should not handle mouse events directly
+    // Mouse events are handled by the associated ClientRect
+    setAttribute(Qt::WA_TransparentForMouseEvents, true);
 }

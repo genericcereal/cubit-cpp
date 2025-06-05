@@ -19,6 +19,9 @@ signals:
     // Emitted when the control rectangle changes due to dragging
     void rectChanged(const QRect &newRect);
     
+    // Emitted when the inner rectangle is clicked (not dragged)
+    void innerRectClicked(const QPoint &globalPos);
+    
 protected:
     // Mouse event handlers
     void mousePressEvent(QMouseEvent *event) override;
@@ -38,6 +41,9 @@ private:
     QFrame *bottomLeftJoint;
     QFrame *bottomRightJoint;
     
+    // Inner rectangle (yellow with transparency)
+    QFrame *innerRect;
+    
     // Helper to position the bars and joints
     void positionControls(const QRect &rect);
     
@@ -50,11 +56,13 @@ private:
         LeftBar,
         RightBar,
         TopBar,
-        BottomBar
+        BottomBar,
+        InnerRect
     };
     DragMode dragMode;
     QPoint dragStartPos;
     QRect dragStartRect;
+    bool hasDragged;  // Track if mouse has moved during drag
     
     // Helper to determine which bar is at a point
     DragMode getBarAt(const QPoint &pos) const;

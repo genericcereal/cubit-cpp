@@ -3,7 +3,7 @@
 #include <QMouseEvent>
 #include <QDebug>
 
-Controls::Controls(QWidget *parent) : QWidget(parent), dragMode(None) {
+Controls::Controls(QWidget *parent) : QWidget(parent), dragMode(None), hasDragged(false) {
     // Set this widget to handle mouse events
     setAttribute(Qt::WA_TransparentForMouseEvents, false);
     setMouseTracking(true);  // Enable mouse tracking for hover effects
@@ -57,6 +57,13 @@ Controls::Controls(QWidget *parent) : QWidget(parent), dragMode(None) {
     bottomRightJoint->setStyleSheet("background-color: blue;");
     bottomRightJoint->setAttribute(Qt::WA_TransparentForMouseEvents, false);
     bottomRightJoint->show();
+    
+    // Create the inner rectangle with yellow color and 5% transparency
+    innerRect = new QFrame(this);
+    innerRect->setStyleSheet("background-color: rgba(255, 255, 0, 0.05);"); // Yellow with 5% opacity (95% transparency)
+    innerRect->setAttribute(Qt::WA_TransparentForMouseEvents, false); // Accept mouse events
+    innerRect->lower(); // Place it behind other controls
+    innerRect->show();
 }
 
 void Controls::updateGeometry(const QRect &targetRect) {
@@ -111,6 +118,10 @@ void Controls::positionControls(const QRect &rect) {
     // Bottom-right joint - top-left corner at intersection of right and bottom bars
     bottomRightJoint->move(margin + rect.width() - 4, 
                            margin + rect.height() - 4);
+    
+    // Position inner rectangle to fit between the bars
+    innerRect->move(margin, margin);
+    innerRect->resize(rect.width(), rect.height());
 }
 
 Controls::DragMode Controls::getBarAt(const QPoint &pos) const {
@@ -119,6 +130,7 @@ Controls::DragMode Controls::getBarAt(const QPoint &pos) const {
     if (rightBar->geometry().contains(pos)) return RightBar;
     if (topBar->geometry().contains(pos)) return TopBar;
     if (bottomBar->geometry().contains(pos)) return BottomBar;
+    if (innerRect->geometry().contains(pos)) return InnerRect;
     return None;
 }
 
@@ -129,11 +141,14 @@ void Controls::mousePressEvent(QMouseEvent *event) {
         if (dragMode != None) {
             dragStartPos = event->globalPos();
             dragStartRect = currentRect;
+            hasDragged = false;  // Reset drag tracking
             // Set appropriate arrow cursor based on which bar is being dragged
             if (dragMode == LeftBar || dragMode == RightBar) {
                 setCursor(Qt::SizeHorCursor);
             } else if (dragMode == TopBar || dragMode == BottomBar) {
                 setCursor(Qt::SizeVerCursor);
+            } else if (dragMode == InnerRect) {
+                setCursor(Qt::SizeAllCursor);
             }
         }
     }
@@ -143,6 +158,12 @@ void Controls::mousePressEvent(QMouseEvent *event) {
 void Controls::mouseMoveEvent(QMouseEvent *event) {
     if (dragMode != None && (event->buttons() & Qt::LeftButton)) {
         QPoint delta = event->globalPos() - dragStartPos;
+        
+        // Consider it a drag if mouse moved more than 3 pixels
+        if (delta.manhattanLength() > 3) {
+            hasDragged = true;
+        }
+        
         QRect newRect = dragStartRect;
         
         switch (dragMode) {
@@ -158,12 +179,18 @@ void Controls::mouseMoveEvent(QMouseEvent *event) {
             case BottomBar:
                 newRect.setBottom(dragStartRect.bottom() + delta.y());
                 break;
+            case InnerRect:
+                // Move the entire rectangle
+                newRect.moveLeft(dragStartRect.left() + delta.x());
+                newRect.moveTop(dragStartRect.top() + delta.y());
+                break;
             default:
                 break;
         }
         
-        // Allow bars to pass each other (no minimum width/height constraints)
-        currentRect = newRect;
+        // Normalize the rectangle if bars have crossed
+        // This ensures left is always less than right, and top is always less than bottom
+        currentRect = newRect.normalized();
         updateGeometry(currentRect);  // This will resize the Controls widget and reposition bars
         emit rectChanged(currentRect);
     } else {
@@ -173,6 +200,8 @@ void Controls::mouseMoveEvent(QMouseEvent *event) {
             setCursor(Qt::SizeHorCursor);
         } else if (hoverMode == TopBar || hoverMode == BottomBar) {
             setCursor(Qt::SizeVerCursor);
+        } else if (hoverMode == InnerRect) {
+            setCursor(Qt::SizeAllCursor);
         } else {
             setCursor(Qt::ArrowCursor);
         }
@@ -182,13 +211,22 @@ void Controls::mouseMoveEvent(QMouseEvent *event) {
 
 void Controls::mouseReleaseEvent(QMouseEvent *event) {
     if (event->button() == Qt::LeftButton) {
+        // Check if this was a click on the inner rectangle (not a drag)
+        if (dragMode == InnerRect && !hasDragged) {
+            emit innerRectClicked(event->globalPos());
+        }
+        
         dragMode = None;
+        hasDragged = false;
+        
         // Reset cursor based on current position
         DragMode hoverMode = getBarAt(event->pos());
         if (hoverMode == LeftBar || hoverMode == RightBar) {
             setCursor(Qt::SizeHorCursor);
         } else if (hoverMode == TopBar || hoverMode == BottomBar) {
             setCursor(Qt::SizeVerCursor);
+        } else if (hoverMode == InnerRect) {
+            setCursor(Qt::SizeAllCursor);
         } else {
             setCursor(Qt::ArrowCursor);
         }
