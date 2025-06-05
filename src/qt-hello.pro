@@ -13,7 +13,8 @@ SOURCES += \
     Text.cpp \
     Variable.cpp \
     ClientRect.cpp \
-    Controls.cpp
+    Controls.cpp \
+    FPSWidget.cpp
 
 HEADERS += \
     Canvas.h \
@@ -26,4 +27,5 @@ HEADERS += \
     Text.h \
     Variable.h \
     ClientRect.h \
-    Controls.h
+    Controls.h \
+    FPSWidget.h

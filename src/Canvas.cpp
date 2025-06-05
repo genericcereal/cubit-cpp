@@ -6,6 +6,7 @@
 #include "Text.h"
 #include "Variable.h"
 #include "ClientRect.h"
+#include "FPSWidget.h"
 #include <QMouseEvent>
 #include <QApplication>
 
@@ -20,10 +21,16 @@ Canvas::Canvas(QWidget *parent) : QWidget(parent), mode("Select") {
     
     actionsPanel = new ActionsPanel(this);
     actionsPanel->setCanvas(this);
+    
+    // Create FPS widget
+    fpsWidget = new FPSWidget(this);
+    fpsWidget->setFixedSize(100, 40);
+    fpsWidget->start();  // Start FPS tracking
 
     // Ensure controls and actions panel are on top
     controls->raise();
     actionsPanel->raise();
+    fpsWidget->raise();
 }
 
 void Canvas::resizeEvent(QResizeEvent *event) {
@@ -35,6 +42,11 @@ void Canvas::resizeEvent(QResizeEvent *event) {
     int x = (width() - panelWidth) / 2;
     int y = height() - panelHeight - 10;
     actionsPanel->move(x, y);
+    
+    // Position FPSWidget at top right corner
+    int fpsX = width() - fpsWidget->width() - 10;
+    int fpsY = 10;
+    fpsWidget->move(fpsX, fpsY);
 }
 
 void Canvas::showControls(const QRect &rect) {
@@ -43,9 +55,12 @@ void Canvas::showControls(const QRect &rect) {
         controls->show();
         controls->raise();
         
-        // Ensure ActionsPanel stays on top of controls
+        // Ensure ActionsPanel and FPSWidget stay on top of controls
         if (actionsPanel) {
             actionsPanel->raise();
+        }
+        if (fpsWidget) {
+            fpsWidget->raise();
         }
     }
 }
@@ -205,12 +220,15 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
             selectedElements.append(QString::number(frame->getId()));
             updateControlsVisibility();
             
-            // Ensure controls and actions panel stay on top
+            // Ensure controls, actions panel, and FPS widget stay on top
             if (controls) {
                 controls->raise();
             }
             if (actionsPanel) {
                 actionsPanel->raise();
+            }
+            if (fpsWidget) {
+                fpsWidget->raise();
             }
             
             // Emit signal that a frame was created
