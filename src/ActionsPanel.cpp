@@ -102,6 +102,8 @@ void ActionsPanel::setModeSelection(const QString &modeName) {
 void Action::mousePressEvent(QMouseEvent *event) {
     if (event->button() == Qt::LeftButton && parentPanel) {
         parentPanel->onActionClicked(this);
+        event->accept();  // Accept the event to stop propagation
+        return;
     }
     QFrame::mousePressEvent(event);
 }

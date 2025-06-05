@@ -26,6 +26,10 @@ public:
     // Control management
     void showControls(const QRect &rect);
     void hideControls();
+    
+    // Selection management
+    void selectElement(const QString &elementId, bool addToSelection = false);
+    void updateControlsVisibility();
 
 signals:
     void modeChanged(const QString &newMode);
@@ -46,11 +50,7 @@ private:
     
     // Element management
     QList<Element*> elements;  // Stores all types of elements (Frame, Text, Variable)
-    QList<ClientRect*> clientRects;  // Stores all client rectangles
+    QList<QString> selectedElements;  // Stores IDs of selected elements
     
     // Frame creation state
-    bool isCreatingFrame;
-    QPoint frameStartPos;
-    class Frame *tempFrame;
-    class ClientRect *tempClientRect;
 };
