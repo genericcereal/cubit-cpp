@@ -1,12 +1,10 @@
 #include "Canvas.h"
-#include "ActionsPanel.h"
 #include "Controls.h"
 #include "Element.h"
 #include "Frame.h"
 #include "Text.h"
 #include "Variable.h"
 #include "ClientRect.h"
-#include "FPSWidget.h"
 #include <QMouseEvent>
 #include <QApplication>
 
@@ -19,34 +17,12 @@ Canvas::Canvas(QWidget *parent) : QWidget(parent), mode("Select") {
     controls = new Controls(this);
     controls->hide();  // Initially hidden
     
-    actionsPanel = new ActionsPanel(this);
-    actionsPanel->setCanvas(this);
-    
-    // Create FPS widget
-    fpsWidget = new FPSWidget(this);
-    fpsWidget->setFixedSize(100, 40);
-    fpsWidget->start();  // Start FPS tracking
-
-    // Ensure controls and actions panel are on top
+    // Ensure controls are on top
     controls->raise();
-    actionsPanel->raise();
-    fpsWidget->raise();
 }
 
 void Canvas::resizeEvent(QResizeEvent *event) {
     QWidget::resizeEvent(event);
-    
-    // Position ActionsPanel at bottom center
-    int panelWidth = actionsPanel->width();
-    int panelHeight = actionsPanel->height();
-    int x = (width() - panelWidth) / 2;
-    int y = height() - panelHeight - 10;
-    actionsPanel->move(x, y);
-    
-    // Position FPSWidget at top right corner
-    int fpsX = width() - fpsWidget->width() - 10;
-    int fpsY = 10;
-    fpsWidget->move(fpsX, fpsY);
 }
 
 void Canvas::showControls(const QRect &rect) {
@@ -55,13 +31,6 @@ void Canvas::showControls(const QRect &rect) {
         controls->show();
         controls->raise();
         
-        // Ensure ActionsPanel and FPSWidget stay on top of controls
-        if (actionsPanel) {
-            actionsPanel->raise();
-        }
-        if (fpsWidget) {
-            fpsWidget->raise();
-        }
     }
 }
 
@@ -166,10 +135,6 @@ void Canvas::createText() {
     // Switch back to Select mode
     setMode("Select");
     
-    // Update the ActionsPanel to reflect the mode change
-    if (actionsPanel) {
-        actionsPanel->setModeSelection("Select");
-    }
 }
 
 void Canvas::createVariable() {
@@ -188,10 +153,6 @@ void Canvas::createVariable() {
     // Switch back to Select mode
     setMode("Select");
     
-    // Update the ActionsPanel to reflect the mode change
-    if (actionsPanel) {
-        actionsPanel->setModeSelection("Select");
-    }
 }
 
 void Canvas::mousePressEvent(QMouseEvent *event) {
@@ -220,15 +181,9 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
             selectedElements.append(QString::number(frame->getId()));
             updateControlsVisibility();
             
-            // Ensure controls, actions panel, and FPS widget stay on top
+            // Ensure controls stay on top
             if (controls) {
                 controls->raise();
-            }
-            if (actionsPanel) {
-                actionsPanel->raise();
-            }
-            if (fpsWidget) {
-                fpsWidget->raise();
             }
             
             // Emit signal that a frame was created
@@ -237,10 +192,6 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
             // Switch back to Select mode
             setMode("Select");
             
-            // Update the ActionsPanel to reflect the mode change
-            if (actionsPanel) {
-                actionsPanel->setModeSelection("Select");
-            }
         } else {
             // In Select mode or other modes, check if click is on empty canvas
             QWidget *widget = childAt(event->pos());
