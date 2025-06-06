@@ -9,6 +9,7 @@
 #include "ActionsPanel.h"
 #include "FPSWidget.h"
 #include "SelectionBox.h"
+#include "HoverIndicator.h"
 #include <QMouseEvent>
 #include <QApplication>
 #include <QPainter>
@@ -55,6 +56,12 @@ Canvas::Canvas(QWidget *parent) : QGraphicsView(parent), mode("Select"), isSelec
     selectionBox = new SelectionBox();
     scene->addItem(selectionBox);
     selectionBox->setVisible(false);
+    
+    // Create hover indicator
+    hoverIndicator = new HoverIndicator();
+    hoverIndicatorProxy = scene->addWidget(hoverIndicator);
+    hoverIndicatorProxy->setZValue(Config::ZIndex::CONTROLS - 1);  // Just below controls
+    hoverIndicatorProxy->hide();
     
     // Connect controls signals
     connect(controls, &Controls::rectChanged, this, &Canvas::onControlsRectChanged);
@@ -412,13 +419,30 @@ void Canvas::mouseMoveEvent(QMouseEvent *event) {
         return;
     }
     
+    // Check if mouse is over any ClientRect - if not, clear hover
+    // Do this before letting scene handle the event to ensure hover is always updated
+    QPointF scenePos = mapToScene(event->pos());
+    QList<QGraphicsItem*> itemsUnderMouse = scene->items(scenePos);
+    
+    bool overClientRect = false;
+    for (QGraphicsItem *item : itemsUnderMouse) {
+        QGraphicsProxyWidget *proxy = qgraphicsitem_cast<QGraphicsProxyWidget*>(item);
+        if (proxy) {
+            ClientRect *clientRect = qobject_cast<ClientRect*>(proxy->widget());
+            if (clientRect) {
+                overClientRect = true;
+                break;
+            }
+        }
+    }
+    
+    // If not over any ClientRect, clear the hover
+    if (!overClientRect && !hoveredElement.isEmpty()) {
+        setHoveredElement(QString());
+    }
+    
     // Otherwise, let the scene handle the event
     QGraphicsView::mouseMoveEvent(event);
-    
-    // Check if the event was handled by a scene item
-    if (event->isAccepted()) {
-        return;
-    }
 }
 
 void Canvas::mouseReleaseEvent(QMouseEvent *event) {
@@ -477,7 +501,7 @@ void Canvas::wheelEvent(QWheelEvent *event) {
             }
             
             // Get the position of the mouse in the view
-            QPointF mousePos = mapToScene(event->pos());
+            QPointF mousePos = mapToScene(event->position().toPoint());
             
             // Apply the scale transformation
             scale(scaleFactor, scaleFactor);
@@ -495,7 +519,7 @@ void Canvas::wheelEvent(QWheelEvent *event) {
             // Ensure the mouse position stays at the same scene coordinate
             // This makes zooming feel natural - zoom centers on mouse position
             centerOn(mousePos);
-            QPointF delta = mapToScene(event->pos()) - mousePos;
+            QPointF delta = mapToScene(event->position().toPoint()) - mousePos;
             centerOn(mapToScene(viewport()->rect().center()) - delta);
             
             event->accept();
@@ -793,4 +817,38 @@ QList<Frame*> Canvas::getSelectedFrames() const {
     }
     
     return selectedFrames;
+}
+
+void Canvas::setHoveredElement(const QString &elementId) {
+    if (hoveredElement != elementId) {
+        hoveredElement = elementId;
+        emit hoveredElementChanged(elementId);
+        
+        // Update hover indicator visibility and position
+        if (elementId.isEmpty()) {
+            // Hide hover indicator when no element is hovered
+            if (hoverIndicatorProxy) {
+                hoverIndicatorProxy->hide();
+            }
+        } else {
+            // Find the element and show hover indicator
+            for (Element *element : elements) {
+                if (QString::number(element->getId()) == elementId) {
+                    if (element->getType() == Element::FrameType) {
+                        Frame *frame = qobject_cast<Frame*>(element);
+                        if (frame && hoverIndicator && hoverIndicatorProxy) {
+                            // Get the frame's geometry
+                            QRect frameRect(frame->getCanvasPosition(), frame->getCanvasSize());
+                            
+                            // Update hover indicator geometry
+                            hoverIndicator->setGeometry(frameRect);
+                            hoverIndicatorProxy->setPos(frameRect.topLeft());
+                            hoverIndicatorProxy->show();
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+    }
 }
