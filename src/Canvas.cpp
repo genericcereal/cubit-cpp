@@ -688,7 +688,7 @@ void Canvas::cancelActiveTextEditing() {
         if (element->getType() == Element::TextType) {
             Text *text = qobject_cast<Text*>(element);
             if (text && text->isEditing()) {
-                text->endEditing(false);  // false = don't save changes
+                text->endEditing(true);  // true = save changes
             }
         }
     }
