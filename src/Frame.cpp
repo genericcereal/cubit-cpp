@@ -6,7 +6,7 @@ Frame::Frame(int id, QWidget *parent) : Element(ElementType::FrameType, id, pare
     resize(400, 400);  // Default size, but can be changed
     setFrameStyle(QFrame::NoFrame);
     setLineWidth(0);
-    setStyleSheet("QFrame { background-color: #f0f0f0; border: none; }");
+    setStyleSheet("QFrame { background-color: rgba(128, 0, 128, 0.2); border: none; }");
     
     // Set object name for debugging/identification
     setObjectName(frameName);

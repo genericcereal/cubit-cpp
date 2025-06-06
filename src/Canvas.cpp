@@ -12,6 +12,7 @@
 #include <QApplication>
 #include <QPainter>
 #include <QDebug>
+#include <QVariant>
 
 Canvas::Canvas(QWidget *parent) : QGraphicsView(parent), mode("Select"), isSelecting(false), isSimulatingControlDrag(false) {
     setContentsMargins(0, 0, 0, 0);
@@ -37,18 +38,24 @@ Canvas::Canvas(QWidget *parent) : QGraphicsView(parent), mode("Select"), isSelec
     // so we need to account for that when setting the proxy position
     controlsProxy->setPos(controls->getIntendedPosition());
     controlsProxy->setZValue(1000);  // High z-value to ensure it's on top
+    controlsProxy->hide();  // Initially hide controls until something is selected
     
-    // Create selection box on viewport for now
-    selectionBox = new SelectionBox(viewport());
-    selectionBox->hide();
+    // Ensure the proxy widget itself is transparent
+    controlsProxy->setAutoFillBackground(false);
+    
+    // TEMPORARILY DISABLED - Selection box not implemented yet
+    // selectionBox = new SelectionBox(viewport());
+    // selectionBox->hide();
+    selectionBox = nullptr;
     
     // Connect controls signals
     connect(controls, &Controls::rectChanged, this, &Canvas::onControlsRectChanged);
     connect(controls, &Controls::innerRectClicked, this, &Canvas::onControlsInnerRectClicked);
     connect(controls, &Controls::innerRectDoubleClicked, this, &Canvas::onControlsInnerRectDoubleClicked);
     
+    // TEMPORARILY DISABLED - Selection box not implemented yet
     // Ensure proper z-ordering: selection box on top
-    selectionBox->raise();
+    // selectionBox->raise();
 }
 
 void Canvas::resizeEvent(QResizeEvent *event) {
@@ -71,10 +78,11 @@ void Canvas::showControls(const QRect &rect) {
         controlsProxy->setPos(controls->getIntendedPosition());
         controlsProxy->show();
         
+        // TEMPORARILY DISABLED - Selection box not implemented yet
         // Keep selection box above controls
-        if (selectionBox) {
-            selectionBox->raise();
-        }
+        // if (selectionBox) {
+        //     selectionBox->raise();
+        // }
         
         // Emit signal to raise overlay panels
         emit overlaysNeedRaise();
@@ -104,8 +112,6 @@ void Canvas::selectElement(const QString &elementId, bool addToSelection) {
 }
 
 void Canvas::updateControlsVisibility() {
-    // TEMPORARILY DISABLED - Controls are always visible
-    /*
     // Hide controls if no selection
     if (selectedElements.isEmpty()) {
         cancelActiveTextEditing();
@@ -124,14 +130,14 @@ void Canvas::updateControlsVisibility() {
             if (QString::number(element->getId()) == id) {
                 if (element->getType() == Element::FrameType) {
                     hasFrame = true;
-                    // Get the visual rect (with zoom applied)
-                    QRect visualRect = element->geometry();
+                    // Get the frame's scene rect
+                    QRect frameRect(element->getCanvasPosition(), element->getCanvasSize());
                     if (firstFrame) {
-                        boundingRect = visualRect;
+                        boundingRect = frameRect;
                         firstFrame = false;
                     } else {
                         // Expand bounding rect to include this frame
-                        boundingRect = boundingRect.united(visualRect);
+                        boundingRect = boundingRect.united(frameRect);
                     }
                 }
                 break;
@@ -141,15 +147,10 @@ void Canvas::updateControlsVisibility() {
     
     // Show controls if at least one Frame is selected
     if (hasFrame) {
-        if (controls) {
-            controls->setPanOffset(panOffset);
-            controls->setZoomScale(zoomScale);
-        }
         showControls(boundingRect);
     } else {
         hideControls();
     }
-    */
 }
 
 void Canvas::setMode(const QString &newMode) {
@@ -275,30 +276,19 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
     
     if (event->button() == Qt::LeftButton) {
         if (mode == "Frame" || mode == "Text") {
-            // TEMPORARILY DISABLED - Frame/ClientRect creation
-            /*
             // Generate ID based on number of elements + 1
             int frameId = elements.size() + 1;
             
-            // Calculate canvas position (logical position without pan and zoom)
-            QPoint canvasPos = (event->pos() - panOffset) / zoomScale;
+            // Convert view position to scene position
+            QPointF scenePos = mapToScene(event->pos());
             
-            Frame *frame = new Frame(frameId, this);
+            // Create a Frame widget without parent for proxy widget
+            Frame *frame = new Frame(frameId, nullptr);
             frame->resize(5, 5);
             frame->setCanvasSize(QSize(5, 5));
-            frame->setCanvasPosition(canvasPos);
-            frame->updateVisualPosition(panOffset, zoomScale);
-            frame->show();
+            frame->setCanvasPosition(scenePos.toPoint());
             
-            // Create a ClientRect with the same size and position
-            ClientRect *clientRect = new ClientRect(frameId, this, this);
-            clientRect->setGeometry(frame->geometry());
-            clientRect->show();
-            
-            // Add frame to elements list (ClientRect is not an Element)
-            elements.append(frame);
-            
-            // If in Text mode, create a Text element inside the frame
+            // If in Text mode, create a Text element inside the frame BEFORE adding to scene
             if (mode == "Text") {
                 int textId = elements.size() + 1;
                 Text *text = new Text(textId, frame);
@@ -316,22 +306,35 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
                 emit elementCreated("Text", text->getName());
             }
             
+            // Add Frame to scene as a proxy widget (after adding any children)
+            QGraphicsProxyWidget *frameProxy = scene->addWidget(frame);
+            frameProxy->setPos(scenePos);
+            frameProxy->resize(frame->size());  // Explicitly set proxy size
+            frameProxy->setZValue(10);  // Below controls but above background
+            
+            // Create a ClientRect without parent for proxy widget
+            ClientRect *clientRect = new ClientRect(frameId, this, nullptr);
+            clientRect->resize(20, 20);  // Match the frame size
+            
+            // Add ClientRect to scene as a proxy widget
+            QGraphicsProxyWidget *clientProxy = scene->addWidget(clientRect);
+            clientProxy->setPos(scenePos);
+            clientProxy->resize(clientRect->size());  // Explicitly set proxy size
+            clientProxy->setZValue(11);  // Slightly above frame to handle mouse events
+            
+            // Store proxy references (we'll need to add these as member variables)
+            frame->setProperty("proxy", QVariant::fromValue(frameProxy));
+            clientRect->setProperty("proxy", QVariant::fromValue(clientProxy));
+            
+            // Add frame to elements list (ClientRect is not an Element)
+            elements.append(frame);
+            
             // Add to selected elements - always select the frame
             cancelActiveTextEditing();
             selectedElements.clear();  // Clear previous selection
             selectedElements.append(QString::number(frame->getId()));
             updateControlsVisibility();
             emit selectionChanged();
-            
-            // Ensure controls stay on top
-            if (controls) {
-                controls->raise();
-            }
-            
-            // Keep selection box above controls
-            if (selectionBox) {
-                selectionBox->raise();
-            }
             
             // Emit signal that a frame was created
             emit elementCreated("Frame", frame->getName());
@@ -343,41 +346,39 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
             setMode("Select");
             
             // Start dragging the bottom-right corner of the controls
-            // The controls are already visible at this point
-            if (controls && controls->isVisible()) {
-                // Start drag mode directly on the bottom-right joint
+            // Force showing the controls and start the drag
+            if (controls && controlsProxy) {
+                // Ensure controls are visible (updateControlsVisibility might not have taken effect yet)
+                if (!controlsProxy->isVisible()) {
+                    controlsProxy->show();
+                }
+                
+                // Get the current rect of the controls (should be the frame's position)
+                QRect frameRect(frame->getCanvasPosition(), frame->getCanvasSize());
+                
+                // For synthetic drag, we start from the current mouse position
+                // The Controls widget will calculate the delta from this position
                 controls->startDragMode(Controls::BottomRightResizeJoint, event->globalPos());
                 
                 // Store that we're in a simulated drag state
                 isSimulatingControlDrag = true;
             }
-            */
             
         } else if (mode == "Select") {
-            // TEMPORARILY DISABLED - Selection box
-            /*
-            // In Select mode, check if click is on empty canvas
-            QWidget *widget = childAt(event->pos());
-            
-            // If clicked on canvas itself (not on any child widget), start selection box
-            if (!widget || widget == this || widget == selectionBox) {
-                // Clear selection
-                cancelActiveTextEditing();
-                selectedElements.clear();
-                emit selectionChanged();
-                updateControlsVisibility();
-                
-                // Start selection box
-                isSelecting = true;
-                selectionBox->startSelection(event->pos());
-            }
-            */
+            // TEMPORARILY DISABLED - Selection box not implemented yet
         }
     }
 }
 
 void Canvas::mouseMoveEvent(QMouseEvent *event) {
-    // First, let the scene handle the event
+    // If we're simulating control drag, handle it first before letting the scene process events
+    if (isSimulatingControlDrag && controls) {
+        controls->updateDragPosition(event->globalPos());
+        event->accept();  // Mark the event as handled
+        return;
+    }
+    
+    // Otherwise, let the scene handle the event
     QGraphicsView::mouseMoveEvent(event);
     
     // Check if the event was handled by a scene item
@@ -385,49 +386,19 @@ void Canvas::mouseMoveEvent(QMouseEvent *event) {
         return;
     }
     
-    // If we're simulating control drag, update the controls directly
-    if (isSimulatingControlDrag && controls && controlsProxy && controlsProxy->isVisible()) {
-        controls->updateDragPosition(event->globalPos());
-        return;
-    }
-    
-    // TEMPORARILY DISABLED - Selection box
-    /*
-    if (isSelecting && selectionBox) {
-        // Update selection box
-        selectionBox->updateSelection(event->pos());
-        
-        // Check for overlapping ClientRects
-        QRect selectionRect = selectionBox->getSelectionRect();
-        cancelActiveTextEditing();
-        selectedElements.clear();
-        emit selectionChanged();
-        
-        // Find all ClientRects that intersect with the selection box
-        for (QObject *child : children()) {
-            ClientRect *clientRect = qobject_cast<ClientRect*>(child);
-            if (clientRect) {
-                // Get the visual rect of the ClientRect
-                QRect clientRectVisual = clientRect->geometry();
-                
-                // Check if it intersects with the selection box
-                if (selectionRect.intersects(clientRectVisual)) {
-                    QString elementId = QString::number(clientRect->getAssociatedElementId());
-                    if (!selectedElements.contains(elementId)) {
-                        selectedElements.append(elementId);
-                    }
-                }
-            }
-        }
-        
-        // Update controls visibility based on new selection
-        updateControlsVisibility();
-    }
-    */
+    // TEMPORARILY DISABLED - Selection box not implemented yet
 }
 
 void Canvas::mouseReleaseEvent(QMouseEvent *event) {
-    // First, let the scene handle the event
+    // If we're simulating control drag, handle it first
+    if (isSimulatingControlDrag && controls) {
+        controls->endDrag();
+        isSimulatingControlDrag = false;  // End the simulated drag
+        event->accept();
+        return;
+    }
+    
+    // Otherwise, let the scene handle the event
     QGraphicsView::mouseReleaseEvent(event);
     
     // Check if the event was handled by a scene item
@@ -435,27 +406,7 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event) {
         return;
     }
     
-    // If we're simulating control drag, end the drag
-    if (isSimulatingControlDrag && controls && controlsProxy && controlsProxy->isVisible()) {
-        controls->endDrag();
-        isSimulatingControlDrag = false;  // End the simulated drag
-        return;
-    }
-    
-    // TEMPORARILY DISABLED - Selection box
-    /*
-    if (isSelecting && selectionBox) {
-        // End selection
-        isSelecting = false;
-        selectionBox->endSelection();
-        
-        // Clear the selection box geometry to prevent flickering on next use
-        selectionBox->setGeometry(0, 0, 0, 0);
-        
-        // Keep the final selection
-        updateControlsVisibility();
-    }
-    */
+    // TEMPORARILY DISABLED - Selection box not implemented yet
 }
 
 void Canvas::wheelEvent(QWheelEvent *event) {
@@ -536,21 +487,17 @@ void Canvas::render() {
     update();  // Triggers paintEvent
 }
 
-void Canvas::onControlsRectChanged(const QRect &) {
+void Canvas::onControlsRectChanged(const QRect &newRect) {
     // When controls are dragged/resized, update the proxy position
     if (controlsProxy && controls) {
         // The controls widget stores its intended position
         controlsProxy->setPos(controls->getIntendedPosition());
     }
     
-    // TEMPORARILY DISABLED - Frame/element updates
-    /*
-    // Convert newRect from visual space to canvas space
-    QRect canvasNewRect;
-    canvasNewRect.setTopLeft((newRect.topLeft() - panOffset) / zoomScale);
-    canvasNewRect.setSize(newRect.size() / zoomScale);
+    // The newRect is already in scene coordinates
+    QRect sceneRect = newRect;
     
-    // Get the original bounding rect of selected frames in canvas space
+    // Get the original bounding rect of selected frames
     QRect originalBoundingRect;
     bool firstFrame = true;
     QList<Element*> selectedFrames;
@@ -561,12 +508,12 @@ void Canvas::onControlsRectChanged(const QRect &) {
             if (QString::number(element->getId()) == id) {
                 if (element->getType() == Element::FrameType) {
                     selectedFrames.append(element);
-                    QRect canvasRect(element->getCanvasPosition(), element->getCanvasSize());
+                    QRect frameRect(element->getCanvasPosition(), element->getCanvasSize());
                     if (firstFrame) {
-                        originalBoundingRect = canvasRect;
+                        originalBoundingRect = frameRect;
                         firstFrame = false;
                     } else {
-                        originalBoundingRect = originalBoundingRect.united(canvasRect);
+                        originalBoundingRect = originalBoundingRect.united(frameRect);
                     }
                 }
                 break;
@@ -580,21 +527,24 @@ void Canvas::onControlsRectChanged(const QRect &) {
     }
     
     // Check if we need to flip the elements
-    bool flipX = canvasNewRect.width() < 0;
-    bool flipY = canvasNewRect.height() < 0;
+    bool flipX = sceneRect.width() < 0;
+    bool flipY = sceneRect.height() < 0;
     
     // Get the normalized rectangle for proper positioning
-    QRect normalizedNewRect = canvasNewRect.normalized();
+    QRect normalizedNewRect = sceneRect.normalized();
     
     // Update each selected frame
     for (Element *element : selectedFrames) {
-        QRect oldCanvasRect(element->getCanvasPosition(), element->getCanvasSize());
+        Frame *frame = qobject_cast<Frame*>(element);
+        if (!frame) continue;
+        
+        QRect oldRect(element->getCanvasPosition(), element->getCanvasSize());
         
         // Calculate relative position within the original bounding rect
-        qreal relativeX = qreal(oldCanvasRect.left() - originalBoundingRect.left()) / qreal(originalBoundingRect.width());
-        qreal relativeY = qreal(oldCanvasRect.top() - originalBoundingRect.top()) / qreal(originalBoundingRect.height());
-        qreal relativeWidth = qreal(oldCanvasRect.width()) / qreal(originalBoundingRect.width());
-        qreal relativeHeight = qreal(oldCanvasRect.height()) / qreal(originalBoundingRect.height());
+        qreal relativeX = qreal(oldRect.left() - originalBoundingRect.left()) / qreal(originalBoundingRect.width());
+        qreal relativeY = qreal(oldRect.top() - originalBoundingRect.top()) / qreal(originalBoundingRect.height());
+        qreal relativeWidth = qreal(oldRect.width()) / qreal(originalBoundingRect.width());
+        qreal relativeHeight = qreal(oldRect.height()) / qreal(originalBoundingRect.height());
         
         // If flipped horizontally, adjust the relative X position
         if (flipX) {
@@ -612,45 +562,37 @@ void Canvas::onControlsRectChanged(const QRect &) {
         int newWidth = qMax(1, qRound(relativeWidth * normalizedNewRect.width()));  // Minimum width of 1
         int newHeight = qMax(1, qRound(relativeHeight * normalizedNewRect.height()));  // Minimum height of 1
         
-        // Update the element's canvas position and size
-        element->setCanvasPosition(QPoint(newX, newY));
-        element->setCanvasSize(QSize(newWidth, newHeight));
-        element->resize(newWidth, newHeight);
-        element->updateVisualPosition(panOffset, zoomScale);
+        // Update the frame's canvas position and size
+        frame->setCanvasPosition(QPoint(newX, newY));
+        frame->setCanvasSize(QSize(newWidth, newHeight));
+        frame->resize(newWidth, newHeight);
         
-        // Also update any associated ClientRect
-        Frame *frame = qobject_cast<Frame*>(element);
-        if (frame) {
-            // Find ClientRect with the same ID
-            for (QObject *child : children()) {
-                ClientRect *clientRect = qobject_cast<ClientRect*>(child);
+        // Update the frame proxy position and size
+        QGraphicsProxyWidget *frameProxy = frame->property("proxy").value<QGraphicsProxyWidget*>();
+        if (frameProxy) {
+            frameProxy->setPos(newX, newY);
+            frameProxy->resize(newWidth, newHeight);
+        }
+        
+        // Find and update associated ClientRect
+        // Look through all graphics items in the scene
+        QList<QGraphicsItem*> items = scene->items();
+        for (QGraphicsItem *item : items) {
+            QGraphicsProxyWidget *proxy = qgraphicsitem_cast<QGraphicsProxyWidget*>(item);
+            if (proxy) {
+                ClientRect *clientRect = qobject_cast<ClientRect*>(proxy->widget());
                 if (clientRect && clientRect->getAssociatedElementId() == frame->getId()) {
-                    clientRect->setGeometry(frame->geometry());
+                    clientRect->resize(newWidth, newHeight);
+                    proxy->setPos(newX, newY);
+                    proxy->resize(newWidth, newHeight);
                     break;
                 }
             }
         }
     }
     
-    // Ensure controls stay on top
-    if (controls) {
-        controls->raise();
-    }
-    
-    // Keep selection box above controls
-    if (selectionBox) {
-        selectionBox->raise();
-    }
-    
-    // Emit signal to raise overlay panels
-    emit overlaysNeedRaise();
-    
     // Emit signal that properties have changed
     emit propertiesChanged();
-    
-    // Trigger a repaint
-    update();
-    */
 }
 
 void Canvas::onControlsInnerRectClicked(const QPoint &globalPos) {
@@ -671,16 +613,22 @@ void Canvas::onControlsInnerRectClicked(const QPoint &globalPos) {
         return;
     }
     
-    // Convert global position to widget-local position
-    QPoint widgetPos = mapFromGlobal(globalPos);
+    // Convert global position to scene position
+    QPointF scenePos = mapToScene(mapFromGlobal(globalPos));
     
-    // Find which ClientRect is at this position
+    // Find all items at this position in the scene
+    QList<QGraphicsItem *> itemsAtPos = scene->items(scenePos);
+    
+    // Look for a ClientRect in the items (excluding the controls themselves)
     ClientRect* clickedClientRect = nullptr;
-    for (QObject *child : children()) {
-        ClientRect *clientRect = qobject_cast<ClientRect*>(child);
-        if (clientRect && clientRect->geometry().contains(widgetPos)) {
-            clickedClientRect = clientRect;
-            break;
+    for (QGraphicsItem *item : itemsAtPos) {
+        QGraphicsProxyWidget *proxy = qgraphicsitem_cast<QGraphicsProxyWidget*>(item);
+        if (proxy && proxy->widget()) {
+            ClientRect *clientRect = qobject_cast<ClientRect*>(proxy->widget());
+            if (clientRect) {
+                clickedClientRect = clientRect;
+                break;  // Found a ClientRect, stop looking
+            }
         }
     }
     

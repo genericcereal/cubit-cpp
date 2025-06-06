@@ -12,17 +12,17 @@ Controls::Controls(QWidget *parent) : QWidget(parent), dragMode(Controls::None),
     
     // Configure for use in QGraphicsProxyWidget
     setAttribute(Qt::WA_TranslucentBackground, true);
+    setAttribute(Qt::WA_NoSystemBackground, true);
+    setAttribute(Qt::WA_OpaquePaintEvent, false);
+    setAutoFillBackground(false);
     setFocusPolicy(Qt::StrongFocus);
-    setStyleSheet("background-color: transparent;");
+    setStyleSheet("QWidget { background-color: transparent; }");
     
     // Initialize single-click timer for double-click detection
+    // (Currently not used since we emit clicks immediately, but kept for future use)
     singleClickTimer = new QTimer(this);
     singleClickTimer->setSingleShot(true);
     singleClickTimer->setInterval(QApplication::doubleClickInterval());
-    connect(singleClickTimer, &QTimer::timeout, [this]() {
-        // Timer expired, this was a single click
-        emit innerRectClicked(pendingClickPos);
-    });
     
     // Create the four control bars
     leftBar = new QFrame(this);
@@ -523,9 +523,12 @@ void Controls::mouseReleaseEvent(QMouseEvent *event) {
     if (event->button() == Qt::LeftButton) {
         // Check if this was a click on the inner rectangle (not a drag)
         if (dragMode == InnerRect && !hasDragged) {
-            // Start timer to wait for potential double-click
+            // Emit immediate click for selection purposes
+            emit innerRectClicked(event->globalPos());
+            
+            // Also store for potential double-click detection
             pendingClickPos = event->globalPos();
-            singleClickTimer->start();
+            // Don't start the timer - we've already handled the single click
         }
         
         dragMode = Controls::None;
