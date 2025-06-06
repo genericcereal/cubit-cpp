@@ -76,6 +76,7 @@ void Canvas::selectElement(const QString &elementId, bool addToSelection) {
     }
     
     updateControlsVisibility();
+    emit selectionChanged();
 }
 
 void Canvas::updateControlsVisibility() {
@@ -277,6 +278,7 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
             selectedElements.clear();  // Clear previous selection
             selectedElements.append(QString::number(frame->getId()));
             updateControlsVisibility();
+            emit selectionChanged();
             
             // Ensure controls stay on top
             if (controls) {
@@ -301,7 +303,7 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
             // The controls are already visible at this point
             if (controls && controls->isVisible()) {
                 // Start drag mode directly on the bottom-right joint
-                controls->startDragMode(Controls::BottomRightJoint, event->globalPos());
+                controls->startDragMode(Controls::BottomRightResizeJoint, event->globalPos());
                 
                 // Store that we're in a simulated drag state
                 isSimulatingControlDrag = true;
@@ -316,6 +318,7 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
                 // Clear selection
                 cancelActiveTextEditing();
                 selectedElements.clear();
+                emit selectionChanged();
                 updateControlsVisibility();
                 
                 // Start selection box
@@ -344,6 +347,7 @@ void Canvas::mouseMoveEvent(QMouseEvent *event) {
         QRect selectionRect = selectionBox->getSelectionRect();
         cancelActiveTextEditing();
         selectedElements.clear();
+        emit selectionChanged();
         
         // Find all ClientRects that intersect with the selection box
         for (QObject *child : children()) {
@@ -570,6 +574,9 @@ void Canvas::onControlsRectChanged(const QRect &newRect) {
     // Emit signal to raise overlay panels
     emit overlaysNeedRaise();
     
+    // Emit signal that properties have changed
+    emit propertiesChanged();
+    
     // Trigger a repaint
     update();
 }
@@ -613,6 +620,7 @@ void Canvas::onControlsInnerRectClicked(const QPoint &globalPos) {
         // No element found under cursor - clear selection
         cancelActiveTextEditing();
         selectedElements.clear();
+        emit selectionChanged();
         updateControlsVisibility();
     }
 }
@@ -692,4 +700,25 @@ void Canvas::cancelActiveTextEditing() {
             }
         }
     }
+}
+
+QList<Frame*> Canvas::getSelectedFrames() const {
+    QList<Frame*> selectedFrames;
+    
+    for (const QString &id : selectedElements) {
+        // Find the element with this ID
+        for (Element *element : elements) {
+            if (QString::number(element->getId()) == id) {
+                if (element->getType() == Element::FrameType) {
+                    Frame *frame = qobject_cast<Frame*>(element);
+                    if (frame) {
+                        selectedFrames.append(frame);
+                    }
+                }
+                break;
+            }
+        }
+    }
+    
+    return selectedFrames;
 }

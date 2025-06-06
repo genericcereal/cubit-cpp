@@ -7,9 +7,9 @@ ClientRect::ClientRect(int associatedElementId, Canvas *canvas, QWidget *parent)
     : QFrame(parent), elementId(associatedElementId), canvasRef(canvas) {
     // Don't set a fixed size - allow dynamic sizing
     resize(400, 400);  // Default size, but can be changed
-    setFrameStyle(QFrame::Box);
-    setLineWidth(1);
-    setStyleSheet("QFrame { background-color: rgba(173, 216, 230, 0.7); border: 2px solid #4682B4; }");
+    setFrameStyle(QFrame::NoFrame);
+    setLineWidth(0);
+    setStyleSheet("QFrame { background-color: rgba(173, 216, 230, 0.7); border: none; }");
 }
 
 void ClientRect::mousePressEvent(QMouseEvent *event) {

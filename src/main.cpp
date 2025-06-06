@@ -71,6 +71,9 @@ int main(int argc, char *argv[]) {
     DetailPanel *detailPanel = new DetailPanel();
     splitter->addWidget(detailPanel);
     
+    // Connect canvas to detail panel for property updates
+    detailPanel->setCanvas(canvas);
+    
     // Connect canvas element creation to element list
     QObject::connect(canvas, &Canvas::elementCreated, 
                      detailPanel->getElementList(), &ElementList::addElement);
