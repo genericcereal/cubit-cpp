@@ -2,11 +2,22 @@
 #include <QFrame>
 #include <QMouseEvent>
 #include <QDebug>
+#include <QTimer>
+#include <QApplication>
 
 Controls::Controls(QWidget *parent) : QWidget(parent), dragMode(Controls::None), hasDragged(false), panOffset(0, 0) {
     // Set this widget to handle mouse events
     setAttribute(Qt::WA_TransparentForMouseEvents, false);
     setMouseTracking(true);  // Enable mouse tracking for hover effects
+    
+    // Initialize single-click timer for double-click detection
+    singleClickTimer = new QTimer(this);
+    singleClickTimer->setSingleShot(true);
+    singleClickTimer->setInterval(QApplication::doubleClickInterval());
+    connect(singleClickTimer, &QTimer::timeout, [this]() {
+        // Timer expired, this was a single click
+        emit innerRectClicked(pendingClickPos);
+    });
     
     // Create the four control bars
     leftBar = new QFrame(this);
@@ -248,6 +259,13 @@ Controls::DragMode Controls::getBarAt(const QPoint &pos) const {
 void Controls::mousePressEvent(QMouseEvent *event) {
     qDebug() << "Controls::mousePressEvent at" << event->pos();
     if (event->button() == Qt::LeftButton) {
+        // If a single-click timer is running and we get another press, it might be a double-click
+        // Don't start drag mode if this could be a double-click
+        if (singleClickTimer->isActive() && getBarAt(event->pos()) == InnerRect) {
+            // This could be the second click of a double-click
+            return;
+        }
+        
         dragMode = getBarAt(event->pos());
         if (dragMode != Controls::None) {
             dragStartPos = event->globalPos();
@@ -357,7 +375,9 @@ void Controls::mouseReleaseEvent(QMouseEvent *event) {
     if (event->button() == Qt::LeftButton) {
         // Check if this was a click on the inner rectangle (not a drag)
         if (dragMode == InnerRect && !hasDragged) {
-            emit innerRectClicked(event->globalPos());
+            // Start timer to wait for potential double-click
+            pendingClickPos = event->globalPos();
+            singleClickTimer->start();
         }
         
         dragMode = Controls::None;
@@ -380,4 +400,16 @@ void Controls::mouseReleaseEvent(QMouseEvent *event) {
         }
     }
     QWidget::mouseReleaseEvent(event);
+}
+
+void Controls::mouseDoubleClickEvent(QMouseEvent *event) {
+    qDebug() << "Controls::mouseDoubleClickEvent at" << event->pos();
+    // Check if double-click is on the inner rectangle
+    if (innerRect->geometry().contains(event->pos())) {
+        // Stop the single-click timer to prevent single-click processing
+        singleClickTimer->stop();
+        qDebug() << "Double-click on inner rect, emitting signal";
+        emit innerRectDoubleClicked(event->globalPos());
+    }
+    QWidget::mouseDoubleClickEvent(event);
 }
