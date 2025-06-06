@@ -13,16 +13,33 @@
 #include <QPainter>
 #include <QDebug>
 
-Canvas::Canvas(QWidget *parent) : QWidget(parent), mode("Select"), isSelecting(false), isSimulatingControlDrag(false), panOffset(0, 0) {
+Canvas::Canvas(QWidget *parent) : QGraphicsView(parent), mode("Select"), isSelecting(false), isSimulatingControlDrag(false) {
     setContentsMargins(0, 0, 0, 0);
     setMouseTracking(true);  // Enable mouse tracking for cursor changes
     
-    // Create UI controls directly on Canvas
-    controls = new Controls(this);
-    controls->hide();  // Initially hidden
+    // Create the graphics scene
+    scene = new QGraphicsScene(this);
+    setScene(scene);
     
-    // Create selection box
-    selectionBox = new SelectionBox(this);
+    // Set up the view
+    setRenderHint(QPainter::Antialiasing);
+    setViewportUpdateMode(QGraphicsView::MinimalViewportUpdate);
+    setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    setBackgroundBrush(QBrush(QColor(242, 242, 242)));
+    
+    // Create UI controls as a proxy widget in the scene
+    controls = new Controls();
+    controls->updateGeometry(QRect(100, 100, 100, 300));
+    
+    controlsProxy = scene->addWidget(controls);
+    // The controls widget positions itself relative to its target rect,
+    // so we need to account for that when setting the proxy position
+    controlsProxy->setPos(controls->getIntendedPosition());
+    controlsProxy->setZValue(1000);  // High z-value to ensure it's on top
+    
+    // Create selection box on viewport for now
+    selectionBox = new SelectionBox(viewport());
     selectionBox->hide();
     
     // Connect controls signals
@@ -30,22 +47,29 @@ Canvas::Canvas(QWidget *parent) : QWidget(parent), mode("Select"), isSelecting(f
     connect(controls, &Controls::innerRectClicked, this, &Canvas::onControlsInnerRectClicked);
     connect(controls, &Controls::innerRectDoubleClicked, this, &Canvas::onControlsInnerRectDoubleClicked);
     
-    // Ensure proper z-ordering: controls first, then selection box on top
-    controls->raise();
+    // Ensure proper z-ordering: selection box on top
     selectionBox->raise();
 }
 
 void Canvas::resizeEvent(QResizeEvent *event) {
-    QWidget::resizeEvent(event);
+    QGraphicsView::resizeEvent(event);
+    
+    // Update scene rect to match the view
+    if (scene) {
+        scene->setSceneRect(rect());
+    }
 }
 
 void Canvas::showControls(const QRect &rect) {
-    if (controls) {
-        controls->setPanOffset(panOffset);
-        controls->setZoomScale(zoomScale);
+    if (controls && controlsProxy) {
+        // FUTURE: Re-enable pan/zoom support
+        // controls->setPanOffset(panOffset);
+        // controls->setZoomScale(zoomScale);
         controls->updateGeometry(rect);
-        controls->show();
-        controls->raise();
+        
+        // The controls widget positions itself with margins, get its intended position
+        controlsProxy->setPos(controls->getIntendedPosition());
+        controlsProxy->show();
         
         // Keep selection box above controls
         if (selectionBox) {
@@ -58,8 +82,8 @@ void Canvas::showControls(const QRect &rect) {
 }
 
 void Canvas::hideControls() {
-    if (controls) {
-        controls->hide();
+    if (controlsProxy) {
+        controlsProxy->hide();
     }
 }
 
@@ -80,6 +104,8 @@ void Canvas::selectElement(const QString &elementId, bool addToSelection) {
 }
 
 void Canvas::updateControlsVisibility() {
+    // TEMPORARILY DISABLED - Controls are always visible
+    /*
     // Hide controls if no selection
     if (selectedElements.isEmpty()) {
         cancelActiveTextEditing();
@@ -123,6 +149,7 @@ void Canvas::updateControlsVisibility() {
     } else {
         hideControls();
     }
+    */
 }
 
 void Canvas::setMode(const QString &newMode) {
@@ -138,6 +165,8 @@ void Canvas::setMode(const QString &newMode) {
     }
 }
 
+// FUTURE: Re-enable pan/zoom support
+/*
 void Canvas::setPanOffset(const QPoint &offset) {
     qDebug() << "setPanOffset called with offset:" << offset << "current panOffset:" << panOffset;
     
@@ -181,6 +210,7 @@ void Canvas::setPanOffset(const QPoint &offset) {
     
     update();  // Trigger repaint
 }
+*/
 
 void Canvas::createFrame() {
     // Frame creation now happens via mouse drag events
@@ -188,6 +218,8 @@ void Canvas::createFrame() {
 }
 
 void Canvas::createText() {
+    // TEMPORARILY DISABLED - Text creation
+    /*
     // Generate ID based on number of elements + 1
     int textId = elements.size() + 1;
     
@@ -212,6 +244,7 @@ void Canvas::createText() {
     
     // Switch back to Select mode
     setMode("Select");
+    */
 }
 
 void Canvas::createVariable() {
@@ -232,8 +265,18 @@ void Canvas::createVariable() {
 }
 
 void Canvas::mousePressEvent(QMouseEvent *event) {
+    // First, let the scene handle the event (this allows the controls to receive it)
+    QGraphicsView::mousePressEvent(event);
+    
+    // Check if the event was handled by a scene item
+    if (event->isAccepted()) {
+        return;
+    }
+    
     if (event->button() == Qt::LeftButton) {
         if (mode == "Frame" || mode == "Text") {
+            // TEMPORARILY DISABLED - Frame/ClientRect creation
+            /*
             // Generate ID based on number of elements + 1
             int frameId = elements.size() + 1;
             
@@ -308,8 +351,11 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
                 // Store that we're in a simulated drag state
                 isSimulatingControlDrag = true;
             }
+            */
             
         } else if (mode == "Select") {
+            // TEMPORARILY DISABLED - Selection box
+            /*
             // In Select mode, check if click is on empty canvas
             QWidget *widget = childAt(event->pos());
             
@@ -325,20 +371,28 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
                 isSelecting = true;
                 selectionBox->startSelection(event->pos());
             }
+            */
         }
     }
-    
-    // Always propagate the event
-    QWidget::mousePressEvent(event);
 }
 
 void Canvas::mouseMoveEvent(QMouseEvent *event) {
+    // First, let the scene handle the event
+    QGraphicsView::mouseMoveEvent(event);
+    
+    // Check if the event was handled by a scene item
+    if (event->isAccepted()) {
+        return;
+    }
+    
     // If we're simulating control drag, update the controls directly
-    if (isSimulatingControlDrag && controls && controls->isVisible()) {
+    if (isSimulatingControlDrag && controls && controlsProxy && controlsProxy->isVisible()) {
         controls->updateDragPosition(event->globalPos());
         return;
     }
     
+    // TEMPORARILY DISABLED - Selection box
+    /*
     if (isSelecting && selectionBox) {
         // Update selection box
         selectionBox->updateSelection(event->pos());
@@ -369,19 +423,27 @@ void Canvas::mouseMoveEvent(QMouseEvent *event) {
         // Update controls visibility based on new selection
         updateControlsVisibility();
     }
-    
-    // Use normal event propagation
-    QWidget::mouseMoveEvent(event);
+    */
 }
 
 void Canvas::mouseReleaseEvent(QMouseEvent *event) {
+    // First, let the scene handle the event
+    QGraphicsView::mouseReleaseEvent(event);
+    
+    // Check if the event was handled by a scene item
+    if (event->isAccepted()) {
+        return;
+    }
+    
     // If we're simulating control drag, end the drag
-    if (isSimulatingControlDrag && controls && controls->isVisible()) {
+    if (isSimulatingControlDrag && controls && controlsProxy && controlsProxy->isVisible()) {
         controls->endDrag();
         isSimulatingControlDrag = false;  // End the simulated drag
         return;
     }
     
+    // TEMPORARILY DISABLED - Selection box
+    /*
     if (isSelecting && selectionBox) {
         // End selection
         isSelecting = false;
@@ -393,12 +455,12 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event) {
         // Keep the final selection
         updateControlsVisibility();
     }
-    
-    // Use normal event propagation
-    QWidget::mouseReleaseEvent(event);
+    */
 }
 
 void Canvas::wheelEvent(QWheelEvent *event) {
+    // FUTURE: Re-enable pan/zoom support
+    /*
     // Check if Ctrl is held for zooming
     if (event->modifiers() & Qt::ControlModifier) {
         // Get the scroll amount
@@ -459,21 +521,30 @@ void Canvas::wheelEvent(QWheelEvent *event) {
             QWidget::wheelEvent(event);
         }
     }
+    */
+    
+    // For now, just pass the event to the base class
+    QGraphicsView::wheelEvent(event);
 }
 
-void Canvas::paintEvent(QPaintEvent *) {
-    QPainter painter(this);
-    painter.setRenderHint(QPainter::Antialiasing);
-    
-    // Clear background
-    painter.fillRect(rect(), QColor(242, 242, 242));
+void Canvas::paintEvent(QPaintEvent *event) {
+    // QGraphicsView handles all painting through the scene
+    QGraphicsView::paintEvent(event);
 }
 
 void Canvas::render() {
     update();  // Triggers paintEvent
 }
 
-void Canvas::onControlsRectChanged(const QRect &newRect) {
+void Canvas::onControlsRectChanged(const QRect &) {
+    // When controls are dragged/resized, update the proxy position
+    if (controlsProxy && controls) {
+        // The controls widget stores its intended position
+        controlsProxy->setPos(controls->getIntendedPosition());
+    }
+    
+    // TEMPORARILY DISABLED - Frame/element updates
+    /*
     // Convert newRect from visual space to canvas space
     QRect canvasNewRect;
     canvasNewRect.setTopLeft((newRect.topLeft() - panOffset) / zoomScale);
@@ -579,6 +650,7 @@ void Canvas::onControlsRectChanged(const QRect &newRect) {
     
     // Trigger a repaint
     update();
+    */
 }
 
 void Canvas::onControlsInnerRectClicked(const QPoint &globalPos) {

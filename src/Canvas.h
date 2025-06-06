@@ -1,6 +1,8 @@
 #pragma once
 
-#include <QWidget>
+#include <QGraphicsView>
+#include <QGraphicsScene>
+#include <QGraphicsProxyWidget>
 #include <QString>
 #include <QList>
 #include <QPaintEvent>
@@ -11,7 +13,7 @@ class ClientRect;
 class SelectionBox;
 class Frame;
 
-class Canvas : public QWidget {
+class Canvas : public QGraphicsView {
     Q_OBJECT
 public:
     explicit Canvas(QWidget *parent = nullptr);
@@ -40,13 +42,12 @@ public:
     // Get rendering type
     QString getRenderingType() const { return "CPU"; }
     
-    // Pan management
-    QPoint getPanOffset() const { return panOffset; }
-    void setPanOffset(const QPoint &offset);
-    void setPanOffset(int x, int y) { setPanOffset(QPoint(x, y)); }
+    // FUTURE: Re-enable pan/zoom support
+    // QPoint getPanOffset() const { return panOffset; }
+    // void setPanOffset(const QPoint &offset);
+    // void setPanOffset(int x, int y) { setPanOffset(QPoint(x, y)); }
     
-    // Zoom management
-    qreal getZoomScale() const { return zoomScale; }
+    // qreal getZoomScale() const { return zoomScale; }
     
     // Control drag management
     void startControlDrag(const QPoint &globalPos);
@@ -78,7 +79,9 @@ protected:
     void paintEvent(QPaintEvent *event) override;
 
 private:
+    QGraphicsScene *scene;
     Controls *controls;
+    QGraphicsProxyWidget *controlsProxy;
     SelectionBox *selectionBox;
     
     // Canvas state
@@ -90,11 +93,9 @@ private:
     QList<Element*> elements;  // Stores all types of elements (Frame, Text, Variable)
     QList<QString> selectedElements;  // Stores IDs of selected elements
     
-    // Pan state
-    QPoint panOffset;  // Canvas pan offset (x, y)
-    
-    // Zoom state
-    qreal zoomScale = 1.0;  // Canvas zoom scale
+    // TEMPORARY: Keep these for now to avoid compilation errors
+    QPoint panOffset{0, 0};
+    qreal zoomScale = 1.0;
     
     // Helper to cancel any active text editing
     void cancelActiveTextEditing();
