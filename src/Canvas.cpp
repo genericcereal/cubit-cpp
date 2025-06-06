@@ -28,6 +28,7 @@ Canvas::Canvas(QWidget *parent) : QWidget(parent), mode("Select"), isSelecting(f
     // Connect controls signals
     connect(controls, &Controls::rectChanged, this, &Canvas::onControlsRectChanged);
     connect(controls, &Controls::innerRectClicked, this, &Canvas::onControlsInnerRectClicked);
+    connect(controls, &Controls::innerRectDoubleClicked, this, &Canvas::onControlsInnerRectDoubleClicked);
     
     // Ensure proper z-ordering: controls first, then selection box on top
     controls->raise();
@@ -64,6 +65,8 @@ void Canvas::hideControls() {
 
 void Canvas::selectElement(const QString &elementId, bool addToSelection) {
     if (!addToSelection) {
+        // Cancel any active text editing before clearing selection
+        cancelActiveTextEditing();
         selectedElements.clear();
     }
     
@@ -78,6 +81,7 @@ void Canvas::selectElement(const QString &elementId, bool addToSelection) {
 void Canvas::updateControlsVisibility() {
     // Hide controls if no selection
     if (selectedElements.isEmpty()) {
+        cancelActiveTextEditing();
         hideControls();
         return;
     }
@@ -126,10 +130,7 @@ void Canvas::setMode(const QString &newMode) {
         emit modeChanged(mode);
         
         // Handle mode-specific actions
-        if (newMode == "Text") {
-            // When Text mode is selected, create a text element immediately
-            createText();
-        } else if (newMode == "Variable") {
+        if (newMode == "Variable") {
             // When Variable mode is selected, create a variable immediately
             createVariable();
         }
@@ -231,7 +232,7 @@ void Canvas::createVariable() {
 
 void Canvas::mousePressEvent(QMouseEvent *event) {
     if (event->button() == Qt::LeftButton) {
-        if (mode == "Frame") {
+        if (mode == "Frame" || mode == "Text") {
             // Generate ID based on number of elements + 1
             int frameId = elements.size() + 1;
             
@@ -253,7 +254,26 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
             // Add frame to elements list (ClientRect is not an Element)
             elements.append(frame);
             
-            // Add to selected elements
+            // If in Text mode, create a Text element inside the frame
+            if (mode == "Text") {
+                int textId = elements.size() + 1;
+                Text *text = new Text(textId, frame);
+                text->setText("Text Element");
+                text->resize(5, 5);  // Start with same size as frame
+                text->setCanvasSize(QSize(5, 5));
+                text->setCanvasPosition(QPoint(0, 0));  // Relative to frame
+                text->move(0, 0);  // Position at top-left of frame
+                text->show();
+                
+                // Add text to elements list
+                elements.append(text);
+                
+                // Emit signal that a text element was created
+                emit elementCreated("Text", text->getName());
+            }
+            
+            // Add to selected elements - always select the frame
+            cancelActiveTextEditing();
             selectedElements.clear();  // Clear previous selection
             selectedElements.append(QString::number(frame->getId()));
             updateControlsVisibility();
@@ -294,6 +314,7 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
             // If clicked on canvas itself (not on any child widget), start selection box
             if (!widget || widget == this || widget == selectionBox) {
                 // Clear selection
+                cancelActiveTextEditing();
                 selectedElements.clear();
                 updateControlsVisibility();
                 
@@ -321,6 +342,7 @@ void Canvas::mouseMoveEvent(QMouseEvent *event) {
         
         // Check for overlapping ClientRects
         QRect selectionRect = selectionBox->getSelectionRect();
+        cancelActiveTextEditing();
         selectedElements.clear();
         
         // Find all ClientRects that intersect with the selection box
@@ -553,6 +575,23 @@ void Canvas::onControlsRectChanged(const QRect &newRect) {
 }
 
 void Canvas::onControlsInnerRectClicked(const QPoint &globalPos) {
+    // Check if we have an active text editing session
+    bool hasActiveTextEditing = false;
+    for (Element *element : elements) {
+        if (element->getType() == Element::TextType) {
+            Text *text = qobject_cast<Text*>(element);
+            if (text && text->isEditing()) {
+                hasActiveTextEditing = true;
+                break;
+            }
+        }
+    }
+    
+    // If text is being edited, don't process the click
+    if (hasActiveTextEditing) {
+        return;
+    }
+    
     // Convert global position to widget-local position
     QPoint widgetPos = mapFromGlobal(globalPos);
     
@@ -572,6 +611,7 @@ void Canvas::onControlsInnerRectClicked(const QPoint &globalPos) {
         selectElement(elementId, false);  // false = don't add to selection, replace it
     } else {
         // No element found under cursor - clear selection
+        cancelActiveTextEditing();
         selectedElements.clear();
         updateControlsVisibility();
     }
@@ -604,5 +644,52 @@ void Canvas::endControlDrag(const QPoint &globalPos) {
         QMouseEvent releaseEvent(QEvent::MouseButtonRelease, controlsLocalPos, globalPos,
                                  Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
         QApplication::sendEvent(controls, &releaseEvent);
+    }
+}
+
+void Canvas::onControlsInnerRectDoubleClicked(const QPoint &) {
+    qDebug() << "Canvas::onControlsInnerRectDoubleClicked called, selectedElements:" << selectedElements.size();
+    
+    // Check if only one element is selected
+    if (selectedElements.size() == 1) {
+        QString selectedId = selectedElements.first();
+        qDebug() << "Selected element ID:" << selectedId;
+        
+        // Find the selected element
+        for (Element *element : elements) {
+            if (QString::number(element->getId()) == selectedId) {
+                qDebug() << "Found element, type:" << element->getType();
+                
+                // Check if it's a Frame that contains a Text element
+                if (element->getType() == Element::FrameType) {
+                    Frame *frame = qobject_cast<Frame*>(element);
+                    if (frame) {
+                        // Look for a Text child element
+                        for (QObject *child : frame->children()) {
+                            Text *text = qobject_cast<Text*>(child);
+                            if (text) {
+                                qDebug() << "Found Text element in Frame, starting text editing";
+                                // Make the text editable
+                                text->startEditing();
+                                break;
+                            }
+                        }
+                    }
+                }
+                break;
+            }
+        }
+    }
+}
+
+void Canvas::cancelActiveTextEditing() {
+    // Go through all elements and cancel any active text editing
+    for (Element *element : elements) {
+        if (element->getType() == Element::TextType) {
+            Text *text = qobject_cast<Text*>(element);
+            if (text && text->isEditing()) {
+                text->endEditing(false);  // false = don't save changes
+            }
+        }
     }
 }

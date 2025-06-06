@@ -15,6 +15,26 @@ public:
         : QFrame(parent), selected(false), parentPanel(panel), mode(modeName) {
         setFixedSize(45, 45);
         setObjectName("action");
+        
+        // Create label for the action
+        label = new QLabel(this);
+        label->setAlignment(Qt::AlignCenter);
+        label->setStyleSheet("color: white; font-size: 18px; font-weight: bold;");
+        
+        // Set single letter based on mode
+        if (modeName == "Select") {
+            label->setText("S");
+        } else if (modeName == "Frame") {
+            label->setText("F");
+        } else if (modeName == "Text") {
+            label->setText("T");
+        } else if (modeName == "Variable") {
+            label->setText("V");
+        }
+        
+        // Center the label in the action box
+        label->setGeometry(0, 0, 45, 45);
+        
         updateStyle();
     }
 
@@ -33,6 +53,7 @@ private:
     bool selected;
     ActionsPanel *parentPanel;
     QString mode;
+    QLabel *label;
     
     void updateStyle() {
         if (selected) {

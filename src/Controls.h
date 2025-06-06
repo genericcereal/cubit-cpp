@@ -1,6 +1,7 @@
 #pragma once
 #include <QWidget>
 #include <QRect>
+#include <QTimer>
 
 class QFrame;
 
@@ -49,11 +50,15 @@ signals:
     // Emitted when the inner rectangle is clicked (not dragged)
     void innerRectClicked(const QPoint &globalPos);
     
+    // Emitted when the inner rectangle is double-clicked
+    void innerRectDoubleClicked(const QPoint &globalPos);
+    
 protected:
     // Mouse event handlers
     void mousePressEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
+    void mouseDoubleClickEvent(QMouseEvent *event) override;
     
 private:
     // The four control bars (edges)
@@ -89,4 +94,8 @@ private:
     // Canvas pan offset and zoom scale
     QPoint panOffset;
     qreal zoomScale = 1.0;
+    
+    // Double-click detection
+    QTimer *singleClickTimer;
+    QPoint pendingClickPos;
 };

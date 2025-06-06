@@ -35,16 +35,33 @@ This project is a Qt-based C++ application with a layered UI architecture:
 
 ### Canvas Element Architecture
 
-The Canvas renders two types of elements:
+The Canvas renders multiple types of elements:
 
 1. **Frames**: Visual frame elements (QFrame-based widgets) that serve as containers
-2. **Text**: Text display elements (QFrame-based widgets with QLabel) that are always contained within Frames
+2. **Text**: Text display elements that are always contained within Frames
+3. **Variables**: Non-visual elements that store data (created but not displayed on canvas)
 
 #### Element Hierarchy:
 
 - **Text elements are ALWAYS created within Frame containers**
 - A Frame can contain multiple Text elements
 - Text elements cannot exist independently on the Canvas
+
+#### Text Element Creation and Behavior:
+
+- **Creation**: When using the Text tool, clicking and dragging creates a Frame with a Text element inside
+- **Appearance**: Text appears at the top-left of its parent Frame with no padding
+- **Sizing**: Text elements maintain their original size when the parent Frame is resized
+- **Truncation**: When the Frame becomes too small, text is truncated (ellipsis feature planned but not yet working)
+- **Selection**: The parent Frame is selected, not the Text element itself
+
+#### Text Editing:
+
+- **Activation**: Double-click on the controls when a single Frame containing Text is selected
+- **Edit Mode**: A QLineEdit appears over the text for in-place editing
+- **Save**: Press Enter to save changes
+- **Cancel**: Press Escape to cancel editing
+- **Auto-save**: Clicking outside the edit field saves changes
 
 #### Important Mouse Event Handling Rules:
 

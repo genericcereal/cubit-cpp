@@ -13,9 +13,22 @@ public:
     
     void setText(const QString &text);
     QString getText() const { return content; }
+    
+    // Editing functionality
+    void startEditing();
+    void endEditing(bool save = true);
+    bool isEditing() const { return editing; }
+
+protected:
+    void paintEvent(QPaintEvent *event) override;
+    void keyPressEvent(QKeyEvent *event) override;
+    void focusOutEvent(QFocusEvent *event) override;
+    bool eventFilter(QObject *watched, QEvent *event) override;
 
 private:
     int textId;
     QString textName;
     QString content;
+    bool editing;
+    class QLineEdit *editWidget;
 };

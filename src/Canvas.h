@@ -61,6 +61,7 @@ signals:
 private slots:
     void onControlsRectChanged(const QRect &newRect);
     void onControlsInnerRectClicked(const QPoint &globalPos);
+    void onControlsInnerRectDoubleClicked(const QPoint &globalPos);
 
 protected:
     void resizeEvent(QResizeEvent *event) override;
@@ -88,4 +89,7 @@ private:
     
     // Zoom state
     qreal zoomScale = 1.0;  // Canvas zoom scale
+    
+    // Helper to cancel any active text editing
+    void cancelActiveTextEditing();
 };
