@@ -43,19 +43,16 @@ Canvas::Canvas(QWidget *parent) : QGraphicsView(parent), mode("Select"), isSelec
     // Ensure the proxy widget itself is transparent
     controlsProxy->setAutoFillBackground(false);
     
-    // TEMPORARILY DISABLED - Selection box not implemented yet
-    // selectionBox = new SelectionBox(viewport());
-    // selectionBox->hide();
-    selectionBox = nullptr;
+    // Create selection box as a graphics item
+    selectionBox = new SelectionBox();
+    scene->addItem(selectionBox);
+    selectionBox->setVisible(false);
     
     // Connect controls signals
     connect(controls, &Controls::rectChanged, this, &Canvas::onControlsRectChanged);
     connect(controls, &Controls::innerRectClicked, this, &Canvas::onControlsInnerRectClicked);
     connect(controls, &Controls::innerRectDoubleClicked, this, &Canvas::onControlsInnerRectDoubleClicked);
     
-    // TEMPORARILY DISABLED - Selection box not implemented yet
-    // Ensure proper z-ordering: selection box on top
-    // selectionBox->raise();
 }
 
 void Canvas::resizeEvent(QResizeEvent *event) {
@@ -78,11 +75,6 @@ void Canvas::showControls(const QRect &rect) {
         controlsProxy->setPos(controls->getIntendedPosition());
         controlsProxy->show();
         
-        // TEMPORARILY DISABLED - Selection box not implemented yet
-        // Keep selection box above controls
-        // if (selectionBox) {
-        //     selectionBox->raise();
-        // }
         
         // Emit signal to raise overlay panels
         emit overlaysNeedRaise();
@@ -365,7 +357,35 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
             }
             
         } else if (mode == "Select") {
-            // TEMPORARILY DISABLED - Selection box not implemented yet
+            QPointF scenePos = mapToScene(event->pos());
+            
+            // Check if there's a ClientRect under the cursor
+            QList<QGraphicsItem*> itemsAtPos = scene->items(scenePos);
+            ClientRect* clickedClientRect = nullptr;
+            
+            for (QGraphicsItem *item : itemsAtPos) {
+                QGraphicsProxyWidget *proxy = qgraphicsitem_cast<QGraphicsProxyWidget*>(item);
+                if (proxy) {
+                    ClientRect *clientRect = qobject_cast<ClientRect*>(proxy->widget());
+                    if (clientRect) {
+                        clickedClientRect = clientRect;
+                        break;
+                    }
+                }
+            }
+            
+            if (clickedClientRect) {
+                // Select the frame associated with this ClientRect
+                QString elementId = QString::number(clickedClientRect->getAssociatedElementId());
+                
+                // Check if shift is held for multi-selection
+                bool addToSelection = (event->modifiers() & Qt::ShiftModifier);
+                selectElement(elementId, addToSelection);
+            } else {
+                // Start selection box on empty canvas
+                isSelecting = true;
+                selectionBox->startSelection(scenePos);
+            }
         }
     }
 }
@@ -378,6 +398,45 @@ void Canvas::mouseMoveEvent(QMouseEvent *event) {
         return;
     }
     
+    // Handle selection box dragging before passing to scene
+    if (isSelecting && selectionBox) {
+        QPointF scenePos = mapToScene(event->pos());
+        selectionBox->updateSelection(scenePos);
+        
+        // Update selection in real-time
+        QRectF selectionRect = selectionBox->getSelectionRect();
+        if (selectionRect.width() > 2 || selectionRect.height() > 2) {
+            // Find all items within the selection rect
+            QList<QGraphicsItem*> itemsInRect = scene->items(selectionRect, Qt::IntersectsItemShape);
+            
+            // Clear previous selection
+            cancelActiveTextEditing();
+            selectedElements.clear();
+            
+            // Add frames to selection
+            for (QGraphicsItem *item : itemsInRect) {
+                QGraphicsProxyWidget *proxy = qgraphicsitem_cast<QGraphicsProxyWidget*>(item);
+                if (proxy) {
+                    // Check if it's a ClientRect (which is what we use for selection)
+                    ClientRect *clientRect = qobject_cast<ClientRect*>(proxy->widget());
+                    if (clientRect) {
+                        QString elementId = QString::number(clientRect->getAssociatedElementId());
+                        if (!selectedElements.contains(elementId)) {
+                            selectedElements.append(elementId);
+                        }
+                    }
+                }
+            }
+            
+            // Update controls visibility and emit selection changed
+            updateControlsVisibility();
+            emit selectionChanged();
+        }
+        
+        event->accept();  // Don't let the scene handle this event
+        return;
+    }
+    
     // Otherwise, let the scene handle the event
     QGraphicsView::mouseMoveEvent(event);
     
@@ -385,8 +444,6 @@ void Canvas::mouseMoveEvent(QMouseEvent *event) {
     if (event->isAccepted()) {
         return;
     }
-    
-    // TEMPORARILY DISABLED - Selection box not implemented yet
 }
 
 void Canvas::mouseReleaseEvent(QMouseEvent *event) {
@@ -398,6 +455,28 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event) {
         return;
     }
     
+    // Handle selection box release BEFORE passing to scene
+    if (isSelecting && selectionBox) {
+        isSelecting = false;
+        
+        // Get the final selection rect
+        QRectF selectionRect = selectionBox->getSelectionRect();
+        
+        // End the selection box visual
+        selectionBox->endSelection();
+        
+        // If it was just a click (no drag), clear the selection
+        if (selectionRect.width() <= 2 && selectionRect.height() <= 2) {
+            cancelActiveTextEditing();
+            selectedElements.clear();
+            updateControlsVisibility();
+            emit selectionChanged();
+        }
+        
+        event->accept();  // Don't let the scene handle this
+        return;
+    }
+    
     // Otherwise, let the scene handle the event
     QGraphicsView::mouseReleaseEvent(event);
     
@@ -405,8 +484,6 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event) {
     if (event->isAccepted()) {
         return;
     }
-    
-    // TEMPORARILY DISABLED - Selection box not implemented yet
 }
 
 void Canvas::wheelEvent(QWheelEvent *event) {
