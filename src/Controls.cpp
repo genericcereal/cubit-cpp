@@ -3,7 +3,7 @@
 #include <QMouseEvent>
 #include <QDebug>
 
-Controls::Controls(QWidget *parent) : QWidget(parent), dragMode(None), hasDragged(false), panOffset(0, 0) {
+Controls::Controls(QWidget *parent) : QWidget(parent), dragMode(Controls::None), hasDragged(false), panOffset(0, 0) {
     // Set this widget to handle mouse events
     setAttribute(Qt::WA_TransparentForMouseEvents, false);
     setMouseTracking(true);  // Enable mouse tracking for hover effects
@@ -64,6 +64,97 @@ Controls::Controls(QWidget *parent) : QWidget(parent), dragMode(None), hasDragge
     innerRect->setAttribute(Qt::WA_TransparentForMouseEvents, false); // Accept mouse events
     innerRect->lower(); // Place it behind other controls
     innerRect->show();
+}
+
+void Controls::startDragMode(DragMode mode, const QPoint &globalStartPos) {
+    dragMode = mode;
+    dragStartPos = globalStartPos;
+    dragStartRect = currentRect;
+    hasDragged = false;
+    
+    // Set appropriate cursor based on drag mode
+    if (dragMode == LeftBar || dragMode == RightBar) {
+        setCursor(Qt::SizeHorCursor);
+    } else if (dragMode == TopBar || dragMode == BottomBar) {
+        setCursor(Qt::SizeVerCursor);
+    } else if (dragMode == TopLeftJoint || dragMode == BottomRightJoint) {
+        setCursor(Qt::SizeFDiagCursor);
+    } else if (dragMode == TopRightJoint || dragMode == BottomLeftJoint) {
+        setCursor(Qt::SizeBDiagCursor);
+    } else if (dragMode == InnerRect) {
+        setCursor(Qt::SizeAllCursor);
+    }
+}
+
+void Controls::updateDragPosition(const QPoint &globalPos) {
+    if (dragMode == Controls::None) return;
+    
+    QPoint delta = globalPos - dragStartPos;
+    
+    // Consider it a drag if mouse moved more than 5 pixels
+    if (delta.manhattanLength() > 5) {
+        hasDragged = true;
+    }
+    
+    QRect newRect = dragStartRect;
+    
+    switch (dragMode) {
+        case LeftBar:
+            newRect.setLeft(dragStartRect.left() + delta.x());
+            break;
+        case RightBar:
+            newRect.setRight(dragStartRect.right() + delta.x());
+            break;
+        case TopBar:
+            newRect.setTop(dragStartRect.top() + delta.y());
+            break;
+        case BottomBar:
+            newRect.setBottom(dragStartRect.bottom() + delta.y());
+            break;
+        case TopLeftJoint:
+            newRect.setLeft(dragStartRect.left() + delta.x());
+            newRect.setTop(dragStartRect.top() + delta.y());
+            break;
+        case TopRightJoint:
+            newRect.setRight(dragStartRect.right() + delta.x());
+            newRect.setTop(dragStartRect.top() + delta.y());
+            break;
+        case BottomLeftJoint:
+            newRect.setLeft(dragStartRect.left() + delta.x());
+            newRect.setBottom(dragStartRect.bottom() + delta.y());
+            break;
+        case BottomRightJoint:
+            newRect.setRight(dragStartRect.right() + delta.x());
+            newRect.setBottom(dragStartRect.bottom() + delta.y());
+            break;
+        case InnerRect:
+            // Move the entire rectangle
+            newRect.moveLeft(dragStartRect.left() + delta.x());
+            newRect.moveTop(dragStartRect.top() + delta.y());
+            break;
+        default:
+            break;
+    }
+    
+    // Normalize the rectangle if bars have crossed
+    currentRect = newRect.normalized();
+    
+    // Ensure minimum size of 1x1
+    if (currentRect.width() < 1) {
+        currentRect.setWidth(1);
+    }
+    if (currentRect.height() < 1) {
+        currentRect.setHeight(1);
+    }
+    
+    updateGeometry(currentRect);
+    emit rectChanged(currentRect);
+}
+
+void Controls::endDrag() {
+    dragMode = Controls::None;
+    hasDragged = false;
+    setCursor(Qt::ArrowCursor);
 }
 
 void Controls::updateGeometry(const QRect &targetRect) {
@@ -137,28 +228,40 @@ void Controls::positionControls(const QRect &rect) {
 }
 
 Controls::DragMode Controls::getBarAt(const QPoint &pos) const {
-    // Check if position is within any of the bars
-    if (leftBar->geometry().contains(pos)) return LeftBar;
-    if (rightBar->geometry().contains(pos)) return RightBar;
-    if (topBar->geometry().contains(pos)) return TopBar;
-    if (bottomBar->geometry().contains(pos)) return BottomBar;
-    if (innerRect->geometry().contains(pos)) return InnerRect;
-    return None;
+    // Check joints first (they should have priority over bars)
+    if (topLeftJoint->geometry().contains(pos)) return Controls::TopLeftJoint;
+    if (topRightJoint->geometry().contains(pos)) return Controls::TopRightJoint;
+    if (bottomLeftJoint->geometry().contains(pos)) return Controls::BottomLeftJoint;
+    if (bottomRightJoint->geometry().contains(pos)) return Controls::BottomRightJoint;
+    
+    // Then check bars
+    if (leftBar->geometry().contains(pos)) return Controls::LeftBar;
+    if (rightBar->geometry().contains(pos)) return Controls::RightBar;
+    if (topBar->geometry().contains(pos)) return Controls::TopBar;
+    if (bottomBar->geometry().contains(pos)) return Controls::BottomBar;
+    
+    // Finally check inner rect
+    if (innerRect->geometry().contains(pos)) return Controls::InnerRect;
+    return Controls::None;
 }
 
 void Controls::mousePressEvent(QMouseEvent *event) {
     qDebug() << "Controls::mousePressEvent at" << event->pos();
     if (event->button() == Qt::LeftButton) {
         dragMode = getBarAt(event->pos());
-        if (dragMode != None) {
+        if (dragMode != Controls::None) {
             dragStartPos = event->globalPos();
             dragStartRect = currentRect;
             hasDragged = false;  // Reset drag tracking
-            // Set appropriate arrow cursor based on which bar is being dragged
+            // Set appropriate arrow cursor based on which bar/joint is being dragged
             if (dragMode == LeftBar || dragMode == RightBar) {
                 setCursor(Qt::SizeHorCursor);
             } else if (dragMode == TopBar || dragMode == BottomBar) {
                 setCursor(Qt::SizeVerCursor);
+            } else if (dragMode == TopLeftJoint || dragMode == BottomRightJoint) {
+                setCursor(Qt::SizeFDiagCursor);  // Forward diagonal (/)
+            } else if (dragMode == TopRightJoint || dragMode == BottomLeftJoint) {
+                setCursor(Qt::SizeBDiagCursor);  // Backward diagonal (\)
             } else if (dragMode == InnerRect) {
                 setCursor(Qt::SizeAllCursor);
             }
@@ -168,7 +271,7 @@ void Controls::mousePressEvent(QMouseEvent *event) {
 }
 
 void Controls::mouseMoveEvent(QMouseEvent *event) {
-    if (dragMode != None && (event->buttons() & Qt::LeftButton)) {
+    if (dragMode != Controls::None && (event->buttons() & Qt::LeftButton)) {
         QPoint delta = event->globalPos() - dragStartPos;
         
         // Consider it a drag if mouse moved more than 5 pixels
@@ -191,6 +294,22 @@ void Controls::mouseMoveEvent(QMouseEvent *event) {
             case BottomBar:
                 newRect.setBottom(dragStartRect.bottom() + delta.y());
                 break;
+            case TopLeftJoint:
+                newRect.setLeft(dragStartRect.left() + delta.x());
+                newRect.setTop(dragStartRect.top() + delta.y());
+                break;
+            case TopRightJoint:
+                newRect.setRight(dragStartRect.right() + delta.x());
+                newRect.setTop(dragStartRect.top() + delta.y());
+                break;
+            case BottomLeftJoint:
+                newRect.setLeft(dragStartRect.left() + delta.x());
+                newRect.setBottom(dragStartRect.bottom() + delta.y());
+                break;
+            case BottomRightJoint:
+                newRect.setRight(dragStartRect.right() + delta.x());
+                newRect.setBottom(dragStartRect.bottom() + delta.y());
+                break;
             case InnerRect:
                 // Move the entire rectangle
                 newRect.moveLeft(dragStartRect.left() + delta.x());
@@ -203,6 +322,15 @@ void Controls::mouseMoveEvent(QMouseEvent *event) {
         // Normalize the rectangle if bars have crossed
         // This ensures left is always less than right, and top is always less than bottom
         currentRect = newRect.normalized();
+        
+        // Ensure minimum size of 1x1
+        if (currentRect.width() < 1) {
+            currentRect.setWidth(1);
+        }
+        if (currentRect.height() < 1) {
+            currentRect.setHeight(1);
+        }
+        
         updateGeometry(currentRect);  // This will resize the Controls widget and reposition bars
         emit rectChanged(currentRect);
     } else {
@@ -212,6 +340,10 @@ void Controls::mouseMoveEvent(QMouseEvent *event) {
             setCursor(Qt::SizeHorCursor);
         } else if (hoverMode == TopBar || hoverMode == BottomBar) {
             setCursor(Qt::SizeVerCursor);
+        } else if (hoverMode == TopLeftJoint || hoverMode == BottomRightJoint) {
+            setCursor(Qt::SizeFDiagCursor);  // Forward diagonal (/)
+        } else if (hoverMode == TopRightJoint || hoverMode == BottomLeftJoint) {
+            setCursor(Qt::SizeBDiagCursor);  // Backward diagonal (\)
         } else if (hoverMode == InnerRect) {
             setCursor(Qt::SizeAllCursor);
         } else {
@@ -228,7 +360,7 @@ void Controls::mouseReleaseEvent(QMouseEvent *event) {
             emit innerRectClicked(event->globalPos());
         }
         
-        dragMode = None;
+        dragMode = Controls::None;
         hasDragged = false;
         
         // Reset cursor based on current position
@@ -237,6 +369,10 @@ void Controls::mouseReleaseEvent(QMouseEvent *event) {
             setCursor(Qt::SizeHorCursor);
         } else if (hoverMode == TopBar || hoverMode == BottomBar) {
             setCursor(Qt::SizeVerCursor);
+        } else if (hoverMode == TopLeftJoint || hoverMode == BottomRightJoint) {
+            setCursor(Qt::SizeFDiagCursor);  // Forward diagonal (/)
+        } else if (hoverMode == TopRightJoint || hoverMode == BottomLeftJoint) {
+            setCursor(Qt::SizeBDiagCursor);  // Backward diagonal (\)
         } else if (hoverMode == InnerRect) {
             setCursor(Qt::SizeAllCursor);
         } else {

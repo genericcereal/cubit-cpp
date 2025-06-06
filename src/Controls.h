@@ -7,6 +7,20 @@ class QFrame;
 class Controls : public QWidget {
     Q_OBJECT
 public:
+    // Dragging state
+    enum DragMode {
+        None,
+        LeftBar,
+        RightBar,
+        TopBar,
+        BottomBar,
+        TopLeftJoint,
+        TopRightJoint,
+        BottomLeftJoint,
+        BottomRightJoint,
+        InnerRect
+    };
+    
     explicit Controls(QWidget *parent = nullptr);
     
     // Update the position and size of the controls
@@ -18,6 +32,15 @@ public:
     
     // Get the current control rectangle
     QRect getControlRect() const { return currentRect; }
+    
+    // Start dragging programmatically
+    void startDragMode(DragMode mode, const QPoint &globalStartPos);
+    
+    // Update drag position programmatically
+    void updateDragPosition(const QPoint &globalPos);
+    
+    // End drag programmatically
+    void endDrag();
     
 signals:
     // Emitted when the control rectangle changes due to dragging
@@ -55,14 +78,6 @@ private:
     QRect currentRect;
     
     // Dragging state
-    enum DragMode {
-        None,
-        LeftBar,
-        RightBar,
-        TopBar,
-        BottomBar,
-        InnerRect
-    };
     DragMode dragMode;
     QPoint dragStartPos;
     QRect dragStartRect;
