@@ -9,6 +9,7 @@ class Controls;
 class Element;
 class ClientRect;
 class SelectionBox;
+class Frame;
 
 class Canvas : public QWidget {
     Q_OBJECT
@@ -52,11 +53,16 @@ public:
     void updateControlDrag(const QPoint &globalPos);
     void endControlDrag(const QPoint &globalPos);
     Controls* getControls() const { return controls; }
+    
+    // Selection management
+    QList<Frame*> getSelectedFrames() const;
 
 signals:
     void modeChanged(const QString &newMode);
     void elementCreated(const QString &type, const QString &name);
     void overlaysNeedRaise();  // Signal to raise overlay panels
+    void selectionChanged();  // Emitted when selection changes
+    void propertiesChanged();  // Emitted when properties of selected elements change
 
 private slots:
     void onControlsRectChanged(const QRect &newRect);

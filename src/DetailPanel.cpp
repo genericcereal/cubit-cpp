@@ -25,7 +25,7 @@ DetailPanel::DetailPanel(QWidget *parent) : QFrame(parent) {
     scrollA->setWidgetResizable(true);
 
     // Properties section
-    Properties *properties = new Properties();
+    properties = new Properties();
     QScrollArea *scrollB = new QScrollArea();
     scrollB->setWidget(properties);
     scrollB->setWidgetResizable(true);
@@ -36,4 +36,11 @@ DetailPanel::DetailPanel(QWidget *parent) : QFrame(parent) {
     splitter->setSizes({200, 200}); // Optional: initial height of sections
 
     mainLayout->addWidget(splitter);
+}
+
+void DetailPanel::setCanvas(Canvas *canvas) {
+    if (properties) {
+        properties->setCanvas(canvas);
+    }
+    // Could also set canvas for elementList if needed in the future
 }

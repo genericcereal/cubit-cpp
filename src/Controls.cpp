@@ -21,53 +21,103 @@ Controls::Controls(QWidget *parent) : QWidget(parent), dragMode(Controls::None),
     
     // Create the four control bars
     leftBar = new QFrame(this);
-    leftBar->setFixedWidth(4);  // Fixed width, adjustable height
-    leftBar->setStyleSheet("background-color: red;");
+    leftBar->setFixedWidth(10);  // Fixed width, adjustable height
+    leftBar->setStyleSheet("background-color: rgba(255, 0, 0, 0.5);");
     leftBar->setAttribute(Qt::WA_TransparentForMouseEvents, false);
     leftBar->show();
     
     rightBar = new QFrame(this);
-    rightBar->setFixedWidth(4);  // Fixed width, adjustable height
-    rightBar->setStyleSheet("background-color: red;");
+    rightBar->setFixedWidth(10);  // Fixed width, adjustable height
+    rightBar->setStyleSheet("background-color: rgba(255, 0, 0, 0.5);");
     rightBar->setAttribute(Qt::WA_TransparentForMouseEvents, false);
     rightBar->show();
     
     topBar = new QFrame(this);
-    topBar->setFixedHeight(4);  // Fixed height, adjustable width
-    topBar->setStyleSheet("background-color: red;");
+    topBar->setFixedHeight(10);  // Fixed height, adjustable width
+    topBar->setStyleSheet("background-color: rgba(255, 0, 0, 0.5);");
     topBar->setAttribute(Qt::WA_TransparentForMouseEvents, false);
     topBar->show();
     
     bottomBar = new QFrame(this);
-    bottomBar->setFixedHeight(4);  // Fixed height, adjustable width
-    bottomBar->setStyleSheet("background-color: red;");
+    bottomBar->setFixedHeight(10);  // Fixed height, adjustable width
+    bottomBar->setStyleSheet("background-color: rgba(255, 0, 0, 0.5);");
     bottomBar->setAttribute(Qt::WA_TransparentForMouseEvents, false);
     bottomBar->show();
     
-    // Create the four corner joints
-    topLeftJoint = new QFrame(this);
-    topLeftJoint->setFixedSize(25, 25);
-    topLeftJoint->setStyleSheet("background-color: blue;");
-    topLeftJoint->setAttribute(Qt::WA_TransparentForMouseEvents, false);
-    topLeftJoint->show();
+    // Create center lines for each bar
+    leftBarLine = new QFrame(this);
+    leftBarLine->setFixedWidth(1);  // 1 pixel wide vertical line
+    leftBarLine->setStyleSheet("background-color: rgba(0, 0, 0, 0.5);");
+    leftBarLine->setAttribute(Qt::WA_TransparentForMouseEvents, true);
+    leftBarLine->show();
     
-    topRightJoint = new QFrame(this);
-    topRightJoint->setFixedSize(25, 25);
-    topRightJoint->setStyleSheet("background-color: blue;");
-    topRightJoint->setAttribute(Qt::WA_TransparentForMouseEvents, false);
-    topRightJoint->show();
+    rightBarLine = new QFrame(this);
+    rightBarLine->setFixedWidth(1);  // 1 pixel wide vertical line
+    rightBarLine->setStyleSheet("background-color: rgba(0, 0, 0, 0.5);");
+    rightBarLine->setAttribute(Qt::WA_TransparentForMouseEvents, true);
+    rightBarLine->show();
     
-    bottomLeftJoint = new QFrame(this);
-    bottomLeftJoint->setFixedSize(25, 25);
-    bottomLeftJoint->setStyleSheet("background-color: blue;");
-    bottomLeftJoint->setAttribute(Qt::WA_TransparentForMouseEvents, false);
-    bottomLeftJoint->show();
+    topBarLine = new QFrame(this);
+    topBarLine->setFixedHeight(1);  // 1 pixel high horizontal line
+    topBarLine->setStyleSheet("background-color: rgba(0, 0, 0, 0.5);");
+    topBarLine->setAttribute(Qt::WA_TransparentForMouseEvents, true);
+    topBarLine->show();
     
-    bottomRightJoint = new QFrame(this);
-    bottomRightJoint->setFixedSize(25, 25);
-    bottomRightJoint->setStyleSheet("background-color: blue;");
-    bottomRightJoint->setAttribute(Qt::WA_TransparentForMouseEvents, false);
-    bottomRightJoint->show();
+    bottomBarLine = new QFrame(this);
+    bottomBarLine->setFixedHeight(1);  // 1 pixel high horizontal line
+    bottomBarLine->setStyleSheet("background-color: rgba(0, 0, 0, 0.5);");
+    bottomBarLine->setAttribute(Qt::WA_TransparentForMouseEvents, true);
+    bottomBarLine->show();
+    
+    // Create the four corner rotation joints
+    topLeftRotationJoint = new QFrame(this);
+    topLeftRotationJoint->setFixedSize(20, 20);
+    topLeftRotationJoint->setStyleSheet("background-color: rgba(0, 0, 255, 0.5);");
+    topLeftRotationJoint->setAttribute(Qt::WA_TransparentForMouseEvents, false);
+    topLeftRotationJoint->show();
+    
+    topRightRotationJoint = new QFrame(this);
+    topRightRotationJoint->setFixedSize(20, 20);
+    topRightRotationJoint->setStyleSheet("background-color: rgba(0, 0, 255, 0.5);");
+    topRightRotationJoint->setAttribute(Qt::WA_TransparentForMouseEvents, false);
+    topRightRotationJoint->show();
+    
+    bottomLeftRotationJoint = new QFrame(this);
+    bottomLeftRotationJoint->setFixedSize(20, 20);
+    bottomLeftRotationJoint->setStyleSheet("background-color: rgba(0, 0, 255, 0.5);");
+    bottomLeftRotationJoint->setAttribute(Qt::WA_TransparentForMouseEvents, false);
+    bottomLeftRotationJoint->show();
+    
+    bottomRightRotationJoint = new QFrame(this);
+    bottomRightRotationJoint->setFixedSize(20, 20);
+    bottomRightRotationJoint->setStyleSheet("background-color: rgba(0, 0, 255, 0.5);");
+    bottomRightRotationJoint->setAttribute(Qt::WA_TransparentForMouseEvents, false);
+    bottomRightRotationJoint->show();
+    
+    // Create the four resize joints
+    topLeftResizeJoint = new QFrame(this);
+    topLeftResizeJoint->setFixedSize(10, 10);
+    topLeftResizeJoint->setStyleSheet("background-color: rgba(255, 255, 0, 0.5);");
+    topLeftResizeJoint->setAttribute(Qt::WA_TransparentForMouseEvents, false);
+    topLeftResizeJoint->show();
+    
+    topRightResizeJoint = new QFrame(this);
+    topRightResizeJoint->setFixedSize(10, 10);
+    topRightResizeJoint->setStyleSheet("background-color: rgba(255, 255, 0, 0.5);");
+    topRightResizeJoint->setAttribute(Qt::WA_TransparentForMouseEvents, false);
+    topRightResizeJoint->show();
+    
+    bottomLeftResizeJoint = new QFrame(this);
+    bottomLeftResizeJoint->setFixedSize(10, 10);
+    bottomLeftResizeJoint->setStyleSheet("background-color: rgba(255, 255, 0, 0.5);");
+    bottomLeftResizeJoint->setAttribute(Qt::WA_TransparentForMouseEvents, false);
+    bottomLeftResizeJoint->show();
+    
+    bottomRightResizeJoint = new QFrame(this);
+    bottomRightResizeJoint->setFixedSize(10, 10);
+    bottomRightResizeJoint->setStyleSheet("background-color: rgba(255, 255, 0, 0.5);");
+    bottomRightResizeJoint->setAttribute(Qt::WA_TransparentForMouseEvents, false);
+    bottomRightResizeJoint->show();
     
     // Create the inner rectangle with yellow color and 5% transparency
     innerRect = new QFrame(this);
@@ -88,9 +138,13 @@ void Controls::startDragMode(DragMode mode, const QPoint &globalStartPos) {
         setCursor(Qt::SizeHorCursor);
     } else if (dragMode == TopBar || dragMode == BottomBar) {
         setCursor(Qt::SizeVerCursor);
-    } else if (dragMode == TopLeftJoint || dragMode == BottomRightJoint) {
+    } else if (dragMode == TopLeftRotationJoint || dragMode == BottomRightRotationJoint) {
         setCursor(Qt::SizeFDiagCursor);
-    } else if (dragMode == TopRightJoint || dragMode == BottomLeftJoint) {
+    } else if (dragMode == TopRightRotationJoint || dragMode == BottomLeftRotationJoint) {
+        setCursor(Qt::SizeBDiagCursor);
+    } else if (dragMode == TopLeftResizeJoint || dragMode == BottomRightResizeJoint) {
+        setCursor(Qt::SizeFDiagCursor);
+    } else if (dragMode == TopRightResizeJoint || dragMode == BottomLeftResizeJoint) {
         setCursor(Qt::SizeBDiagCursor);
     } else if (dragMode == InnerRect) {
         setCursor(Qt::SizeAllCursor);
@@ -122,19 +176,31 @@ void Controls::updateDragPosition(const QPoint &globalPos) {
         case BottomBar:
             newRect.setBottom(dragStartRect.bottom() + delta.y());
             break;
-        case TopLeftJoint:
+        case TopLeftRotationJoint:
+            // Rotation joints don't do anything for now
+            break;
+        case TopRightRotationJoint:
+            // Rotation joints don't do anything for now
+            break;
+        case BottomLeftRotationJoint:
+            // Rotation joints don't do anything for now
+            break;
+        case BottomRightRotationJoint:
+            // Rotation joints don't do anything for now
+            break;
+        case TopLeftResizeJoint:
             newRect.setLeft(dragStartRect.left() + delta.x());
             newRect.setTop(dragStartRect.top() + delta.y());
             break;
-        case TopRightJoint:
+        case TopRightResizeJoint:
             newRect.setRight(dragStartRect.right() + delta.x());
             newRect.setTop(dragStartRect.top() + delta.y());
             break;
-        case BottomLeftJoint:
+        case BottomLeftResizeJoint:
             newRect.setLeft(dragStartRect.left() + delta.x());
             newRect.setBottom(dragStartRect.bottom() + delta.y());
             break;
-        case BottomRightJoint:
+        case BottomRightResizeJoint:
             newRect.setRight(dragStartRect.right() + delta.x());
             newRect.setBottom(dragStartRect.bottom() + delta.y());
             break;
@@ -175,8 +241,8 @@ void Controls::updateGeometry(const QRect &targetRect) {
     
     // Calculate the actual margin based on zoom scale
     // Bar widths and joint sizes should remain fixed visually
-    int visualBarWidth = 4;
-    int visualJointSize = 25;
+    int visualBarWidth = 10;
+    int visualJointSize = 20;
     int margin = qMax(visualJointSize, visualBarWidth * 2);
     
     // Resize the Controls widget to encompass all control bars
@@ -185,10 +251,10 @@ void Controls::updateGeometry(const QRect &targetRect) {
 }
 
 void Controls::positionControls(const QRect &rect) {
-    // Fixed visual sizes for bars and joints
-    int barWidth = 4;
-    int barHeight = 4;
-    int jointSize = 25;
+    // Fixed visual sizes for bars and rotation joints
+    int barWidth = 10;
+    int barHeight = 10;
+    int jointSize = 20;
     
     // Update bar sizes to match the rectangle dimensions
     leftBar->setFixedWidth(barWidth);
@@ -203,47 +269,83 @@ void Controls::positionControls(const QRect &rect) {
     // Position bars relative to the Controls widget (which has been moved/resized)
     int margin = qMax(jointSize, barWidth * 2);
     
-    // Position left bar - forms the left edge
-    leftBar->move(margin - leftBar->width(), margin);
+    // Position left bar - centered on the left edge of selection
+    leftBar->move(margin - barWidth/2, margin);
     
-    // Position right bar - forms the right edge
-    rightBar->move(margin + rect.width(), margin);
+    // Position right bar - centered on the right edge of selection
+    rightBar->move(margin + rect.width() - barWidth/2, margin);
     
-    // Position top bar - forms the top edge
-    topBar->move(margin, margin - topBar->height());
+    // Position top bar - centered on the top edge of selection
+    topBar->move(margin, margin - barHeight/2);
     
-    // Position bottom bar - forms the bottom edge
-    bottomBar->move(margin, margin + rect.height());
+    // Position bottom bar - centered on the bottom edge of selection
+    bottomBar->move(margin, margin + rect.height() - barHeight/2);
     
-    // Position corner joints - with corners at the intersections
+    // Position corner rotation joints - with 10x10 overlap at the appropriate corners
     
-    // Top-left joint - bottom-right corner at intersection of left and top bars
-    topLeftJoint->move(margin - jointSize, 
-                       margin - jointSize);
+    // Top-left joint - bottom-right corner overlaps with bars
+    topLeftRotationJoint->move(margin - barWidth/2 - (jointSize - 10), 
+                       margin - barHeight/2 - (jointSize - 10));
     
-    // Top-right joint - bottom-left corner at intersection of right and top bars
-    topRightJoint->move(margin + rect.width() - 4, 
-                        margin - jointSize);
+    // Top-right joint - bottom-left corner overlaps with bars
+    topRightRotationJoint->move(margin + rect.width() - barWidth/2, 
+                        margin - barHeight/2 - (jointSize - 10));
     
-    // Bottom-left joint - top-right corner at intersection of left and bottom bars
-    bottomLeftJoint->move(margin - jointSize, 
-                          margin + rect.height() - 4);
+    // Bottom-left joint - top-right corner overlaps with bars
+    bottomLeftRotationJoint->move(margin - barWidth/2 - (jointSize - 10), 
+                          margin + rect.height() - barHeight/2);
     
-    // Bottom-right joint - top-left corner at intersection of right and bottom bars
-    bottomRightJoint->move(margin + rect.width() - 4, 
-                           margin + rect.height() - 4);
+    // Bottom-right joint - top-left corner overlaps with bars
+    bottomRightRotationJoint->move(margin + rect.width() - barWidth/2, 
+                           margin + rect.height() - barHeight/2);
     
     // Position inner rectangle to fit between the bars
     innerRect->move(margin, margin);
     innerRect->resize(rect.width(), rect.height());
+    
+    // Position center lines
+    // Left bar line - vertical line in center of left bar
+    leftBarLine->setFixedHeight(rect.height());
+    leftBarLine->move(margin - 1, margin);
+    
+    // Right bar line - vertical line in center of right bar
+    rightBarLine->setFixedHeight(rect.height());
+    rightBarLine->move(margin + rect.width() - 1, margin);
+    
+    // Top bar line - horizontal line in center of top bar
+    topBarLine->setFixedWidth(rect.width());
+    topBarLine->move(margin, margin - 1);
+    
+    // Bottom bar line - horizontal line in center of bottom bar
+    bottomBarLine->setFixedWidth(rect.width());
+    bottomBarLine->move(margin, margin + rect.height() - 1);
+    
+    // Position resize joints at the intersection points
+    // Top-left resize joint - at bottom-right corner of top-left rotation joint
+    topLeftResizeJoint->move(margin - barWidth/2, margin - barHeight/2);
+    
+    // Top-right resize joint - at bottom-left corner of top-right rotation joint
+    topRightResizeJoint->move(margin + rect.width() - barWidth/2, margin - barHeight/2);
+    
+    // Bottom-left resize joint - at top-right corner of bottom-left rotation joint
+    bottomLeftResizeJoint->move(margin - barWidth/2, margin + rect.height() - barHeight/2);
+    
+    // Bottom-right resize joint - at top-left corner of bottom-right rotation joint
+    bottomRightResizeJoint->move(margin + rect.width() - barWidth/2, margin + rect.height() - barHeight/2);
 }
 
 Controls::DragMode Controls::getBarAt(const QPoint &pos) const {
-    // Check joints first (they should have priority over bars)
-    if (topLeftJoint->geometry().contains(pos)) return Controls::TopLeftJoint;
-    if (topRightJoint->geometry().contains(pos)) return Controls::TopRightJoint;
-    if (bottomLeftJoint->geometry().contains(pos)) return Controls::BottomLeftJoint;
-    if (bottomRightJoint->geometry().contains(pos)) return Controls::BottomRightJoint;
+    // Check resize joints first (they have highest priority as they're on top)
+    if (topLeftResizeJoint->geometry().contains(pos)) return Controls::TopLeftResizeJoint;
+    if (topRightResizeJoint->geometry().contains(pos)) return Controls::TopRightResizeJoint;
+    if (bottomLeftResizeJoint->geometry().contains(pos)) return Controls::BottomLeftResizeJoint;
+    if (bottomRightResizeJoint->geometry().contains(pos)) return Controls::BottomRightResizeJoint;
+    
+    // Then check rotation joints (they should have priority over bars)
+    if (topLeftRotationJoint->geometry().contains(pos)) return Controls::TopLeftRotationJoint;
+    if (topRightRotationJoint->geometry().contains(pos)) return Controls::TopRightRotationJoint;
+    if (bottomLeftRotationJoint->geometry().contains(pos)) return Controls::BottomLeftRotationJoint;
+    if (bottomRightRotationJoint->geometry().contains(pos)) return Controls::BottomRightRotationJoint;
     
     // Then check bars
     if (leftBar->geometry().contains(pos)) return Controls::LeftBar;
@@ -271,14 +373,18 @@ void Controls::mousePressEvent(QMouseEvent *event) {
             dragStartPos = event->globalPos();
             dragStartRect = currentRect;
             hasDragged = false;  // Reset drag tracking
-            // Set appropriate arrow cursor based on which bar/joint is being dragged
+            // Set appropriate arrow cursor based on which bar/rotation joint is being dragged
             if (dragMode == LeftBar || dragMode == RightBar) {
                 setCursor(Qt::SizeHorCursor);
             } else if (dragMode == TopBar || dragMode == BottomBar) {
                 setCursor(Qt::SizeVerCursor);
-            } else if (dragMode == TopLeftJoint || dragMode == BottomRightJoint) {
+            } else if (dragMode == TopLeftRotationJoint || dragMode == BottomRightRotationJoint) {
                 setCursor(Qt::SizeFDiagCursor);  // Forward diagonal (/)
-            } else if (dragMode == TopRightJoint || dragMode == BottomLeftJoint) {
+            } else if (dragMode == TopRightRotationJoint || dragMode == BottomLeftRotationJoint) {
+                setCursor(Qt::SizeBDiagCursor);  // Backward diagonal (\)
+            } else if (dragMode == TopLeftResizeJoint || dragMode == BottomRightResizeJoint) {
+                setCursor(Qt::SizeFDiagCursor);  // Forward diagonal (/)
+            } else if (dragMode == TopRightResizeJoint || dragMode == BottomLeftResizeJoint) {
                 setCursor(Qt::SizeBDiagCursor);  // Backward diagonal (\)
             } else if (dragMode == InnerRect) {
                 setCursor(Qt::SizeAllCursor);
@@ -312,19 +418,31 @@ void Controls::mouseMoveEvent(QMouseEvent *event) {
             case BottomBar:
                 newRect.setBottom(dragStartRect.bottom() + delta.y());
                 break;
-            case TopLeftJoint:
+            case TopLeftRotationJoint:
+                // Rotation joints don't do anything for now
+                break;
+            case TopRightRotationJoint:
+                // Rotation joints don't do anything for now
+                break;
+            case BottomLeftRotationJoint:
+                // Rotation joints don't do anything for now
+                break;
+            case BottomRightRotationJoint:
+                // Rotation joints don't do anything for now
+                break;
+            case TopLeftResizeJoint:
                 newRect.setLeft(dragStartRect.left() + delta.x());
                 newRect.setTop(dragStartRect.top() + delta.y());
                 break;
-            case TopRightJoint:
+            case TopRightResizeJoint:
                 newRect.setRight(dragStartRect.right() + delta.x());
                 newRect.setTop(dragStartRect.top() + delta.y());
                 break;
-            case BottomLeftJoint:
+            case BottomLeftResizeJoint:
                 newRect.setLeft(dragStartRect.left() + delta.x());
                 newRect.setBottom(dragStartRect.bottom() + delta.y());
                 break;
-            case BottomRightJoint:
+            case BottomRightResizeJoint:
                 newRect.setRight(dragStartRect.right() + delta.x());
                 newRect.setBottom(dragStartRect.bottom() + delta.y());
                 break;
@@ -358,9 +476,13 @@ void Controls::mouseMoveEvent(QMouseEvent *event) {
             setCursor(Qt::SizeHorCursor);
         } else if (hoverMode == TopBar || hoverMode == BottomBar) {
             setCursor(Qt::SizeVerCursor);
-        } else if (hoverMode == TopLeftJoint || hoverMode == BottomRightJoint) {
+        } else if (hoverMode == TopLeftRotationJoint || hoverMode == BottomRightRotationJoint) {
             setCursor(Qt::SizeFDiagCursor);  // Forward diagonal (/)
-        } else if (hoverMode == TopRightJoint || hoverMode == BottomLeftJoint) {
+        } else if (hoverMode == TopRightRotationJoint || hoverMode == BottomLeftRotationJoint) {
+            setCursor(Qt::SizeBDiagCursor);  // Backward diagonal (\)
+        } else if (hoverMode == TopLeftResizeJoint || hoverMode == BottomRightResizeJoint) {
+            setCursor(Qt::SizeFDiagCursor);  // Forward diagonal (/)
+        } else if (hoverMode == TopRightResizeJoint || hoverMode == BottomLeftResizeJoint) {
             setCursor(Qt::SizeBDiagCursor);  // Backward diagonal (\)
         } else if (hoverMode == InnerRect) {
             setCursor(Qt::SizeAllCursor);
@@ -389,9 +511,13 @@ void Controls::mouseReleaseEvent(QMouseEvent *event) {
             setCursor(Qt::SizeHorCursor);
         } else if (hoverMode == TopBar || hoverMode == BottomBar) {
             setCursor(Qt::SizeVerCursor);
-        } else if (hoverMode == TopLeftJoint || hoverMode == BottomRightJoint) {
+        } else if (hoverMode == TopLeftRotationJoint || hoverMode == BottomRightRotationJoint) {
             setCursor(Qt::SizeFDiagCursor);  // Forward diagonal (/)
-        } else if (hoverMode == TopRightJoint || hoverMode == BottomLeftJoint) {
+        } else if (hoverMode == TopRightRotationJoint || hoverMode == BottomLeftRotationJoint) {
+            setCursor(Qt::SizeBDiagCursor);  // Backward diagonal (\)
+        } else if (hoverMode == TopLeftResizeJoint || hoverMode == BottomRightResizeJoint) {
+            setCursor(Qt::SizeFDiagCursor);  // Forward diagonal (/)
+        } else if (hoverMode == TopRightResizeJoint || hoverMode == BottomLeftResizeJoint) {
             setCursor(Qt::SizeBDiagCursor);  // Backward diagonal (\)
         } else if (hoverMode == InnerRect) {
             setCursor(Qt::SizeAllCursor);

@@ -15,10 +15,14 @@ public:
         RightBar,
         TopBar,
         BottomBar,
-        TopLeftJoint,
-        TopRightJoint,
-        BottomLeftJoint,
-        BottomRightJoint,
+        TopLeftRotationJoint,
+        TopRightRotationJoint,
+        BottomLeftRotationJoint,
+        BottomRightRotationJoint,
+        TopLeftResizeJoint,
+        TopRightResizeJoint,
+        BottomLeftResizeJoint,
+        BottomRightResizeJoint,
         InnerRect
     };
     
@@ -67,16 +71,28 @@ private:
     QFrame *topBar;
     QFrame *bottomBar;
     
-    // The four corner joints
-    QFrame *topLeftJoint;
-    QFrame *topRightJoint;
-    QFrame *bottomLeftJoint;
-    QFrame *bottomRightJoint;
+    // Center lines for each bar
+    QFrame *leftBarLine;
+    QFrame *rightBarLine;
+    QFrame *topBarLine;
+    QFrame *bottomBarLine;
+    
+    // The four corner rotation joints
+    QFrame *topLeftRotationJoint;
+    QFrame *topRightRotationJoint;
+    QFrame *bottomLeftRotationJoint;
+    QFrame *bottomRightRotationJoint;
+    
+    // The four resize joints (on top of rotation joints)
+    QFrame *topLeftResizeJoint;
+    QFrame *topRightResizeJoint;
+    QFrame *bottomLeftResizeJoint;
+    QFrame *bottomRightResizeJoint;
     
     // Inner rectangle (yellow with transparency)
     QFrame *innerRect;
     
-    // Helper to position the bars and joints
+    // Helper to position the bars and rotation joints
     void positionControls(const QRect &rect);
     
     // Current rectangle being controlled

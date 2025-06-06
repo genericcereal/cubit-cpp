@@ -5,9 +5,9 @@
 Variable::Variable(int id, QWidget *parent) : Element(ElementType::VariableType, id, parent), variableId(id) {
     variableName = QString("Variable_%1").arg(variableId, 2, 10, QChar('0'));
     setFixedSize(150, 80);
-    setFrameStyle(QFrame::Box);
-    setLineWidth(1);
-    setStyleSheet("QFrame { background-color: #e8f4f8; border: 1px solid #4a90e2; border-radius: 4px; }");
+    setFrameStyle(QFrame::NoFrame);
+    setLineWidth(0);
+    setStyleSheet("");
     
     // Create labels to display variable info
     QVBoxLayout *layout = new QVBoxLayout(this);
