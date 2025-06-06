@@ -1,4 +1,5 @@
 #include "Canvas.h"
+#include "Config.h"
 #include "Controls.h"
 #include "Element.h"
 #include "Frame.h"
@@ -20,7 +21,8 @@ Canvas::Canvas(QWidget *parent) : QGraphicsView(parent), mode("Select"), isSelec
     
     // Create the graphics scene with a larger initial size to allow panning
     scene = new QGraphicsScene(this);
-    scene->setSceneRect(-2000, -2000, 4000, 4000);  // Large scene to allow panning
+    scene->setSceneRect(Config::Scene::MIN_X, Config::Scene::MIN_Y, 
+                       Config::Scene::WIDTH, Config::Scene::HEIGHT);  // Large scene to allow panning
     setScene(scene);
     
     // Set up the view
@@ -28,7 +30,9 @@ Canvas::Canvas(QWidget *parent) : QGraphicsView(parent), mode("Select"), isSelec
     setViewportUpdateMode(QGraphicsView::MinimalViewportUpdate);
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    setBackgroundBrush(QBrush(QColor(242, 242, 242)));
+    setBackgroundBrush(QBrush(QColor(Config::Colors::CANVAS_BG_R, 
+                                     Config::Colors::CANVAS_BG_G, 
+                                     Config::Colors::CANVAS_BG_B)));
     
     // IMPORTANT: Set alignment to top-left so elements don't move when window is resized
     setAlignment(Qt::AlignLeft | Qt::AlignTop);
@@ -41,7 +45,7 @@ Canvas::Canvas(QWidget *parent) : QGraphicsView(parent), mode("Select"), isSelec
     // The controls widget positions itself relative to its target rect,
     // so we need to account for that when setting the proxy position
     controlsProxy->setPos(controls->getIntendedPosition());
-    controlsProxy->setZValue(1000);  // High z-value to ensure it's on top
+    controlsProxy->setZValue(Config::ZIndex::CONTROLS);  // High z-value to ensure it's on top
     controlsProxy->hide();  // Initially hide controls until something is selected
     
     // Ensure the proxy widget itself is transparent
@@ -204,20 +208,73 @@ void Canvas::setPanOffset(const QPoint &offset) {
 }
 */
 
-void Canvas::createFrame() {
-    // Frame creation now happens via mouse drag events
-    // This method is kept for API compatibility but does nothing
-}
-
-void Canvas::createText() {
-    // Text creation now happens via Frame creation when in Text mode
-    // This method is kept for API compatibility but does nothing
-    // When Text mode is selected, clicking creates a Frame with a Text element inside
+Frame* Canvas::createFrameElement(const QPointF &scenePos, bool withText) {
+    // Generate unique ID for the frame
+    int frameId = getNextElementId();
+    
+    // Create a Frame widget without parent for proxy widget
+    Frame *frame = new Frame(frameId, nullptr);
+    frame->resize(Config::ElementDefaults::INITIAL_SIZE, Config::ElementDefaults::INITIAL_SIZE);
+    frame->setCanvasSize(QSize(Config::ElementDefaults::INITIAL_SIZE, Config::ElementDefaults::INITIAL_SIZE));
+    frame->setCanvasPosition(scenePos.toPoint());
+    
+    // Add frame to elements list first (before creating Text to get correct ID)
+    elements.append(frame);
+    
+    // If withText is true, create a Text element inside the frame
+    if (withText) {
+        int textId = getNextElementId();
+        Text *text = new Text(textId, frame);
+        text->setText("Text Element");
+        text->resize(Config::ElementDefaults::INITIAL_SIZE, Config::ElementDefaults::INITIAL_SIZE);  // Start with same size as frame
+        text->setCanvasSize(QSize(Config::ElementDefaults::INITIAL_SIZE, Config::ElementDefaults::INITIAL_SIZE));
+        text->setCanvasPosition(QPoint(0, 0));  // Relative to frame
+        text->move(0, 0);  // Position at top-left of frame
+        text->show();
+        
+        // Add text to elements list
+        elements.append(text);
+        
+        // Emit signal that a text element was created
+        emit elementCreated("Text", text->getName());
+    }
+    
+    // Add Frame to scene as a proxy widget (after adding any children)
+    QGraphicsProxyWidget *frameProxy = scene->addWidget(frame);
+    frameProxy->setPos(scenePos);
+    frameProxy->resize(frame->size());  // Explicitly set proxy size
+    frameProxy->setZValue(Config::ZIndex::FRAME);  // Below controls but above background
+    
+    // Create a ClientRect without parent for proxy widget
+    ClientRect *clientRect = new ClientRect(frameId, this, nullptr);
+    clientRect->resize(Config::ElementDefaults::INITIAL_SIZE, Config::ElementDefaults::INITIAL_SIZE);  // Match the frame size
+    
+    // Add ClientRect to scene as a proxy widget
+    QGraphicsProxyWidget *clientProxy = scene->addWidget(clientRect);
+    clientProxy->setPos(scenePos);
+    clientProxy->resize(clientRect->size());  // Explicitly set proxy size
+    clientProxy->setZValue(Config::ZIndex::CLIENT_RECT);  // Slightly above frame to handle mouse events
+    
+    // Store proxy references
+    frame->setProperty("proxy", QVariant::fromValue(frameProxy));
+    clientRect->setProperty("proxy", QVariant::fromValue(clientProxy));
+    
+    // Add to selected elements - always select the frame
+    cancelActiveTextEditing();
+    selectedElements.clear();  // Clear previous selection
+    selectedElements.append(QString::number(frame->getId()));
+    updateControlsVisibility();
+    emit selectionChanged();
+    
+    // Emit signal that a frame was created
+    emit elementCreated("Frame", frame->getName());
+    
+    return frame;
 }
 
 void Canvas::createVariable() {
-    // Generate ID based on number of elements + 1
-    int variableId = elements.size() + 1;
+    // Generate unique ID for the variable
+    int variableId = getNextElementId();
     
     // Create a new variable - NOTE: Variables don't appear on canvas
     Variable *variable = new Variable(variableId, nullptr);
@@ -243,68 +300,11 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
     
     if (event->button() == Qt::LeftButton) {
         if (mode == "Frame" || mode == "Text") {
-            // Generate ID based on number of elements + 1
-            int frameId = elements.size() + 1;
-            
             // Convert view position to scene position
             QPointF scenePos = mapToScene(event->pos());
             
-            // Create a Frame widget without parent for proxy widget
-            Frame *frame = new Frame(frameId, nullptr);
-            frame->resize(5, 5);
-            frame->setCanvasSize(QSize(5, 5));
-            frame->setCanvasPosition(scenePos.toPoint());
-            
-            // Add frame to elements list first (before creating Text to get correct ID)
-            elements.append(frame);
-            
-            // If in Text mode, create a Text element inside the frame BEFORE adding to scene
-            if (mode == "Text") {
-                int textId = elements.size() + 1;
-                Text *text = new Text(textId, frame);
-                text->setText("Text Element");
-                text->resize(5, 5);  // Start with same size as frame
-                text->setCanvasSize(QSize(5, 5));
-                text->setCanvasPosition(QPoint(0, 0));  // Relative to frame
-                text->move(0, 0);  // Position at top-left of frame
-                text->show();
-                
-                // Add text to elements list
-                elements.append(text);
-                
-                // Emit signal that a text element was created
-                emit elementCreated("Text", text->getName());
-            }
-            
-            // Add Frame to scene as a proxy widget (after adding any children)
-            QGraphicsProxyWidget *frameProxy = scene->addWidget(frame);
-            frameProxy->setPos(scenePos);
-            frameProxy->resize(frame->size());  // Explicitly set proxy size
-            frameProxy->setZValue(10);  // Below controls but above background
-            
-            // Create a ClientRect without parent for proxy widget
-            ClientRect *clientRect = new ClientRect(frameId, this, nullptr);
-            clientRect->resize(5, 5);  // Match the frame size
-            
-            // Add ClientRect to scene as a proxy widget
-            QGraphicsProxyWidget *clientProxy = scene->addWidget(clientRect);
-            clientProxy->setPos(scenePos);
-            clientProxy->resize(clientRect->size());  // Explicitly set proxy size
-            clientProxy->setZValue(11);  // Slightly above frame to handle mouse events
-            
-            // Store proxy references (we'll need to add these as member variables)
-            frame->setProperty("proxy", QVariant::fromValue(frameProxy));
-            clientRect->setProperty("proxy", QVariant::fromValue(clientProxy));
-            
-            // Add to selected elements - always select the frame
-            cancelActiveTextEditing();
-            selectedElements.clear();  // Clear previous selection
-            selectedElements.append(QString::number(frame->getId()));
-            updateControlsVisibility();
-            emit selectionChanged();
-            
-            // Emit signal that a frame was created
-            emit elementCreated("Frame", frame->getName());
+            // Create frame element (with text if in Text mode)
+            Frame *frame = createFrameElement(scenePos, mode == "Text");
             
             // Emit signal to raise overlay panels (ActionsPanel, FPSWidget, etc.)
             emit overlaysNeedRaise();
@@ -314,7 +314,7 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
             
             // Start dragging the bottom-right corner of the controls
             // Force showing the controls and start the drag
-            if (controls && controlsProxy) {
+            if (frame && controls && controlsProxy) {
                 // Ensure controls are visible (updateControlsVisibility might not have taken effect yet)
                 if (!controlsProxy->isVisible()) {
                     controlsProxy->show();

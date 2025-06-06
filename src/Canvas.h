@@ -24,8 +24,7 @@ public:
     void setMode(const QString &newMode);
     
     // Element creation
-    void createFrame();
-    void createText();
+    Frame* createFrameElement(const QPointF &scenePos, bool withText = false);
     void createVariable();
     
     // Control management
@@ -98,6 +97,7 @@ private:
     QPoint panOffset{0, 0};
     qreal zoomScale = 1.0;
     
-    // Helper to cancel any active text editing
+    // Helper methods
     void cancelActiveTextEditing();
+    int getNextElementId() const { return elements.size() + 1; }
 };
