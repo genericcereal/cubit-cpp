@@ -10,6 +10,11 @@ Controls::Controls(QWidget *parent) : QWidget(parent), dragMode(Controls::None),
     setAttribute(Qt::WA_TransparentForMouseEvents, false);
     setMouseTracking(true);  // Enable mouse tracking for hover effects
     
+    // Configure for use in QGraphicsProxyWidget
+    setAttribute(Qt::WA_TranslucentBackground, true);
+    setFocusPolicy(Qt::StrongFocus);
+    setStyleSheet("background-color: transparent;");
+    
     // Initialize single-click timer for double-click detection
     singleClickTimer = new QTimer(this);
     singleClickTimer->setSingleShot(true);
@@ -247,7 +252,15 @@ void Controls::updateGeometry(const QRect &targetRect) {
     
     // Resize the Controls widget to encompass all control bars
     resize(targetRect.width() + 2 * margin, targetRect.height() + 2 * margin);
-    move(targetRect.left() - margin, targetRect.top() - margin);
+    
+    // When used in a QGraphicsProxyWidget, don't move the widget itself
+    // Instead, store the intended position for the proxy to use
+    intendedPosition = QPoint(targetRect.left() - margin, targetRect.top() - margin);
+    
+    // Only call move() if we have a parent widget (not in a proxy)
+    if (parentWidget()) {
+        move(intendedPosition);
+    }
 }
 
 void Controls::positionControls(const QRect &rect) {
@@ -355,11 +368,11 @@ Controls::DragMode Controls::getBarAt(const QPoint &pos) const {
     
     // Finally check inner rect
     if (innerRect->geometry().contains(pos)) return Controls::InnerRect;
+    
     return Controls::None;
 }
 
 void Controls::mousePressEvent(QMouseEvent *event) {
-    qDebug() << "Controls::mousePressEvent at" << event->pos();
     if (event->button() == Qt::LeftButton) {
         // If a single-click timer is running and we get another press, it might be a double-click
         // Don't start drag mode if this could be a double-click
@@ -369,10 +382,12 @@ void Controls::mousePressEvent(QMouseEvent *event) {
         }
         
         dragMode = getBarAt(event->pos());
+        
         if (dragMode != Controls::None) {
             dragStartPos = event->globalPos();
             dragStartRect = currentRect;
             hasDragged = false;  // Reset drag tracking
+            
             // Set appropriate arrow cursor based on which bar/rotation joint is being dragged
             if (dragMode == LeftBar || dragMode == RightBar) {
                 setCursor(Qt::SizeHorCursor);
@@ -389,12 +404,20 @@ void Controls::mousePressEvent(QMouseEvent *event) {
             } else if (dragMode == InnerRect) {
                 setCursor(Qt::SizeAllCursor);
             }
+            
+            // Important: Accept the event to prevent it from propagating
+            event->accept();
         }
     }
-    QWidget::mousePressEvent(event);
+    
+    // Don't call base class if we handled the event
+    if (dragMode == Controls::None) {
+        QWidget::mousePressEvent(event);
+    }
 }
 
 void Controls::mouseMoveEvent(QMouseEvent *event) {
+    
     if (dragMode != Controls::None && (event->buttons() & Qt::LeftButton)) {
         QPoint delta = event->globalPos() - dragStartPos;
         
@@ -470,24 +493,27 @@ void Controls::mouseMoveEvent(QMouseEvent *event) {
         updateGeometry(currentRect);  // This will resize the Controls widget and reposition bars
         emit rectChanged(currentRect);
     } else {
-        // Update cursor based on hover
-        DragMode hoverMode = getBarAt(event->pos());
-        if (hoverMode == LeftBar || hoverMode == RightBar) {
-            setCursor(Qt::SizeHorCursor);
-        } else if (hoverMode == TopBar || hoverMode == BottomBar) {
-            setCursor(Qt::SizeVerCursor);
-        } else if (hoverMode == TopLeftRotationJoint || hoverMode == BottomRightRotationJoint) {
-            setCursor(Qt::SizeFDiagCursor);  // Forward diagonal (/)
-        } else if (hoverMode == TopRightRotationJoint || hoverMode == BottomLeftRotationJoint) {
-            setCursor(Qt::SizeBDiagCursor);  // Backward diagonal (\)
-        } else if (hoverMode == TopLeftResizeJoint || hoverMode == BottomRightResizeJoint) {
-            setCursor(Qt::SizeFDiagCursor);  // Forward diagonal (/)
-        } else if (hoverMode == TopRightResizeJoint || hoverMode == BottomLeftResizeJoint) {
-            setCursor(Qt::SizeBDiagCursor);  // Backward diagonal (\)
-        } else if (hoverMode == InnerRect) {
-            setCursor(Qt::SizeAllCursor);
-        } else {
-            setCursor(Qt::ArrowCursor);
+        // Only update cursor if mouse is within widget bounds
+        if (rect().contains(event->pos())) {
+            // Update cursor based on hover
+            DragMode hoverMode = getBarAt(event->pos());
+            if (hoverMode == LeftBar || hoverMode == RightBar) {
+                setCursor(Qt::SizeHorCursor);
+            } else if (hoverMode == TopBar || hoverMode == BottomBar) {
+                setCursor(Qt::SizeVerCursor);
+            } else if (hoverMode == TopLeftRotationJoint || hoverMode == BottomRightRotationJoint) {
+                setCursor(Qt::SizeFDiagCursor);  // Forward diagonal (/)
+            } else if (hoverMode == TopRightRotationJoint || hoverMode == BottomLeftRotationJoint) {
+                setCursor(Qt::SizeBDiagCursor);  // Backward diagonal (\)
+            } else if (hoverMode == TopLeftResizeJoint || hoverMode == BottomRightResizeJoint) {
+                setCursor(Qt::SizeFDiagCursor);  // Forward diagonal (/)
+            } else if (hoverMode == TopRightResizeJoint || hoverMode == BottomLeftResizeJoint) {
+                setCursor(Qt::SizeBDiagCursor);  // Backward diagonal (\)
+            } else if (hoverMode == InnerRect) {
+                setCursor(Qt::SizeAllCursor);
+            } else {
+                setCursor(Qt::ArrowCursor);
+            }
         }
     }
     QWidget::mouseMoveEvent(event);
@@ -529,12 +555,10 @@ void Controls::mouseReleaseEvent(QMouseEvent *event) {
 }
 
 void Controls::mouseDoubleClickEvent(QMouseEvent *event) {
-    qDebug() << "Controls::mouseDoubleClickEvent at" << event->pos();
     // Check if double-click is on the inner rectangle
     if (innerRect->geometry().contains(event->pos())) {
         // Stop the single-click timer to prevent single-click processing
         singleClickTimer->stop();
-        qDebug() << "Double-click on inner rect, emitting signal";
         emit innerRectDoubleClicked(event->globalPos());
     }
     QWidget::mouseDoubleClickEvent(event);

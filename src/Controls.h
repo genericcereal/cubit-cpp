@@ -38,6 +38,9 @@ public:
     // Get the current control rectangle
     QRect getControlRect() const { return currentRect; }
     
+    // Get the intended position (for when used in QGraphicsProxyWidget)
+    QPoint getIntendedPosition() const { return intendedPosition; }
+    
     // Start dragging programmatically
     void startDragMode(DragMode mode, const QPoint &globalStartPos);
     
@@ -114,4 +117,7 @@ private:
     // Double-click detection
     QTimer *singleClickTimer;
     QPoint pendingClickPos;
+    
+    // Intended position (for QGraphicsProxyWidget)
+    QPoint intendedPosition;
 };
