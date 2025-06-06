@@ -1,25 +1,25 @@
 #pragma once
-#include <QWidget>
-#include <QPoint>
+#include <QGraphicsItem>
+#include <QPointF>
 #include <QPen>
 
-class SelectionBox : public QWidget {
-    Q_OBJECT
+class SelectionBox : public QGraphicsItem {
 public:
-    explicit SelectionBox(QWidget *parent = nullptr);
+    explicit SelectionBox();
     
-    void startSelection(const QPoint &pos);
-    void updateSelection(const QPoint &pos);
+    void startSelection(const QPointF &pos);
+    void updateSelection(const QPointF &pos);
     void endSelection();
     bool isActive() const { return active; }
-    QRect getSelectionRect() const;
+    QRectF getSelectionRect() const;
     
-protected:
-    void paintEvent(QPaintEvent *event) override;
+    // QGraphicsItem interface
+    QRectF boundingRect() const override;
+    void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override;
     
 private:
-    QPoint startPos;
-    QPoint currentPos;
+    QPointF startPos;
+    QPointF currentPos;
     bool active;
     QPen selectionPen;
 };

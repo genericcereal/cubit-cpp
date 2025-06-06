@@ -1,15 +1,13 @@
 #include "SelectionBox.h"
 #include <QPainter>
-#include <QPaintEvent>
+#include <QStyleOptionGraphicsItem>
 #include <QBrush>
+#include <QGraphicsScene>
 
-SelectionBox::SelectionBox(QWidget *parent)
-    : QWidget(parent)
-    , active(false)
+SelectionBox::SelectionBox()
+    : active(false)
 {
-    setAttribute(Qt::WA_TransparentForMouseEvents);
-    setAttribute(Qt::WA_TranslucentBackground);
-    setWindowFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
+    setZValue(2000);  // High z-value to ensure it's on top
     
     selectionPen.setStyle(Qt::DashLine);
     selectionPen.setWidth(1);
@@ -17,49 +15,69 @@ SelectionBox::SelectionBox(QWidget *parent)
     selectionPen.setDashPattern(QVector<qreal>() << 4 << 4);
 }
 
-void SelectionBox::startSelection(const QPoint &pos)
+void SelectionBox::startSelection(const QPointF &pos)
 {
     startPos = pos;
     currentPos = pos;
     active = true;
-    show();
+    setPos(0, 0);  // Position at scene origin
+    prepareGeometryChange();
+    setVisible(true);
     update();
 }
 
-void SelectionBox::updateSelection(const QPoint &pos)
+void SelectionBox::updateSelection(const QPointF &pos)
 {
     if (!active) return;
     
     currentPos = pos;
-    
-    QRect rect = getSelectionRect();
-    setGeometry(rect);
+    prepareGeometryChange();  // Notify scene of bounds change
     update();
 }
 
 void SelectionBox::endSelection()
 {
+    // Get the current bounds before deactivating
+    QRectF bounds = boundingRect();
+    
     active = false;
-    hide();
+    startPos = QPointF();
+    currentPos = QPointF();
+    prepareGeometryChange();  // Notify scene that our bounds changed
+    setVisible(false);
+    
+    // Force the scene to update the area where the selection box was
+    if (scene()) {
+        scene()->update(bounds);  // Update in scene coordinates since we're at origin
+    }
 }
 
-QRect SelectionBox::getSelectionRect() const
+QRectF SelectionBox::getSelectionRect() const
 {
-    return QRect(qMin(startPos.x(), currentPos.x()),
-                 qMin(startPos.y(), currentPos.y()),
-                 qAbs(currentPos.x() - startPos.x()),
-                 qAbs(currentPos.y() - startPos.y()));
+    return QRectF(qMin(startPos.x(), currentPos.x()),
+                  qMin(startPos.y(), currentPos.y()),
+                  qAbs(currentPos.x() - startPos.x()),
+                  qAbs(currentPos.y() - startPos.y()));
 }
 
-void SelectionBox::paintEvent(QPaintEvent *)
+QRectF SelectionBox::boundingRect() const
+{
+    if (!active) return QRectF();
+    // Since we're positioned at origin, return the full selection rect
+    QRectF rect = getSelectionRect();
+    // Expand by 2 pixels to ensure the pen is fully included
+    return rect.adjusted(-2, -2, 2, 2);
+}
+
+void SelectionBox::paint(QPainter *painter, const QStyleOptionGraphicsItem *, QWidget *)
 {
     if (!active) return;
     
-    QPainter painter(this);
-    painter.setRenderHint(QPainter::Antialiasing);
+    painter->setRenderHint(QPainter::Antialiasing);
     
-    painter.setPen(selectionPen);
-    painter.setBrush(QBrush(QColor(0, 120, 215, 30)));
+    painter->setPen(selectionPen);
+    painter->setBrush(QBrush(QColor(0, 120, 215, 30)));
     
-    painter.drawRect(rect().adjusted(0, 0, -1, -1));
+    // Draw the selection rectangle
+    painter->drawRect(getSelectionRect());
 }

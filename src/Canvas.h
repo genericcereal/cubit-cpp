@@ -88,6 +88,7 @@ private:
     QString mode;
     bool isSelecting;  // Track if we're currently drag-selecting
     bool isSimulatingControlDrag;  // Track if we're simulating control dragging
+    QPointF selectionStartPos;  // Track where selection started
     
     // Element management
     QList<Element*> elements;  // Stores all types of elements (Frame, Text, Variable)
