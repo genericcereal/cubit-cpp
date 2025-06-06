@@ -11,7 +11,6 @@
 #include <QMouseEvent>
 #include <QApplication>
 #include <QPainter>
-#include <QDebug>
 #include <QVariant>
 #include <QScrollBar>
 
@@ -30,6 +29,9 @@ Canvas::Canvas(QWidget *parent) : QGraphicsView(parent), mode("Select"), isSelec
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setBackgroundBrush(QBrush(QColor(242, 242, 242)));
+    
+    // IMPORTANT: Set alignment to top-left so elements don't move when window is resized
+    setAlignment(Qt::AlignLeft | Qt::AlignTop);
     
     // Create UI controls as a proxy widget in the scene
     controls = new Controls();
@@ -58,18 +60,8 @@ Canvas::Canvas(QWidget *parent) : QGraphicsView(parent), mode("Select"), isSelec
 }
 
 void Canvas::resizeEvent(QResizeEvent *event) {
-    // Store the current center point before resize
-    QPointF oldCenter;
-    if (scene) {
-        oldCenter = mapToScene(viewport()->rect().center());
-    }
-    
     QGraphicsView::resizeEvent(event);
-    
-    // Restore the center point after resize to maintain pan position
-    if (scene) {
-        centerOn(oldCenter);
-    }
+    // Elements stay in their absolute scene positions
 }
 
 void Canvas::showControls(const QRect &rect) {
@@ -218,33 +210,9 @@ void Canvas::createFrame() {
 }
 
 void Canvas::createText() {
-    // TEMPORARILY DISABLED - Text creation
-    /*
-    // Generate ID based on number of elements + 1
-    int textId = elements.size() + 1;
-    
-    // Create a new text element with Canvas as parent
-    Text *text = new Text(textId, this);
-    
-    // Set the canvas size (original size)
-    text->setCanvasSize(text->size());
-    
-    // Calculate canvas position (center of viewport in canvas coordinates)
-    QPoint canvasPos((width() / 2 - panOffset.x()) / zoomScale - text->width() / 2,
-                     (height() / 2 - panOffset.y()) / zoomScale - text->height() / 2);
-    text->setCanvasPosition(canvasPos);
-    text->updateVisualPosition(panOffset, zoomScale);
-    text->show();
-    
-    // Add to elements list
-    elements.append(text);
-    
-    // Emit signal that a text element was created
-    emit elementCreated("Text", text->getName());
-    
-    // Switch back to Select mode
-    setMode("Select");
-    */
+    // Text creation now happens via Frame creation when in Text mode
+    // This method is kept for API compatibility but does nothing
+    // When Text mode is selected, clicking creates a Frame with a Text element inside
 }
 
 void Canvas::createVariable() {
@@ -287,6 +255,9 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
             frame->setCanvasSize(QSize(5, 5));
             frame->setCanvasPosition(scenePos.toPoint());
             
+            // Add frame to elements list first (before creating Text to get correct ID)
+            elements.append(frame);
+            
             // If in Text mode, create a Text element inside the frame BEFORE adding to scene
             if (mode == "Text") {
                 int textId = elements.size() + 1;
@@ -313,7 +284,7 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
             
             // Create a ClientRect without parent for proxy widget
             ClientRect *clientRect = new ClientRect(frameId, this, nullptr);
-            clientRect->resize(20, 20);  // Match the frame size
+            clientRect->resize(5, 5);  // Match the frame size
             
             // Add ClientRect to scene as a proxy widget
             QGraphicsProxyWidget *clientProxy = scene->addWidget(clientRect);
@@ -324,9 +295,6 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
             // Store proxy references (we'll need to add these as member variables)
             frame->setProperty("proxy", QVariant::fromValue(frameProxy));
             clientRect->setProperty("proxy", QVariant::fromValue(clientProxy));
-            
-            // Add frame to elements list (ClientRect is not an Element)
-            elements.append(frame);
             
             // Add to selected elements - always select the frame
             cancelActiveTextEditing();
@@ -766,18 +734,13 @@ void Canvas::endControlDrag(const QPoint &globalPos) {
 }
 
 void Canvas::onControlsInnerRectDoubleClicked(const QPoint &) {
-    qDebug() << "Canvas::onControlsInnerRectDoubleClicked called, selectedElements:" << selectedElements.size();
-    
     // Check if only one element is selected
     if (selectedElements.size() == 1) {
         QString selectedId = selectedElements.first();
-        qDebug() << "Selected element ID:" << selectedId;
         
         // Find the selected element
         for (Element *element : elements) {
             if (QString::number(element->getId()) == selectedId) {
-                qDebug() << "Found element, type:" << element->getType();
-                
                 // Check if it's a Frame that contains a Text element
                 if (element->getType() == Element::FrameType) {
                     Frame *frame = qobject_cast<Frame*>(element);
@@ -786,7 +749,6 @@ void Canvas::onControlsInnerRectDoubleClicked(const QPoint &) {
                         for (QObject *child : frame->children()) {
                             Text *text = qobject_cast<Text*>(child);
                             if (text) {
-                                qDebug() << "Found Text element in Frame, starting text editing";
                                 // Make the text editable
                                 text->startEditing();
                                 break;
