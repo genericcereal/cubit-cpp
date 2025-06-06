@@ -116,9 +116,10 @@ When creating new UI components:
 2. Implement the component in a .cpp file
 3. Add the files to qt-hello.pro
 4. Run qmake to regenerate the Makefile
-5. Build with make
+5. Build with make. The make file is in /src, so if you're in the root directory you'll need to change directories.
 
 ## Other instructions
 
 - Never create "mock" implementations. Don't create files for testing purposes with the intention of throwing them away later.
 - Eliminate all unused/stale methods, variables, etc. when you come across them. Don't leave unused code in the code base.
+- Always look for Qts helpers before implementing something bespoke. For example, use QWidget::mouseDoubleClickEvent instead of creating double clicks with timers.
