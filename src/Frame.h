@@ -20,9 +20,25 @@ public:
                      Config::Colors::FRAME_B); 
     }
     
+    // Overflow property
+    QString getOverflow() const { return overflow; }
+    void setOverflow(const QString& value);
+    
     // Override visual update
     void updateParentVisualState() override;
 
+signals:
+    void overflowChanged();
+    
+protected:
+    // Override paint event to handle clipping
+    void paintEvent(QPaintEvent *event) override;
+    // Override resize event to update clipping
+    void resizeEvent(QResizeEvent *event) override;
+
 private:
     QString frameName;
+    QString overflow;
+    
+    void updateOverflowClipping();
 };

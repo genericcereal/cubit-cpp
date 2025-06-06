@@ -88,6 +88,10 @@ Properties::Properties(QWidget *parent) : QWidget(parent), canvasRef(nullptr) {
     rotationProperty->setValue("0°");
     layout->addWidget(rotationProperty);
     
+    overflowProperty = new Property("Overflow", 1, this);
+    overflowProperty->setValue("hidden");
+    layout->addWidget(overflowProperty);
+    
     // Add stretch to push everything to the top
     layout->addStretch();
 }
@@ -118,6 +122,7 @@ void Properties::updateFromSelection() {
         sizeProperty->setValue("", 0);
         sizeProperty->setValue("", 1);
         rotationProperty->setValue("");
+        overflowProperty->setValue("");
         return;
     }
     
@@ -139,4 +144,7 @@ void Properties::updateFromSelection() {
     
     // Update rotation (for now, always 0)
     rotationProperty->setValue("0°");
+    
+    // Update overflow
+    overflowProperty->setValue(frame->getOverflow());
 }

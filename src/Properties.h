@@ -19,4 +19,5 @@ private:
     Property *positionProperty;
     Property *sizeProperty;
     Property *rotationProperty;
+    Property *overflowProperty;
 };
