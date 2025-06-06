@@ -1,5 +1,6 @@
 #pragma once
 #include "Element.h"
+#include "Config.h"
 #include <QString>
 #include <QColor>
 
@@ -13,7 +14,11 @@ public:
     QString getName() const override { return frameName; }
     
     // Get frame color
-    QColor getColor() const { return QColor(200, 200, 200); }
+    QColor getColor() const { 
+        return QColor(Config::Colors::FRAME_R, 
+                     Config::Colors::FRAME_G, 
+                     Config::Colors::FRAME_B); 
+    }
 
 private:
     int frameId;

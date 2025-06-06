@@ -18,6 +18,7 @@ SOURCES += \
     SelectionBox.cpp
 
 HEADERS += \
+    Config.h \
     Canvas.h \
     DetailPanel.h \
     ElementList.h \

@@ -1,4 +1,5 @@
 #include "SelectionBox.h"
+#include "Config.h"
 #include <QPainter>
 #include <QStyleOptionGraphicsItem>
 #include <QBrush>
@@ -7,7 +8,7 @@
 SelectionBox::SelectionBox()
     : active(false)
 {
-    setZValue(2000);  // High z-value to ensure it's on top
+    setZValue(Config::ZIndex::SELECTION_BOX);  // High z-value to ensure it's on top
     
     selectionPen.setStyle(Qt::DashLine);
     selectionPen.setWidth(1);
