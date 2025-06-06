@@ -13,6 +13,7 @@
 #include <QMouseEvent>
 #include <QApplication>
 #include <QPainter>
+#include <QPainterPath>
 #include <QVariant>
 #include <QScrollBar>
 #include <QDebug>
@@ -232,6 +233,11 @@ Frame* Canvas::createFrameElement(const QPointF &scenePos, bool withText) {
     
     // Add frame to elements list first (before creating Text to get correct ID)
     elements.append(frame);
+    
+    // Connect overflow change signal
+    connect(frame, &Frame::overflowChanged, [this, frame]() {
+        updateChildClipping(frame);
+    });
     
     // If withText is true, create a Text element inside the frame
     if (withText) {
@@ -652,6 +658,11 @@ void Canvas::onControlsRectChanged(const QRect &newRect) {
         int newWidth = qMax(1, qRound(relativeWidth * normalizedNewRect.width()));  // Minimum width of 1
         int newHeight = qMax(1, qRound(relativeHeight * normalizedNewRect.height()));  // Minimum height of 1
         
+        // Calculate the movement delta for children
+        QPoint oldPos = element->getCanvasPosition();
+        QPoint newPos(newX, newY);
+        QPoint delta = newPos - oldPos;
+        
         // Update the frame's canvas position and size
         frame->setCanvasPosition(QPoint(newX, newY));
         frame->setCanvasSize(QSize(newWidth, newHeight));
@@ -677,6 +688,22 @@ void Canvas::onControlsRectChanged(const QRect &newRect) {
                     proxy->resize(newWidth, newHeight);
                     break;
                 }
+            }
+        }
+        
+        // Move all child elements with the parent
+        moveChildElements(element, delta);
+        
+        // Update clipping for this element's children
+        updateChildClipping(element);
+    }
+    
+    // Also update clipping for elements whose parents might have moved
+    for (Element *element : selectedFrames) {
+        if (element->hasParent()) {
+            Element* parent = getElementById(element->getParentElementId());
+            if (parent) {
+                updateChildClipping(parent);
             }
         }
     }
@@ -949,7 +976,36 @@ void Canvas::setElementParent(int childId, int parentId) {
             // Don't allow text or variable elements to have children
             return;
         }
+        
+        // If unparenting (parentId is -1 or invalid), clear any clipping
+        if (parentId <= 0 || !parent) {
+            // Find the child's proxy widget and clear its mask
+            QList<QGraphicsItem*> items = scene->items();
+            for (QGraphicsItem *item : items) {
+                QGraphicsProxyWidget *proxy = qgraphicsitem_cast<QGraphicsProxyWidget*>(item);
+                if (proxy) {
+                    if (child->getType() == Element::FrameType) {
+                        Frame* frame = qobject_cast<Frame*>(proxy->widget());
+                        if (frame && frame->getId() == child->getId()) {
+                            // Clear the mask and ensure visibility
+                            proxy->setVisible(true);
+                            QWidget* widget = proxy->widget();
+                            if (widget) {
+                                widget->clearMask();
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        
         child->setParentElementId(parentId);
+        
+        // If we have a valid new parent, update clipping based on parent's overflow
+        if (parent && parent->getType() == Element::FrameType) {
+            updateChildClipping(parent);
+        }
     }
 }
 
@@ -1005,4 +1061,152 @@ Frame* Canvas::findFrameAtPosition(const QPoint &pos) const {
         }
     }
     return nullptr;
+}
+
+void Canvas::moveChildElements(Element* parent, const QPoint& delta) {
+    if (!parent) return;
+    
+    // Get all children of this parent
+    QList<Element*> children = getChildElements(parent->getId());
+    
+    // Move each child
+    for (Element* child : children) {
+        if (!child) continue;
+        
+        // Get current position
+        QPoint currentPos = child->getCanvasPosition();
+        QPoint newPos = currentPos + delta;
+        
+        // Update the element's position
+        child->setCanvasPosition(newPos);
+        
+        // Update visual representation based on element type
+        if (child->getType() == Element::FrameType) {
+            Frame* frame = qobject_cast<Frame*>(child);
+            if (frame) {
+                frame->move(newPos);
+                
+                // Update the frame proxy position
+                QGraphicsProxyWidget *frameProxy = frame->property("proxy").value<QGraphicsProxyWidget*>();
+                if (frameProxy) {
+                    frameProxy->setPos(newPos);
+                }
+                
+                // Find and update associated ClientRect
+                QList<QGraphicsItem*> items = scene->items();
+                for (QGraphicsItem *item : items) {
+                    QGraphicsProxyWidget *proxy = qgraphicsitem_cast<QGraphicsProxyWidget*>(item);
+                    if (proxy) {
+                        ClientRect *clientRect = qobject_cast<ClientRect*>(proxy->widget());
+                        if (clientRect && clientRect->getAssociatedElementId() == frame->getId()) {
+                            proxy->setPos(newPos);
+                            break;
+                        }
+                    }
+                }
+            }
+        } else if (child->getType() == Element::TextType) {
+            Text* text = qobject_cast<Text*>(child);
+            if (text) {
+                // Text elements move with their parent frame, so we don't need to do anything special
+            }
+        }
+        
+        // Recursively move this child's children
+        moveChildElements(child, delta);
+    }
+}
+
+void Canvas::updateChildClipping(Element* parent) {
+    if (!parent || parent->getType() != Element::FrameType) return;
+    
+    Frame* parentFrame = qobject_cast<Frame*>(parent);
+    if (!parentFrame) return;
+    
+    // Get parent frame's bounds
+    QRect parentBounds(parentFrame->getCanvasPosition(), parentFrame->getCanvasSize());
+    bool shouldClip = (parentFrame->getOverflow() == "hidden");
+    
+    // Get all children of this parent
+    QList<Element*> children = getChildElements(parent->getId());
+    
+    // Update clipping for each child
+    for (Element* child : children) {
+        if (!child) continue;
+        
+        // Find the child's proxy widget in the scene
+        QGraphicsProxyWidget* childProxy = nullptr;
+        QList<QGraphicsItem*> items = scene->items();
+        for (QGraphicsItem *item : items) {
+            QGraphicsProxyWidget *proxy = qgraphicsitem_cast<QGraphicsProxyWidget*>(item);
+            if (proxy) {
+                // Check if this proxy contains our child element
+                if (child->getType() == Element::FrameType) {
+                    Frame* frame = qobject_cast<Frame*>(proxy->widget());
+                    if (frame && frame->getId() == child->getId()) {
+                        childProxy = proxy;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        if (childProxy && shouldClip) {
+            // Calculate the visible region of the child relative to parent
+            QRect childBounds(child->getCanvasPosition(), child->getCanvasSize());
+            QRect visibleRect = childBounds.intersected(parentBounds);
+            
+            if (visibleRect.isEmpty()) {
+                // Child is completely outside parent bounds - hide it
+                childProxy->setVisible(false);
+            } else {
+                childProxy->setVisible(true);
+                
+                // Create a clipping path for the proxy widget
+                if (visibleRect != childBounds) {
+                    // Child extends beyond parent - need to clip
+                    QRectF localClipRect = childProxy->mapFromScene(
+                        QRectF(visibleRect)).boundingRect();
+                    
+                    // Apply clipping using QGraphicsItem's setClip
+                    childProxy->setFlag(QGraphicsItem::ItemClipsChildrenToShape, true);
+                    
+                    // For more precise clipping, we can use a clip path
+                    QPainterPath clipPath;
+                    clipPath.addRect(localClipRect);
+                    
+                    // Unfortunately QGraphicsProxyWidget doesn't support setClipPath directly
+                    // So we'll use widget masking on the embedded widget
+                    QWidget* childWidget = childProxy->widget();
+                    if (childWidget) {
+                        // Convert the visible rect to widget coordinates
+                        QRect widgetClipRect(
+                            visibleRect.x() - childBounds.x(),
+                            visibleRect.y() - childBounds.y(),
+                            visibleRect.width(),
+                            visibleRect.height()
+                        );
+                        QRegion mask(widgetClipRect);
+                        childWidget->setMask(mask);
+                    }
+                } else {
+                    // Child is fully within parent bounds - clear any clipping
+                    QWidget* childWidget = childProxy->widget();
+                    if (childWidget) {
+                        childWidget->clearMask();
+                    }
+                }
+            }
+        } else if (childProxy) {
+            // No clipping needed - ensure child is visible and unclipped
+            childProxy->setVisible(true);
+            QWidget* childWidget = childProxy->widget();
+            if (childWidget) {
+                childWidget->clearMask();
+            }
+        }
+        
+        // Recursively update clipping for this child's children
+        updateChildClipping(child);
+    }
 }

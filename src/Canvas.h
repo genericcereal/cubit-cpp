@@ -115,4 +115,6 @@ private:
     // Helper methods
     void cancelActiveTextEditing();
     int getNextElementId() const { return elements.size() + 1; }
+    void moveChildElements(Element* parent, const QPoint& delta);
+    void updateChildClipping(Element* parent);
 };
