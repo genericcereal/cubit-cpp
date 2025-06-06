@@ -13,13 +13,15 @@
 #include <QPainter>
 #include <QDebug>
 #include <QVariant>
+#include <QScrollBar>
 
-Canvas::Canvas(QWidget *parent) : QGraphicsView(parent), mode("Select"), isSelecting(false), isSimulatingControlDrag(false) {
+Canvas::Canvas(QWidget *parent) : QGraphicsView(parent), mode("Select"), isSelecting(false), isSimulatingControlDrag(false), isPanning(false) {
     setContentsMargins(0, 0, 0, 0);
     setMouseTracking(true);  // Enable mouse tracking for cursor changes
     
-    // Create the graphics scene
+    // Create the graphics scene with a larger initial size to allow panning
     scene = new QGraphicsScene(this);
+    scene->setSceneRect(-2000, -2000, 4000, 4000);  // Large scene to allow panning
     setScene(scene);
     
     // Set up the view
@@ -56,19 +58,24 @@ Canvas::Canvas(QWidget *parent) : QGraphicsView(parent), mode("Select"), isSelec
 }
 
 void Canvas::resizeEvent(QResizeEvent *event) {
+    // Store the current center point before resize
+    QPointF oldCenter;
+    if (scene) {
+        oldCenter = mapToScene(viewport()->rect().center());
+    }
+    
     QGraphicsView::resizeEvent(event);
     
-    // Update scene rect to match the view
+    // Restore the center point after resize to maintain pan position
     if (scene) {
-        scene->setSceneRect(rect());
+        centerOn(oldCenter);
     }
 }
 
 void Canvas::showControls(const QRect &rect) {
     if (controls && controlsProxy) {
-        // FUTURE: Re-enable pan/zoom support
-        // controls->setPanOffset(panOffset);
-        // controls->setZoomScale(zoomScale);
+        // Set the current zoom scale so controls can compensate
+        controls->setZoomScale(zoomScale);
         controls->updateGeometry(rect);
         
         // The controls widget positions itself with margins, get its intended position
@@ -487,72 +494,69 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event) {
 }
 
 void Canvas::wheelEvent(QWheelEvent *event) {
-    // FUTURE: Re-enable pan/zoom support
-    /*
     // Check if Ctrl is held for zooming
     if (event->modifiers() & Qt::ControlModifier) {
-        // Get the scroll amount
+        // Zooming
         QPoint numDegrees = event->angleDelta() / 8;
         
-        if (!numDegrees.isNull() && numDegrees.y() != 0) {
-            const qreal force = 1.05;
-            
-            // Get mouse position relative to widget
-            QPoint mousePos = event->position().toPoint();
-            int x = (mousePos.x() / 2) * 2;  // Round to even number
-            int y = (mousePos.y() / 2) * 2;  // Round to even number
-            
+        if (!numDegrees.isNull()) {
+            qreal scaleFactor = 1.0;
+            // Positive = zoom in, negative = zoom out
             if (numDegrees.y() > 0) {
-                // Zoom in (scroll up)
-                panOffset.setX(x - (x - panOffset.x()) * force);
-                panOffset.setY(y - (y - panOffset.y()) * force);
-                zoomScale = zoomScale * force;
+                scaleFactor = 1.1;  // Zoom in by 10%
             } else {
-                // Zoom out (scroll down)
-                panOffset.setX(x - (x - panOffset.x()) / force);
-                panOffset.setY(y - (y - panOffset.y()) / force);
-                zoomScale = zoomScale / force;
+                scaleFactor = 0.9;  // Zoom out by 10%
             }
             
-            qDebug() << "Zoom event - new zoomScale:" << zoomScale << "panOffset:" << panOffset;
-            qDebug() << "Number of elements:" << elements.size();
+            // Get the position of the mouse in the view
+            QPointF mousePos = mapToScene(event->pos());
             
-            // Update all elements with new pan and zoom
-            setPanOffset(panOffset);
+            // Apply the scale transformation
+            scale(scaleFactor, scaleFactor);
             
-            // Force a repaint to show the zoom changes
-            update();
+            // Update our zoom scale tracking
+            zoomScale *= scaleFactor;
+            
+            // Update controls zoom scale if they're visible
+            if (controls && controlsProxy && controlsProxy->isVisible()) {
+                controls->setZoomScale(zoomScale);
+                // Force controls to update their geometry to account for new zoom
+                updateControlsVisibility();
+            }
+            
+            // Ensure the mouse position stays at the same scene coordinate
+            // This makes zooming feel natural - zoom centers on mouse position
+            centerOn(mousePos);
+            QPointF delta = mapToScene(event->pos()) - mousePos;
+            centerOn(mapToScene(viewport()->rect().center()) - delta);
             
             event->accept();
         }
     } else {
-        // Regular pan operation
+        // Regular scrolling (panning)
         QPoint numPixels = event->pixelDelta();
         QPoint numDegrees = event->angleDelta() / 8;
         
-        int delta = 0;
+        int deltaY = 0;
         if (!numPixels.isNull()) {
-            delta = numPixels.y();
+            deltaY = numPixels.y();
         } else if (!numDegrees.isNull()) {
-            delta = numDegrees.y() * 3;  // Convert degrees to pixels (approximate)
+            deltaY = numDegrees.y() * 3;  // Convert degrees to pixels (approximate)
         }
         
-        // Update pan offset on Y axis
-        if (delta != 0) {
-            QPoint newOffset = panOffset;
-            newOffset.setY(panOffset.y() + delta);
-            setPanOffset(newOffset);
+        if (deltaY != 0) {
+            // Get the current scrollbar values
+            int currentY = verticalScrollBar()->value();
             
-            // Accept the event to prevent propagation
+            // Invert the delta for natural scrolling (scroll up = content moves up = scrollbar value decreases)
+            verticalScrollBar()->setValue(currentY - deltaY);
+            
             event->accept();
         } else {
-            QWidget::wheelEvent(event);
+            // If no vertical scroll, pass to base class
+            QGraphicsView::wheelEvent(event);
         }
     }
-    */
-    
-    // For now, just pass the event to the base class
-    QGraphicsView::wheelEvent(event);
 }
 
 void Canvas::paintEvent(QPaintEvent *event) {
@@ -562,6 +566,15 @@ void Canvas::paintEvent(QPaintEvent *event) {
 
 void Canvas::render() {
     update();  // Triggers paintEvent
+}
+
+void Canvas::resetZoom() {
+    // Reset the view transformation to identity
+    resetTransform();
+    zoomScale = 1.0;
+    
+    // Center the view on the origin
+    centerOn(0, 0);
 }
 
 void Canvas::onControlsRectChanged(const QRect &newRect) {

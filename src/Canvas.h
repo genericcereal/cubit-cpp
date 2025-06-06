@@ -42,12 +42,10 @@ public:
     // Get rendering type
     QString getRenderingType() const { return "CPU"; }
     
-    // FUTURE: Re-enable pan/zoom support
-    // QPoint getPanOffset() const { return panOffset; }
-    // void setPanOffset(const QPoint &offset);
-    // void setPanOffset(int x, int y) { setPanOffset(QPoint(x, y)); }
-    
-    // qreal getZoomScale() const { return zoomScale; }
+    // Pan/zoom support
+    QPoint getPanOffset() const { return panOffset; }
+    qreal getZoomScale() const { return zoomScale; }
+    void resetZoom();
     
     // Control drag management
     void startControlDrag(const QPoint &globalPos);
@@ -88,7 +86,9 @@ private:
     QString mode;
     bool isSelecting;  // Track if we're currently drag-selecting
     bool isSimulatingControlDrag;  // Track if we're simulating control dragging
+    bool isPanning;  // Track if we're currently panning
     QPointF selectionStartPos;  // Track where selection started
+    QPoint lastPanPos;  // Last mouse position during panning
     
     // Element management
     QList<Element*> elements;  // Stores all types of elements (Frame, Text, Variable)

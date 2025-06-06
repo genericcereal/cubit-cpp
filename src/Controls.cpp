@@ -26,100 +26,84 @@ Controls::Controls(QWidget *parent) : QWidget(parent), dragMode(Controls::None),
     
     // Create the four control bars
     leftBar = new QFrame(this);
-    leftBar->setFixedWidth(10);  // Fixed width, adjustable height
     leftBar->setStyleSheet("background-color: rgba(255, 0, 0, 0.5);");
     leftBar->setAttribute(Qt::WA_TransparentForMouseEvents, false);
     leftBar->show();
     
     rightBar = new QFrame(this);
-    rightBar->setFixedWidth(10);  // Fixed width, adjustable height
     rightBar->setStyleSheet("background-color: rgba(255, 0, 0, 0.5);");
     rightBar->setAttribute(Qt::WA_TransparentForMouseEvents, false);
     rightBar->show();
     
     topBar = new QFrame(this);
-    topBar->setFixedHeight(10);  // Fixed height, adjustable width
     topBar->setStyleSheet("background-color: rgba(255, 0, 0, 0.5);");
     topBar->setAttribute(Qt::WA_TransparentForMouseEvents, false);
     topBar->show();
     
     bottomBar = new QFrame(this);
-    bottomBar->setFixedHeight(10);  // Fixed height, adjustable width
     bottomBar->setStyleSheet("background-color: rgba(255, 0, 0, 0.5);");
     bottomBar->setAttribute(Qt::WA_TransparentForMouseEvents, false);
     bottomBar->show();
     
     // Create center lines for each bar
     leftBarLine = new QFrame(this);
-    leftBarLine->setFixedWidth(1);  // 1 pixel wide vertical line
     leftBarLine->setStyleSheet("background-color: rgba(0, 0, 0, 0.5);");
     leftBarLine->setAttribute(Qt::WA_TransparentForMouseEvents, true);
     leftBarLine->show();
     
     rightBarLine = new QFrame(this);
-    rightBarLine->setFixedWidth(1);  // 1 pixel wide vertical line
     rightBarLine->setStyleSheet("background-color: rgba(0, 0, 0, 0.5);");
     rightBarLine->setAttribute(Qt::WA_TransparentForMouseEvents, true);
     rightBarLine->show();
     
     topBarLine = new QFrame(this);
-    topBarLine->setFixedHeight(1);  // 1 pixel high horizontal line
     topBarLine->setStyleSheet("background-color: rgba(0, 0, 0, 0.5);");
     topBarLine->setAttribute(Qt::WA_TransparentForMouseEvents, true);
     topBarLine->show();
     
     bottomBarLine = new QFrame(this);
-    bottomBarLine->setFixedHeight(1);  // 1 pixel high horizontal line
     bottomBarLine->setStyleSheet("background-color: rgba(0, 0, 0, 0.5);");
     bottomBarLine->setAttribute(Qt::WA_TransparentForMouseEvents, true);
     bottomBarLine->show();
     
     // Create the four corner rotation joints
     topLeftRotationJoint = new QFrame(this);
-    topLeftRotationJoint->setFixedSize(20, 20);
     topLeftRotationJoint->setStyleSheet("background-color: rgba(0, 0, 255, 0.5);");
     topLeftRotationJoint->setAttribute(Qt::WA_TransparentForMouseEvents, false);
     topLeftRotationJoint->show();
     
     topRightRotationJoint = new QFrame(this);
-    topRightRotationJoint->setFixedSize(20, 20);
     topRightRotationJoint->setStyleSheet("background-color: rgba(0, 0, 255, 0.5);");
     topRightRotationJoint->setAttribute(Qt::WA_TransparentForMouseEvents, false);
     topRightRotationJoint->show();
     
     bottomLeftRotationJoint = new QFrame(this);
-    bottomLeftRotationJoint->setFixedSize(20, 20);
     bottomLeftRotationJoint->setStyleSheet("background-color: rgba(0, 0, 255, 0.5);");
     bottomLeftRotationJoint->setAttribute(Qt::WA_TransparentForMouseEvents, false);
     bottomLeftRotationJoint->show();
     
     bottomRightRotationJoint = new QFrame(this);
-    bottomRightRotationJoint->setFixedSize(20, 20);
     bottomRightRotationJoint->setStyleSheet("background-color: rgba(0, 0, 255, 0.5);");
     bottomRightRotationJoint->setAttribute(Qt::WA_TransparentForMouseEvents, false);
     bottomRightRotationJoint->show();
     
     // Create the four resize joints
     topLeftResizeJoint = new QFrame(this);
-    topLeftResizeJoint->setFixedSize(10, 10);
     topLeftResizeJoint->setStyleSheet("background-color: rgba(255, 255, 0, 0.5);");
     topLeftResizeJoint->setAttribute(Qt::WA_TransparentForMouseEvents, false);
     topLeftResizeJoint->show();
     
     topRightResizeJoint = new QFrame(this);
-    topRightResizeJoint->setFixedSize(10, 10);
     topRightResizeJoint->setStyleSheet("background-color: rgba(255, 255, 0, 0.5);");
     topRightResizeJoint->setAttribute(Qt::WA_TransparentForMouseEvents, false);
     topRightResizeJoint->show();
     
     bottomLeftResizeJoint = new QFrame(this);
-    bottomLeftResizeJoint->setFixedSize(10, 10);
     bottomLeftResizeJoint->setStyleSheet("background-color: rgba(255, 255, 0, 0.5);");
     bottomLeftResizeJoint->setAttribute(Qt::WA_TransparentForMouseEvents, false);
     bottomLeftResizeJoint->show();
     
     bottomRightResizeJoint = new QFrame(this);
-    bottomRightResizeJoint->setFixedSize(10, 10);
     bottomRightResizeJoint->setStyleSheet("background-color: rgba(255, 255, 0, 0.5);");
     bottomRightResizeJoint->setAttribute(Qt::WA_TransparentForMouseEvents, false);
     bottomRightResizeJoint->show();
@@ -166,20 +150,24 @@ void Controls::updateDragPosition(const QPoint &globalPos) {
         hasDragged = true;
     }
     
+    // Scale the delta by inverse of zoom to convert from screen to scene coordinates
+    int scaledDeltaX = qRound(delta.x() / zoomScale);
+    int scaledDeltaY = qRound(delta.y() / zoomScale);
+    
     QRect newRect = dragStartRect;
     
     switch (dragMode) {
         case LeftBar:
-            newRect.setLeft(dragStartRect.left() + delta.x());
+            newRect.setLeft(dragStartRect.left() + scaledDeltaX);
             break;
         case RightBar:
-            newRect.setRight(dragStartRect.right() + delta.x());
+            newRect.setRight(dragStartRect.right() + scaledDeltaX);
             break;
         case TopBar:
-            newRect.setTop(dragStartRect.top() + delta.y());
+            newRect.setTop(dragStartRect.top() + scaledDeltaY);
             break;
         case BottomBar:
-            newRect.setBottom(dragStartRect.bottom() + delta.y());
+            newRect.setBottom(dragStartRect.bottom() + scaledDeltaY);
             break;
         case TopLeftRotationJoint:
             // Rotation joints don't do anything for now
@@ -194,25 +182,25 @@ void Controls::updateDragPosition(const QPoint &globalPos) {
             // Rotation joints don't do anything for now
             break;
         case TopLeftResizeJoint:
-            newRect.setLeft(dragStartRect.left() + delta.x());
-            newRect.setTop(dragStartRect.top() + delta.y());
+            newRect.setLeft(dragStartRect.left() + scaledDeltaX);
+            newRect.setTop(dragStartRect.top() + scaledDeltaY);
             break;
         case TopRightResizeJoint:
-            newRect.setRight(dragStartRect.right() + delta.x());
-            newRect.setTop(dragStartRect.top() + delta.y());
+            newRect.setRight(dragStartRect.right() + scaledDeltaX);
+            newRect.setTop(dragStartRect.top() + scaledDeltaY);
             break;
         case BottomLeftResizeJoint:
-            newRect.setLeft(dragStartRect.left() + delta.x());
-            newRect.setBottom(dragStartRect.bottom() + delta.y());
+            newRect.setLeft(dragStartRect.left() + scaledDeltaX);
+            newRect.setBottom(dragStartRect.bottom() + scaledDeltaY);
             break;
         case BottomRightResizeJoint:
-            newRect.setRight(dragStartRect.right() + delta.x());
-            newRect.setBottom(dragStartRect.bottom() + delta.y());
+            newRect.setRight(dragStartRect.right() + scaledDeltaX);
+            newRect.setBottom(dragStartRect.bottom() + scaledDeltaY);
             break;
         case InnerRect:
             // Move the entire rectangle
-            newRect.moveLeft(dragStartRect.left() + delta.x());
-            newRect.moveTop(dragStartRect.top() + delta.y());
+            newRect.moveLeft(dragStartRect.left() + scaledDeltaX);
+            newRect.moveTop(dragStartRect.top() + scaledDeltaY);
             break;
         default:
             break;
@@ -247,8 +235,12 @@ void Controls::updateGeometry(const QRect &targetRect) {
     // Calculate the actual margin based on zoom scale
     // Bar widths and joint sizes should remain fixed visually
     int visualBarWidth = 10;
-    int visualJointSize = 20;
-    int margin = qMax(visualJointSize, visualBarWidth * 2);
+    int visualRotationJointSize = 20;
+    
+    // Scale the margin by inverse of zoom to maintain visual size
+    int scaledBarWidth = qRound(visualBarWidth / zoomScale);
+    int scaledRotationJointSize = qRound(visualRotationJointSize / zoomScale);
+    int margin = qMax(scaledRotationJointSize, scaledBarWidth * 2);
     
     // Resize the Controls widget to encompass all control bars
     resize(targetRect.width() + 2 * margin, targetRect.height() + 2 * margin);
@@ -264,23 +256,26 @@ void Controls::updateGeometry(const QRect &targetRect) {
 }
 
 void Controls::positionControls(const QRect &rect) {
-    // Fixed visual sizes for bars and rotation joints
-    int barWidth = 10;
-    int barHeight = 10;
-    int jointSize = 20;
+    // Fixed visual sizes for bars and joints
+    int visualBarWidth = 10;
+    int visualBarHeight = 10;
+    int visualRotationJointSize = 20;  // Blue rotation joints
+    int visualResizeJointSize = 10;     // Yellow resize joints
+    
+    // Scale sizes by inverse of zoom to maintain visual size
+    int barWidth = qRound(visualBarWidth / zoomScale);
+    int barHeight = qRound(visualBarHeight / zoomScale);
+    int rotationJointSize = qRound(visualRotationJointSize / zoomScale);
+    int resizeJointSize = qRound(visualResizeJointSize / zoomScale);
     
     // Update bar sizes to match the rectangle dimensions
-    leftBar->setFixedWidth(barWidth);
-    leftBar->setFixedHeight(rect.height());
-    rightBar->setFixedWidth(barWidth);
-    rightBar->setFixedHeight(rect.height());
-    topBar->setFixedHeight(barHeight);
-    topBar->setFixedWidth(rect.width());
-    bottomBar->setFixedHeight(barHeight);
-    bottomBar->setFixedWidth(rect.width());
+    leftBar->resize(barWidth, rect.height());
+    rightBar->resize(barWidth, rect.height());
+    topBar->resize(rect.width(), barHeight);
+    bottomBar->resize(rect.width(), barHeight);
     
     // Position bars relative to the Controls widget (which has been moved/resized)
-    int margin = qMax(jointSize, barWidth * 2);
+    int margin = qMax(rotationJointSize, barWidth * 2);
     
     // Position left bar - centered on the left edge of selection
     leftBar->move(margin - barWidth/2, margin);
@@ -294,18 +289,25 @@ void Controls::positionControls(const QRect &rect) {
     // Position bottom bar - centered on the bottom edge of selection
     bottomBar->move(margin, margin + rect.height() - barHeight/2);
     
-    // Position corner rotation joints - with 10x10 overlap at the appropriate corners
+    // Update rotation joint sizes
+    topLeftRotationJoint->resize(rotationJointSize, rotationJointSize);
+    topRightRotationJoint->resize(rotationJointSize, rotationJointSize);
+    bottomLeftRotationJoint->resize(rotationJointSize, rotationJointSize);
+    bottomRightRotationJoint->resize(rotationJointSize, rotationJointSize);
+    
+    // Position corner rotation joints - with scaled overlap at the appropriate corners
+    int overlapSize = qRound(10 / zoomScale);
     
     // Top-left joint - bottom-right corner overlaps with bars
-    topLeftRotationJoint->move(margin - barWidth/2 - (jointSize - 10), 
-                       margin - barHeight/2 - (jointSize - 10));
+    topLeftRotationJoint->move(margin - barWidth/2 - (rotationJointSize - overlapSize), 
+                       margin - barHeight/2 - (rotationJointSize - overlapSize));
     
     // Top-right joint - bottom-left corner overlaps with bars
     topRightRotationJoint->move(margin + rect.width() - barWidth/2, 
-                        margin - barHeight/2 - (jointSize - 10));
+                        margin - barHeight/2 - (rotationJointSize - overlapSize));
     
     // Bottom-left joint - top-right corner overlaps with bars
-    bottomLeftRotationJoint->move(margin - barWidth/2 - (jointSize - 10), 
+    bottomLeftRotationJoint->move(margin - barWidth/2 - (rotationJointSize - overlapSize), 
                           margin + rect.height() - barHeight/2);
     
     // Bottom-right joint - top-left corner overlaps with bars
@@ -317,21 +319,29 @@ void Controls::positionControls(const QRect &rect) {
     innerRect->resize(rect.width(), rect.height());
     
     // Position center lines
+    int lineWidth = qMax(1, qRound(1 / zoomScale));
+    
     // Left bar line - vertical line in center of left bar
-    leftBarLine->setFixedHeight(rect.height());
-    leftBarLine->move(margin - 1, margin);
+    leftBarLine->resize(lineWidth, rect.height());
+    leftBarLine->move(margin - lineWidth/2, margin);
     
     // Right bar line - vertical line in center of right bar
-    rightBarLine->setFixedHeight(rect.height());
-    rightBarLine->move(margin + rect.width() - 1, margin);
+    rightBarLine->resize(lineWidth, rect.height());
+    rightBarLine->move(margin + rect.width() - lineWidth/2, margin);
     
     // Top bar line - horizontal line in center of top bar
-    topBarLine->setFixedWidth(rect.width());
-    topBarLine->move(margin, margin - 1);
+    topBarLine->resize(rect.width(), lineWidth);
+    topBarLine->move(margin, margin - lineWidth/2);
     
     // Bottom bar line - horizontal line in center of bottom bar
-    bottomBarLine->setFixedWidth(rect.width());
-    bottomBarLine->move(margin, margin + rect.height() - 1);
+    bottomBarLine->resize(rect.width(), lineWidth);
+    bottomBarLine->move(margin, margin + rect.height() - lineWidth/2);
+    
+    // Update resize joint sizes
+    topLeftResizeJoint->resize(resizeJointSize, resizeJointSize);
+    topRightResizeJoint->resize(resizeJointSize, resizeJointSize);
+    bottomLeftResizeJoint->resize(resizeJointSize, resizeJointSize);
+    bottomRightResizeJoint->resize(resizeJointSize, resizeJointSize);
     
     // Position resize joints at the intersection points
     // Top-left resize joint - at bottom-right corner of top-left rotation joint
@@ -426,20 +436,24 @@ void Controls::mouseMoveEvent(QMouseEvent *event) {
             hasDragged = true;
         }
         
+        // Scale the delta by inverse of zoom to convert from screen to scene coordinates
+        int scaledDeltaX = qRound(delta.x() / zoomScale);
+        int scaledDeltaY = qRound(delta.y() / zoomScale);
+        
         QRect newRect = dragStartRect;
         
         switch (dragMode) {
             case LeftBar:
-                newRect.setLeft(dragStartRect.left() + delta.x());
+                newRect.setLeft(dragStartRect.left() + scaledDeltaX);
                 break;
             case RightBar:
-                newRect.setRight(dragStartRect.right() + delta.x());
+                newRect.setRight(dragStartRect.right() + scaledDeltaX);
                 break;
             case TopBar:
-                newRect.setTop(dragStartRect.top() + delta.y());
+                newRect.setTop(dragStartRect.top() + scaledDeltaY);
                 break;
             case BottomBar:
-                newRect.setBottom(dragStartRect.bottom() + delta.y());
+                newRect.setBottom(dragStartRect.bottom() + scaledDeltaY);
                 break;
             case TopLeftRotationJoint:
                 // Rotation joints don't do anything for now
@@ -454,25 +468,25 @@ void Controls::mouseMoveEvent(QMouseEvent *event) {
                 // Rotation joints don't do anything for now
                 break;
             case TopLeftResizeJoint:
-                newRect.setLeft(dragStartRect.left() + delta.x());
-                newRect.setTop(dragStartRect.top() + delta.y());
+                newRect.setLeft(dragStartRect.left() + scaledDeltaX);
+                newRect.setTop(dragStartRect.top() + scaledDeltaY);
                 break;
             case TopRightResizeJoint:
-                newRect.setRight(dragStartRect.right() + delta.x());
-                newRect.setTop(dragStartRect.top() + delta.y());
+                newRect.setRight(dragStartRect.right() + scaledDeltaX);
+                newRect.setTop(dragStartRect.top() + scaledDeltaY);
                 break;
             case BottomLeftResizeJoint:
-                newRect.setLeft(dragStartRect.left() + delta.x());
-                newRect.setBottom(dragStartRect.bottom() + delta.y());
+                newRect.setLeft(dragStartRect.left() + scaledDeltaX);
+                newRect.setBottom(dragStartRect.bottom() + scaledDeltaY);
                 break;
             case BottomRightResizeJoint:
-                newRect.setRight(dragStartRect.right() + delta.x());
-                newRect.setBottom(dragStartRect.bottom() + delta.y());
+                newRect.setRight(dragStartRect.right() + scaledDeltaX);
+                newRect.setBottom(dragStartRect.bottom() + scaledDeltaY);
                 break;
             case InnerRect:
                 // Move the entire rectangle
-                newRect.moveLeft(dragStartRect.left() + delta.x());
-                newRect.moveTop(dragStartRect.top() + delta.y());
+                newRect.moveLeft(dragStartRect.left() + scaledDeltaX);
+                newRect.moveTop(dragStartRect.top() + scaledDeltaY);
                 break;
             default:
                 break;
