@@ -8,7 +8,6 @@ Frame::Frame(int id, QWidget *parent) : Element(ElementType::FrameType, id, pare
     setLineWidth(0);
     setStyleSheet("QFrame { background-color: rgba(128, 0, 128, 0.2); border: none; }");
     
-    // Set object name for debugging/identification
     setObjectName(frameName);
     
     // IMPORTANT: Frames should not handle mouse events directly

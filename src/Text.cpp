@@ -13,7 +13,6 @@ Text::Text(int id, QWidget *parent) : Element(ElementType::TextType, id, parent)
     setFrameStyle(QFrame::NoFrame);
     setStyleSheet("QFrame { background-color: transparent; border: none; }");
     
-    // Set object name for debugging/identification
     setObjectName(textName);
     
     content = "Text Element";
