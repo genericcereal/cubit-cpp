@@ -30,5 +30,5 @@ private:
     QString textName;
     QString content;
     bool editing;
-    class QLineEdit *editWidget;
+    class QTextEdit *editWidget;
 };
