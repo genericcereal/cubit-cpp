@@ -2,8 +2,8 @@
 #include <QLabel>
 #include <QVBoxLayout>
 
-Variable::Variable(int id, QWidget *parent) : Element(ElementType::VariableType, id, parent), variableId(id) {
-    variableName = QString("Variable_%1").arg(variableId, 2, 10, QChar('0'));
+Variable::Variable(int id, QWidget *parent) : Element(ElementType::VariableType, id, parent) {
+    variableName = QString("Variable_%1").arg(elementId, 2, 10, QChar('0'));
     setFixedSize(150, 80);
     setFrameStyle(QFrame::NoFrame);
     setLineWidth(0);
@@ -65,4 +65,9 @@ QString Variable::getType() const {
         default:
             return "Unknown";
     }
+}
+
+void Variable::updateParentVisualState() {
+    // Variables don't visually show on the canvas, so no visual update needed
+    // But we still implement the pure virtual function
 }

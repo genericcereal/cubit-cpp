@@ -59,6 +59,12 @@ public:
     // Hover management
     QString getHoveredElement() const { return hoveredElement; }
     void setHoveredElement(const QString &elementId);
+    
+    // Parent-child management
+    void setElementParent(int childId, int parentId);
+    QList<Element*> getChildElements(int parentId) const;
+    Element* getElementById(int id) const;
+    Frame* findFrameAtPosition(const QPoint &pos) const;
 
 signals:
     void modeChanged(const QString &newMode);

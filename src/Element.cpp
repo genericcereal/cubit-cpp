@@ -3,7 +3,8 @@
 #include <QDebug>
 
 Element::Element(ElementType type, int id, QWidget *parent) 
-    : QFrame(parent), elementType(type), elementId(id), canvasPosition(0, 0), canvasSize(0, 0) {
+    : QFrame(parent), elementType(type), elementId(id), parentElementId(-1), 
+      canvasPosition(0, 0), canvasSize(0, 0) {
 }
 
 QString Element::getTypeName() const {
@@ -34,4 +35,9 @@ void Element::resizeEvent(QResizeEvent *event) {
     // Canvas size is set explicitly through setCanvasSize
     // We don't update it here to avoid corruption from zoomed sizes
     QFrame::resizeEvent(event);
+}
+
+void Element::setParentElementId(int parentId) {
+    parentElementId = parentId;
+    updateParentVisualState();
 }

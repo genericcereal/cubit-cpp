@@ -9,16 +9,18 @@ public:
     explicit Variable(int id, QWidget *parent = nullptr);
     
     // Override Element virtual methods
-    int getId() const override { return variableId; }
+    int getId() const override { return elementId; }
     QString getName() const override { return variableName; }
     
     void setValue(const QVariant &value);
     QVariant getValue() const { return value; }
     
     QString getType() const;
+    
+    // Override visual update
+    void updateParentVisualState() override;
 
 private:
-    int variableId;
     QString variableName;
     QVariant value;
 };

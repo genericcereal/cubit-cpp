@@ -10,7 +10,7 @@ public:
     explicit Frame(int id, QWidget *parent = nullptr);
     
     // Override Element virtual methods
-    int getId() const override { return frameId; }
+    int getId() const override { return elementId; }
     QString getName() const override { return frameName; }
     
     // Get frame color
@@ -19,8 +19,10 @@ public:
                      Config::Colors::FRAME_G, 
                      Config::Colors::FRAME_B); 
     }
+    
+    // Override visual update
+    void updateParentVisualState() override;
 
 private:
-    int frameId;
     QString frameName;
 };
