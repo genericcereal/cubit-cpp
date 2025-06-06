@@ -12,6 +12,7 @@ class Element;
 class ClientRect;
 class SelectionBox;
 class Frame;
+class HoverIndicator;
 
 class Canvas : public QGraphicsView {
     Q_OBJECT
@@ -54,6 +55,10 @@ public:
     
     // Selection management
     QList<Frame*> getSelectedFrames() const;
+    
+    // Hover management
+    QString getHoveredElement() const { return hoveredElement; }
+    void setHoveredElement(const QString &elementId);
 
 signals:
     void modeChanged(const QString &newMode);
@@ -61,6 +66,7 @@ signals:
     void overlaysNeedRaise();  // Signal to raise overlay panels
     void selectionChanged();  // Emitted when selection changes
     void propertiesChanged();  // Emitted when properties of selected elements change
+    void hoveredElementChanged(const QString &elementId);  // Emitted when hovered element changes
 
 private slots:
     void onControlsRectChanged(const QRect &newRect);
@@ -80,6 +86,8 @@ private:
     Controls *controls;
     QGraphicsProxyWidget *controlsProxy;
     SelectionBox *selectionBox;
+    HoverIndicator *hoverIndicator;
+    QGraphicsProxyWidget *hoverIndicatorProxy;
     
     // Canvas state
     QString mode;
@@ -92,6 +100,7 @@ private:
     // Element management
     QList<Element*> elements;  // Stores all types of elements (Frame, Text, Variable)
     QList<QString> selectedElements;  // Stores IDs of selected elements
+    QString hoveredElement;  // Stores ID of currently hovered element
     
     // TEMPORARY: Keep these for now to avoid compilation errors
     QPoint panOffset{0, 0};
