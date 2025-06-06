@@ -6,9 +6,10 @@
 #include <QKeyEvent>
 #include <QFocusEvent>
 #include <QEvent>
+#include <QDebug>
 
-Text::Text(int id, QWidget *parent) : Element(ElementType::TextType, id, parent), textId(id), editing(false), editWidget(nullptr) {
-    textName = QString("Text_%1").arg(textId, 2, 10, QChar('0'));
+Text::Text(int id, QWidget *parent) : Element(ElementType::TextType, id, parent), editing(false), editWidget(nullptr) {
+    textName = QString("Text_%1").arg(elementId, 2, 10, QChar('0'));
     setFixedSize(200, 100);
     setFrameStyle(QFrame::NoFrame);
     setStyleSheet("QFrame { background-color: transparent; border: none; }");
@@ -41,8 +42,12 @@ void Text::paintEvent(QPaintEvent *event) {
     font.setPointSize(19);
     painter.setFont(font);
     
-    // Set text color
-    painter.setPen(Qt::black);
+    // Set text color based on parent status
+    if (hasParent()) {
+        painter.setPen(Qt::green);
+    } else {
+        painter.setPen(Qt::black);
+    }
     
     // Get the rectangle where we can draw text
     QRect textRect = rect();
@@ -156,4 +161,16 @@ bool Text::eventFilter(QObject *watched, QEvent *event) {
         }
     }
     return QFrame::eventFilter(watched, event);
+}
+
+void Text::updateParentVisualState() {
+    // Text elements have transparent background, so we'll change the text color instead
+    if (hasParent()) {
+        // Keep transparent background
+        setStyleSheet("QFrame { background-color: transparent; border: none; }");
+    } else {
+        // Keep transparent background  
+        setStyleSheet("QFrame { background-color: transparent; border: none; }");
+    }
+    update(); // Trigger repaint to show color change
 }

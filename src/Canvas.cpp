@@ -15,6 +15,8 @@
 #include <QPainter>
 #include <QVariant>
 #include <QScrollBar>
+#include <QDebug>
+#include <QCursor>
 
 Canvas::Canvas(QWidget *parent) : QGraphicsView(parent), mode("Select"), isSelecting(false), isSimulatingControlDrag(false), isPanning(false) {
     setContentsMargins(0, 0, 0, 0);
@@ -103,6 +105,9 @@ void Canvas::selectElement(const QString &elementId, bool addToSelection) {
         cancelActiveTextEditing();
         selectedElements.clear();
     }
+    
+    // Clear hovered element when making a selection
+    setHoveredElement("");
     
     // Only add if not already selected
     if (!selectedElements.contains(elementId)) {
@@ -238,6 +243,9 @@ Frame* Canvas::createFrameElement(const QPointF &scenePos, bool withText) {
         text->setCanvasPosition(QPoint(0, 0));  // Relative to frame
         text->move(0, 0);  // Position at top-left of frame
         text->show();
+        
+        // Set the parent-child relationship
+        text->setParentElementId(frameId);
         
         // Add text to elements list
         elements.append(text);
@@ -675,6 +683,47 @@ void Canvas::onControlsRectChanged(const QRect &newRect) {
     
     // Emit signal that properties have changed
     emit propertiesChanged();
+    
+    // Check for parenting changes during drag
+    // Use the actual cursor position to determine which frame we're over
+    QPoint currentMousePos = QCursor::pos();
+    QPoint viewMousePos = mapFromGlobal(currentMousePos);
+    
+    Frame* frameUnderCursor = findFrameAtPosition(viewMousePos);
+    
+    // Process each selected element for parenting
+    for (const QString &selectedId : selectedElements) {
+        Element* selectedElement = getElementById(selectedId.toInt());
+        if (!selectedElement) continue;
+        
+        // Skip if the element is a variable (variables don't get parented through dragging)
+        if (selectedElement->getType() == Element::VariableType) continue;
+        
+        // Skip if we're hovering over the selected element itself
+        if (frameUnderCursor && frameUnderCursor->getId() == selectedElement->getId()) {
+            continue;  // Check next selected element instead of clearing frameUnderCursor
+        }
+        
+        // Skip if trying to parent a frame to its own child (prevent circular relationships)
+        if (frameUnderCursor && selectedElement->getType() == Element::FrameType) {
+            Element* parent = frameUnderCursor;
+            while (parent && parent->hasParent()) {
+                if (parent->getParentElementId() == selectedElement->getId()) {
+                    frameUnderCursor = nullptr;  // Can't parent to descendant
+                    break;
+                }
+                parent = getElementById(parent->getParentElementId());
+            }
+        }
+        
+        int currentParentId = selectedElement->getParentElementId();
+        int newParentId = frameUnderCursor ? frameUnderCursor->getId() : -1;
+        
+        // Update parenting if it changed
+        if (currentParentId != newParentId) {
+            setElementParent(selectedElement->getId(), newParentId);
+        }
+    }
 }
 
 void Canvas::onControlsInnerRectClicked(const QPoint &globalPos) {
@@ -744,6 +793,44 @@ void Canvas::updateControlDrag(const QPoint &globalPos) {
         QMouseEvent moveEvent(QEvent::MouseMove, controlsLocalPos, globalPos,
                               Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
         QApplication::sendEvent(controls, &moveEvent);
+        
+        // Check for parenting changes during drag
+        QPoint viewPos = mapFromGlobal(globalPos);
+        Frame* frameUnderCursor = findFrameAtPosition(viewPos);
+        
+        // Process each selected element
+        for (const QString &selectedId : selectedElements) {
+            Element* selectedElement = getElementById(selectedId.toInt());
+            if (!selectedElement) continue;
+            
+            // Skip if the element is a variable (variables don't get parented through dragging)
+            if (selectedElement->getType() == Element::VariableType) continue;
+            
+            // Skip if we're hovering over the selected element itself
+            if (frameUnderCursor && frameUnderCursor->getId() == selectedElement->getId()) {
+                frameUnderCursor = nullptr;
+            }
+            
+            // Skip if trying to parent a frame to its own child (prevent circular relationships)
+            if (frameUnderCursor && selectedElement->getType() == Element::FrameType) {
+                Element* parent = frameUnderCursor;
+                while (parent && parent->hasParent()) {
+                    if (parent->getParentElementId() == selectedElement->getId()) {
+                        frameUnderCursor = nullptr;  // Can't parent to descendant
+                        break;
+                    }
+                    parent = getElementById(parent->getParentElementId());
+                }
+            }
+            
+            int currentParentId = selectedElement->getParentElementId();
+            int newParentId = frameUnderCursor ? frameUnderCursor->getId() : -1;
+            
+            // Update parenting if it changed
+            if (currentParentId != newParentId) {
+                setElementParent(selectedElement->getId(), newParentId);
+            }
+        }
     }
 }
 
@@ -851,4 +938,71 @@ void Canvas::setHoveredElement(const QString &elementId) {
             }
         }
     }
+}
+
+void Canvas::setElementParent(int childId, int parentId) {
+    Element* child = getElementById(childId);
+    if (child) {
+        // Verify that text and variable elements cannot have children
+        Element* parent = getElementById(parentId);
+        if (parent && (parent->getType() == Element::TextType || parent->getType() == Element::VariableType)) {
+            // Don't allow text or variable elements to have children
+            return;
+        }
+        child->setParentElementId(parentId);
+    }
+}
+
+QList<Element*> Canvas::getChildElements(int parentId) const {
+    QList<Element*> children;
+    for (Element* element : elements) {
+        if (element->getParentElementId() == parentId) {
+            children.append(element);
+        }
+    }
+    return children;
+}
+
+Element* Canvas::getElementById(int id) const {
+    for (Element* element : elements) {
+        if (element->getId() == id) {
+            return element;
+        }
+    }
+    return nullptr;
+}
+
+Frame* Canvas::findFrameAtPosition(const QPoint &pos) const {
+    // Convert the position to scene coordinates
+    QPointF scenePos = mapToScene(pos);
+    
+    // Check all frames to see if the position is inside any of them
+    // Start from the end (top-most elements) and work backwards
+    for (int i = elements.size() - 1; i >= 0; i--) {
+        Element* element = elements[i];
+        if (element->getType() == Element::FrameType) {
+            Frame* frame = qobject_cast<Frame*>(element);
+            if (frame) {
+                // Skip if this frame is currently selected (being dragged)
+                bool isSelected = false;
+                for (const QString& selectedId : selectedElements) {
+                    if (selectedId.toInt() == frame->getId()) {
+                        isSelected = true;
+                        break;
+                    }
+                }
+                if (isSelected) continue;
+                
+                // Get the frame's bounding rectangle in scene coordinates
+                QPointF framePos = frame->getCanvasPosition();
+                QSizeF frameSize = frame->getCanvasSize();
+                QRectF frameRect(framePos, frameSize);
+                
+                if (frameRect.contains(scenePos)) {
+                    return frame;
+                }
+            }
+        }
+    }
+    return nullptr;
 }

@@ -10,7 +10,7 @@ ClientRect::ClientRect(int associatedElementId, Canvas *canvas, QWidget *parent)
     resize(400, 400);  // Default size, but can be changed
     setFrameStyle(QFrame::NoFrame);
     setLineWidth(0);
-    setStyleSheet("QFrame { background-color: rgba(173, 216, 230, 0.7); border: none; }");
+    setStyleSheet("QFrame { background-color: rgba(173, 216, 230, 0.2); border: none; }");
     setMouseTracking(true);  // Enable mouse tracking for hover events
 }
 

@@ -8,7 +8,7 @@ public:
     explicit Text(int id, QWidget *parent = nullptr);
     
     // Override Element virtual methods
-    int getId() const override { return textId; }
+    int getId() const override { return elementId; }
     QString getName() const override { return textName; }
     
     void setText(const QString &text);
@@ -18,6 +18,9 @@ public:
     void startEditing();
     void endEditing(bool save = true);
     bool isEditing() const { return editing; }
+    
+    // Override visual update
+    void updateParentVisualState() override;
 
 protected:
     void paintEvent(QPaintEvent *event) override;
@@ -26,7 +29,6 @@ protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
 
 private:
-    int textId;
     QString textName;
     QString content;
     bool editing;
