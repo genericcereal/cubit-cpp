@@ -15,8 +15,7 @@ SOURCES += \
     ClientRect.cpp \
     Controls.cpp \
     FPSWidget.cpp \
-    SelectionBox.cpp \
-    HoverIndicator.cpp
+    SelectionBox.cpp
 
 HEADERS += \
     Config.h \
@@ -32,5 +31,4 @@ HEADERS += \
     ClientRect.h \
     Controls.h \
     FPSWidget.h \
-    SelectionBox.h \
-    HoverIndicator.h
+    SelectionBox.h
