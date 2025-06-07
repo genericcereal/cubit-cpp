@@ -176,15 +176,20 @@ void Canvas::setMode(const QString &newMode) {
 
 
 
-Frame* Canvas::createFrameElement(const QPointF &scenePos, bool withText) {
+Frame* Canvas::createFrameElement(const QPoint &scenePos, bool withText) {
     // Generate unique ID for the frame
     int frameId = getNextElementId();
     
     // Create a Frame widget without parent for proxy widget
     Frame *frame = new Frame(frameId, nullptr);
-    frame->resize(Config::ElementDefaults::INITIAL_SIZE, Config::ElementDefaults::INITIAL_SIZE);
-    frame->setCanvasSize(QSize(Config::ElementDefaults::INITIAL_SIZE, Config::ElementDefaults::INITIAL_SIZE));
-    frame->setCanvasPosition(scenePos.toPoint());
+    
+    // Create initial rect with integer position and size
+    QRectF initialRect(scenePos, QSizeF(Config::ElementDefaults::INITIAL_SIZE, Config::ElementDefaults::INITIAL_SIZE));
+    QRectF alignedRect = alignRectToPixels(initialRect);
+    
+    frame->resize(alignedRect.size().toSize());
+    frame->setCanvasSize(alignedRect.size().toSize());
+    frame->setCanvasPosition(alignedRect.topLeft().toPoint());
     
     // Add frame to elements list first (before creating Text to get correct ID)
     elements.append(frame);
@@ -217,18 +222,18 @@ Frame* Canvas::createFrameElement(const QPointF &scenePos, bool withText) {
     
     // Add Frame to scene as a proxy widget (after adding any children)
     QGraphicsProxyWidget *frameProxy = scene->addWidget(frame);
-    frameProxy->setPos(scenePos);
-    frameProxy->resize(frame->size());  // Explicitly set proxy size
+    frameProxy->setPos(alignedRect.topLeft());
+    frameProxy->resize(alignedRect.size().toSize());
     frameProxy->setZValue(Config::ZIndex::FRAME);  // Below controls but above background
     
     // Create a ClientRect without parent for proxy widget
     ClientRect *clientRect = new ClientRect(frameId, this, nullptr);
-    clientRect->resize(Config::ElementDefaults::INITIAL_SIZE, Config::ElementDefaults::INITIAL_SIZE);  // Match the frame size
+    clientRect->resize(alignedRect.size().toSize());
     
     // Add ClientRect to scene as a proxy widget
     QGraphicsProxyWidget *clientProxy = scene->addWidget(clientRect);
-    clientProxy->setPos(scenePos);
-    clientProxy->resize(clientRect->size());  // Explicitly set proxy size
+    clientProxy->setPos(alignedRect.topLeft());
+    clientProxy->resize(alignedRect.size().toSize());
     clientProxy->setZValue(Config::ZIndex::CLIENT_RECT);  // Slightly above frame to handle mouse events
     
     // Store proxy references
@@ -276,8 +281,9 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
     
     if (event->button() == Qt::LeftButton) {
         if (mode == "Frame" || mode == "Text") {
-            // Convert view position to scene position
-            QPointF scenePos = mapToScene(event->pos());
+            // Convert view position to scene position and round to integers
+            QPointF scenePosF = mapToScene(event->pos());
+            QPoint scenePos(qRound(scenePosF.x()), qRound(scenePosF.y()));
             
             // Create frame element (with text if in Text mode)
             Frame *frame = createFrameElement(scenePos, mode == "Text");
@@ -502,9 +508,6 @@ void Canvas::wheelEvent(QWheelEvent *event) {
             // Round to nearest tenth
             zoomScale = qRound(zoomScale * 10.0) / 10.0;
             
-            // Debug: Log the zoom scale
-            qDebug() << "Zoom scale:" << zoomScale;
-            
             // Update controls zoom scale if they're visible
             if (controls && controlsProxy && controlsProxy->isVisible()) {
                 controls->setZoomScale(zoomScale);
@@ -645,21 +648,24 @@ void Canvas::onControlsRectChanged(const QRect &newRect) {
         int newWidth = qMax(1, qRound(relativeWidth * normalizedNewRect.width()));  // Minimum width of 1
         int newHeight = qMax(1, qRound(relativeHeight * normalizedNewRect.height()));  // Minimum height of 1
         
+        // Create new rect and align it to pixel boundaries
+        QRectF newRect(newX, newY, newWidth, newHeight);
+        QRectF alignedRect = alignRectToPixels(newRect);
+        
         // Calculate the movement delta for children
         QPoint oldPos = element->getCanvasPosition();
-        QPoint newPos(newX, newY);
-        QPoint delta = newPos - oldPos;
+        QPoint delta = alignedRect.topLeft().toPoint() - oldPos;
         
         // Update the frame's canvas position and size
-        frame->setCanvasPosition(QPoint(newX, newY));
-        frame->setCanvasSize(QSize(newWidth, newHeight));
-        frame->resize(newWidth, newHeight);
+        frame->setCanvasPosition(alignedRect.topLeft().toPoint());
+        frame->setCanvasSize(alignedRect.size().toSize());
+        frame->resize(alignedRect.size().toSize());
         
         // Update the frame proxy position and size
         QGraphicsProxyWidget *frameProxy = frame->property("proxy").value<QGraphicsProxyWidget*>();
         if (frameProxy) {
-            frameProxy->setPos(newX, newY);
-            frameProxy->resize(newWidth, newHeight);
+            frameProxy->setPos(alignedRect.topLeft());
+            frameProxy->resize(alignedRect.size().toSize());
         }
         
         // Find and update associated ClientRect
@@ -670,9 +676,9 @@ void Canvas::onControlsRectChanged(const QRect &newRect) {
             if (proxy) {
                 ClientRect *clientRect = qobject_cast<ClientRect*>(proxy->widget());
                 if (clientRect && clientRect->getAssociatedElementId() == frame->getId()) {
-                    clientRect->resize(newWidth, newHeight);
-                    proxy->setPos(newX, newY);
-                    proxy->resize(newWidth, newHeight);
+                    clientRect->resize(alignedRect.size().toSize());
+                    proxy->setPos(alignedRect.topLeft());
+                    proxy->resize(alignedRect.size().toSize());
                     break;
                 }
             }
@@ -938,12 +944,15 @@ void Canvas::setHoveredElement(const QString &elementId) {
                     if (element->getType() == Element::FrameType) {
                         Frame *frame = qobject_cast<Frame*>(element);
                         if (frame && hoverIndicator && hoverIndicatorProxy) {
-                            // Get the frame's geometry
-                            QRect frameRect(frame->getCanvasPosition(), frame->getCanvasSize());
+                            // Get the frame's geometry as QRectF for more precision
+                            QRectF frameRect = frame->getCanvasRectF();
                             
-                            // Update hover indicator geometry
-                            hoverIndicator->setGeometry(frameRect);
-                            hoverIndicatorProxy->setPos(frameRect.topLeft());
+                            // Align to pixel boundaries using QRectF version
+                            QRectF pixelAlignedRect = alignRectToPixels(frameRect);
+                            
+                            // Update hover indicator geometry to match frame exactly
+                            hoverIndicator->setGeometry(pixelAlignedRect);
+                            hoverIndicatorProxy->setPos(pixelAlignedRect.topLeft());
                             hoverIndicatorProxy->show();
                         }
                     }
@@ -1196,4 +1205,33 @@ void Canvas::updateChildClipping(Element* parent) {
         // Recursively update clipping for this child's children
         updateChildClipping(child);
     }
+}
+
+
+QRectF Canvas::alignRectToPixels(const QRectF& rect) {
+    // For pixel-perfect alignment with floating point precision
+    // Convert top-left to view coordinates
+    QPointF sceneTopLeft = rect.topLeft();
+    QPoint viewTopLeft = mapFromScene(sceneTopLeft);
+    
+    // Convert back to scene coordinates - this gives us the pixel-aligned position
+    QPointF alignedTopLeft = mapToScene(viewTopLeft);
+    
+    // Also align the bottom-right corner
+    QPointF sceneBottomRight = rect.bottomRight();
+    QPoint viewBottomRight = mapFromScene(sceneBottomRight);
+    QPointF alignedBottomRight = mapToScene(viewBottomRight);
+    
+    // Create the aligned rectangle from the aligned corners
+    return QRectF(alignedTopLeft, alignedBottomRight);
+}
+
+QPoint Canvas::alignPointToPixels(const QPoint& point) {
+    // Convert to view coordinates
+    QPointF scenePoint = point;
+    QPoint viewPoint = mapFromScene(scenePoint);
+    
+    // Convert back to scene coordinates
+    QPointF alignedPoint = mapToScene(viewPoint);
+    return alignedPoint.toPoint();
 }

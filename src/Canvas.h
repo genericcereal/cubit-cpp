@@ -25,7 +25,7 @@ public:
     void setMode(const QString &newMode);
     
     // Element creation
-    Frame* createFrameElement(const QPointF &scenePos, bool withText = false);
+    Frame* createFrameElement(const QPoint &scenePos, bool withText = false);
     void createVariable();
     
     // Control management
@@ -117,4 +117,8 @@ private:
     int getNextElementId() const { return elements.size() + 1; }
     void moveChildElements(Element* parent, const QPoint& delta);
     void updateChildClipping(Element* parent);
+    
+    // Pixel alignment helpers
+    QRectF alignRectToPixels(const QRectF& rect);
+    QPoint alignPointToPixels(const QPoint& point);
 };

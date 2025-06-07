@@ -4,7 +4,8 @@
 
 Element::Element(ElementType type, int id, QWidget *parent) 
     : QFrame(parent), elementType(type), elementId(id), parentElementId(-1), 
-      canvasPosition(0, 0), canvasSize(0, 0) {
+      canvasPosition(0, 0), canvasSize(0, 0),
+      canvasPositionF(0.0, 0.0), canvasSizeF(0.0, 0.0) {
 }
 
 QString Element::getTypeName() const {
@@ -40,4 +41,24 @@ void Element::resizeEvent(QResizeEvent *event) {
 void Element::setParentElementId(int parentId) {
     parentElementId = parentId;
     updateParentVisualState();
+}
+
+void Element::setCanvasPosition(const QPoint &pos) {
+    canvasPosition = pos;
+    canvasPositionF = QPointF(pos);
+}
+
+void Element::setCanvasSize(const QSize &size) {
+    canvasSize = size;
+    canvasSizeF = QSizeF(size);
+}
+
+void Element::setCanvasPositionF(const QPointF &pos) {
+    canvasPositionF = pos;
+    canvasPosition = pos.toPoint();
+}
+
+void Element::setCanvasSizeF(const QSizeF &size) {
+    canvasSizeF = size;
+    canvasSize = size.toSize();
 }

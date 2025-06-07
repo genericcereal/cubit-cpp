@@ -9,30 +9,25 @@ HoverIndicator::HoverIndicator(QWidget *parent) : QWidget(parent) {
     setWindowFlags(Qt::FramelessWindowHint);
 }
 
-void HoverIndicator::setGeometry(const QRect &rect) {
-    QWidget::setGeometry(rect);
+void HoverIndicator::setGeometry(const QRectF &rect) {
+    // Convert QRectF to QRect using proper rounding
+    // This ensures subpixel precision is maintained as much as possible
+    QWidget::setGeometry(rect.toRect());
 }
 
 void HoverIndicator::paintEvent(QPaintEvent*) {
   QPainter p(this);
-  p.setRenderHint(QPainter::Antialiasing, true);
+  p.setRenderHint(QPainter::Antialiasing, false);  // Disable antialiasing for crisp lines
 
-  // width=0 ⇒ cosmetic ⇒ exactly 1 device-pixel wide
+  // Use a cosmetic pen that's exactly 1 device pixel wide
   QPen pen(Qt::blue, 0);
   pen.setCosmetic(true);
   p.setPen(pen);
   p.setBrush(Qt::NoBrush);
 
-  // Grab the full painter transform (including the view’s zoom)
-  QTransform t = p.transform();
-  qreal sx = t.m11();
-  qreal sy = t.m22();
-  qreal dx = 0.5 / sx;
-  qreal dy = 0.5 / sy;
-
-  // Inset by (dx,dy) ⇒ both edges land on pixel centers
-  QRectF r(dx, dy,
-           width()  - 2*dx,
-           height() - 2*dy);
+  // Draw the border to align exactly with the widget edges
+  // Using QRectF for more precise positioning
+  // The 0.5 offset ensures the stroke is centered on the pixel boundary
+  QRectF r(0.5, 0.5, width() - 1.0, height() - 1.0);
   p.drawRect(r);
 }
