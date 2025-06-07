@@ -26,91 +26,91 @@ Controls::Controls(QWidget *parent) : QWidget(parent), dragMode(Controls::None),
     
     // Create the four control bars
     leftBar = new QFrame(this);
-    leftBar->setStyleSheet("background-color: rgba(255, 0, 0, 0.5);");
+    leftBar->setStyleSheet("background-color: transparent;");
     leftBar->setAttribute(Qt::WA_TransparentForMouseEvents, false);
     leftBar->show();
     
     rightBar = new QFrame(this);
-    rightBar->setStyleSheet("background-color: rgba(255, 0, 0, 0.5);");
+    rightBar->setStyleSheet("background-color: transparent;");
     rightBar->setAttribute(Qt::WA_TransparentForMouseEvents, false);
     rightBar->show();
     
     topBar = new QFrame(this);
-    topBar->setStyleSheet("background-color: rgba(255, 0, 0, 0.5);");
+    topBar->setStyleSheet("background-color: transparent;");
     topBar->setAttribute(Qt::WA_TransparentForMouseEvents, false);
     topBar->show();
     
     bottomBar = new QFrame(this);
-    bottomBar->setStyleSheet("background-color: rgba(255, 0, 0, 0.5);");
+    bottomBar->setStyleSheet("background-color: transparent;");
     bottomBar->setAttribute(Qt::WA_TransparentForMouseEvents, false);
     bottomBar->show();
     
     // Create center lines for each bar
     leftBarLine = new QFrame(this);
-    leftBarLine->setStyleSheet("background-color: rgba(0, 0, 0, 0.5);");
+    leftBarLine->setStyleSheet("background-color: transparent;");
     leftBarLine->setAttribute(Qt::WA_TransparentForMouseEvents, true);
     leftBarLine->show();
     
     rightBarLine = new QFrame(this);
-    rightBarLine->setStyleSheet("background-color: rgba(0, 0, 0, 0.5);");
+    rightBarLine->setStyleSheet("background-color: transparent;");
     rightBarLine->setAttribute(Qt::WA_TransparentForMouseEvents, true);
     rightBarLine->show();
     
     topBarLine = new QFrame(this);
-    topBarLine->setStyleSheet("background-color: rgba(0, 0, 0, 0.5);");
+    topBarLine->setStyleSheet("background-color: transparent;");
     topBarLine->setAttribute(Qt::WA_TransparentForMouseEvents, true);
     topBarLine->show();
     
     bottomBarLine = new QFrame(this);
-    bottomBarLine->setStyleSheet("background-color: rgba(0, 0, 0, 0.5);");
+    bottomBarLine->setStyleSheet("background-color: transparent;");
     bottomBarLine->setAttribute(Qt::WA_TransparentForMouseEvents, true);
     bottomBarLine->show();
     
     // Create the four corner rotation joints
     topLeftRotationJoint = new QFrame(this);
-    topLeftRotationJoint->setStyleSheet("background-color: rgba(0, 0, 255, 0.5);");
+    topLeftRotationJoint->setStyleSheet("background-color: transparent;");
     topLeftRotationJoint->setAttribute(Qt::WA_TransparentForMouseEvents, false);
     topLeftRotationJoint->show();
     
     topRightRotationJoint = new QFrame(this);
-    topRightRotationJoint->setStyleSheet("background-color: rgba(0, 0, 255, 0.5);");
+    topRightRotationJoint->setStyleSheet("background-color: transparent;");
     topRightRotationJoint->setAttribute(Qt::WA_TransparentForMouseEvents, false);
     topRightRotationJoint->show();
     
     bottomLeftRotationJoint = new QFrame(this);
-    bottomLeftRotationJoint->setStyleSheet("background-color: rgba(0, 0, 255, 0.5);");
+    bottomLeftRotationJoint->setStyleSheet("background-color: transparent;");
     bottomLeftRotationJoint->setAttribute(Qt::WA_TransparentForMouseEvents, false);
     bottomLeftRotationJoint->show();
     
     bottomRightRotationJoint = new QFrame(this);
-    bottomRightRotationJoint->setStyleSheet("background-color: rgba(0, 0, 255, 0.5);");
+    bottomRightRotationJoint->setStyleSheet("background-color: transparent;");
     bottomRightRotationJoint->setAttribute(Qt::WA_TransparentForMouseEvents, false);
     bottomRightRotationJoint->show();
     
     // Create the four resize joints
     topLeftResizeJoint = new QFrame(this);
-    topLeftResizeJoint->setStyleSheet("background-color: rgba(255, 255, 0, 0.5);");
+    topLeftResizeJoint->setStyleSheet("background-color: transparent;");
     topLeftResizeJoint->setAttribute(Qt::WA_TransparentForMouseEvents, false);
     topLeftResizeJoint->show();
     
     topRightResizeJoint = new QFrame(this);
-    topRightResizeJoint->setStyleSheet("background-color: rgba(255, 255, 0, 0.5);");
+    topRightResizeJoint->setStyleSheet("background-color: transparent;");
     topRightResizeJoint->setAttribute(Qt::WA_TransparentForMouseEvents, false);
     topRightResizeJoint->show();
     
     bottomLeftResizeJoint = new QFrame(this);
-    bottomLeftResizeJoint->setStyleSheet("background-color: rgba(255, 255, 0, 0.5);");
+    bottomLeftResizeJoint->setStyleSheet("background-color: transparent;");
     bottomLeftResizeJoint->setAttribute(Qt::WA_TransparentForMouseEvents, false);
     bottomLeftResizeJoint->show();
     
     bottomRightResizeJoint = new QFrame(this);
-    bottomRightResizeJoint->setStyleSheet("background-color: rgba(255, 255, 0, 0.5);");
+    bottomRightResizeJoint->setStyleSheet("background-color: transparent;");
     bottomRightResizeJoint->setAttribute(Qt::WA_TransparentForMouseEvents, false);
     bottomRightResizeJoint->show();
     
     // Create the inner rectangle with yellow color and 5% transparency
     innerRect = new QFrame(this);
-    innerRect->setStyleSheet("background-color: rgba(255, 255, 0, 0.05);"); // Yellow with 5% opacity (95% transparency)
+    innerRect->setStyleSheet("background-color: transparent;"); // Make it transparent since we render in foreground
     innerRect->setAttribute(Qt::WA_TransparentForMouseEvents, false); // Accept mouse events
     innerRect->lower(); // Place it behind other controls
     innerRect->show();

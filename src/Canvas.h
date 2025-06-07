@@ -7,12 +7,11 @@
 #include <QList>
 #include <QPaintEvent>
 
-class Controls;
+#include "Controls.h"
 class Element;
 class ClientRect;
 class SelectionBox;
 class Frame;
-class HoverIndicator;
 
 class Canvas : public QGraphicsView {
     Q_OBJECT
@@ -86,14 +85,13 @@ protected:
     void mouseReleaseEvent(QMouseEvent *event) override;
     void wheelEvent(QWheelEvent *event) override;
     void paintEvent(QPaintEvent *event) override;
+    void drawForeground(QPainter *painter, const QRectF &rect) override;
 
 private:
     QGraphicsScene *scene;
     Controls *controls;
     QGraphicsProxyWidget *controlsProxy;
     SelectionBox *selectionBox;
-    HoverIndicator *hoverIndicator;
-    QGraphicsProxyWidget *hoverIndicatorProxy;
     
     // Canvas state
     QString mode;
@@ -107,6 +105,12 @@ private:
     QList<Element*> elements;  // Stores all types of elements (Frame, Text, Variable)
     QList<QString> selectedElements;  // Stores IDs of selected elements
     QString hoveredElement;  // Stores ID of currently hovered element
+    Frame* hoveredFrame;  // Direct pointer to hovered frame for drawing
+    
+    // Control drawing state
+    QRectF controlsSceneRect;  // Scene rect of controls
+    bool controlsVisible = false;
+    Controls::DragMode hoveredControlElement = Controls::None;  // Which control is hovered
     
     // TEMPORARY: Keep these for now to avoid compilation errors
     QPoint panOffset{0, 0};
@@ -121,4 +125,11 @@ private:
     // Pixel alignment helpers
     QRectF alignRectToPixels(const QRectF& rect);
     QPoint alignPointToPixels(const QPoint& point);
+    
+    // Drawing helpers for foreground
+    void drawFrameOutline(QPainter* painter, Frame* frame, const QColor& color);
+    void drawControlsForRect(QPainter* painter, const QRectF& sceneRect);
+    
+    // Helper to detect which control element is at a viewport point
+    Controls::DragMode getControlElementAt(const QPoint& viewportPos);
 };
