@@ -4,6 +4,7 @@
 #include "Element.h"
 #include "Frame.h"
 #include "Text.h"
+#include "Html.h"
 #include "Variable.h"
 #include "ClientRect.h"
 #include "ActionsPanel.h"
@@ -202,7 +203,7 @@ void Canvas::setMode(const QString &newMode) {
 
 
 
-Frame* Canvas::createFrameElement(const QPoint &scenePos, bool withText) {
+Frame* Canvas::createFrameElement(const QPoint &scenePos, bool withText, bool withHtml) {
     // Generate unique ID for the frame
     int frameId = getNextElementId();
     
@@ -244,6 +245,28 @@ Frame* Canvas::createFrameElement(const QPoint &scenePos, bool withText) {
         
         // Emit signal that a text element was created
         emit elementCreated("Text", text->getName());
+    }
+    
+    // If withHtml is true, create an Html element inside the frame
+    if (withHtml) {
+        int htmlId = getNextElementId();
+        Html *html = new Html(htmlId, frame);
+        html->setHtml("<html><body><h1>HTML Element</h1></body></html>");
+        // Make HTML fill the entire frame
+        html->resize(frame->size());
+        html->setCanvasSize(frame->size());
+        html->setCanvasPosition(QPoint(0, 0));  // Relative to frame
+        html->move(0, 0);  // Position at top-left of frame
+        html->show();
+        
+        // Set the parent-child relationship
+        html->setParentElementId(frameId);
+        
+        // Add html to elements list
+        elements.append(html);
+        
+        // Emit signal that an html element was created
+        emit elementCreated("Html", html->getName());
     }
     
     // Add Frame to scene as a proxy widget (after adding any children)
@@ -328,13 +351,13 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
     }
     
     if (event->button() == Qt::LeftButton) {
-        if (mode == "Frame" || mode == "Text") {
+        if (mode == "Frame" || mode == "Text" || mode == "Html") {
             // Convert view position to scene position and round to integers
             QPointF scenePosF = mapToScene(event->pos());
             QPoint scenePos(qRound(scenePosF.x()), qRound(scenePosF.y()));
             
-            // Create frame element (with text if in Text mode)
-            Frame *frame = createFrameElement(scenePos, mode == "Text");
+            // Create frame element (with text if in Text mode, with html if in Html mode)
+            Frame *frame = createFrameElement(scenePos, mode == "Text", mode == "Html");
             
             // Emit signal to raise overlay panels (ActionsPanel, FPSWidget, etc.)
             emit overlaysNeedRaise();
@@ -767,6 +790,26 @@ void Canvas::onControlsRectChanged(const QRect &newRect) {
                     proxy->setPos(alignedRect.topLeft());
                     proxy->resize(alignedRect.size().toSize());
                     break;
+                }
+            }
+        }
+        
+        // Resize HTML and Text elements within the frame
+        for (Element* elem : elements) {
+            if (elem->getParentElementId() == frame->getId()) {
+                if (elem->getType() == Element::HtmlType) {
+                    Html* html = qobject_cast<Html*>(elem);
+                    if (html) {
+                        // Make HTML fill the entire frame
+                        html->resize(frame->size());
+                        html->setCanvasSize(frame->size());
+                    }
+                } else if (elem->getType() == Element::TextType) {
+                    // Text elements maintain their size, just update position if needed
+                    Text* text = qobject_cast<Text*>(elem);
+                    if (text) {
+                        // Text stays at top-left with original size
+                    }
                 }
             }
         }

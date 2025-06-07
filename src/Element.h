@@ -12,7 +12,8 @@ public:
     enum ElementType {
         FrameType,
         TextType,
-        VariableType
+        VariableType,
+        HtmlType
     };
 
     explicit Element(ElementType type, int id, QWidget *parent = nullptr);

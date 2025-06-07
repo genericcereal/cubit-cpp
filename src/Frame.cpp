@@ -40,16 +40,8 @@ void Frame::setOverflow(const QString& value) {
 }
 
 void Frame::updateOverflowClipping() {
-    // Qt's WA_PaintOnScreen and custom painting doesn't clip children automatically
-    // We need to use a different approach - setting a mask on child widgets
-    if (overflow == "hidden") {
-        // We'll handle clipping by using the QWidget clipping feature
-        // This requires the widget to clip its children during painting
-        setAttribute(Qt::WA_ContentsPropagated, false);
-    } else {
-        // For visible overflow, allow normal painting
-        setAttribute(Qt::WA_ContentsPropagated, true);
-    }
+    // In Qt6, WA_ContentsPropagated is removed. We'll handle clipping in paintEvent
+    // by setting up proper clipping regions
     update();  // Trigger a repaint
 }
 

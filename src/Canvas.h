@@ -24,7 +24,7 @@ public:
     void setMode(const QString &newMode);
     
     // Element creation
-    Frame* createFrameElement(const QPoint &scenePos, bool withText = false);
+    Frame* createFrameElement(const QPoint &scenePos, bool withText = false, bool withHtml = false);
     void createVariable();
     
     // Control management

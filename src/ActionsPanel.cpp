@@ -30,6 +30,8 @@ public:
             label->setText("T");
         } else if (modeName == "Variable") {
             label->setText("V");
+        } else if (modeName == "Html") {
+            label->setText("H");
         }
         
         // Center the label in the action box
@@ -75,9 +77,9 @@ ActionsPanel::ActionsPanel(QWidget *parent) : QFrame(parent), canvasRef(nullptr)
     layout->setSpacing(5);
 
     // Define modes for each action
-    QStringList modes = {"Select", "Frame", "Text", "Variable"};
+    QStringList modes = {"Select", "Frame", "Text", "Variable", "Html"};
     
-    // Add 4 Action boxes with their modes
+    // Add Action boxes with their modes
     for (int i = 0; i < modes.size(); ++i) {
         auto *action = new Action(this, modes[i], this);
         actions.append(action);
