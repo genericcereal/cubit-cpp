@@ -12,7 +12,7 @@ Frame::Frame(int id, QWidget *parent) : Element(ElementType::FrameType, id, pare
     resize(400, 400);  // Default size, but can be changed
     setFrameStyle(QFrame::NoFrame);
     setLineWidth(0);
-    setStyleSheet("QFrame { background-color: rgba(128, 0, 128, 0.2); border: none; }");
+    // No stylesheet needed - we're doing custom painting in paintEvent
     
     setObjectName(frameName);
     
@@ -25,13 +25,8 @@ Frame::Frame(int id, QWidget *parent) : Element(ElementType::FrameType, id, pare
 }
 
 void Frame::updateParentVisualState() {
-    if (hasParent()) {
-        // Green background for elements with parents
-        setStyleSheet("QFrame { background-color: rgba(0, 255, 0, 0.2); border: none; }");
-    } else {
-        // Original purple background for elements without parents
-        setStyleSheet("QFrame { background-color: rgba(128, 0, 128, 0.2); border: none; }");
-    }
+    // Visual state is now handled in paintEvent, just trigger a repaint
+    update();
 }
 
 void Frame::setOverflow(const QString& value) {
@@ -58,29 +53,41 @@ void Frame::updateOverflowClipping() {
     update();  // Trigger a repaint
 }
 
-void Frame::paintEvent(QPaintEvent *event) {
-    // Call base class to handle frame painting
-    QFrame::paintEvent(event);
+void Frame::paintEvent(QPaintEvent *) {
+    // Custom painting with antialiasing disabled
+    QPainter painter(this);
+    painter.setRenderHint(QPainter::Antialiasing, false);  // Disable antialiasing for crisp edges
+    
+    // Fill the background
+    QColor bgColor;
+    if (hasParent()) {
+        bgColor = QColor(0, 255, 0, 51);  // Green with 0.2 alpha (51/255)
+    } else {
+        bgColor = QColor(128, 0, 128, 51);  // Purple with 0.2 alpha (51/255)
+    }
+    painter.fillRect(rect(), bgColor);
     
     // If overflow is hidden, we need to clip children
     if (overflow == "hidden") {
-        // Create a clip region for children
-        QRegion clipRegion(rect());
+        // Create a clip region for children using QRectF for precision
+        QRectF clipRectF(rect());
         
         // Apply clipping to each child widget
         for (QObject *child : children()) {
             QWidget *childWidget = qobject_cast<QWidget*>(child);
             if (childWidget && childWidget->isWidgetType()) {
-                // Calculate the visible region of the child
-                QRect childRect = childWidget->geometry();
-                QRect visibleRect = childRect.intersected(rect());
+                // Calculate the visible region of the child using QRectF
+                QRectF childRectF(childWidget->geometry());
+                QRectF visibleRectF = childRectF.intersected(clipRectF);
                 
-                if (visibleRect.isEmpty()) {
+                if (visibleRectF.isEmpty()) {
                     // Child is completely outside parent bounds
                     childWidget->setVisible(false);
-                } else if (visibleRect != childRect) {
+                } else if (visibleRectF != childRectF) {
                     // Child is partially outside parent bounds
                     // Create a mask to clip the child
+                    QRect visibleRect = visibleRectF.toRect();
+                    QRect childRect = childRectF.toRect();
                     QRegion childMask = visibleRect.translated(-childRect.topLeft());
                     childWidget->setMask(childMask);
                     childWidget->setVisible(true);
