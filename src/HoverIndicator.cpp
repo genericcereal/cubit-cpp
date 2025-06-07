@@ -13,25 +13,26 @@ void HoverIndicator::setGeometry(const QRect &rect) {
     QWidget::setGeometry(rect);
 }
 
-void HoverIndicator::paintEvent(QPaintEvent* /*event*/)
-{
-    QPainter p(this);
-    p.setRenderHint(QPainter::Antialiasing, true);
+void HoverIndicator::paintEvent(QPaintEvent*) {
+  QPainter p(this);
+  p.setRenderHint(QPainter::Antialiasing, true);
 
-    QPen pen(Qt::blue);
-    pen.setWidth(1);
-    pen.setCosmetic(true);            // ensure it’s always exactly 1 device‐pixel wide
-    p.setPen(pen);
-    p.setBrush(Qt::NoBrush);
+  // width=0 ⇒ cosmetic ⇒ exactly 1 device-pixel wide
+  QPen pen(Qt::blue, 0);
+  pen.setCosmetic(true);
+  p.setPen(pen);
+  p.setBrush(Qt::NoBrush);
 
-    // Draw on half‐pixel coordinates:
-    //
-    //   • The widget’s logical rect() is [0,0 .. width()-1,height()-1].
-    //   • If we draw a QRectF(0.5,0.5, width()-1, height()-1), 
-    //     all four edges lie exactly on pixel‐centers.
-    //
-    QRectF r(0.5, 0.5,
-             qreal(width())  - 1.0,
-             qreal(height()) - 1.0);
-    p.drawRect(r);
+  // Grab the full painter transform (including the view’s zoom)
+  QTransform t = p.transform();
+  qreal sx = t.m11();
+  qreal sy = t.m22();
+  qreal dx = 0.5 / sx;
+  qreal dy = 0.5 / sy;
+
+  // Inset by (dx,dy) ⇒ both edges land on pixel centers
+  QRectF r(dx, dy,
+           width()  - 2*dx,
+           height() - 2*dy);
+  p.drawRect(r);
 }

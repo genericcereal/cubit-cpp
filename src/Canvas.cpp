@@ -80,7 +80,7 @@ void Canvas::resizeEvent(QResizeEvent *event) {
 
 void Canvas::showControls(const QRect &rect) {
     if (controls && controlsProxy) {
-        // Set the current zoom scale so controls can compensate
+        // Set the current zoom scale so controls can properly scale mouse deltas
         controls->setZoomScale(zoomScale);
         controls->updateGeometry(rect);
         
@@ -174,52 +174,7 @@ void Canvas::setMode(const QString &newMode) {
     }
 }
 
-// FUTURE: Re-enable pan/zoom support
-/*
-void Canvas::setPanOffset(const QPoint &offset) {
-    qDebug() << "setPanOffset called with offset:" << offset << "current panOffset:" << panOffset;
-    
-    // Always update elements when zooming, even if just pan offset changed
-    panOffset = offset;
-    
-    // Update controls pan offset and zoom scale
-    if (controls) {
-        controls->setPanOffset(panOffset);
-        controls->setZoomScale(zoomScale);
-    }
-    
-    qDebug() << "About to update" << elements.size() << "elements";
-    
-    // Update visual positions of all elements based on their canvas positions
-    for (Element *element : elements) {
-        qDebug() << "Updating element with panOffset:" << panOffset << "zoomScale:" << zoomScale;
-        element->updateVisualPosition(panOffset, zoomScale);
-        
-        // Also update associated ClientRect if it's a Frame
-            if (element->getType() == Element::FrameType) {
-                Frame *frame = qobject_cast<Frame*>(element);
-                if (frame) {
-                    // Find ClientRect with the same ID
-                    for (QObject *child : children()) {
-                        ClientRect *clientRect = qobject_cast<ClientRect*>(child);
-                        if (clientRect && clientRect->getAssociatedElementId() == frame->getId()) {
-                            // ClientRect follows the element's geometry
-                            clientRect->setGeometry(frame->geometry());
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-        
-    // Update controls position if visible
-    if (controls && controls->isVisible()) {
-        updateControlsVisibility();
-    }
-    
-    update();  // Trigger repaint
-}
-*/
+
 
 Frame* Canvas::createFrameElement(const QPointF &scenePos, bool withText) {
     // Generate unique ID for the frame
@@ -438,20 +393,42 @@ void Canvas::mouseMoveEvent(QMouseEvent *event) {
     QPointF scenePos = mapToScene(event->pos());
     QList<QGraphicsItem*> itemsUnderMouse = scene->items(scenePos);
     
-    bool overClientRect = false;
-    for (QGraphicsItem *item : itemsUnderMouse) {
-        QGraphicsProxyWidget *proxy = qgraphicsitem_cast<QGraphicsProxyWidget*>(item);
-        if (proxy) {
-            ClientRect *clientRect = qobject_cast<ClientRect*>(proxy->widget());
-            if (clientRect) {
-                overClientRect = true;
-                break;
+    int hoveredElementId = -1;
+    
+    // If we have selected elements, look for non-selected elements under the cursor
+    if (!selectedElements.isEmpty()) {
+        for (QGraphicsItem *item : itemsUnderMouse) {
+            QGraphicsProxyWidget *proxy = qgraphicsitem_cast<QGraphicsProxyWidget*>(item);
+            if (proxy) {
+                ClientRect *clientRect = qobject_cast<ClientRect*>(proxy->widget());
+                if (clientRect) {
+                    int elementId = clientRect->getAssociatedElementId();
+                    // Skip if this element is selected
+                    if (!selectedElements.contains(QString::number(elementId))) {
+                        hoveredElementId = elementId;
+                        break;
+                    }
+                }
+            }
+        }
+    } else {
+        // No selection, just find the first ClientRect
+        for (QGraphicsItem *item : itemsUnderMouse) {
+            QGraphicsProxyWidget *proxy = qgraphicsitem_cast<QGraphicsProxyWidget*>(item);
+            if (proxy) {
+                ClientRect *clientRect = qobject_cast<ClientRect*>(proxy->widget());
+                if (clientRect) {
+                    hoveredElementId = clientRect->getAssociatedElementId();
+                    break;
+                }
             }
         }
     }
     
-    // If not over any ClientRect, clear the hover
-    if (!overClientRect && !hoveredElement.isEmpty()) {
+    // Update the hovered element based on what we found
+    if (hoveredElementId > 0) {
+        setHoveredElement(QString::number(hoveredElementId));
+    } else {
         setHoveredElement(QString());
     }
     
@@ -522,12 +499,22 @@ void Canvas::wheelEvent(QWheelEvent *event) {
             
             // Update our zoom scale tracking
             zoomScale *= scaleFactor;
+            // Round to nearest tenth
+            zoomScale = qRound(zoomScale * 10.0) / 10.0;
+            
+            // Debug: Log the zoom scale
+            qDebug() << "Zoom scale:" << zoomScale;
             
             // Update controls zoom scale if they're visible
             if (controls && controlsProxy && controlsProxy->isVisible()) {
                 controls->setZoomScale(zoomScale);
                 // Force controls to update their geometry to account for new zoom
                 updateControlsVisibility();
+            }
+            
+            // Force hover indicator to repaint with new zoom
+            if (hoverIndicator && hoverIndicatorProxy && hoverIndicatorProxy->isVisible()) {
+                hoverIndicator->update();
             }
             
             // Ensure the mouse position stays at the same scene coordinate
