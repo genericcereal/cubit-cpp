@@ -58,6 +58,7 @@ Canvas::Canvas(QWidget *parent) : QGraphicsView(parent), mode("Select"), isSelec
     selectionBox = new SelectionBox();
     scene->addItem(selectionBox);
     selectionBox->setVisible(false);
+    selectionBox->setInvisibleForHitTesting(true);  // Make it invisible but keep for hit testing
     
     // Connect controls signals
     connect(controls, &Controls::rectChanged, this, &Canvas::onControlsRectChanged);
@@ -1329,8 +1330,42 @@ void Canvas::drawForeground(QPainter* painter, const QRectF& /*rect*/) {
         }
         
         if (!isSelected) {
-            drawFrameOutline(painter, hoveredFrame, Qt::blue);
+            drawFrameOutline(painter, hoveredFrame, QColor(Config::Colors::HOVER_R, 
+                                                           Config::Colors::HOVER_G, 
+                                                           Config::Colors::HOVER_B));
         }
+    }
+    
+    // Draw selection box if active
+    if (selectionBox && selectionBox->isActive()) {
+        painter->setRenderHint(QPainter::Antialiasing);
+        
+        // Get the selection rectangle in scene coordinates
+        QRectF selectionRect = selectionBox->getSelectionRect();
+        
+        // Map the corners to viewport coordinates
+        QPointF tl = mapFromScene(selectionRect.topLeft());
+        QPointF tr = mapFromScene(selectionRect.topRight());
+        QPointF bl = mapFromScene(selectionRect.bottomLeft());
+        QPointF br = mapFromScene(selectionRect.bottomRight());
+        
+        // Calculate the viewport rectangle
+        qreal minX = qMin(qMin(tl.x(), tr.x()), qMin(bl.x(), br.x()));
+        qreal minY = qMin(qMin(tl.y(), tr.y()), qMin(bl.y(), br.y()));
+        qreal maxX = qMax(qMax(tl.x(), tr.x()), qMax(bl.x(), br.x()));
+        qreal maxY = qMax(qMax(tl.y(), tr.y()), qMax(bl.y(), br.y()));
+        
+        QRectF viewRect(minX, minY, maxX - minX, maxY - minY);
+        
+        // Apply the selection box styling
+        painter->setPen(selectionBox->getSelectionPen());
+        painter->setBrush(QBrush(QColor(Config::Colors::SELECTION_BOX_R, 
+                                       Config::Colors::SELECTION_BOX_G, 
+                                       Config::Colors::SELECTION_BOX_B,
+                                       Config::Colors::SELECTION_BOX_ALPHA)));
+        
+        // Draw the selection rectangle
+        painter->drawRect(viewRect);
     }
     
     // Draw controls if visible
@@ -1406,67 +1441,96 @@ void Canvas::drawControlsForRect(QPainter* painter, const QRectF& sceneRect) {
     QRectF expandedRect = viewRect.adjusted(-margin, -margin, margin, margin);
     
     // Draw the yellow inner rect with 5% opacity (matching Controls.cpp)
-    painter->fillRect(viewRect, QColor(255, 255, 0, 13));  // 5% of 255 = 12.75 ≈ 13
+    painter->fillRect(viewRect, QColor(Config::Colors::CONTROL_INNER_RECT_R,
+                                      Config::Colors::CONTROL_INNER_RECT_G,
+                                      Config::Colors::CONTROL_INNER_RECT_B,
+                                      Config::Colors::CONTROL_INNER_RECT_ALPHA));
     
     // Draw red edge bars with 50% opacity
+    QColor barColor(Config::Colors::CONTROL_BAR_R,
+                    Config::Colors::CONTROL_BAR_G,
+                    Config::Colors::CONTROL_BAR_B,
+                    Config::Colors::CONTROL_BAR_ALPHA);
+    
     painter->fillRect(expandedRect.left() + margin - visualBarWidth/2, expandedRect.top() + margin, 
-                     visualBarWidth, viewRect.height(), QColor(255, 0, 0, 128));  // Left
+                     visualBarWidth, viewRect.height(), barColor);  // Left
     painter->fillRect(expandedRect.right() - margin - visualBarWidth/2, expandedRect.top() + margin,
-                     visualBarWidth, viewRect.height(), QColor(255, 0, 0, 128));  // Right
+                     visualBarWidth, viewRect.height(), barColor);  // Right
     painter->fillRect(expandedRect.left() + margin, expandedRect.top() + margin - visualBarHeight/2,
-                     viewRect.width(), visualBarHeight, QColor(255, 0, 0, 128));  // Top
+                     viewRect.width(), visualBarHeight, barColor);  // Top
     painter->fillRect(expandedRect.left() + margin, expandedRect.bottom() - margin - visualBarHeight/2,
-                     viewRect.width(), visualBarHeight, QColor(255, 0, 0, 128));  // Bottom
+                     viewRect.width(), visualBarHeight, barColor);  // Bottom
     
     // Draw black center lines with 50% opacity
+    QColor lineColor(Config::Colors::CONTROL_LINE_R,
+                     Config::Colors::CONTROL_LINE_G,
+                     Config::Colors::CONTROL_LINE_B,
+                     Config::Colors::CONTROL_LINE_ALPHA);
+    
     const int lineWidth = 1;
     painter->fillRect(expandedRect.left() + margin - lineWidth/2, expandedRect.top() + margin,
-                     lineWidth, viewRect.height(), QColor(0, 0, 0, 128));  // Left line
+                     lineWidth, viewRect.height(), lineColor);  // Left line
     painter->fillRect(expandedRect.right() - margin - lineWidth/2, expandedRect.top() + margin,
-                     lineWidth, viewRect.height(), QColor(0, 0, 0, 128));  // Right line
+                     lineWidth, viewRect.height(), lineColor);  // Right line
     painter->fillRect(expandedRect.left() + margin, expandedRect.top() + margin - lineWidth/2,
-                     viewRect.width(), lineWidth, QColor(0, 0, 0, 128));  // Top line
+                     viewRect.width(), lineWidth, lineColor);  // Top line
     painter->fillRect(expandedRect.left() + margin, expandedRect.bottom() - margin - lineWidth/2,
-                     viewRect.width(), lineWidth, QColor(0, 0, 0, 128));  // Bottom line
+                     viewRect.width(), lineWidth, lineColor);  // Bottom line
     
-    // Draw rotation joints (blue circles) with 50% opacity
+    // Draw rotation joints (blue rectangles) with 50% opacity
     painter->setPen(Qt::NoPen);
-    painter->setBrush(QColor(0, 0, 255, 128));
+    painter->setBrush(QColor(Config::Colors::CONTROL_ROTATION_JOINT_R,
+                            Config::Colors::CONTROL_ROTATION_JOINT_G,
+                            Config::Colors::CONTROL_ROTATION_JOINT_B,
+                            Config::Colors::CONTROL_ROTATION_JOINT_ALPHA));
     
     const int overlapSize = 10;  // From Controls.cpp
     
-    // Top-left joint
-    painter->drawEllipse(QPointF(expandedRect.left() + margin - visualBarWidth/2 - (visualRotationJointSize - overlapSize)/2,
-                                expandedRect.top() + margin - visualBarHeight/2 - (visualRotationJointSize - overlapSize)/2), 
-                        visualRotationJointSize/2, visualRotationJointSize/2);
-    // Top-right joint
-    painter->drawEllipse(QPointF(expandedRect.right() - margin + visualBarWidth/2 - overlapSize/2,
-                                expandedRect.top() + margin - visualBarHeight/2 - (visualRotationJointSize - overlapSize)/2), 
-                        visualRotationJointSize/2, visualRotationJointSize/2);
-    // Bottom-left joint
-    painter->drawEllipse(QPointF(expandedRect.left() + margin - visualBarWidth/2 - (visualRotationJointSize - overlapSize)/2,
-                                expandedRect.bottom() - margin + visualBarHeight/2 - overlapSize/2), 
-                        visualRotationJointSize/2, visualRotationJointSize/2);
-    // Bottom-right joint
-    painter->drawEllipse(QPointF(expandedRect.right() - margin + visualBarWidth/2 - overlapSize/2,
-                                expandedRect.bottom() - margin + visualBarHeight/2 - overlapSize/2), 
-                        visualRotationJointSize/2, visualRotationJointSize/2);
+    // Top-left joint - bottom-right corner overlaps with bars
+    painter->drawRect(expandedRect.left() + margin - visualBarWidth/2 - (visualRotationJointSize - overlapSize),
+                     expandedRect.top() + margin - visualBarHeight/2 - (visualRotationJointSize - overlapSize),
+                     visualRotationJointSize, visualRotationJointSize);
+    
+    // Top-right joint - bottom-left corner overlaps with bars  
+    painter->drawRect(expandedRect.right() - margin - visualBarWidth/2,
+                     expandedRect.top() + margin - visualBarHeight/2 - (visualRotationJointSize - overlapSize),
+                     visualRotationJointSize, visualRotationJointSize);
+    
+    // Bottom-left joint - top-right corner overlaps with bars
+    painter->drawRect(expandedRect.left() + margin - visualBarWidth/2 - (visualRotationJointSize - overlapSize),
+                     expandedRect.bottom() - margin - visualBarHeight/2,
+                     visualRotationJointSize, visualRotationJointSize);
+    
+    // Bottom-right joint - top-left corner overlaps with bars
+    painter->drawRect(expandedRect.right() - margin - visualBarWidth/2,
+                     expandedRect.bottom() - margin - visualBarHeight/2,
+                     visualRotationJointSize, visualRotationJointSize);
     
     // Draw resize joints (yellow squares) with 50% opacity
-    painter->setBrush(QColor(255, 255, 0, 128));
+    painter->setBrush(QColor(Config::Colors::CONTROL_RESIZE_JOINT_R,
+                            Config::Colors::CONTROL_RESIZE_JOINT_G,
+                            Config::Colors::CONTROL_RESIZE_JOINT_B,
+                            Config::Colors::CONTROL_RESIZE_JOINT_ALPHA));
     
-    // Position at intersection of bars
-    painter->drawRect(expandedRect.left() + margin - visualBarWidth/2 - visualResizeJointSize/2, 
-                     expandedRect.top() + margin - visualBarHeight/2 - visualResizeJointSize/2,
+    // Position resize joints at the intersection points (matching Controls.cpp positioning)
+    // Top-left resize joint
+    painter->drawRect(expandedRect.left() + margin - visualBarWidth/2, 
+                     expandedRect.top() + margin - visualBarHeight/2,
                      visualResizeJointSize, visualResizeJointSize);
-    painter->drawRect(expandedRect.right() - margin + visualBarWidth/2 - visualResizeJointSize/2, 
-                     expandedRect.top() + margin - visualBarHeight/2 - visualResizeJointSize/2,
+    
+    // Top-right resize joint
+    painter->drawRect(expandedRect.right() - margin - visualBarWidth/2, 
+                     expandedRect.top() + margin - visualBarHeight/2,
                      visualResizeJointSize, visualResizeJointSize);
-    painter->drawRect(expandedRect.left() + margin - visualBarWidth/2 - visualResizeJointSize/2, 
-                     expandedRect.bottom() - margin + visualBarHeight/2 - visualResizeJointSize/2,
+    
+    // Bottom-left resize joint
+    painter->drawRect(expandedRect.left() + margin - visualBarWidth/2, 
+                     expandedRect.bottom() - margin - visualBarHeight/2,
                      visualResizeJointSize, visualResizeJointSize);
-    painter->drawRect(expandedRect.right() - margin + visualBarWidth/2 - visualResizeJointSize/2, 
-                     expandedRect.bottom() - margin + visualBarHeight/2 - visualResizeJointSize/2,
+    
+    // Bottom-right resize joint
+    painter->drawRect(expandedRect.right() - margin - visualBarWidth/2, 
+                     expandedRect.bottom() - margin - visualBarHeight/2,
                      visualResizeJointSize, visualResizeJointSize);
 }
 

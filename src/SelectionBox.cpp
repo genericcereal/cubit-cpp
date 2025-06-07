@@ -10,10 +10,12 @@ SelectionBox::SelectionBox()
 {
     setZValue(Config::ZIndex::SELECTION_BOX);  // High z-value to ensure it's on top
     
-    selectionPen.setStyle(Qt::DashLine);
+    selectionPen.setStyle(Qt::SolidLine);  // Solid line instead of dashed
     selectionPen.setWidth(1);
-    selectionPen.setColor(QColor(0, 120, 215));
-    selectionPen.setDashPattern(QVector<qreal>() << 4 << 4);
+    selectionPen.setColor(QColor(Config::Colors::SELECTION_BOX_R, 
+                               Config::Colors::SELECTION_BOX_G, 
+                               Config::Colors::SELECTION_BOX_B,
+                               Config::Colors::SELECTION_BOX_BORDER_ALPHA));
 }
 
 void SelectionBox::startSelection(const QPointF &pos)
@@ -72,12 +74,15 @@ QRectF SelectionBox::boundingRect() const
 
 void SelectionBox::paint(QPainter *painter, const QStyleOptionGraphicsItem *, QWidget *)
 {
-    if (!active) return;
+    if (!active || invisibleForHitTesting) return;
     
     painter->setRenderHint(QPainter::Antialiasing);
     
     painter->setPen(selectionPen);
-    painter->setBrush(QBrush(QColor(0, 120, 215, 30)));
+    painter->setBrush(QBrush(QColor(Config::Colors::SELECTION_BOX_R, 
+                                    Config::Colors::SELECTION_BOX_G, 
+                                    Config::Colors::SELECTION_BOX_B,
+                                    Config::Colors::SELECTION_BOX_ALPHA)));
     
     // Draw the selection rectangle
     painter->drawRect(getSelectionRect());

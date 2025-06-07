@@ -39,6 +39,44 @@ namespace Config {
         constexpr int CANVAS_BG_R = 242;
         constexpr int CANVAS_BG_G = 242;
         constexpr int CANVAS_BG_B = 242;
+        
+        // Selection box colors
+        constexpr int SELECTION_BOX_R = 0;
+        constexpr int SELECTION_BOX_G = 120;
+        constexpr int SELECTION_BOX_B = 215;
+        constexpr int SELECTION_BOX_ALPHA = 50;  // Transparency (0-255)
+        constexpr int SELECTION_BOX_BORDER_ALPHA = 100;  // Border transparency
+        
+        // Hover indicator colors
+        constexpr int HOVER_R = 0;
+        constexpr int HOVER_G = 0;
+        constexpr int HOVER_B = 255;  // Blue color for hover
+        
+        // Control colors
+        constexpr int CONTROL_INNER_RECT_R = 255;
+        constexpr int CONTROL_INNER_RECT_G = 255;
+        constexpr int CONTROL_INNER_RECT_B = 0;
+        constexpr int CONTROL_INNER_RECT_ALPHA = 13;  // 5% opacity
+        
+        constexpr int CONTROL_BAR_R = 255;
+        constexpr int CONTROL_BAR_G = 0;
+        constexpr int CONTROL_BAR_B = 0;
+        constexpr int CONTROL_BAR_ALPHA = 128;  // 50% opacity
+        
+        constexpr int CONTROL_LINE_R = 0;
+        constexpr int CONTROL_LINE_G = 0;
+        constexpr int CONTROL_LINE_B = 0;
+        constexpr int CONTROL_LINE_ALPHA = 128;  // 50% opacity
+        
+        constexpr int CONTROL_ROTATION_JOINT_R = 0;
+        constexpr int CONTROL_ROTATION_JOINT_G = 0;
+        constexpr int CONTROL_ROTATION_JOINT_B = 255;
+        constexpr int CONTROL_ROTATION_JOINT_ALPHA = 128;  // 50% opacity
+        
+        constexpr int CONTROL_RESIZE_JOINT_R = 255;
+        constexpr int CONTROL_RESIZE_JOINT_G = 255;
+        constexpr int CONTROL_RESIZE_JOINT_B = 0;
+        constexpr int CONTROL_RESIZE_JOINT_ALPHA = 128;  // 50% opacity
     }
     
     // Scene dimensions
