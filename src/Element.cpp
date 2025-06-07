@@ -16,6 +16,8 @@ QString Element::getTypeName() const {
             return "Text";
         case VariableType:
             return "Variable";
+        case HtmlType:
+            return "Html";
         default:
             return "Unknown";
     }
