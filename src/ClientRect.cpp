@@ -11,7 +11,7 @@ ClientRect::ClientRect(int associatedElementId, Canvas *canvas, QWidget *parent)
     setFrameStyle(QFrame::NoFrame);
     setLineWidth(0);
     setStyleSheet("QFrame { background-color: rgba(173, 216, 230, 0.2); border: none; }");
-    setMouseTracking(true);  // Enable mouse tracking for hover events
+    setMouseTracking(false);  // Mouse tracking now handled by Canvas
 }
 
 void ClientRect::mousePressEvent(QMouseEvent *event) {
@@ -32,17 +32,6 @@ void ClientRect::mousePressEvent(QMouseEvent *event) {
     QFrame::mousePressEvent(event);
 }
 
-void ClientRect::mouseMoveEvent(QMouseEvent *event) {
-    if (event->buttons() & Qt::LeftButton && canvasRef) {
-        // Only forward drag updates if shift is NOT held
-        if (!(event->modifiers() & Qt::ShiftModifier)) {
-            canvasRef->updateControlDrag(event->globalPos());
-        }
-        event->accept();
-    }
-    QFrame::mouseMoveEvent(event);
-}
-
 void ClientRect::mouseReleaseEvent(QMouseEvent *event) {
     if (event->button() == Qt::LeftButton && canvasRef) {
         // Only end drag operation if shift is NOT held
@@ -52,29 +41,4 @@ void ClientRect::mouseReleaseEvent(QMouseEvent *event) {
         event->accept();
     }
     QFrame::mouseReleaseEvent(event);
-}
-
-void ClientRect::enterEvent(QEvent *event) {
-    if (canvasRef) {
-        // Check if this element is not already selected
-        bool isSelected = false;
-        for (const auto& frame : canvasRef->getSelectedFrames()) {
-            if (frame->getId() == elementId) {
-                isSelected = true;
-                break;
-            }
-        }
-        
-        // Only set as hovered if not selected
-        if (!isSelected) {
-            canvasRef->setHoveredElement(QString::number(elementId));
-        }
-    }
-    QFrame::enterEvent(event);
-}
-
-void ClientRect::leaveEvent(QEvent *event) {
-    // Don't clear on leave - let Canvas handle this globally
-    // This allows smooth transitions between adjacent ClientRects
-    QFrame::leaveEvent(event);
 }
