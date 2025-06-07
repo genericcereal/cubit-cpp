@@ -9,7 +9,6 @@
 #include "ActionsPanel.h"
 #include "FPSWidget.h"
 #include "SelectionBox.h"
-#include "HoverIndicator.h"
 #include <QMouseEvent>
 #include <QApplication>
 #include <QPainter>
@@ -19,7 +18,7 @@
 #include <QDebug>
 #include <QCursor>
 
-Canvas::Canvas(QWidget *parent) : QGraphicsView(parent), mode("Select"), isSelecting(false), isSimulatingControlDrag(false), isPanning(false) {
+Canvas::Canvas(QWidget *parent) : QGraphicsView(parent), mode("Select"), isSelecting(false), isSimulatingControlDrag(false), isPanning(false), hoveredFrame(nullptr) {
     setContentsMargins(0, 0, 0, 0);
     setMouseTracking(true);  // Enable mouse tracking for cursor changes
     
@@ -60,12 +59,6 @@ Canvas::Canvas(QWidget *parent) : QGraphicsView(parent), mode("Select"), isSelec
     scene->addItem(selectionBox);
     selectionBox->setVisible(false);
     
-    // Create hover indicator
-    hoverIndicator = new HoverIndicator();
-    hoverIndicatorProxy = scene->addWidget(hoverIndicator);
-    hoverIndicatorProxy->setZValue(Config::ZIndex::CONTROLS - 1);  // Just below controls
-    hoverIndicatorProxy->hide();
-    
     // Connect controls signals
     connect(controls, &Controls::rectChanged, this, &Canvas::onControlsRectChanged);
     connect(controls, &Controls::innerRectClicked, this, &Canvas::onControlsInnerRectClicked);
@@ -86,8 +79,15 @@ void Canvas::showControls(const QRect &rect) {
         
         // The controls widget positions itself with margins, get its intended position
         controlsProxy->setPos(controls->getIntendedPosition());
-        controlsProxy->show();
+        // Don't show the proxy - we draw in foreground instead
+        controlsProxy->hide();
         
+        // Update scene rect for foreground drawing
+        controlsSceneRect = rect;
+        controlsVisible = true;
+        
+        // Trigger viewport update
+        viewport()->update();
         
         // Emit signal to raise overlay panels
         emit overlaysNeedRaise();
@@ -98,6 +98,9 @@ void Canvas::hideControls() {
     if (controlsProxy) {
         controlsProxy->hide();
     }
+    controlsVisible = false;
+    controlsSceneRect = QRectF();
+    viewport()->update();
 }
 
 void Canvas::selectElement(const QString &elementId, bool addToSelection) {
@@ -124,6 +127,8 @@ void Canvas::updateControlsVisibility() {
     if (selectedElements.isEmpty()) {
         cancelActiveTextEditing();
         hideControls();
+        controlsVisible = false;
+        viewport()->update();  // Redraw to remove controls
         return;
     }
     
@@ -153,12 +158,32 @@ void Canvas::updateControlsVisibility() {
         }
     }
     
-    // Show controls if at least one Frame is selected
+    // Update controls state
     if (hasFrame) {
-        showControls(boundingRect);
+        controlsSceneRect = boundingRect;
+        controlsVisible = true;
+        
+        // Update the hidden Controls widget position for event handling
+        if (controls && controlsProxy) {
+            controls->setZoomScale(zoomScale);
+            controls->updateGeometry(boundingRect);
+            controlsProxy->setPos(controls->getIntendedPosition());
+            // Keep the proxy hidden - we'll draw in foreground instead
+            controlsProxy->hide();
+            
+            // Make sure the controls widget itself is shown (just the proxy is hidden)
+            controls->show();
+        }
+        
+        // Emit signal to raise overlay panels
+        emit overlaysNeedRaise();
     } else {
+        controlsVisible = false;
+        controlsSceneRect = QRectF();  // Clear the scene rect
         hideControls();
     }
+    
+    viewport()->update();  // Redraw to show/update controls
 }
 
 void Canvas::setMode(const QString &newMode) {
@@ -271,6 +296,28 @@ void Canvas::createVariable() {
 }
 
 void Canvas::mousePressEvent(QMouseEvent *event) {
+    // Check if clicking on a control element first
+    if (event->button() == Qt::LeftButton && controlsVisible) {
+        Controls::DragMode controlElement = getControlElementAt(event->pos());
+        if (controlElement != Controls::None) {
+            // Start control dragging
+            if (controls) {
+                // When using scene coordinates, we don't need zoom scaling
+                controls->setZoomScale(1.0);
+                controls->updateGeometry(controlsSceneRect.toRect());
+                
+                // Convert viewport position to scene position
+                QPointF scenePos = mapToScene(event->pos());
+                // Use scene position as "global" position for Controls widget
+                // This ensures the drag deltas are calculated in scene coordinates
+                controls->startDragMode(controlElement, scenePos.toPoint());
+                isSimulatingControlDrag = true;
+            }
+            event->accept();
+            return;
+        }
+    }
+    
     // First, let the scene handle the event (this allows the controls to receive it)
     QGraphicsView::mousePressEvent(event);
     
@@ -297,17 +344,17 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
             // Start dragging the bottom-right corner of the controls
             // Force showing the controls and start the drag
             if (frame && controls && controlsProxy) {
-                // Ensure controls are visible (updateControlsVisibility might not have taken effect yet)
-                if (!controlsProxy->isVisible()) {
-                    controlsProxy->show();
-                }
-                
-                // Get the current rect of the controls (should be the frame's position)
+                // Get the frame's rect for the controls
                 QRect frameRect(frame->getCanvasPosition(), frame->getCanvasSize());
                 
-                // For synthetic drag, we start from the current mouse position
-                // The Controls widget will calculate the delta from this position
-                controls->startDragMode(Controls::BottomRightResizeJoint, event->globalPos());
+                // When using scene coordinates, we don't need zoom scaling
+                controls->setZoomScale(1.0);
+                controls->updateGeometry(frameRect);
+                
+                // Convert viewport position to scene position
+                QPointF scenePos = mapToScene(event->pos());
+                // Use scene position as "global" position for Controls widget
+                controls->startDragMode(Controls::BottomRightResizeJoint, scenePos.toPoint());
                 
                 // Store that we're in a simulated drag state
                 isSimulatingControlDrag = true;
@@ -350,7 +397,10 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
 void Canvas::mouseMoveEvent(QMouseEvent *event) {
     // If we're simulating control drag, handle it first before letting the scene process events
     if (isSimulatingControlDrag && controls) {
-        controls->updateDragPosition(event->globalPos());
+        // Convert viewport position to scene position
+        QPointF scenePos = mapToScene(event->pos());
+        // Use scene position as "global" position for Controls widget
+        controls->updateDragPosition(scenePos.toPoint());
         event->accept();  // Mark the event as handled
         return;
     }
@@ -438,6 +488,38 @@ void Canvas::mouseMoveEvent(QMouseEvent *event) {
         setHoveredElement(QString());
     }
     
+    // Check if mouse is over a control element and update cursor
+    Controls::DragMode controlElement = getControlElementAt(event->pos());
+    if (controlElement != hoveredControlElement) {
+        hoveredControlElement = controlElement;
+        
+        // Update cursor based on control element
+        switch (controlElement) {
+            case Controls::LeftBar:
+            case Controls::RightBar:
+                setCursor(Qt::SizeHorCursor);
+                break;
+            case Controls::TopBar:
+            case Controls::BottomBar:
+                setCursor(Qt::SizeVerCursor);
+                break;
+            case Controls::TopLeftResizeJoint:
+            case Controls::BottomRightResizeJoint:
+                setCursor(Qt::SizeFDiagCursor);
+                break;
+            case Controls::TopRightResizeJoint:
+            case Controls::BottomLeftResizeJoint:
+                setCursor(Qt::SizeBDiagCursor);
+                break;
+            case Controls::InnerRect:
+                setCursor(Qt::SizeAllCursor);
+                break;
+            default:
+                unsetCursor();
+                break;
+        }
+    }
+    
     // Otherwise, let the scene handle the event
     QGraphicsView::mouseMoveEvent(event);
 }
@@ -509,16 +591,14 @@ void Canvas::wheelEvent(QWheelEvent *event) {
             zoomScale = qRound(zoomScale * 10.0) / 10.0;
             
             // Update controls zoom scale if they're visible
-            if (controls && controlsProxy && controlsProxy->isVisible()) {
+            if (controls && controlsVisible) {
                 controls->setZoomScale(zoomScale);
                 // Force controls to update their geometry to account for new zoom
                 updateControlsVisibility();
             }
             
-            // Force hover indicator to repaint with new zoom
-            if (hoverIndicator && hoverIndicatorProxy && hoverIndicatorProxy->isVisible()) {
-                hoverIndicator->update();
-            }
+            // Trigger viewport update to redraw hover outlines with new zoom
+            viewport()->update();
             
             // Ensure the mouse position stays at the same scene coordinate
             // This makes zooming feel natural - zoom centers on mouse position
@@ -579,6 +659,12 @@ void Canvas::onControlsRectChanged(const QRect &newRect) {
         // The controls widget stores its intended position
         controlsProxy->setPos(controls->getIntendedPosition());
     }
+    
+    // Update the controls scene rect for foreground drawing
+    controlsSceneRect = newRect;
+    
+    // Trigger viewport update to redraw controls in new position
+    viewport()->update();
     
     // The newRect is already in scene coordinates
     QRect sceneRect = newRect;
@@ -931,35 +1017,23 @@ void Canvas::setHoveredElement(const QString &elementId) {
         hoveredElement = elementId;
         emit hoveredElementChanged(elementId);
         
-        // Update hover indicator visibility and position
-        if (elementId.isEmpty()) {
-            // Hide hover indicator when no element is hovered
-            if (hoverIndicatorProxy) {
-                hoverIndicatorProxy->hide();
-            }
-        } else {
-            // Find the element and show hover indicator
+        // Update hovered frame pointer
+        hoveredFrame = nullptr;
+        
+        if (!elementId.isEmpty()) {
+            // Find the element
             for (Element *element : elements) {
                 if (QString::number(element->getId()) == elementId) {
                     if (element->getType() == Element::FrameType) {
-                        Frame *frame = qobject_cast<Frame*>(element);
-                        if (frame && hoverIndicator && hoverIndicatorProxy) {
-                            // Get the frame's geometry as QRectF for more precision
-                            QRectF frameRect = frame->getCanvasRectF();
-                            
-                            // Align to pixel boundaries using QRectF version
-                            QRectF pixelAlignedRect = alignRectToPixels(frameRect);
-                            
-                            // Update hover indicator geometry to match frame exactly
-                            hoverIndicator->setGeometry(pixelAlignedRect);
-                            hoverIndicatorProxy->setPos(pixelAlignedRect.topLeft());
-                            hoverIndicatorProxy->show();
-                        }
+                        hoveredFrame = qobject_cast<Frame*>(element);
                     }
                     break;
                 }
             }
         }
+        
+        // Trigger viewport update to redraw hover outline
+        viewport()->update();
     }
 }
 
@@ -1234,4 +1308,243 @@ QPoint Canvas::alignPointToPixels(const QPoint& point) {
     // Convert back to scene coordinates
     QPointF alignedPoint = mapToScene(viewPoint);
     return alignedPoint.toPoint();
+}
+
+void Canvas::drawForeground(QPainter* painter, const QRectF& /*rect*/) {
+    painter->save();
+    painter->setRenderHint(QPainter::Antialiasing, false);
+    
+    // Reset any transformations - we're drawing in viewport coordinates
+    painter->resetTransform();
+    
+    // Draw hover outline if there's a hovered frame
+    if (hoveredFrame) {
+        // Check if hovered frame is selected
+        bool isSelected = false;
+        for (const QString &id : selectedElements) {
+            if (QString::number(hoveredFrame->getId()) == id) {
+                isSelected = true;
+                break;
+            }
+        }
+        
+        if (!isSelected) {
+            drawFrameOutline(painter, hoveredFrame, Qt::blue);
+        }
+    }
+    
+    // Draw controls if visible
+    if (controlsVisible && !controlsSceneRect.isEmpty()) {
+        drawControlsForRect(painter, controlsSceneRect);
+    }
+    
+    painter->restore();
+}
+
+void Canvas::drawFrameOutline(QPainter* painter, Frame* frame, const QColor& color) {
+    // Find the frame's proxy widget
+    QGraphicsProxyWidget* frameProxy = nullptr;
+    QList<QGraphicsItem*> items = scene->items();
+    for (QGraphicsItem* item : items) {
+        if (QGraphicsProxyWidget* proxy = qgraphicsitem_cast<QGraphicsProxyWidget*>(item)) {
+            if (proxy->widget() == frame) {
+                frameProxy = proxy;
+                break;
+            }
+        }
+    }
+    
+    if (!frameProxy) return;
+    
+    // Get the scene rect
+    QRectF sceneRect(frameProxy->pos(), frame->size());
+    
+    // Map corners to viewport
+    QPointF tl = mapFromScene(sceneRect.topLeft());
+    QPointF tr = mapFromScene(sceneRect.topRight());
+    QPointF bl = mapFromScene(sceneRect.bottomLeft());
+    QPointF br = mapFromScene(sceneRect.bottomRight());
+    
+    // Get bounding rect
+    qreal minX = qMin(qMin(tl.x(), tr.x()), qMin(bl.x(), br.x()));
+    qreal minY = qMin(qMin(tl.y(), tr.y()), qMin(bl.y(), br.y()));
+    qreal maxX = qMax(qMax(tl.x(), tr.x()), qMax(bl.x(), br.x()));
+    qreal maxY = qMax(qMax(tl.y(), tr.y()), qMax(bl.y(), br.y()));
+    
+    QRectF viewRect(minX, minY, maxX - minX, maxY - minY);
+    
+    // Draw outline
+    QPen pen(color, 1);
+    pen.setCosmetic(true);
+    painter->setPen(pen);
+    painter->setBrush(Qt::NoBrush);
+    painter->drawRect(viewRect.adjusted(0.5, 0.5, -0.5, -0.5));
+}
+
+void Canvas::drawControlsForRect(QPainter* painter, const QRectF& sceneRect) {
+    // Map the scene rect to viewport coordinates
+    QPointF tl = mapFromScene(sceneRect.topLeft());
+    QPointF tr = mapFromScene(sceneRect.topRight());
+    QPointF bl = mapFromScene(sceneRect.bottomLeft());
+    QPointF br = mapFromScene(sceneRect.bottomRight());
+    
+    qreal minX = qMin(qMin(tl.x(), tr.x()), qMin(bl.x(), br.x()));
+    qreal minY = qMin(qMin(tl.y(), tr.y()), qMin(bl.y(), br.y()));
+    qreal maxX = qMax(qMax(tl.x(), tr.x()), qMax(bl.x(), br.x()));
+    qreal maxY = qMax(qMax(tl.y(), tr.y()), qMax(bl.y(), br.y()));
+    
+    QRectF viewRect(minX, minY, maxX - minX, maxY - minY);
+    
+    // Visual sizes for controls (matching Controls.cpp)
+    const int visualBarWidth = 10;
+    const int visualBarHeight = 10;
+    const int visualRotationJointSize = 20;
+    const int visualResizeJointSize = 10;
+    const int margin = qMax(visualRotationJointSize, visualBarWidth * 2);
+    
+    // Expand rect by margin
+    QRectF expandedRect = viewRect.adjusted(-margin, -margin, margin, margin);
+    
+    // Draw the yellow inner rect with 5% opacity (matching Controls.cpp)
+    painter->fillRect(viewRect, QColor(255, 255, 0, 13));  // 5% of 255 = 12.75 ≈ 13
+    
+    // Draw red edge bars with 50% opacity
+    painter->fillRect(expandedRect.left() + margin - visualBarWidth/2, expandedRect.top() + margin, 
+                     visualBarWidth, viewRect.height(), QColor(255, 0, 0, 128));  // Left
+    painter->fillRect(expandedRect.right() - margin - visualBarWidth/2, expandedRect.top() + margin,
+                     visualBarWidth, viewRect.height(), QColor(255, 0, 0, 128));  // Right
+    painter->fillRect(expandedRect.left() + margin, expandedRect.top() + margin - visualBarHeight/2,
+                     viewRect.width(), visualBarHeight, QColor(255, 0, 0, 128));  // Top
+    painter->fillRect(expandedRect.left() + margin, expandedRect.bottom() - margin - visualBarHeight/2,
+                     viewRect.width(), visualBarHeight, QColor(255, 0, 0, 128));  // Bottom
+    
+    // Draw black center lines with 50% opacity
+    const int lineWidth = 1;
+    painter->fillRect(expandedRect.left() + margin - lineWidth/2, expandedRect.top() + margin,
+                     lineWidth, viewRect.height(), QColor(0, 0, 0, 128));  // Left line
+    painter->fillRect(expandedRect.right() - margin - lineWidth/2, expandedRect.top() + margin,
+                     lineWidth, viewRect.height(), QColor(0, 0, 0, 128));  // Right line
+    painter->fillRect(expandedRect.left() + margin, expandedRect.top() + margin - lineWidth/2,
+                     viewRect.width(), lineWidth, QColor(0, 0, 0, 128));  // Top line
+    painter->fillRect(expandedRect.left() + margin, expandedRect.bottom() - margin - lineWidth/2,
+                     viewRect.width(), lineWidth, QColor(0, 0, 0, 128));  // Bottom line
+    
+    // Draw rotation joints (blue circles) with 50% opacity
+    painter->setPen(Qt::NoPen);
+    painter->setBrush(QColor(0, 0, 255, 128));
+    
+    const int overlapSize = 10;  // From Controls.cpp
+    
+    // Top-left joint
+    painter->drawEllipse(QPointF(expandedRect.left() + margin - visualBarWidth/2 - (visualRotationJointSize - overlapSize)/2,
+                                expandedRect.top() + margin - visualBarHeight/2 - (visualRotationJointSize - overlapSize)/2), 
+                        visualRotationJointSize/2, visualRotationJointSize/2);
+    // Top-right joint
+    painter->drawEllipse(QPointF(expandedRect.right() - margin + visualBarWidth/2 - overlapSize/2,
+                                expandedRect.top() + margin - visualBarHeight/2 - (visualRotationJointSize - overlapSize)/2), 
+                        visualRotationJointSize/2, visualRotationJointSize/2);
+    // Bottom-left joint
+    painter->drawEllipse(QPointF(expandedRect.left() + margin - visualBarWidth/2 - (visualRotationJointSize - overlapSize)/2,
+                                expandedRect.bottom() - margin + visualBarHeight/2 - overlapSize/2), 
+                        visualRotationJointSize/2, visualRotationJointSize/2);
+    // Bottom-right joint
+    painter->drawEllipse(QPointF(expandedRect.right() - margin + visualBarWidth/2 - overlapSize/2,
+                                expandedRect.bottom() - margin + visualBarHeight/2 - overlapSize/2), 
+                        visualRotationJointSize/2, visualRotationJointSize/2);
+    
+    // Draw resize joints (yellow squares) with 50% opacity
+    painter->setBrush(QColor(255, 255, 0, 128));
+    
+    // Position at intersection of bars
+    painter->drawRect(expandedRect.left() + margin - visualBarWidth/2 - visualResizeJointSize/2, 
+                     expandedRect.top() + margin - visualBarHeight/2 - visualResizeJointSize/2,
+                     visualResizeJointSize, visualResizeJointSize);
+    painter->drawRect(expandedRect.right() - margin + visualBarWidth/2 - visualResizeJointSize/2, 
+                     expandedRect.top() + margin - visualBarHeight/2 - visualResizeJointSize/2,
+                     visualResizeJointSize, visualResizeJointSize);
+    painter->drawRect(expandedRect.left() + margin - visualBarWidth/2 - visualResizeJointSize/2, 
+                     expandedRect.bottom() - margin + visualBarHeight/2 - visualResizeJointSize/2,
+                     visualResizeJointSize, visualResizeJointSize);
+    painter->drawRect(expandedRect.right() - margin + visualBarWidth/2 - visualResizeJointSize/2, 
+                     expandedRect.bottom() - margin + visualBarHeight/2 - visualResizeJointSize/2,
+                     visualResizeJointSize, visualResizeJointSize);
+}
+
+Controls::DragMode Canvas::getControlElementAt(const QPoint& viewportPos) {
+    if (!controlsVisible || controlsSceneRect.isEmpty()) {
+        return Controls::None;
+    }
+    
+    // Map the controls scene rect to viewport
+    QPointF tl = mapFromScene(controlsSceneRect.topLeft());
+    QPointF tr = mapFromScene(controlsSceneRect.topRight());
+    QPointF bl = mapFromScene(controlsSceneRect.bottomLeft());
+    QPointF br = mapFromScene(controlsSceneRect.bottomRight());
+    
+    qreal minX = qMin(qMin(tl.x(), tr.x()), qMin(bl.x(), br.x()));
+    qreal minY = qMin(qMin(tl.y(), tr.y()), qMin(bl.y(), br.y()));
+    qreal maxX = qMax(qMax(tl.x(), tr.x()), qMax(bl.x(), br.x()));
+    qreal maxY = qMax(qMax(tl.y(), tr.y()), qMax(bl.y(), br.y()));
+    
+    QRectF viewRect(minX, minY, maxX - minX, maxY - minY);
+    
+    // Visual sizes
+    const int visualBarWidth = 10;
+    const int visualBarHeight = 10;
+    const int visualRotationJointSize = 20;
+    const int visualResizeJointSize = 10;
+    const int margin = qMax(visualRotationJointSize, visualBarWidth * 2);
+    const int hitTolerance = 5;  // Extra pixels for easier clicking
+    
+    QRectF expandedRect = viewRect.adjusted(-margin, -margin, margin, margin);
+    
+    // Check resize joints first (they're on top)
+    QRectF topLeftResize(expandedRect.left() + margin - visualBarWidth/2 - visualResizeJointSize/2 - hitTolerance,
+                        expandedRect.top() + margin - visualBarHeight/2 - visualResizeJointSize/2 - hitTolerance,
+                        visualResizeJointSize + 2*hitTolerance, visualResizeJointSize + 2*hitTolerance);
+    if (topLeftResize.contains(viewportPos)) return Controls::TopLeftResizeJoint;
+    
+    QRectF topRightResize(expandedRect.right() - margin + visualBarWidth/2 - visualResizeJointSize/2 - hitTolerance,
+                         expandedRect.top() + margin - visualBarHeight/2 - visualResizeJointSize/2 - hitTolerance,
+                         visualResizeJointSize + 2*hitTolerance, visualResizeJointSize + 2*hitTolerance);
+    if (topRightResize.contains(viewportPos)) return Controls::TopRightResizeJoint;
+    
+    QRectF bottomLeftResize(expandedRect.left() + margin - visualBarWidth/2 - visualResizeJointSize/2 - hitTolerance,
+                           expandedRect.bottom() - margin + visualBarHeight/2 - visualResizeJointSize/2 - hitTolerance,
+                           visualResizeJointSize + 2*hitTolerance, visualResizeJointSize + 2*hitTolerance);
+    if (bottomLeftResize.contains(viewportPos)) return Controls::BottomLeftResizeJoint;
+    
+    QRectF bottomRightResize(expandedRect.right() - margin + visualBarWidth/2 - visualResizeJointSize/2 - hitTolerance,
+                            expandedRect.bottom() - margin + visualBarHeight/2 - visualResizeJointSize/2 - hitTolerance,
+                            visualResizeJointSize + 2*hitTolerance, visualResizeJointSize + 2*hitTolerance);
+    if (bottomRightResize.contains(viewportPos)) return Controls::BottomRightResizeJoint;
+    
+    // Check rotation joints (under resize joints)
+    // For now, rotation joints don't do anything, so we skip them
+    
+    // Check edge bars
+    QRectF leftBar(expandedRect.left() + margin - visualBarWidth/2 - hitTolerance, 
+                   expandedRect.top() + margin,
+                   visualBarWidth + 2*hitTolerance, viewRect.height());
+    if (leftBar.contains(viewportPos)) return Controls::LeftBar;
+    
+    QRectF rightBar(expandedRect.right() - margin - visualBarWidth/2 - hitTolerance,
+                    expandedRect.top() + margin,
+                    visualBarWidth + 2*hitTolerance, viewRect.height());
+    if (rightBar.contains(viewportPos)) return Controls::RightBar;
+    
+    QRectF topBar(expandedRect.left() + margin, 
+                  expandedRect.top() + margin - visualBarHeight/2 - hitTolerance,
+                  viewRect.width(), visualBarHeight + 2*hitTolerance);
+    if (topBar.contains(viewportPos)) return Controls::TopBar;
+    
+    QRectF bottomBar(expandedRect.left() + margin,
+                     expandedRect.bottom() - margin - visualBarHeight/2 - hitTolerance,
+                     viewRect.width(), visualBarHeight + 2*hitTolerance);
+    if (bottomBar.contains(viewportPos)) return Controls::BottomBar;
+    
+    // Check inner rect
+    if (viewRect.contains(viewportPos)) return Controls::InnerRect;
+    
+    return Controls::None;
 }
