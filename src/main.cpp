@@ -1,131 +1,46 @@
-#include <QApplication>
-#include <QSplitter>
-#include <QTextEdit>
-#include <QVBoxLayout>
-#include <QWidget>
-#include <QEvent>
-#include <QDebug>
-#include <functional>
+#include <QGuiApplication>
+#include <QQmlApplicationEngine>
+#include <QQmlContext>
+#include <QtWebEngineQuick>
 
-#include "DetailPanel.h"
-#include "Canvas.h"
-#include "ElementList.h"
-#include "ActionsPanel.h"
-#include "FPSWidget.h"
+#include "Element.h"
+#include "Frame.h"
+#include "Text.h"
+#include "Html.h"
+#include "Variable.h"
+#include "CanvasController.h"
+#include "ElementModel.h"
+#include "SelectionManager.h"
 
-int main(int argc, char *argv[]) {
-    QApplication app(argc, argv);
+int main(int argc, char *argv[])
+{
+    QtWebEngineQuick::initialize();
 
-    // Set global application styles
-    app.setStyleSheet(R"(
-        QFrame[panelStyle="true"] {
-            background-color: rgba(50, 50, 50, 0.9);
-        }
-    )");
+    QGuiApplication app(argc, argv);
+    app.setApplicationName("Cubit");
+    app.setOrganizationName("Cubit");
 
-    QWidget window;
-    window.setWindowTitle("Resizable Detail Panel");
-    window.resize(900, 600);
+    QQmlApplicationEngine engine;
 
-    // Create a central widget to hold the canvas and overlays
-    QWidget *centralWidget = new QWidget();
+    // Register C++ types with QML
+    qmlRegisterUncreatableType<Element>("Cubit", 1, 0, "Element", "Element is an abstract base class");
+    qmlRegisterType<Frame>("Cubit", 1, 0, "Frame");
+    qmlRegisterType<Text>("Cubit", 1, 0, "TextElement");  // Rename to avoid conflict with QML Text
+    qmlRegisterType<Html>("Cubit", 1, 0, "Html");
+    qmlRegisterType<Variable>("Cubit", 1, 0, "Variable");
     
-    // Create layout for central widget to properly size canvas
-    QVBoxLayout *centralLayout = new QVBoxLayout(centralWidget);
-    centralLayout->setContentsMargins(0, 0, 0, 0);
-    
-    // Create canvas
-    Canvas *canvas = new Canvas();
-    centralLayout->addWidget(canvas);
-    
-    // Create ActionsPanel as overlay on centralWidget (not canvas)
-    ActionsPanel *actionsPanel = new ActionsPanel(centralWidget);
-    actionsPanel->setCanvas(canvas);
-    actionsPanel->raise();  // Ensure it's on top
-    
-    // Create FPSWidget as overlay on centralWidget (not canvas)
-    FPSWidget *fpsWidget = new FPSWidget(centralWidget);
-    fpsWidget->setFixedSize(100, 60);
-    fpsWidget->start();
-    fpsWidget->raise();  // Ensure it's on top
-    
-    // Set rendering type in FPS widget
-    fpsWidget->setRenderingType(canvas->getRenderingType());
-    
-    // Connect canvas mode changes to ActionsPanel
-    QObject::connect(canvas, &Canvas::modeChanged,
-                     [actionsPanel](const QString &mode) {
-                         actionsPanel->setModeSelection(mode);
-                     });
-    
-    // Connect overlaysNeedRaise signal to raise overlay panels
-    QObject::connect(canvas, &Canvas::overlaysNeedRaise,
-                     [actionsPanel, fpsWidget]() {
-                         actionsPanel->raise();
-                         fpsWidget->raise();
-                     });
+    // Register singleton controllers
+    qmlRegisterType<CanvasController>("Cubit", 1, 0, "CanvasController");
+    qmlRegisterType<ElementModel>("Cubit", 1, 0, "ElementModel");
+    qmlRegisterType<SelectionManager>("Cubit", 1, 0, "SelectionManager");
 
-    QSplitter *splitter = new QSplitter(Qt::Horizontal);
-    splitter->addWidget(centralWidget);
+    const QUrl url(QStringLiteral("qrc:/qml/main.qml"));
+    QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
+                     &app, [url](QObject *obj, const QUrl &objUrl) {
+        if (!obj && url == objUrl)
+            QCoreApplication::exit(-1);
+    }, Qt::QueuedConnection);
+    engine.load(url);
 
-    DetailPanel *detailPanel = new DetailPanel();
-    splitter->addWidget(detailPanel);
-    
-    // Connect canvas to detail panel for property updates
-    detailPanel->setCanvas(canvas);
-    
-    // Connect canvas element creation to element list
-    QObject::connect(canvas, &Canvas::elementCreated, 
-                     detailPanel->getElementList(), &ElementList::addElement);
-
-    // Configure layout behavior
-    splitter->setStretchFactor(0, 1); // Left (main content) stretches
-    splitter->setStretchFactor(1, 0); // Right (detail panel) stays fixed
-    splitter->setSizes({600, 300});   // Set initial sizes
-    
-    // Function to position overlays
-    auto positionOverlays = [centralWidget, canvas, actionsPanel, fpsWidget]() {
-        // Position ActionsPanel at bottom center of centralWidget
-        int panelWidth = actionsPanel->width();
-        int panelHeight = actionsPanel->height();
-        int x = (centralWidget->width() - panelWidth) / 2;
-        int y = centralWidget->height() - panelHeight - 10;
-        actionsPanel->move(x, y);
-        
-        // Position FPSWidget at top right of centralWidget
-        int fpsX = centralWidget->width() - fpsWidget->width() - 10;
-        int fpsY = 10;
-        fpsWidget->move(fpsX, fpsY);
-    };
-    
-    // Install event filter to catch centralWidget resize events
-    class ResizeFilter : public QObject {
-        std::function<void()> callback;
-    public:
-        ResizeFilter(std::function<void()> cb) : callback(cb) {}
-        bool eventFilter(QObject *, QEvent *event) override {
-            if (event->type() == QEvent::Resize) {
-                callback();
-            }
-            return false;
-        }
-    };
-    
-    auto *resizeFilter = new ResizeFilter(positionOverlays);
-    centralWidget->installEventFilter(resizeFilter);
-    
-    // Also reposition when splitter moves
-    QObject::connect(splitter, &QSplitter::splitterMoved,
-                     [positionOverlays]() {
-                         positionOverlays();
-                     });
-
-    QVBoxLayout *layout = new QVBoxLayout(&window);
-    layout->addWidget(splitter);
-
-    window.show();
-    
-    // Initial positioning
-    positionOverlays();
     return app.exec();
 }

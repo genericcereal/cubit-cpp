@@ -1,26 +1,20 @@
 #pragma once
 #include "Element.h"
-#include <QString>
 #include <QVariant>
 
 class Variable : public Element {
     Q_OBJECT
+    Q_PROPERTY(QVariant value READ value WRITE setValue NOTIFY valueChanged)
+    
 public:
-    explicit Variable(int id, QWidget *parent = nullptr);
+    explicit Variable(int id, QObject *parent = nullptr);
     
-    // Override Element virtual methods
-    int getId() const override { return elementId; }
-    QString getName() const override { return variableName; }
-    
+    QVariant value() const { return m_value; }
     void setValue(const QVariant &value);
-    QVariant getValue() const { return value; }
     
-    QString getType() const;
+signals:
+    void valueChanged();
     
-    // Override visual update
-    void updateParentVisualState() override;
-
 private:
-    QString variableName;
-    QVariant value;
+    QVariant m_value;
 };

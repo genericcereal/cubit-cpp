@@ -1,36 +1,32 @@
 #pragma once
 #include "Element.h"
-#include <QString>
+#include <QFont>
+#include <QColor>
 
 class Text : public Element {
     Q_OBJECT
-public:
-    explicit Text(int id, QWidget *parent = nullptr);
+    Q_PROPERTY(QString text READ text WRITE setText NOTIFY textChanged)
+    Q_PROPERTY(QFont font READ font WRITE setFont NOTIFY fontChanged)
+    Q_PROPERTY(QColor color READ color WRITE setColor NOTIFY colorChanged)
     
-    // Override Element virtual methods
-    int getId() const override { return elementId; }
-    QString getName() const override { return textName; }
+public:
+    explicit Text(int id, QObject *parent = nullptr);
+    
+    QString text() const { return m_text; }
+    QFont font() const { return m_font; }
+    QColor color() const { return m_color; }
     
     void setText(const QString &text);
-    QString getText() const { return content; }
+    void setFont(const QFont &font);
+    void setColor(const QColor &color);
     
-    // Editing functionality
-    void startEditing();
-    void endEditing(bool save = true);
-    bool isEditing() const { return editing; }
+signals:
+    void textChanged();
+    void fontChanged();
+    void colorChanged();
     
-    // Override visual update
-    void updateParentVisualState() override;
-
-protected:
-    void paintEvent(QPaintEvent *event) override;
-    void keyPressEvent(QKeyEvent *event) override;
-    void focusOutEvent(QFocusEvent *event) override;
-    bool eventFilter(QObject *watched, QEvent *event) override;
-
 private:
-    QString textName;
-    QString content;
-    bool editing;
-    class QTextEdit *editWidget;
+    QString m_text;
+    QFont m_font;
+    QColor m_color;
 };

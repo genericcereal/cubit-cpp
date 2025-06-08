@@ -16,7 +16,7 @@ cd build
 
 # Run qmake
 echo "Running qmake..."
-qmake ../cubit-quick.pro
+qmake6 ../cubit-quick.pro
 
 # Build
 echo "Building..."

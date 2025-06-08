@@ -1,89 +1,37 @@
 #pragma once
 
+// Application configuration constants
 namespace Config {
-    // Z-Index values for layering UI elements
-    // Higher values appear on top of lower values
-    namespace ZIndex {
-        // Background layer
-        constexpr int BACKGROUND = 0;
-        
-        // Canvas elements
-        constexpr int FRAME = 10;          // Frame widgets
-        constexpr int CLIENT_RECT = 11;    // ClientRect overlays (slightly above frames)
-        constexpr int TEXT = 12;           // Text elements within frames
-        
-        // Interactive overlays
-        constexpr int CONTROLS = 1000;     // Selection controls
-        constexpr int SELECTION_BOX = 2000; // Drag selection box
-        
-        // Top-level UI panels
-        constexpr int ACTIONS_PANEL = 3000; // Bottom action panel
-        constexpr int FPS_WIDGET = 3000;    // FPS display widget
-    }
-    
-    // Element sizing defaults
-    namespace ElementDefaults {
-        constexpr int INITIAL_SIZE = 5;     // Initial size when creating elements
-        constexpr int MIN_WIDTH = 20;       // Minimum element width
-        constexpr int MIN_HEIGHT = 20;      // Minimum element height
-    }
-    
     // Colors
-    namespace Colors {
-        // Frame colors
-        constexpr int FRAME_R = 200;
-        constexpr int FRAME_G = 200;
-        constexpr int FRAME_B = 200;
-        
-        // Canvas background
-        constexpr int CANVAS_BG_R = 242;
-        constexpr int CANVAS_BG_G = 242;
-        constexpr int CANVAS_BG_B = 242;
-        
-        // Selection box colors
-        constexpr int SELECTION_BOX_R = 0;
-        constexpr int SELECTION_BOX_G = 120;
-        constexpr int SELECTION_BOX_B = 215;
-        constexpr int SELECTION_BOX_ALPHA = 50;  // Transparency (0-255)
-        constexpr int SELECTION_BOX_BORDER_ALPHA = 100;  // Border transparency
-        
-        // Hover indicator colors
-        constexpr int HOVER_R = 0;
-        constexpr int HOVER_G = 0;
-        constexpr int HOVER_B = 255;  // Blue color for hover
-        
-        // Control colors
-        constexpr int CONTROL_INNER_RECT_R = 255;
-        constexpr int CONTROL_INNER_RECT_G = 255;
-        constexpr int CONTROL_INNER_RECT_B = 0;
-        constexpr int CONTROL_INNER_RECT_ALPHA = 13;  // 5% opacity
-        
-        constexpr int CONTROL_BAR_R = 255;
-        constexpr int CONTROL_BAR_G = 0;
-        constexpr int CONTROL_BAR_B = 0;
-        constexpr int CONTROL_BAR_ALPHA = 128;  // 50% opacity
-        
-        constexpr int CONTROL_LINE_R = 0;
-        constexpr int CONTROL_LINE_G = 0;
-        constexpr int CONTROL_LINE_B = 0;
-        constexpr int CONTROL_LINE_ALPHA = 128;  // 50% opacity
-        
-        constexpr int CONTROL_ROTATION_JOINT_R = 0;
-        constexpr int CONTROL_ROTATION_JOINT_G = 0;
-        constexpr int CONTROL_ROTATION_JOINT_B = 255;
-        constexpr int CONTROL_ROTATION_JOINT_ALPHA = 128;  // 50% opacity
-        
-        constexpr int CONTROL_RESIZE_JOINT_R = 255;
-        constexpr int CONTROL_RESIZE_JOINT_G = 255;
-        constexpr int CONTROL_RESIZE_JOINT_B = 0;
-        constexpr int CONTROL_RESIZE_JOINT_ALPHA = 128;  // 50% opacity
-    }
+    constexpr const char* SELECTION_COLOR = "#0066cc";
+    constexpr const char* HOVER_COLOR = "#999999";
+    constexpr const char* CANVAS_BACKGROUND = "#f5f5f5";
+    constexpr const char* PANEL_BACKGROUND = "#ffffff";
+    constexpr const char* PANEL_HEADER_BACKGROUND = "#f0f0f0";
     
-    // Scene dimensions
-    namespace Scene {
-        constexpr int MIN_X = -2000;
-        constexpr int MIN_Y = -2000;
-        constexpr int WIDTH = 4000;
-        constexpr int HEIGHT = 4000;
-    }
+    // Sizes
+    constexpr int DEFAULT_ELEMENT_WIDTH = 200;
+    constexpr int DEFAULT_ELEMENT_HEIGHT = 150;
+    constexpr int SELECTION_HANDLE_SIZE = 8;
+    constexpr int CONTROL_MARGIN = 4;
+    
+    // Z-index layers
+    constexpr int Z_BACKGROUND = 0;
+    constexpr int Z_ELEMENTS = 10;
+    constexpr int Z_CONTROLS = 1000;
+    constexpr int Z_SELECTION = 2000;
+    constexpr int Z_PANELS = 3000;
+    
+    // Canvas
+    constexpr int CANVAS_WIDTH = 4000;
+    constexpr int CANVAS_HEIGHT = 4000;
+    constexpr qreal MIN_ZOOM = 0.1;
+    constexpr qreal MAX_ZOOM = 5.0;
+    constexpr qreal ZOOM_STEP = 0.1;
+    
+    // Animation
+    constexpr int ANIMATION_DURATION = 150;
+    
+    // Performance
+    constexpr int FPS_UPDATE_INTERVAL = 1000; // milliseconds
 }

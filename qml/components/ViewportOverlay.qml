@@ -27,13 +27,13 @@ Item {
         x: {
             if (!canvasView || !canvasView.selectionBoxHandler.active) return 0
             var handler = canvasView.selectionBoxHandler
-            return Math.min(handler.startPoint.x, handler.currentPoint.x) * zoomLevel - flickable.contentX
+            return (Math.min(handler.startPoint.x, handler.currentPoint.x) - canvasView.canvasMinX) * zoomLevel - flickable.contentX
         }
         
         y: {
             if (!canvasView || !canvasView.selectionBoxHandler.active) return 0
             var handler = canvasView.selectionBoxHandler
-            return Math.min(handler.startPoint.y, handler.currentPoint.y) * zoomLevel - flickable.contentY
+            return (Math.min(handler.startPoint.y, handler.currentPoint.y) - canvasView.canvasMinY) * zoomLevel - flickable.contentY
         }
         
         width: {
@@ -58,8 +58,8 @@ Item {
             
             // Control bars and joints
             Item {
-                x: element ? (element.x * zoomLevel - flickable.contentX) : 0
-                y: element ? (element.y * zoomLevel - flickable.contentY) : 0
+                x: element ? ((element.x - canvasView.canvasMinX) * zoomLevel - flickable.contentX) : 0
+                y: element ? ((element.y - canvasView.canvasMinY) * zoomLevel - flickable.contentY) : 0
                 width: element ? (element.width * zoomLevel) : 0
                 height: element ? (element.height * zoomLevel) : 0
                 
@@ -140,8 +140,8 @@ Item {
         border.color: "#999999"
         border.width: 1
         
-        x: hoveredElement ? hoveredElement.x * zoomLevel - flickable.contentX : 0
-        y: hoveredElement ? hoveredElement.y * zoomLevel - flickable.contentY : 0
+        x: hoveredElement ? (hoveredElement.x - canvasView.canvasMinX) * zoomLevel - flickable.contentX : 0
+        y: hoveredElement ? (hoveredElement.y - canvasView.canvasMinY) * zoomLevel - flickable.contentY : 0
         width: hoveredElement ? hoveredElement.width * zoomLevel : 0
         height: hoveredElement ? hoveredElement.height * zoomLevel : 0
     }

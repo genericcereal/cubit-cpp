@@ -1,14 +1,16 @@
 #include "Element.h"
-#include <QResizeEvent>
-#include <QDebug>
 
-Element::Element(ElementType type, int id, QWidget *parent) 
-    : QFrame(parent), elementType(type), elementId(id), parentElementId(-1), 
-      canvasPosition(0, 0), canvasSize(0, 0),
-      canvasPositionF(0.0, 0.0), canvasSizeF(0.0, 0.0) {
+Element::Element(ElementType type, int id, QObject *parent)
+    : QObject(parent)
+    , elementType(type)
+    , elementId(id)
+    , parentElementId(-1)
+    , selected(false)
+{
 }
 
-QString Element::getTypeName() const {
+QString Element::getTypeName() const
+{
     switch (elementType) {
         case FrameType:
             return "Frame";
@@ -23,44 +25,85 @@ QString Element::getTypeName() const {
     }
 }
 
-void Element::updateVisualPosition(const QPoint &panOffset, qreal zoomScale) {
-    // Update the widget's actual position and size based on canvas position, pan offset, and zoom
-    QPoint scaledPos = canvasPosition * zoomScale + panOffset;
-    QSize scaledSize = canvasSize * zoomScale;
+void Element::setName(const QString &newName)
+{
+    if (name != newName) {
+        name = newName;
+        emit nameChanged();
+        emit elementChanged();
+    }
+}
+
+void Element::setX(qreal x)
+{
+    if (!qFuzzyCompare(canvasPosition.x(), x)) {
+        canvasPosition.setX(x);
+        emit xChanged();
+        emit elementChanged();
+    }
+}
+
+void Element::setY(qreal y)
+{
+    if (!qFuzzyCompare(canvasPosition.y(), y)) {
+        canvasPosition.setY(y);
+        emit yChanged();
+        emit elementChanged();
+    }
+}
+
+void Element::setWidth(qreal w)
+{
+    if (!qFuzzyCompare(canvasSize.width(), w)) {
+        canvasSize.setWidth(w);
+        emit widthChanged();
+        emit elementChanged();
+    }
+}
+
+void Element::setHeight(qreal h)
+{
+    if (!qFuzzyCompare(canvasSize.height(), h)) {
+        canvasSize.setHeight(h);
+        emit heightChanged();
+        emit elementChanged();
+    }
+}
+
+void Element::setRect(const QRectF &rect)
+{
+    bool posChanged = canvasPosition != rect.topLeft();
+    bool sizeChanged = canvasSize != rect.size();
     
-    // Debug output commented out to reduce console spam
-    // qDebug() << "updateVisualPosition - canvasSize:" << canvasSize << "scaledSize:" << scaledSize << "zoomScale:" << zoomScale;
-    
-    setGeometry(QRect(scaledPos, scaledSize));
+    if (posChanged || sizeChanged) {
+        canvasPosition = rect.topLeft();
+        canvasSize = rect.size();
+        
+        if (posChanged) {
+            emit xChanged();
+            emit yChanged();
+        }
+        if (sizeChanged) {
+            emit widthChanged();
+            emit heightChanged();
+        }
+        emit elementChanged();
+    }
 }
 
-void Element::resizeEvent(QResizeEvent *event) {
-    // Canvas size is set explicitly through setCanvasSize
-    // We don't update it here to avoid corruption from zoomed sizes
-    QFrame::resizeEvent(event);
+void Element::setParentElementId(int parentId)
+{
+    if (parentElementId != parentId) {
+        parentElementId = parentId;
+        emit parentIdChanged();
+        emit elementChanged();
+    }
 }
 
-void Element::setParentElementId(int parentId) {
-    parentElementId = parentId;
-    updateParentVisualState();
-}
-
-void Element::setCanvasPosition(const QPoint &pos) {
-    canvasPosition = pos;
-    canvasPositionF = QPointF(pos);
-}
-
-void Element::setCanvasSize(const QSize &size) {
-    canvasSize = size;
-    canvasSizeF = QSizeF(size);
-}
-
-void Element::setCanvasPositionF(const QPointF &pos) {
-    canvasPositionF = pos;
-    canvasPosition = pos.toPoint();
-}
-
-void Element::setCanvasSizeF(const QSizeF &size) {
-    canvasSizeF = size;
-    canvasSize = size.toSize();
+void Element::setSelected(bool sel)
+{
+    if (selected != sel) {
+        selected = sel;
+        emit selectedChanged();
+    }
 }
