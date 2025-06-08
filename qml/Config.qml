@@ -10,9 +10,9 @@ QtObject {
     readonly property string panelHeaderBackground: "#f0f0f0"
     
     // Control colors
-    readonly property string controlBarColor: "#0066cc"
-    readonly property string controlRotationJointColor: "#0066cc"  // Blue rotation joints
-    readonly property string controlResizeJointColor: "#ffcc00"    // Yellow resize joints
+    readonly property color controlBarColor: Qt.rgba(1, 0, 0, 0.1)           // Red with 10% opacity
+    readonly property color controlRotationJointColor: Qt.rgba(1, 0, 0, 0.1) // Red with 10% opacity
+    readonly property color controlResizeJointColor: Qt.rgba(0, 0, 1, 0.1)   // Blue with 10% opacity
     readonly property color controlInnerRectColor: Qt.rgba(1, 0.8, 0, 0.05)  // Yellow with 5% opacity
     
     // Sizes

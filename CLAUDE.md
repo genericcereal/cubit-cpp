@@ -34,6 +34,44 @@ qmake -o Makefile qt-hello.pro
 
 This project is a Qt-based C++ application with a layered UI architecture:
 
+### Controls System Architecture
+
+The controls system is designed to support both current resize functionality and future rotation features:
+
+#### Control Elements
+- **Bars**: The lines/borders around selected elements that can be dragged to resize
+- **Joints**: Corner handles that appear at the intersection of bars
+  - **Resize joints** (yellow, smaller): Currently decorative, will handle corner resizing
+  - **Rotation joints** (blue, larger): Currently decorative, will handle rotation
+
+#### Resize Behavior
+- **Single Selection**: Direct manipulation of the element
+- **Multiple Selection**: Proportional scaling of all selected elements
+- **Edge Flipping**: When a bar is dragged past its opposite bar:
+  - Single selection: The element flips and continues resizing
+  - Multiple selection: All elements maintain their relative positions but flip as a group
+
+#### Design Principles for Future Rotation Support
+1. **Edge-Agnostic Logic**: Controls should work based on "start/end" edges rather than "top/bottom/left/right"
+2. **Unified Behavior**: Single selection is treated as a special case of multiple selection for consistency
+3. **Transformation Pipeline**: When rotation is added, transformations will be applied in order:
+   - Calculate changes in local coordinate space
+   - Apply rotation transformation
+   - Update element properties
+
+#### Implementation Notes
+- Controls always render the same way regardless of selection count
+- The control overlay uses a bounding box approach for both single and multiple selections
+- Mouse interactions are handled in viewport coordinates and converted to canvas coordinates
+- Minimum element size of 1x1 pixels is enforced during all resize operations (bars can overlap)
+
+#### Known Resize Behavior Issues
+- **Left vs Right Bar Asymmetry**: The left bar resize calculates transformations differently than the right bar
+  - Right bar correctly maintains element proportions during resize
+  - Left bar has incorrect transform origin, causing unexpected scaling behavior
+  - This affects both single and multiple selection
+- **Solution**: Both bars should use the same scaling approach - calculate scale factor based on new size vs original size, then apply uniformly
+
 ### Main Application Structure
 
 - `main.cpp`: Entry point that sets up the main window with a splitter layout containing:
