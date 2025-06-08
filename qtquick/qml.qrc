@@ -1,0 +1,19 @@
+<RCC>
+    <qresource prefix="/">
+        <file>qml/main.qml</file>
+        <file>qml/components/CanvasView.qml</file>
+        <file>qml/components/ElementItem.qml</file>
+        <file>qml/components/ElementRenderer.qml</file>
+        <file>qml/components/FrameElement.qml</file>
+        <file>qml/components/TextElement.qml</file>
+        <file>qml/components/HtmlElement.qml</file>
+        <file>qml/components/ControlsOverlay.qml</file>
+        <file>qml/components/ViewportOverlay.qml</file>
+        <file>qml/components/ResizeHandle.qml</file>
+        <file>qml/panels/DetailPanel.qml</file>
+        <file>qml/panels/ElementList.qml</file>
+        <file>qml/panels/PropertiesPanel.qml</file>
+        <file>qml/panels/ActionsPanel.qml</file>
+        <file>qml/panels/FPSMonitor.qml</file>
+    </qresource>
+</RCC>

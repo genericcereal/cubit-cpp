@@ -2,6 +2,13 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Terminology
+
+- **Selection Box/Rectangle**: The blue rectangle that appears when dragging to select multiple elements
+- **Controls**: The resize handles that appear on selected elements, consisting of:
+  - **Bars**: The lines/borders around selected elements that can be dragged to resize
+  - **Joints**: The corner handles (8x8 squares) that can be dragged to resize
+
 ## Building and Running
 
 ### Build Commands
@@ -125,3 +132,207 @@ When creating new UI components:
 - Eliminate all unused/stale methods, variables, etc. when you come across them. Don't leave unused code in the code base.
 - Always look for Qts helpers before implementing something bespoke. For example, use QWidget::mouseDoubleClickEvent instead of creating double clicks with timers.
 - DRY (Don't Repeat Yourself) code is incredibly important to this project. Where possible, modularize and re-use code. Point out redundancy and duplication when you come across it.
+
+## Qt Quick Migration Plan
+
+### Current Status
+
+**Phase**: Phase 2 - Canvas Implementation
+**Started**: January 2025
+**Target Completion**: TBD
+**Progress**: Phase 2 completed - Canvas interactions fully implemented
+
+### Widget to Qt Quick Component Mapping
+
+| Qt Widget Component   | Qt Quick Equivalent                                  | Key Considerations                                           |
+| --------------------- | ---------------------------------------------------- | ------------------------------------------------------------ |
+| QGraphicsView/Scene   | `Canvas` or custom `Item` with `MultiPointTouchArea` | Qt Quick has built-in scene graph, no need for QGraphicsView |
+| QGraphicsProxyWidget  | Native QML components                                | Direct QML rendering, better performance                     |
+| QWidget containers    | `Item`, `Rectangle`, `Flickable`                     | Declarative layout system                                    |
+| QVBoxLayout/QSplitter | `ColumnLayout`, `SplitView`                          | QML layouts are more flexible                                |
+| Custom painting       | `Canvas` item or custom `QQuickPaintedItem`          | For selection boxes and overlays                             |
+| QWebEngineView        | `WebEngineView`                                      | Direct QML equivalent available                              |
+| Signal/Slot           | QML signals and JavaScript                           | More concise syntax                                          |
+
+### Proposed QML Architecture
+
+```qml
+ApplicationWindow {
+    SplitView {
+        // Left Panel - Canvas Area
+        Item {
+            CanvasView {
+                // Main editing canvas
+                ElementsLayer {}
+                ControlsLayer {}
+                SelectionLayer {}
+            }
+
+            // Overlays
+            ActionsPanel {}
+            FPSMonitor {}
+        }
+
+        // Right Panel
+        DetailPanel {
+            ElementList {}
+            PropertiesPanel {}
+        }
+    }
+}
+```
+
+### C++ Backend Strategy
+
+**Core C++ Classes to Retain:**
+
+- `Element` hierarchy (as Q_OBJECT with Q_PROPERTY)
+- Business logic and data management
+- Performance-critical algorithms
+
+**New C++ Classes:**
+
+- `ElementModel` - QAbstractListModel for QML ListView
+- `CanvasController` - Handles interaction logic
+- `SelectionManager` - Selection state management
+- `ElementFactory` - Creates QML components dynamically
+
+**QML Exposure:**
+
+```cpp
+qmlRegisterType<Element>("Cubit", 1, 0, "Element");
+qmlRegisterType<Frame>("Cubit", 1, 0, "Frame");
+qmlRegisterType<CanvasController>("Cubit", 1, 0, "CanvasController");
+```
+
+### Migration Roadmap
+
+#### Phase 1: Foundation (2-3 weeks) - COMPLETED
+
+- [x] Set up Qt Quick project structure
+- [x] Create basic QML window with SplitView
+- [x] Implement C++ backend classes with Q_PROPERTY
+- [x] Register C++ types with QML
+- [x] Create basic Element QML components
+
+**Phase 1 Summary:**
+
+- Created parallel Qt Quick project in `/qtquick` directory
+- Implemented base Element class with Q_PROPERTY bindings
+- Created Frame, Text, Html, and Variable element classes
+- Built CanvasController, ElementModel, and SelectionManager
+- Set up main QML window with SplitView layout
+- Created basic QML components for all UI elements
+- Project structure allows side-by-side development with original Qt Widgets version
+
+#### Phase 2: Canvas Implementation (3-4 weeks) - COMPLETED
+
+- [x] Implement custom QQuickItem for canvas
+- [x] Port mouse/touch interaction handling
+- [x] Implement pan/zoom with PinchHandler and WheelHandler
+- [x] Create selection system with MultiPointTouchArea
+- [x] Port coordinate system management
+
+**Phase 2 Summary:**
+
+- Implemented complete canvas interaction system in QML
+- Added zoom with Ctrl+mouse wheel (maintains point under cursor)
+- Middle mouse button panning
+- Selection box with real-time element selection
+- Element creation preview when dragging in creation modes
+- Coordinate system properly converts between view and canvas space
+- Keyboard shortcuts (Delete, Ctrl+A, Escape)
+- Grid overlay that appears when zoomed in
+- Scroll indicators for better navigation
+
+#### Phase 3: Element System (2-3 weeks) - IN PROGRESS
+
+- [x] Create QML components for each element type
+- [x] Implement element rendering in QML
+- [ ] Port parent-child relationships
+- [x] Implement clipping with `clip` property
+- [ ] Create element manipulation controls
+
+**Phase 3 Progress:**
+
+- Created base ElementItem component with common element functionality
+- Implemented FrameElement, TextElement, and HtmlElement inheriting from ElementItem
+- Added consistent selection visual feedback across all element types
+- Fixed Qt 6 compatibility issues with imports and signal handlers
+- Implemented proper property bindings between QML and C++ objects
+- Added clipping support for Frame elements
+- Attempted hierarchical rendering for parent-child relationships (needs more work)
+
+**Known Issues:**
+
+- Element dragging in select mode not working (mouse handler integration needed)
+- Visual feedback during element creation needs to be restored
+- Parent-child element relationships need proper implementation
+- Resize handles not yet implemented
+
+#### Phase 4: UI Panels (2 weeks) - COMPLETED
+
+- [x] Port DetailPanel to QML
+- [x] Create ElementList with ListView
+- [x] Implement Properties panel with dynamic forms
+- [x] Port ActionsPanel with ToolBar
+- [x] Create FPS monitor component
+
+All UI panels were already implemented in the qtquick directory. Updated all panel QML files to use Qt6 unversioned imports.
+
+#### Phase 5: Advanced Features (2-3 weeks) - NOT STARTED
+
+- [ ] Implement "foreground" (i.e. viewport based) implementation for controls, selection boxes, hover indicators, etc. These should not scale when the canvas zooms.
+- [ ] Optimize performance with batching
+- [ ] Implement undo/redo system
+
+#### Phase 6: Testing & Polish (2 weeks) - NOT STARTED
+
+- [ ] Performance testing and optimization
+- [ ] Memory leak detection
+- [ ] Cross-platform testing
+- [ ] UI/UX refinements
+- [ ] Documentation
+
+### Key Technical Considerations
+
+**Performance Optimizations:**
+
+- Use `layer.enabled: true` for complex items
+- Implement object pooling for elements
+- Use `Loader` for on-demand component creation
+- Batch property updates with `Qt.callLater()`
+
+**Architecture Benefits:**
+
+- Declarative UI reduces code complexity
+- Better touch/mobile support
+- Hardware-accelerated rendering
+- Smoother animations and transitions
+- Easier theming and styling
+
+**Potential Challenges:**
+
+- Learning curve for QML/JavaScript
+- Different event handling model
+- Custom painting requires more work
+- WebEngineView integration complexity
+
+### Development Tools & Resources
+
+**Required Tools:**
+
+- Qt Creator with QML designer
+- QML profiler for performance
+- Gammaray for debugging
+- Qt Quick Controls 2 documentation
+
+**Recommended Libraries:**
+
+- Qt Quick Controls 2 for UI components
+- Qt Quick Shapes for custom graphics
+- Qt Quick Layouts for responsive design
+
+### Migration Notes
+
+_This section will be updated as the migration progresses with lessons learned, decisions made, and any deviations from the original plan._
