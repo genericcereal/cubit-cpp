@@ -1,6 +1,8 @@
 <RCC>
     <qresource prefix="/">
         <file>qml/main.qml</file>
+        <file>qml/Config.qml</file>
+        <file>qml/qmldir</file>
         <file>qml/components/CanvasView.qml</file>
         <file>qml/components/ElementItem.qml</file>
         <file>qml/components/ElementRenderer.qml</file>

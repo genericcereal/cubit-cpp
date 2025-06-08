@@ -543,6 +543,11 @@
                         ],
                         "name": "elementUpdated",
                         "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "name": "elementChanged",
+                        "returnType": "void"
                     }
                 ],
                 "slots": [
