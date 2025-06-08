@@ -15,6 +15,7 @@ Item {
             controller.setElementModel(elementModel)
             controller.setSelectionManager(selectionManager)
         }
+        updateCanvasBounds()
     }
     
     // Canvas properties
@@ -25,6 +26,7 @@ Item {
     
     // Expose internal components for viewport overlay
     property alias flickable: flickable
+    property alias canvasArea: canvasArea
     property alias selectionBoxHandler: selectionBoxHandler
     property var hoveredElement: null
     
@@ -72,8 +74,6 @@ Item {
         function onElementChanged() { updateCanvasBounds() }
     }
     
-    Component.onCompleted: updateCanvasBounds()
-    
     // Background
     Rectangle {
         anchors.fill: parent
@@ -101,8 +101,8 @@ Item {
             // Canvas area where elements are placed
             Item {
                 id: canvasArea
-                x: -root.canvasMinX * root.zoomLevel
-                y: -root.canvasMinY * root.zoomLevel
+                x: 0
+                y: 0
                 width: root.canvasMaxX - root.canvasMinX
                 height: root.canvasMaxY - root.canvasMinY
                 scale: root.zoomLevel

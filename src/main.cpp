@@ -34,6 +34,9 @@ int main(int argc, char *argv[])
     qmlRegisterType<ElementModel>("Cubit", 1, 0, "ElementModel");
     qmlRegisterType<SelectionManager>("Cubit", 1, 0, "SelectionManager");
 
+    // Register QML singleton
+    qmlRegisterSingletonType(QUrl("qrc:/qml/Config.qml"), "Cubit.UI", 1, 0, "Config");
+
     const QUrl url(QStringLiteral("qrc:/qml/main.qml"));
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
                      &app, [url](QObject *obj, const QUrl &objUrl) {
