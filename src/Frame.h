@@ -1,44 +1,43 @@
 #pragma once
 #include "Element.h"
-#include "Config.h"
-#include <QString>
 #include <QColor>
 
 class Frame : public Element {
     Q_OBJECT
+    Q_PROPERTY(QColor backgroundColor READ backgroundColor WRITE setBackgroundColor NOTIFY backgroundColorChanged)
+    Q_PROPERTY(QColor borderColor READ borderColor WRITE setBorderColor NOTIFY borderColorChanged)
+    Q_PROPERTY(int borderWidth READ borderWidth WRITE setBorderWidth NOTIFY borderWidthChanged)
+    Q_PROPERTY(int borderRadius READ borderRadius WRITE setBorderRadius NOTIFY borderRadiusChanged)
+    Q_PROPERTY(bool clipContent READ clipContent WRITE setClipContent NOTIFY clipContentChanged)
+    
 public:
-    explicit Frame(int id, QWidget *parent = nullptr);
+    explicit Frame(int id, QObject *parent = nullptr);
     
-    // Override Element virtual methods
-    int getId() const override { return elementId; }
-    QString getName() const override { return frameName; }
+    // Property getters
+    QColor backgroundColor() const { return m_backgroundColor; }
+    QColor borderColor() const { return m_borderColor; }
+    int borderWidth() const { return m_borderWidth; }
+    int borderRadius() const { return m_borderRadius; }
+    bool clipContent() const { return m_clipContent; }
     
-    // Get frame color
-    QColor getColor() const { 
-        return QColor(Config::Colors::FRAME_R, 
-                     Config::Colors::FRAME_G, 
-                     Config::Colors::FRAME_B); 
-    }
+    // Property setters
+    void setBackgroundColor(const QColor &color);
+    void setBorderColor(const QColor &color);
+    void setBorderWidth(int width);
+    void setBorderRadius(int radius);
+    void setClipContent(bool clip);
     
-    // Overflow property
-    QString getOverflow() const { return overflow; }
-    void setOverflow(const QString& value);
-    
-    // Override visual update
-    void updateParentVisualState() override;
-
 signals:
-    void overflowChanged();
+    void backgroundColorChanged();
+    void borderColorChanged();
+    void borderWidthChanged();
+    void borderRadiusChanged();
+    void clipContentChanged();
     
-protected:
-    // Override paint event to handle clipping
-    void paintEvent(QPaintEvent *event) override;
-    // Override resize event to update clipping
-    void resizeEvent(QResizeEvent *event) override;
-
 private:
-    QString frameName;
-    QString overflow;
-    
-    void updateOverflowClipping();
+    QColor m_backgroundColor;
+    QColor m_borderColor;
+    int m_borderWidth;
+    int m_borderRadius;
+    bool m_clipContent;
 };

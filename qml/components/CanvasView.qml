@@ -28,9 +28,51 @@ Item {
     property alias selectionBoxHandler: selectionBoxHandler
     property var hoveredElement: null
     
-    // Canvas configuration from Config.h
-    readonly property int canvasWidth: 4000
-    readonly property int canvasHeight: 4000
+    // Canvas configuration - infinite canvas
+    property real canvasMinX: 0
+    property real canvasMinY: 0
+    property real canvasMaxX: 0
+    property real canvasMaxY: 0
+    
+    // Dynamic canvas bounds based on elements
+    function updateCanvasBounds() {
+        if (!elementModel || elementModel.rowCount === 0) {
+            canvasMinX = 0
+            canvasMinY = 0
+            canvasMaxX = 4000
+            canvasMaxY = 4000
+            return
+        }
+        
+        var minX = 0
+        var minY = 0
+        var maxX = 4000
+        var maxY = 4000
+        
+        var elements = elementModel.getAllElements()
+        for (var i = 0; i < elements.length; i++) {
+            var elem = elements[i]
+            minX = Math.min(minX, elem.x)
+            minY = Math.min(minY, elem.y)
+            maxX = Math.max(maxX, elem.x + elem.width)
+            maxY = Math.max(maxY, elem.y + elem.height)
+        }
+        
+        // Add padding
+        canvasMinX = minX - 500
+        canvasMinY = minY - 500
+        canvasMaxX = maxX + 500
+        canvasMaxY = maxY + 500
+    }
+    
+    Connections {
+        target: elementModel
+        function onElementAdded() { updateCanvasBounds() }
+        function onElementRemoved() { updateCanvasBounds() }
+        function onElementChanged() { updateCanvasBounds() }
+    }
+    
+    Component.onCompleted: updateCanvasBounds()
     
     // Background
     Rectangle {
@@ -50,8 +92,8 @@ Item {
         // Canvas content container
         Item {
             id: canvasContent
-            width: root.canvasWidth * root.zoomLevel
-            height: root.canvasHeight * root.zoomLevel
+            width: (root.canvasMaxX - root.canvasMinX) * root.zoomLevel
+            height: (root.canvasMaxY - root.canvasMinY) * root.zoomLevel
             
             // Transform origin for zooming
             transformOrigin: Item.TopLeft
@@ -59,8 +101,10 @@ Item {
             // Canvas area where elements are placed
             Item {
                 id: canvasArea
-                width: root.canvasWidth
-                height: root.canvasHeight
+                x: -root.canvasMinX * root.zoomLevel
+                y: -root.canvasMinY * root.zoomLevel
+                width: root.canvasMaxX - root.canvasMinX
+                height: root.canvasMaxY - root.canvasMinY
                 scale: root.zoomLevel
                 transformOrigin: Item.TopLeft
                 

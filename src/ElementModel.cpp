@@ -77,6 +77,7 @@ void ElementModel::addElement(Element *element)
     endInsertRows();
     
     emit elementAdded(element);
+    emit elementChanged();
 }
 
 void ElementModel::removeElement(int elementId)
@@ -90,6 +91,7 @@ void ElementModel::removeElement(int elementId)
     endRemoveRows();
     
     emit elementRemoved(elementId);
+    emit elementChanged();
     element->deleteLater();
 }
 
@@ -138,6 +140,7 @@ void ElementModel::onElementChanged()
         QModelIndex modelIndex = createIndex(index, 0);
         emit dataChanged(modelIndex, modelIndex);
         emit elementUpdated(element);
+        emit elementChanged();
     }
 }
 

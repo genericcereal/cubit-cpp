@@ -43,6 +43,7 @@ signals:
     void elementAdded(Element *element);
     void elementRemoved(int elementId);
     void elementUpdated(Element *element);
+    void elementChanged();
     
 private slots:
     void onElementChanged();
