@@ -10,10 +10,10 @@ namespace Config {
     constexpr const char* PANEL_HEADER_BACKGROUND = "#f0f0f0";
     
     // Control colors
-    constexpr const char* CONTROL_BAR_COLOR = "#0066cc";
-    constexpr const char* CONTROL_ROTATION_JOINT_COLOR = "#0066cc";  // Blue rotation joints
-    constexpr const char* CONTROL_RESIZE_JOINT_COLOR = "#ffcc00";    // Yellow resize joints
-    constexpr const char* CONTROL_INNER_RECT_COLOR = "rgba(255, 204, 0, 0.05)";  // Yellow with 5% opacity
+    constexpr const char* CONTROL_BAR_COLOR = "rgba(255, 0, 0, 0.1)";           // Red with 10% opacity
+    constexpr const char* CONTROL_ROTATION_JOINT_COLOR = "rgba(255, 0, 0, 0.1)"; // Red with 10% opacity
+    constexpr const char* CONTROL_RESIZE_JOINT_COLOR = "rgba(0, 0, 255, 0.1)";  // Blue with 10% opacity
+    constexpr const char* CONTROL_INNER_RECT_COLOR = "rgba(255, 204, 0, 0.05)"; // Yellow with 5% opacity
     
     // Sizes
     constexpr int DEFAULT_ELEMENT_WIDTH = 200;

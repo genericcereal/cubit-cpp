@@ -8,6 +8,7 @@
 #include "SelectionManager.h"
 #include "Config.h"
 #include <QDebug>
+#include <QtMath>
 
 CanvasController::CanvasController(QObject *parent)
     : QObject(parent)
@@ -16,6 +17,7 @@ CanvasController::CanvasController(QObject *parent)
     , m_selectionManager(nullptr)
     , m_isDragging(false)
     , m_dragElement(nullptr)
+    , m_hasDraggedMinDistance(false)
 {
 }
 
@@ -36,7 +38,8 @@ void CanvasController::handleMousePress(qreal x, qreal y)
     if (m_mode == "select") {
         Element *element = hitTest(x, y);
         if (element) {
-            m_selectionManager->selectOnly(element);
+            // Don't change selection on press - wait to see if it's a click or drag
+            // Just prepare for potential drag
             startDrag(x, y);
         } else {
             m_selectionManager->clearSelection();
@@ -89,6 +92,18 @@ void CanvasController::handleMouseRelease(qreal x, qreal y)
     if (!m_isDragging) return;
     
     if (m_mode == "select") {
+        // Check if this was a click (no significant movement) vs a drag
+        if (!m_hasDraggedMinDistance && m_dragElement) {
+            // This was a click - update selection
+            if (m_selectionManager->selectionCount() > 1 && m_dragElement->isSelected()) {
+                // Multiple elements were selected and user clicked on one of them
+                // Select only the clicked element
+                m_selectionManager->selectOnly(m_dragElement);
+            } else if (!m_dragElement->isSelected()) {
+                // Clicked on an unselected element
+                m_selectionManager->selectOnly(m_dragElement);
+            }
+        }
         endDrag();
     } else if (m_mode == "frame") {
         // Finalize frame creation
@@ -190,17 +205,58 @@ void CanvasController::startDrag(qreal x, qreal y)
     m_dragElement = hitTest(x, y);
     if (m_dragElement) {
         m_isDragging = true;
-        // Store the offset from the click point to the element's top-left
-        m_dragStartPos = QPointF(x - m_dragElement->x(), y - m_dragElement->y());
+        m_dragStartPos = QPointF(x, y);
+        m_hasDraggedMinDistance = false;
+        
+        // Clear previous drag states
+        m_draggedElements.clear();
+        
+        // Get all selected elements
+        QList<Element*> selectedElements = m_selectionManager->selectedElements();
+        
+        // If the clicked element is not selected, we'll only drag it alone
+        // Otherwise, drag all selected elements
+        if (m_dragElement->isSelected()) {
+            // Store initial positions of all selected elements
+            for (Element *element : selectedElements) {
+                ElementDragState state;
+                state.element = element;
+                state.originalPosition = QPointF(element->x(), element->y());
+                m_draggedElements.append(state);
+            }
+        } else {
+            // Only drag the clicked element (it's not selected)
+            ElementDragState state;
+            state.element = m_dragElement;
+            state.originalPosition = QPointF(m_dragElement->x(), m_dragElement->y());
+            m_draggedElements.append(state);
+        }
     }
 }
 
 void CanvasController::updateDrag(qreal x, qreal y)
 {
-    if (m_dragElement && m_isDragging) {
-        // Calculate new position maintaining the original offset
-        m_dragElement->setX(x - m_dragStartPos.x());
-        m_dragElement->setY(y - m_dragStartPos.y());
+    if (m_isDragging && !m_draggedElements.isEmpty()) {
+        // Calculate the delta from the drag start position
+        qreal deltaX = x - m_dragStartPos.x();
+        qreal deltaY = y - m_dragStartPos.y();
+        
+        // Check if we've moved enough to consider this a drag (3 pixel threshold)
+        if (!m_hasDraggedMinDistance) {
+            qreal distance = qSqrt(deltaX * deltaX + deltaY * deltaY);
+            if (distance > 3.0) {
+                m_hasDraggedMinDistance = true;
+            }
+        }
+        
+        // Only move elements if we've established this is a drag
+        if (m_hasDraggedMinDistance) {
+            // Move all selected elements by the same delta
+            for (const ElementDragState &state : m_draggedElements) {
+                state.element->setX(state.originalPosition.x() + deltaX);
+                state.element->setY(state.originalPosition.y() + deltaY);
+            }
+        }
     }
 }
 
@@ -208,6 +264,8 @@ void CanvasController::endDrag()
 {
     m_isDragging = false;
     m_dragElement = nullptr;
+    m_draggedElements.clear();
+    m_hasDraggedMinDistance = false;
 }
 
 void CanvasController::selectElementsInRect(const QRectF &rect)

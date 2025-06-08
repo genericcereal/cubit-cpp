@@ -50,155 +50,534 @@ Item {
         }
     }
     
-    // Selection rectangles and handles
-    Repeater {
-        model: selectedElements
+    // Calculate bounding box for all selected elements
+    property real selectionBoundingX: {
+        if (selectedElements.length === 0) return 0
+        var minX = Number.MAX_VALUE
+        for (var i = 0; i < selectedElements.length; i++) {
+            minX = Math.min(minX, selectedElements[i].x)
+        }
+        return minX
+    }
+    
+    property real selectionBoundingY: {
+        if (selectedElements.length === 0) return 0
+        var minY = Number.MAX_VALUE
+        for (var i = 0; i < selectedElements.length; i++) {
+            minY = Math.min(minY, selectedElements[i].y)
+        }
+        return minY
+    }
+    
+    property real selectionBoundingWidth: {
+        if (selectedElements.length === 0) return 0
+        var minX = Number.MAX_VALUE
+        var maxX = Number.MIN_VALUE
+        for (var i = 0; i < selectedElements.length; i++) {
+            minX = Math.min(minX, selectedElements[i].x)
+            maxX = Math.max(maxX, selectedElements[i].x + selectedElements[i].width)
+        }
+        return maxX - minX
+    }
+    
+    property real selectionBoundingHeight: {
+        if (selectedElements.length === 0) return 0
+        var minY = Number.MAX_VALUE
+        var maxY = Number.MIN_VALUE
+        for (var i = 0; i < selectedElements.length; i++) {
+            minY = Math.min(minY, selectedElements[i].y)
+            maxY = Math.max(maxY, selectedElements[i].y + selectedElements[i].height)
+        }
+        return maxY - minY
+    }
+    
+    // Controls for selected elements (single or multiple)
+    Item {
+        visible: selectedElements.length > 0
         
-        Item {
-            property var element: modelData
+        // Always use bounding box calculations for consistency
+        property real controlX: selectionBoundingX * zoomLevel - flickable.contentX
+        property real controlY: selectionBoundingY * zoomLevel - flickable.contentY
+        property real controlWidth: selectionBoundingWidth * zoomLevel
+        property real controlHeight: selectionBoundingHeight * zoomLevel
+        
+        x: controlX
+        y: controlY
+        width: controlWidth
+        height: controlHeight
+        
+        // Inner rectangle (yellow with 5% opacity)
+        Rectangle {
+            anchors.fill: parent
+            color: Config.controlInnerRectColor
+            z: -1  // Behind other controls
+        }
+                
+        // Top bar
+        Rectangle {
+            x: 0
+            y: -Config.controlBarHeight/2
+            width: parent.width
+            height: Config.controlBarHeight
+            color: Config.controlBarColor
             
-            // Control bars and joints
-            Item {
-                x: element ? (element.x * zoomLevel - flickable.contentX) : 0
-                y: element ? (element.y * zoomLevel - flickable.contentY) : 0
-                width: element ? (element.width * zoomLevel) : 0
-                height: element ? (element.height * zoomLevel) : 0
+            // Center line
+            Rectangle {
+                anchors.centerIn: parent
+                width: parent.width
+                height: Config.controlLineWidth
+                color: Config.controlBarColor
+            }
+            
+            MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.SizeVerCursor
+                preventStealing: true
                 
-                // Inner rectangle (yellow with 5% opacity)
-                Rectangle {
-                    anchors.fill: parent
-                    color: Config.controlInnerRectColor
-                    z: -1  // Behind other controls
-                }
+                property real startMouseY: 0
+                property var startElementStates: []
+                property real startBoundingY: 0
+                property real startBoundingHeight: 0
                 
-                // Top bar
-                Rectangle {
-                    x: 0
-                    y: -Config.controlBarHeight/2
-                    width: parent.width
-                    height: Config.controlBarHeight
-                    color: Config.controlBarColor
+                onPressed: function(mouse) {
+                    var globalPos = mapToItem(root, mouse.x, mouse.y)
+                    startMouseY = globalPos.y
                     
-                    // Center line
-                    Rectangle {
-                        anchors.centerIn: parent
-                        width: parent.width
-                        height: Config.controlLineWidth
-                        color: Config.controlBarColor
+                    // Store initial states
+                    startElementStates = []
+                    for (var i = 0; i < selectedElements.length; i++) {
+                        startElementStates.push({
+                            y: selectedElements[i].y,
+                            height: selectedElements[i].height
+                        })
                     }
+                    
+                    // Store bounding box for proportional scaling
+                    startBoundingY = selectionBoundingY
+                    startBoundingHeight = selectionBoundingHeight
                 }
                 
-                // Bottom bar
-                Rectangle {
-                    x: 0
-                    y: parent.height - Config.controlBarHeight/2
-                    width: parent.width
-                    height: Config.controlBarHeight
-                    color: Config.controlBarColor
-                    
-                    // Center line
-                    Rectangle {
-                        anchors.centerIn: parent
-                        width: parent.width
-                        height: Config.controlLineWidth
-                        color: Config.controlBarColor
-                    }
-                }
-                
-                // Left bar
-                Rectangle {
-                    x: -Config.controlBarWidth/2
-                    y: 0
-                    width: Config.controlBarWidth
-                    height: parent.height
-                    color: Config.controlBarColor
-                    
-                    // Center line
-                    Rectangle {
-                        anchors.centerIn: parent
-                        width: Config.controlLineWidth
-                        height: parent.height
-                        color: Config.controlBarColor
-                    }
-                }
-                
-                // Right bar
-                Rectangle {
-                    x: parent.width - Config.controlBarWidth/2
-                    y: 0
-                    width: Config.controlBarWidth
-                    height: parent.height
-                    color: Config.controlBarColor
-                    
-                    // Center line
-                    Rectangle {
-                        anchors.centerIn: parent
-                        width: Config.controlLineWidth
-                        height: parent.height
-                        color: Config.controlBarColor
-                    }
-                }
-                
-                // Joints container - only visible for single selection
-                Item {
-                    anchors.fill: parent
-                    visible: selectedElements.length === 1
-                    
-                    // Rotation joints (blue, larger) - positioned with overlap
-                    Repeater {
-                        model: 4
-                        Rectangle {
-                            width: Config.controlRotationJointSize
-                            height: Config.controlRotationJointSize
-                            color: Config.controlRotationJointColor
+                onPositionChanged: function(mouse) {
+                    if (pressed) {
+                        var globalPos = mapToItem(root, mouse.x, mouse.y)
+                        var deltaY = (globalPos.y - startMouseY) / zoomLevel
+                        
+                        if (selectedElements.length === 1) {
+                            // Single selection - direct manipulation
+                            var element = selectedElements[0]
+                            var startState = startElementStates[0]
                             
-                            x: {
-                                var overlap = Config.controlJointOverlap
-                                switch(index) {
-                                    case 0: return -Config.controlBarWidth/2 - (Config.controlRotationJointSize - overlap) // top-left
-                                    case 1: return parent.width - Config.controlBarWidth/2 // top-right
-                                    case 2: return parent.width - Config.controlBarWidth/2 // bottom-right
-                                    case 3: return -Config.controlBarWidth/2 - (Config.controlRotationJointSize - overlap) // bottom-left
-                                }
+                            // Calculate new top edge position
+                            var newTop = startState.y + deltaY
+                            var bottom = startState.y + startState.height
+                            
+                            // Ensure minimum height and handle flipping
+                            if (newTop + 1 > bottom) {
+                                // Flip: top edge is being dragged past bottom edge
+                                selectedElements[0].y = bottom - 1
+                                selectedElements[0].height = 1 + (newTop - bottom)
+                            } else {
+                                selectedElements[0].y = newTop
+                                selectedElements[0].height = bottom - newTop
+                            }
+                        } else {
+                            // Multiple selection - proportional scaling
+                            var newBoundingTop = startBoundingY + deltaY
+                            var boundingBottom = startBoundingY + startBoundingHeight
+                            
+                            // Calculate scale factor (maintain bottom edge)
+                            var scaleFactor = 1.0
+                            if (newBoundingTop < boundingBottom - 1) {
+                                scaleFactor = (boundingBottom - newBoundingTop) / startBoundingHeight
+                            } else {
+                                // Minimum height constraint
+                                newBoundingTop = boundingBottom - 1
+                                scaleFactor = 1 / startBoundingHeight
                             }
                             
-                            y: {
-                                var overlap = Config.controlJointOverlap
-                                switch(index) {
-                                    case 0: return -Config.controlBarHeight/2 - (Config.controlRotationJointSize - overlap) // top-left
-                                    case 1: return -Config.controlBarHeight/2 - (Config.controlRotationJointSize - overlap) // top-right
-                                    case 2: return parent.height - Config.controlBarHeight/2 // bottom-right
-                                    case 3: return parent.height - Config.controlBarHeight/2 // bottom-left
-                                }
+                            // Apply proportional changes to all elements
+                            for (var i = 0; i < selectedElements.length; i++) {
+                                var elem = selectedElements[i]
+                                var state = startElementStates[i]
+                                
+                                // Calculate relative position from bottom edge
+                                var relativeFromBottom = (startBoundingY + startBoundingHeight) - (state.y + state.height)
+                                
+                                // New height scaled proportionally
+                                elem.height = state.height * scaleFactor
+                                
+                                // Position calculated from the new bottom edge, scaled properly
+                                elem.y = boundingBottom - relativeFromBottom * scaleFactor - elem.height
                             }
                         }
                     }
+                }
+            }
+        }
+        
+        // Bottom bar
+        Rectangle {
+            x: 0
+            y: parent.height - Config.controlBarHeight/2
+            width: parent.width
+            height: Config.controlBarHeight
+            color: Config.controlBarColor
+            
+            // Center line
+            Rectangle {
+                anchors.centerIn: parent
+                width: parent.width
+                height: Config.controlLineWidth
+                color: Config.controlBarColor
+            }
+            
+            MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.SizeVerCursor
+                preventStealing: true
+                
+                property real startMouseY: 0
+                property var startElementStates: []
+                property real startBoundingY: 0
+                property real startBoundingHeight: 0
+                
+                onPressed: function(mouse) {
+                    var globalPos = mapToItem(root, mouse.x, mouse.y)
+                    startMouseY = globalPos.y
                     
-                    // Resize joints (yellow, smaller) - positioned at bar intersections
-                    Repeater {
-                        model: 4
-                        Rectangle {
-                            width: Config.controlResizeJointSize
-                            height: Config.controlResizeJointSize
-                            color: Config.controlResizeJointColor
+                    // Store initial states
+                    startElementStates = []
+                    for (var i = 0; i < selectedElements.length; i++) {
+                        startElementStates.push({
+                            y: selectedElements[i].y,
+                            height: selectedElements[i].height
+                        })
+                    }
+                    
+                    // Store bounding box for proportional scaling
+                    startBoundingY = selectionBoundingY
+                    startBoundingHeight = selectionBoundingHeight
+                }
+                
+                onPositionChanged: function(mouse) {
+                    if (pressed) {
+                        var globalPos = mapToItem(root, mouse.x, mouse.y)
+                        var deltaY = (globalPos.y - startMouseY) / zoomLevel
+                        
+                        if (selectedElements.length === 1) {
+                            // Single selection - direct manipulation
+                            var element = selectedElements[0]
+                            var startState = startElementStates[0]
                             
-                            x: {
-                                switch(index) {
-                                    case 0: return -Config.controlBarWidth/2 // top-left
-                                    case 1: return parent.width - Config.controlBarWidth/2 // top-right
-                                    case 2: return parent.width - Config.controlBarWidth/2 // bottom-right
-                                    case 3: return -Config.controlBarWidth/2 // bottom-left
-                                }
+                            // Calculate new bottom edge position
+                            var top = startState.y
+                            var newBottom = startState.y + startState.height + deltaY
+                            
+                            // Ensure minimum height and handle flipping
+                            if (newBottom < top + 1) {
+                                // Flip: bottom edge is being dragged past top edge
+                                element.y = newBottom
+                                element.height = 1 + (top - newBottom)
+                            } else {
+                                element.y = top
+                                element.height = newBottom - top
+                            }
+                        } else {
+                            // Multiple selection - proportional scaling
+                            var boundingTop = startBoundingY
+                            var newBoundingBottom = startBoundingY + startBoundingHeight + deltaY
+                            
+                            // Calculate scale factor (maintain top edge)
+                            var scaleFactor = 1.0
+                            if (newBoundingBottom > boundingTop + 1) {
+                                scaleFactor = (newBoundingBottom - boundingTop) / startBoundingHeight
+                            } else {
+                                // Minimum height constraint
+                                newBoundingBottom = boundingTop + 1
+                                scaleFactor = 20 / startBoundingHeight
                             }
                             
-                            y: {
-                                switch(index) {
-                                    case 0: return -Config.controlBarHeight/2 // top-left
-                                    case 1: return -Config.controlBarHeight/2 // top-right
-                                    case 2: return parent.height - Config.controlBarHeight/2 // bottom-right
-                                    case 3: return parent.height - Config.controlBarHeight/2 // bottom-left
-                                }
+                            // Apply proportional changes to all elements
+                            for (var i = 0; i < selectedElements.length; i++) {
+                                var elem = selectedElements[i]
+                                var state = startElementStates[i]
+                                
+                                // Calculate relative position from top edge
+                                var relativeTop = state.y - startBoundingY
+                                
+                                // Position remains relative to top edge
+                                elem.y = boundingTop + relativeTop * scaleFactor
+                                
+                                // Height scaled proportionally
+                                elem.height = state.height * scaleFactor
                             }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Left bar
+        Rectangle {
+            x: -Config.controlBarWidth/2
+            y: 0
+            width: Config.controlBarWidth
+            height: parent.height
+            color: Config.controlBarColor
+            
+            // Center line
+            Rectangle {
+                anchors.centerIn: parent
+                width: Config.controlLineWidth
+                height: parent.height
+                color: Config.controlBarColor
+            }
+            
+            MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.SizeHorCursor
+                preventStealing: true
+                
+                property real startMouseX: 0
+                property var startElementStates: []
+                property real startBoundingX: 0
+                property real startBoundingWidth: 0
+                
+                onPressed: function(mouse) {
+                    var globalPos = mapToItem(root, mouse.x, mouse.y)
+                    startMouseX = globalPos.x
+                    
+                    // Store initial states
+                    startElementStates = []
+                    for (var i = 0; i < selectedElements.length; i++) {
+                        startElementStates.push({
+                            x: selectedElements[i].x,
+                            width: selectedElements[i].width
+                        })
+                    }
+                    
+                    // Store bounding box for proportional scaling
+                    startBoundingX = selectionBoundingX
+                    startBoundingWidth = selectionBoundingWidth
+                }
+                
+                onPositionChanged: function(mouse) {
+                    if (pressed) {
+                        var globalPos = mapToItem(root, mouse.x, mouse.y)
+                        var deltaX = (globalPos.x - startMouseX) / zoomLevel
+                        
+                        if (selectedElements.length === 1) {
+                            // Single selection - direct manipulation
+                            var element = selectedElements[0]
+                            var startState = startElementStates[0]
+                            
+                            // Calculate new left edge position
+                            var newLeft = startState.x + deltaX
+                            var right = startState.x + startState.width
+                            
+                            // Ensure minimum width and handle flipping
+                            if (newLeft + 1 > right) {
+                                // Flip: left edge is being dragged past right edge
+                                element.x = right - 1
+                                element.width = 1 + (newLeft - right)
+                            } else {
+                                element.x = newLeft
+                                element.width = right - newLeft
+                            }
+                        } else {
+                            // Multiple selection - proportional scaling
+                            var newBoundingLeft = startBoundingX + deltaX
+                            var boundingRight = startBoundingX + startBoundingWidth
+                            
+                            // Calculate scale factor (maintain right edge)
+                            var scaleFactor = 1.0
+                            if (newBoundingLeft < boundingRight - 1) {
+                                scaleFactor = (boundingRight - newBoundingLeft) / startBoundingWidth
+                            } else {
+                                // Minimum width constraint
+                                newBoundingLeft = boundingRight - 1
+                                scaleFactor = 1 / startBoundingWidth
+                            }
+                            
+                            // Apply proportional changes to all elements
+                            for (var i = 0; i < selectedElements.length; i++) {
+                                var elem = selectedElements[i]
+                                var state = startElementStates[i]
+                                
+                                // Calculate relative position from right edge
+                                var relativeFromRight = (startBoundingX + startBoundingWidth) - (state.x + state.width)
+                                
+                                // New width scaled proportionally
+                                elem.width = state.width * scaleFactor
+                                
+                                // Position calculated from the new right edge, scaled properly
+                                elem.x = boundingRight - relativeFromRight * scaleFactor - elem.width
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Right bar
+        Rectangle {
+            x: parent.width - Config.controlBarWidth/2
+            y: 0
+            width: Config.controlBarWidth
+            height: parent.height
+            color: Config.controlBarColor
+            
+            // Center line
+            Rectangle {
+                anchors.centerIn: parent
+                width: Config.controlLineWidth
+                height: parent.height
+                color: Config.controlBarColor
+            }
+            
+            MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.SizeHorCursor
+                preventStealing: true
+                
+                property real startMouseX: 0
+                property var startElementStates: []
+                property real startBoundingX: 0
+                property real startBoundingWidth: 0
+                
+                onPressed: function(mouse) {
+                    var globalPos = mapToItem(root, mouse.x, mouse.y)
+                    startMouseX = globalPos.x
+                    
+                    // Store initial states
+                    startElementStates = []
+                    for (var i = 0; i < selectedElements.length; i++) {
+                        startElementStates.push({
+                            x: selectedElements[i].x,
+                            width: selectedElements[i].width
+                        })
+                    }
+                    
+                    // Store bounding box for proportional scaling
+                    startBoundingX = selectionBoundingX
+                    startBoundingWidth = selectionBoundingWidth
+                }
+                
+                onPositionChanged: function(mouse) {
+                    if (pressed) {
+                        var globalPos = mapToItem(root, mouse.x, mouse.y)
+                        var deltaX = (globalPos.x - startMouseX) / zoomLevel
+                        
+                        if (selectedElements.length === 1) {
+                            // Single selection - direct manipulation
+                            var element = selectedElements[0]
+                            var startState = startElementStates[0]
+                            
+                            // Calculate new right edge position
+                            var left = startState.x
+                            var newRight = startState.x + startState.width + deltaX
+                            
+                            // Ensure minimum width and handle flipping
+                            if (newRight < left + 1) {
+                                // Flip: right edge is being dragged past left edge
+                                element.x = newRight
+                                element.width = 1 + (left - newRight)
+                            } else {
+                                element.x = left
+                                element.width = newRight - left
+                            }
+                        } else {
+                            // Multiple selection - proportional scaling
+                            var boundingLeft = startBoundingX
+                            var newBoundingRight = startBoundingX + startBoundingWidth + deltaX
+                            
+                            // Calculate scale factor (maintain left edge)
+                            var scaleFactor = 1.0
+                            if (newBoundingRight > boundingLeft + 1) {
+                                scaleFactor = (newBoundingRight - boundingLeft) / startBoundingWidth
+                            } else {
+                                // Minimum width constraint
+                                newBoundingRight = boundingLeft + 1
+                                scaleFactor = 1 / startBoundingWidth
+                            }
+                            
+                            // Apply proportional changes to all elements
+                            for (var i = 0; i < selectedElements.length; i++) {
+                                var elem = selectedElements[i]
+                                var state = startElementStates[i]
+                                
+                                // Calculate relative position from left edge
+                                var relativeLeft = state.x - startBoundingX
+                                
+                                // Position remains relative to left edge
+                                elem.x = boundingLeft + relativeLeft * scaleFactor
+                                
+                                // Width scaled proportionally
+                                elem.width = state.width * scaleFactor
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Joints container
+        Item {
+            anchors.fill: parent
+            
+            // Rotation joints (blue, larger) - positioned with overlap
+            Repeater {
+                model: 4
+                Rectangle {
+                    width: Config.controlRotationJointSize
+                    height: Config.controlRotationJointSize
+                    color: Config.controlRotationJointColor
+                    
+                    x: {
+                        var overlap = Config.controlJointOverlap
+                        switch(index) {
+                            case 0: return -Config.controlBarWidth/2 - (Config.controlRotationJointSize - overlap) // top-left
+                            case 1: return parent.width - Config.controlBarWidth/2 // top-right
+                            case 2: return parent.width - Config.controlBarWidth/2 // bottom-right
+                            case 3: return -Config.controlBarWidth/2 - (Config.controlRotationJointSize - overlap) // bottom-left
+                        }
+                    }
+                    
+                    y: {
+                        var overlap = Config.controlJointOverlap
+                        switch(index) {
+                            case 0: return -Config.controlBarHeight/2 - (Config.controlRotationJointSize - overlap) // top-left
+                            case 1: return -Config.controlBarHeight/2 - (Config.controlRotationJointSize - overlap) // top-right
+                            case 2: return parent.height - Config.controlBarHeight/2 // bottom-right
+                            case 3: return parent.height - Config.controlBarHeight/2 // bottom-left
+                        }
+                    }
+                }
+            }
+            
+            // Resize joints (yellow, smaller) - positioned at bar intersections
+            Repeater {
+                model: 4
+                Rectangle {
+                    width: Config.controlResizeJointSize
+                    height: Config.controlResizeJointSize
+                    color: Config.controlResizeJointColor
+                    
+                    x: {
+                        switch(index) {
+                            case 0: return -Config.controlBarWidth/2 // top-left
+                            case 1: return parent.width - Config.controlBarWidth/2 // top-right
+                            case 2: return parent.width - Config.controlBarWidth/2 // bottom-right
+                            case 3: return -Config.controlBarWidth/2 // bottom-left
+                        }
+                    }
+                    
+                    y: {
+                        switch(index) {
+                            case 0: return -Config.controlBarHeight/2 // top-left
+                            case 1: return -Config.controlBarHeight/2 // top-right
+                            case 2: return parent.height - Config.controlBarHeight/2 // bottom-right
+                            case 3: return parent.height - Config.controlBarHeight/2 // bottom-left
                         }
                     }
                 }

@@ -51,6 +51,14 @@ private:
     QPointF m_dragStartPos;
     QPointF m_dragCurrentPos;
     Element *m_dragElement;
+    bool m_hasDraggedMinDistance;  // Track if we've moved enough to be considered a drag
+    
+    // Multi-selection drag state
+    struct ElementDragState {
+        Element *element;
+        QPointF originalPosition;
+    };
+    QList<ElementDragState> m_draggedElements;
     
     // Helper methods
     void startDrag(qreal x, qreal y);
