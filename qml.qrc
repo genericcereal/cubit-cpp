@@ -12,6 +12,10 @@
         <file>qml/components/ControlsOverlay.qml</file>
         <file>qml/components/ViewportOverlay.qml</file>
         <file>qml/components/ResizeHandle.qml</file>
+        <file>qml/components/SelectionBox.qml</file>
+        <file>qml/components/HoverIndicator.qml</file>
+        <file>qml/components/ControlBar.qml</file>
+        <file>qml/components/ControlJoint.qml</file>
         <file>qml/panels/DetailPanel.qml</file>
         <file>qml/panels/ElementList.qml</file>
         <file>qml/panels/PropertiesPanel.qml</file>

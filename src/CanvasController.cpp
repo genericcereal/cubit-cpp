@@ -283,6 +283,9 @@ void CanvasController::selectElementsInRect(const QRectF &rect)
     
     if (!elementsToSelect.isEmpty()) {
         m_selectionManager->selectAll(elementsToSelect);
+    } else {
+        // Clear selection if no elements are in the rect
+        m_selectionManager->clearSelection();
     }
 }
 
