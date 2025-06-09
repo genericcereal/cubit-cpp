@@ -39,12 +39,14 @@ This project is a Qt-based C++ application with a layered UI architecture:
 The controls system is designed to support both current resize functionality and future rotation features:
 
 #### Control Elements
+
 - **Bars**: The lines/borders around selected elements that can be dragged to resize
 - **Joints**: Corner handles that appear at the intersection of bars
   - **Resize joints** (yellow, smaller): Currently decorative, will handle corner resizing
   - **Rotation joints** (blue, larger): Currently decorative, will handle rotation
 
 #### Resize Behavior
+
 - **Single Selection**: Direct manipulation of the element
 - **Multiple Selection**: Proportional scaling of all selected elements
 - **Edge Flipping**: When a bar is dragged past its opposite bar:
@@ -52,6 +54,7 @@ The controls system is designed to support both current resize functionality and
   - Multiple selection: All elements maintain their relative positions but flip as a group
 
 #### Design Principles for Future Rotation Support
+
 1. **Edge-Agnostic Logic**: Controls should work based on "start/end" edges rather than "top/bottom/left/right"
 2. **Unified Behavior**: Single selection is treated as a special case of multiple selection for consistency
 3. **Transformation Pipeline**: When rotation is added, transformations will be applied in order:
@@ -60,12 +63,14 @@ The controls system is designed to support both current resize functionality and
    - Update element properties
 
 #### Implementation Notes
+
 - Controls always render the same way regardless of selection count
 - The control overlay uses a bounding box approach for both single and multiple selections
 - Mouse interactions are handled in viewport coordinates and converted to canvas coordinates
 - Minimum element size of 1x1 pixels is enforced during all resize operations (bars can overlap)
 
 #### Known Resize Behavior Issues
+
 - **Left vs Right Bar Asymmetry**: The left bar resize calculates transformations differently than the right bar
   - Right bar correctly maintains element proportions during resize
   - Left bar has incorrect transform origin, causing unexpected scaling behavior
@@ -375,65 +380,6 @@ All UI panels were already implemented in the qtquick directory. Updated all pan
 
 _This section will be updated as the migration progresses with lessons learned, decisions made, and any deviations from the original plan._
 
-## Infinite Canvas Migration Plan
+### Other Notes
 
-### Overview
-Convert the current finite canvas (0,0 at top-left) to an infinite canvas with (0,0) at the center.
-
-### Current State Analysis
-- **Coordinate System**: 0,0 is top-left, canvas has bounds (min 4000x4000)
-- **Architecture**: CanvasController (C++) + CanvasView (QML) + ViewportOverlay
-- **Scrolling**: Flickable with dynamic content size
-- **Zoom**: 0.1x to 5.0x, maintains point under cursor
-
-### Migration Strategy
-
-#### Phase 1: Coordinate System Transformation
-1. **Update CanvasController coordinate conversion**:
-   - Add viewport center offset to make (0,0) the center
-   - Update `viewToCanvas()` and `canvasToView()` methods
-   - Elements can have negative coordinates
-
-2. **Update element bounds calculation**:
-   - Remove minimum canvas size constraint
-   - Calculate bounds from actual element positions
-   - Add symmetric padding around all elements
-
-#### Phase 2: Infinite Scrolling
-1. **Replace Flickable bounds**:
-   - Remove fixed contentWidth/contentHeight
-   - Implement virtual scrolling with no hard limits
-   - Update content position based on element bounds
-
-2. **Optimize rendering**:
-   - Implement viewport culling (only render visible elements)
-   - Add element spatial indexing for efficient hit testing
-
-#### Phase 3: Visual Feedback
-1. **Add grid overlay**:
-   - Show grid when zoomed in (as mentioned in CLAUDE.md)
-   - Grid centered at (0,0)
-   - Axis indicators at origin
-
-2. **Update scroll indicators**:
-   - Show position relative to origin
-   - Add mini-map for navigation
-
-#### Phase 4: Performance Optimization
-1. **Lazy loading**: Only create QML items for visible elements
-2. **Level of detail**: Simplified rendering when zoomed out
-3. **Spatial indexing**: Quadtree or R-tree for element lookup
-
-### Implementation Order
-1. Update coordinate conversion methods (CanvasController)
-2. Modify Flickable to support infinite scrolling
-3. Update element positioning to support negative coordinates
-4. Add grid overlay and origin indicators
-5. Implement viewport culling
-6. Optimize performance
-
-### Key Considerations
-- Maintain backwards compatibility with existing element positions
-- Ensure smooth pan/zoom behavior during transition
-- Test with large numbers of elements spread across space
-- Consider adding "reset view" to return to origin
+- Only use the legacy folder when the user tells you to reference a previous implementation. Do not make edits to anything in the legacy folder.
