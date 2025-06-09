@@ -97,7 +97,11 @@ Item {
     
     // Controls for selected elements (single or multiple)
     Item {
+        id: controlsContainer
         visible: selectedElements.length > 0
+        
+        // Controls rotation angle
+        property real controlsRotation: 0
         
         // Always use bounding box calculations for consistency
         property real controlX: (selectionBoundingX - root.canvasMinX) * zoomLevel - (flickable ? flickable.contentX : 0)
@@ -110,6 +114,13 @@ Item {
         width: controlWidth
         height: controlHeight
         
+        // Apply rotation transform around center
+        transform: Rotation {
+            origin.x: controlsContainer.width / 2
+            origin.y: controlsContainer.height / 2
+            angle: controlsContainer.controlsRotation
+        }
+        
         
         
         // Helper function to convert viewport coordinates to canvas coordinates
@@ -118,6 +129,7 @@ Item {
             var canvasY = (flickable.contentY + viewY) / zoomLevel + root.canvasMinY
             return Qt.point(canvasX, canvasY)
         }
+        
         
         // Inner rectangle (yellow with 5% opacity)
         Rectangle {
@@ -147,27 +159,58 @@ Item {
                 cursorShape: Qt.SizeVerCursor
                 preventStealing: true
                 
+                property real startCanvasX: 0
                 property real startCanvasY: 0
                 property var startElementStates: []
+                property real startBoundingX: 0
                 property real startBoundingY: 0
+                property real startBoundingWidth: 0
                 property real startBoundingHeight: 0
+                property real startRotation: 0
+                property real anchorWorldX: 0
+                property real anchorWorldY: 0
                 
                 onPressed: function(mouse) {
                     var globalPos = mapToItem(root, mouse.x, mouse.y)
                     var canvasPos = parent.parent.viewportToCanvas(globalPos.x, globalPos.y)
+                    startCanvasX = canvasPos.x
                     startCanvasY = canvasPos.y
+                    startRotation = controlsContainer.controlsRotation
+                    
+                    // Calculate the anchor point (bottom edge center) in world coordinates
+                    var angle = controlsContainer.controlsRotation * Math.PI / 180
+                    var cos = Math.cos(angle)
+                    var sin = Math.sin(angle)
+                    
+                    // Bottom edge center in local control coordinates
+                    var localAnchorX = controlsContainer.width / 2
+                    var localAnchorY = controlsContainer.height
+                    
+                    // Transform to world coordinates
+                    var centerX = controlsContainer.x + controlsContainer.width / 2
+                    var centerY = controlsContainer.y + controlsContainer.height / 2
+                    
+                    // Rotate around center
+                    var relX = localAnchorX - controlsContainer.width / 2
+                    var relY = localAnchorY - controlsContainer.height / 2
+                    
+                    anchorWorldX = centerX + relX * cos - relY * sin
+                    anchorWorldY = centerY + relX * sin + relY * cos
                     
                     // Store initial states
                     startElementStates = []
                     for (var i = 0; i < selectedElements.length; i++) {
                         startElementStates.push({
+                            x: selectedElements[i].x,
                             y: selectedElements[i].y,
                             height: selectedElements[i].height
                         })
                     }
                     
                     // Store bounding box for proportional scaling
+                    startBoundingX = selectionBoundingX
                     startBoundingY = selectionBoundingY
+                    startBoundingWidth = selectionBoundingWidth
                     startBoundingHeight = selectionBoundingHeight
                 }
                 
@@ -175,7 +218,21 @@ Item {
                     if (pressed) {
                         var globalPos = mapToItem(root, mouse.x, mouse.y)
                         var canvasPos = parent.parent.viewportToCanvas(globalPos.x, globalPos.y)
-                        var deltaY = canvasPos.y - startCanvasY
+                        
+                        // Calculate raw delta
+                        var rawDeltaX = canvasPos.x - startCanvasX
+                        var rawDeltaY = canvasPos.y - startCanvasY
+                        
+                        // If controls are rotated, transform the delta into control space
+                        var deltaY = rawDeltaY
+                        if (controlsContainer.controlsRotation !== 0) {
+                            var angle = -controlsContainer.controlsRotation * Math.PI / 180
+                            var cos = Math.cos(angle)
+                            var sin = Math.sin(angle)
+                            
+                            // Transform mouse movement into control's local coordinate system
+                            deltaY = rawDeltaX * sin + rawDeltaY * cos
+                        }
                         
                         if (selectedElements.length === 1) {
                             // Single selection - direct manipulation
@@ -189,13 +246,45 @@ Item {
                             // Ensure minimum height and handle flipping
                             if (newTop + 1 > bottom) {
                                 // Flip: top edge is being dragged past bottom edge
-                                selectedElements[0].y = bottom - 1
-                                selectedElements[0].height = 1 + (newTop - bottom)
+                                element.y = bottom - 1
+                                element.height = 1 + (newTop - bottom)
                             } else {
-                                selectedElements[0].y = newTop
-                                selectedElements[0].height = bottom - newTop
+                                element.y = newTop
+                                element.height = bottom - newTop
                             }
-                            console.log("Top bar resize: element y =", selectedElements[0].y, "height =", selectedElements[0].height)
+                            
+                            // If controls are rotated, we need to compensate for the anchor movement
+                            if (controlsContainer.controlsRotation !== 0 && startRotation !== 0) {
+                                // After resize, the controls have moved. Calculate where our anchor point is now
+                                var angle = controlsContainer.controlsRotation * Math.PI / 180
+                                var cos = Math.cos(angle)
+                                var sin = Math.sin(angle)
+                                
+                                // Get the new control center position
+                                var newCenterX = controlsContainer.x + controlsContainer.width / 2
+                                var newCenterY = controlsContainer.y + controlsContainer.height / 2
+                                
+                                // Calculate where the bottom edge center is now
+                                var localAnchorX = controlsContainer.width / 2
+                                var localAnchorY = controlsContainer.height
+                                var relX = localAnchorX - controlsContainer.width / 2
+                                var relY = localAnchorY - controlsContainer.height / 2
+                                
+                                var currentAnchorX = newCenterX + relX * cos - relY * sin
+                                var currentAnchorY = newCenterY + relX * sin + relY * cos
+                                
+                                // Calculate the offset needed to restore the anchor to its original position
+                                var offsetX = anchorWorldX - currentAnchorX
+                                var offsetY = anchorWorldY - currentAnchorY
+                                
+                                // Convert viewport offset to canvas offset
+                                var canvasOffsetX = offsetX / zoomLevel
+                                var canvasOffsetY = offsetY / zoomLevel
+                                
+                                // Apply the offset to maintain anchor position
+                                element.x += canvasOffsetX
+                                element.y += canvasOffsetY
+                            }
                         } else {
                             // Multiple selection - proportional scaling with flipping
                             var newBoundingTop = startBoundingY + deltaY
@@ -243,6 +332,37 @@ Item {
                                     elem.y = boundingBottom + (startBoundingHeight - relativeFromTop - state.height) * scaleFactor
                                 }
                             }
+                            
+                            // If controls are rotated, compensate for anchor movement
+                            if (controlsContainer.controlsRotation !== 0 && startRotation !== 0) {
+                                // Calculate where the anchor point is now
+                                var angle = controlsContainer.controlsRotation * Math.PI / 180
+                                var cos = Math.cos(angle)
+                                var sin = Math.sin(angle)
+                                
+                                var newCenterX = controlsContainer.x + controlsContainer.width / 2
+                                var newCenterY = controlsContainer.y + controlsContainer.height / 2
+                                
+                                var localAnchorX = controlsContainer.width / 2
+                                var localAnchorY = controlsContainer.height
+                                var relX = localAnchorX - controlsContainer.width / 2
+                                var relY = localAnchorY - controlsContainer.height / 2
+                                
+                                var currentAnchorX = newCenterX + relX * cos - relY * sin
+                                var currentAnchorY = newCenterY + relX * sin + relY * cos
+                                
+                                var offsetX = anchorWorldX - currentAnchorX
+                                var offsetY = anchorWorldY - currentAnchorY
+                                
+                                var canvasOffsetX = offsetX / zoomLevel
+                                var canvasOffsetY = offsetY / zoomLevel
+                                
+                                // Apply offset to all elements
+                                for (var i = 0; i < selectedElements.length; i++) {
+                                    selectedElements[i].x += canvasOffsetX
+                                    selectedElements[i].y += canvasOffsetY
+                                }
+                            }
                         }
                     }
                 }
@@ -270,27 +390,58 @@ Item {
                 cursorShape: Qt.SizeVerCursor
                 preventStealing: true
                 
+                property real startCanvasX: 0
                 property real startCanvasY: 0
                 property var startElementStates: []
+                property real startBoundingX: 0
                 property real startBoundingY: 0
+                property real startBoundingWidth: 0
                 property real startBoundingHeight: 0
+                property real startRotation: 0
+                property real anchorWorldX: 0
+                property real anchorWorldY: 0
                 
                 onPressed: function(mouse) {
                     var globalPos = mapToItem(root, mouse.x, mouse.y)
                     var canvasPos = parent.parent.viewportToCanvas(globalPos.x, globalPos.y)
+                    startCanvasX = canvasPos.x
                     startCanvasY = canvasPos.y
+                    startRotation = controlsContainer.controlsRotation
+                    
+                    // Calculate the anchor point (top edge center) in world coordinates
+                    var angle = controlsContainer.controlsRotation * Math.PI / 180
+                    var cos = Math.cos(angle)
+                    var sin = Math.sin(angle)
+                    
+                    // Top edge center in local control coordinates
+                    var localAnchorX = controlsContainer.width / 2
+                    var localAnchorY = 0
+                    
+                    // Transform to world coordinates
+                    var centerX = controlsContainer.x + controlsContainer.width / 2
+                    var centerY = controlsContainer.y + controlsContainer.height / 2
+                    
+                    // Rotate around center
+                    var relX = localAnchorX - controlsContainer.width / 2
+                    var relY = localAnchorY - controlsContainer.height / 2
+                    
+                    anchorWorldX = centerX + relX * cos - relY * sin
+                    anchorWorldY = centerY + relX * sin + relY * cos
                     
                     // Store initial states
                     startElementStates = []
                     for (var i = 0; i < selectedElements.length; i++) {
                         startElementStates.push({
+                            x: selectedElements[i].x,
                             y: selectedElements[i].y,
                             height: selectedElements[i].height
                         })
                     }
                     
                     // Store bounding box for proportional scaling
+                    startBoundingX = selectionBoundingX
                     startBoundingY = selectionBoundingY
+                    startBoundingWidth = selectionBoundingWidth
                     startBoundingHeight = selectionBoundingHeight
                 }
                 
@@ -298,7 +449,21 @@ Item {
                     if (pressed) {
                         var globalPos = mapToItem(root, mouse.x, mouse.y)
                         var canvasPos = parent.parent.viewportToCanvas(globalPos.x, globalPos.y)
-                        var deltaY = canvasPos.y - startCanvasY
+                        
+                        // Calculate raw delta
+                        var rawDeltaX = canvasPos.x - startCanvasX
+                        var rawDeltaY = canvasPos.y - startCanvasY
+                        
+                        // If controls are rotated, transform the delta into control space
+                        var deltaY = rawDeltaY
+                        if (controlsContainer.controlsRotation !== 0) {
+                            var angle = -controlsContainer.controlsRotation * Math.PI / 180
+                            var cos = Math.cos(angle)
+                            var sin = Math.sin(angle)
+                            
+                            // Transform mouse movement into control's local coordinate system
+                            deltaY = rawDeltaX * sin + rawDeltaY * cos
+                        }
                         
                         if (selectedElements.length === 1) {
                             // Single selection - direct manipulation
@@ -317,6 +482,39 @@ Item {
                             } else {
                                 element.y = top
                                 element.height = newBottom - top
+                            }
+                            
+                            // If controls are rotated, we need to compensate for the anchor movement
+                            if (controlsContainer.controlsRotation !== 0 && startRotation !== 0) {
+                                // After resize, the controls have moved. Calculate where our anchor point is now
+                                var angle = controlsContainer.controlsRotation * Math.PI / 180
+                                var cos = Math.cos(angle)
+                                var sin = Math.sin(angle)
+                                
+                                // Get the new control center position
+                                var newCenterX = controlsContainer.x + controlsContainer.width / 2
+                                var newCenterY = controlsContainer.y + controlsContainer.height / 2
+                                
+                                // Calculate where the top edge center is now
+                                var localAnchorX = controlsContainer.width / 2
+                                var localAnchorY = 0
+                                var relX = localAnchorX - controlsContainer.width / 2
+                                var relY = localAnchorY - controlsContainer.height / 2
+                                
+                                var currentAnchorX = newCenterX + relX * cos - relY * sin
+                                var currentAnchorY = newCenterY + relX * sin + relY * cos
+                                
+                                // Calculate the offset needed to restore the anchor to its original position
+                                var offsetX = anchorWorldX - currentAnchorX
+                                var offsetY = anchorWorldY - currentAnchorY
+                                
+                                // Convert viewport offset to canvas offset
+                                var canvasOffsetX = offsetX / zoomLevel
+                                var canvasOffsetY = offsetY / zoomLevel
+                                
+                                // Apply the offset to maintain anchor position
+                                element.x += canvasOffsetX
+                                element.y += canvasOffsetY
                             }
                         } else {
                             // Multiple selection - proportional scaling with flipping
@@ -365,6 +563,37 @@ Item {
                                     elem.y = newBoundingBottom + relativeFromBottom * scaleFactor
                                 }
                             }
+                            
+                            // If controls are rotated, compensate for anchor movement
+                            if (controlsContainer.controlsRotation !== 0 && startRotation !== 0) {
+                                // Calculate where the anchor point is now
+                                var angle = controlsContainer.controlsRotation * Math.PI / 180
+                                var cos = Math.cos(angle)
+                                var sin = Math.sin(angle)
+                                
+                                var newCenterX = controlsContainer.x + controlsContainer.width / 2
+                                var newCenterY = controlsContainer.y + controlsContainer.height / 2
+                                
+                                var localAnchorX = controlsContainer.width / 2
+                                var localAnchorY = 0
+                                var relX = localAnchorX - controlsContainer.width / 2
+                                var relY = localAnchorY - controlsContainer.height / 2
+                                
+                                var currentAnchorX = newCenterX + relX * cos - relY * sin
+                                var currentAnchorY = newCenterY + relX * sin + relY * cos
+                                
+                                var offsetX = anchorWorldX - currentAnchorX
+                                var offsetY = anchorWorldY - currentAnchorY
+                                
+                                var canvasOffsetX = offsetX / zoomLevel
+                                var canvasOffsetY = offsetY / zoomLevel
+                                
+                                // Apply offset to all elements
+                                for (var i = 0; i < selectedElements.length; i++) {
+                                    selectedElements[i].x += canvasOffsetX
+                                    selectedElements[i].y += canvasOffsetY
+                                }
+                            }
                         }
                     }
                 }
@@ -393,20 +622,49 @@ Item {
                 preventStealing: true
                 
                 property real startCanvasX: 0
+                property real startCanvasY: 0
                 property var startElementStates: []
                 property real startBoundingX: 0
+                property real startBoundingY: 0
                 property real startBoundingWidth: 0
+                property real startBoundingHeight: 0
+                property real startRotation: 0
+                property real anchorWorldX: 0
+                property real anchorWorldY: 0
                 
                 onPressed: function(mouse) {
                     var globalPos = mapToItem(root, mouse.x, mouse.y)
                     var canvasPos = parent.parent.viewportToCanvas(globalPos.x, globalPos.y)
                     startCanvasX = canvasPos.x
+                    startCanvasY = canvasPos.y
+                    startRotation = controlsContainer.controlsRotation
+                    
+                    // Calculate the anchor point (right edge center) in world coordinates
+                    var angle = controlsContainer.controlsRotation * Math.PI / 180
+                    var cos = Math.cos(angle)
+                    var sin = Math.sin(angle)
+                    
+                    // Right edge center in local control coordinates
+                    var localAnchorX = controlsContainer.width
+                    var localAnchorY = controlsContainer.height / 2
+                    
+                    // Transform to world coordinates
+                    var centerX = controlsContainer.x + controlsContainer.width / 2
+                    var centerY = controlsContainer.y + controlsContainer.height / 2
+                    
+                    // Rotate around center
+                    var relX = localAnchorX - controlsContainer.width / 2
+                    var relY = localAnchorY - controlsContainer.height / 2
+                    
+                    anchorWorldX = centerX + relX * cos - relY * sin
+                    anchorWorldY = centerY + relX * sin + relY * cos
                     
                     // Store initial states
                     startElementStates = []
                     for (var i = 0; i < selectedElements.length; i++) {
                         startElementStates.push({
                             x: selectedElements[i].x,
+                            y: selectedElements[i].y,
                             width: selectedElements[i].width
                         })
                     }
@@ -420,7 +678,21 @@ Item {
                     if (pressed) {
                         var globalPos = mapToItem(root, mouse.x, mouse.y)
                         var canvasPos = parent.parent.viewportToCanvas(globalPos.x, globalPos.y)
-                        var deltaX = canvasPos.x - startCanvasX
+                        
+                        // Calculate raw delta
+                        var rawDeltaX = canvasPos.x - startCanvasX
+                        var rawDeltaY = canvasPos.y - startCanvasY
+                        
+                        // If controls are rotated, transform the delta into control space
+                        var deltaX = rawDeltaX
+                        if (controlsContainer.controlsRotation !== 0) {
+                            var angle = -controlsContainer.controlsRotation * Math.PI / 180
+                            var cos = Math.cos(angle)
+                            var sin = Math.sin(angle)
+                            
+                            // Transform mouse movement into control's local coordinate system
+                            deltaX = rawDeltaX * cos - rawDeltaY * sin
+                        }
                         
                         if (selectedElements.length === 1) {
                             // Single selection - direct manipulation
@@ -439,6 +711,39 @@ Item {
                             } else {
                                 element.x = newLeft
                                 element.width = right - newLeft
+                            }
+                            
+                            // If controls are rotated, we need to compensate for the anchor movement
+                            if (controlsContainer.controlsRotation !== 0 && startRotation !== 0) {
+                                // After resize, the controls have moved. Calculate where our anchor point is now
+                                var angle = controlsContainer.controlsRotation * Math.PI / 180
+                                var cos = Math.cos(angle)
+                                var sin = Math.sin(angle)
+                                
+                                // Get the new control center position
+                                var newCenterX = controlsContainer.x + controlsContainer.width / 2
+                                var newCenterY = controlsContainer.y + controlsContainer.height / 2
+                                
+                                // Calculate where the right edge center is now
+                                var localAnchorX = controlsContainer.width
+                                var localAnchorY = controlsContainer.height / 2
+                                var relX = localAnchorX - controlsContainer.width / 2
+                                var relY = localAnchorY - controlsContainer.height / 2
+                                
+                                var currentAnchorX = newCenterX + relX * cos - relY * sin
+                                var currentAnchorY = newCenterY + relX * sin + relY * cos
+                                
+                                // Calculate the offset needed to restore the anchor to its original position
+                                var offsetX = anchorWorldX - currentAnchorX
+                                var offsetY = anchorWorldY - currentAnchorY
+                                
+                                // Convert viewport offset to canvas offset
+                                var canvasOffsetX = offsetX / zoomLevel
+                                var canvasOffsetY = offsetY / zoomLevel
+                                
+                                // Apply the offset to maintain anchor position
+                                element.x += canvasOffsetX
+                                element.y += canvasOffsetY
                             }
                         } else {
                             // Multiple selection - proportional scaling with flipping
@@ -487,6 +792,37 @@ Item {
                                     elem.x = boundingRight + (startBoundingWidth - relativeFromLeft - state.width) * scaleFactor
                                 }
                             }
+                            
+                            // If controls are rotated, compensate for anchor movement
+                            if (controlsContainer.controlsRotation !== 0 && startRotation !== 0) {
+                                // Calculate where the anchor point is now
+                                var angle = controlsContainer.controlsRotation * Math.PI / 180
+                                var cos = Math.cos(angle)
+                                var sin = Math.sin(angle)
+                                
+                                var newCenterX = controlsContainer.x + controlsContainer.width / 2
+                                var newCenterY = controlsContainer.y + controlsContainer.height / 2
+                                
+                                var localAnchorX = controlsContainer.width
+                                var localAnchorY = controlsContainer.height / 2
+                                var relX = localAnchorX - controlsContainer.width / 2
+                                var relY = localAnchorY - controlsContainer.height / 2
+                                
+                                var currentAnchorX = newCenterX + relX * cos - relY * sin
+                                var currentAnchorY = newCenterY + relX * sin + relY * cos
+                                
+                                var offsetX = anchorWorldX - currentAnchorX
+                                var offsetY = anchorWorldY - currentAnchorY
+                                
+                                var canvasOffsetX = offsetX / zoomLevel
+                                var canvasOffsetY = offsetY / zoomLevel
+                                
+                                // Apply offset to all elements
+                                for (var i = 0; i < selectedElements.length; i++) {
+                                    selectedElements[i].x += canvasOffsetX
+                                    selectedElements[i].y += canvasOffsetY
+                                }
+                            }
                         }
                     }
                 }
@@ -515,20 +851,47 @@ Item {
                 preventStealing: true
                 
                 property real startCanvasX: 0
+                property real startCanvasY: 0
                 property var startElementStates: []
                 property real startBoundingX: 0
                 property real startBoundingWidth: 0
+                property real startRotation: 0
+                property real anchorWorldX: 0
+                property real anchorWorldY: 0
                 
                 onPressed: function(mouse) {
                     var globalPos = mapToItem(root, mouse.x, mouse.y)
                     var canvasPos = parent.parent.viewportToCanvas(globalPos.x, globalPos.y)
                     startCanvasX = canvasPos.x
+                    startCanvasY = canvasPos.y
+                    startRotation = controlsContainer.controlsRotation
+                    
+                    // Calculate the anchor point (left edge center) in world coordinates
+                    var angle = controlsContainer.controlsRotation * Math.PI / 180
+                    var cos = Math.cos(angle)
+                    var sin = Math.sin(angle)
+                    
+                    // Left edge center in local control coordinates
+                    var localAnchorX = 0
+                    var localAnchorY = controlsContainer.height / 2
+                    
+                    // Transform to world coordinates
+                    var centerX = controlsContainer.x + controlsContainer.width / 2
+                    var centerY = controlsContainer.y + controlsContainer.height / 2
+                    
+                    // Rotate around center
+                    var relX = localAnchorX - controlsContainer.width / 2
+                    var relY = localAnchorY - controlsContainer.height / 2
+                    
+                    anchorWorldX = centerX + relX * cos - relY * sin
+                    anchorWorldY = centerY + relX * sin + relY * cos
                     
                     // Store initial states
                     startElementStates = []
                     for (var i = 0; i < selectedElements.length; i++) {
                         startElementStates.push({
                             x: selectedElements[i].x,
+                            y: selectedElements[i].y,
                             width: selectedElements[i].width
                         })
                     }
@@ -542,14 +905,28 @@ Item {
                     if (pressed) {
                         var globalPos = mapToItem(root, mouse.x, mouse.y)
                         var canvasPos = parent.parent.viewportToCanvas(globalPos.x, globalPos.y)
-                        var deltaX = canvasPos.x - startCanvasX
+                        
+                        // Calculate raw delta
+                        var rawDeltaX = canvasPos.x - startCanvasX
+                        var rawDeltaY = canvasPos.y - startCanvasY
+                        
+                        // If controls are rotated, transform the delta into control space
+                        var deltaX = rawDeltaX
+                        if (controlsContainer.controlsRotation !== 0) {
+                            var angle = -controlsContainer.controlsRotation * Math.PI / 180
+                            var cos = Math.cos(angle)
+                            var sin = Math.sin(angle)
+                            
+                            // Transform mouse movement into control's local coordinate system
+                            deltaX = rawDeltaX * cos - rawDeltaY * sin
+                        }
                         
                         if (selectedElements.length === 1) {
                             // Single selection - direct manipulation
                             var element = selectedElements[0]
                             var startState = startElementStates[0]
                             
-                            // Calculate new right edge position
+                            // First, apply the resize normally
                             var left = startState.x
                             var newRight = startState.x + startState.width + deltaX
                             
@@ -561,6 +938,39 @@ Item {
                             } else {
                                 element.x = left
                                 element.width = newRight - left
+                            }
+                            
+                            // If controls are rotated, we need to compensate for the anchor movement
+                            if (controlsContainer.controlsRotation !== 0 && startRotation !== 0) {
+                                // After resize, the controls have moved. Calculate where our anchor point is now
+                                var angle = controlsContainer.controlsRotation * Math.PI / 180
+                                var cos = Math.cos(angle)
+                                var sin = Math.sin(angle)
+                                
+                                // Get the new control center position
+                                var newCenterX = controlsContainer.x + controlsContainer.width / 2
+                                var newCenterY = controlsContainer.y + controlsContainer.height / 2
+                                
+                                // Calculate where the left edge center is now
+                                var localAnchorX = 0
+                                var localAnchorY = controlsContainer.height / 2
+                                var relX = localAnchorX - controlsContainer.width / 2
+                                var relY = localAnchorY - controlsContainer.height / 2
+                                
+                                var currentAnchorX = newCenterX + relX * cos - relY * sin
+                                var currentAnchorY = newCenterY + relX * sin + relY * cos
+                                
+                                // Calculate the offset needed to restore the anchor to its original position
+                                var offsetX = anchorWorldX - currentAnchorX
+                                var offsetY = anchorWorldY - currentAnchorY
+                                
+                                // Convert viewport offset to canvas offset
+                                var canvasOffsetX = offsetX / zoomLevel
+                                var canvasOffsetY = offsetY / zoomLevel
+                                
+                                // Apply the offset to maintain anchor position
+                                element.x += canvasOffsetX
+                                element.y += canvasOffsetY
                             }
                         } else {
                             // Multiple selection - proportional scaling with flipping
@@ -609,6 +1019,37 @@ Item {
                                     elem.x = newBoundingRight + relativeFromRight * scaleFactor
                                 }
                             }
+                            
+                            // If controls are rotated, compensate for anchor movement
+                            if (controlsContainer.controlsRotation !== 0 && startRotation !== 0) {
+                                // Calculate where the anchor point is now
+                                var angle = controlsContainer.controlsRotation * Math.PI / 180
+                                var cos = Math.cos(angle)
+                                var sin = Math.sin(angle)
+                                
+                                var newCenterX = controlsContainer.x + controlsContainer.width / 2
+                                var newCenterY = controlsContainer.y + controlsContainer.height / 2
+                                
+                                var localAnchorX = 0
+                                var localAnchorY = controlsContainer.height / 2
+                                var relX = localAnchorX - controlsContainer.width / 2
+                                var relY = localAnchorY - controlsContainer.height / 2
+                                
+                                var currentAnchorX = newCenterX + relX * cos - relY * sin
+                                var currentAnchorY = newCenterY + relX * sin + relY * cos
+                                
+                                var offsetX = anchorWorldX - currentAnchorX
+                                var offsetY = anchorWorldY - currentAnchorY
+                                
+                                var canvasOffsetX = offsetX / zoomLevel
+                                var canvasOffsetY = offsetY / zoomLevel
+                                
+                                // Apply offset to all elements
+                                for (var i = 0; i < selectedElements.length; i++) {
+                                    selectedElements[i].x += canvasOffsetX
+                                    selectedElements[i].y += canvasOffsetY
+                                }
+                            }
                         }
                     }
                 }
@@ -644,6 +1085,54 @@ Item {
                             case 1: return -Config.controlBarHeight/2 - (Config.controlRotationJointSize - overlap) // top-right
                             case 2: return parent.height - Config.controlBarHeight/2 // bottom-right
                             case 3: return parent.height - Config.controlBarHeight/2 // bottom-left
+                        }
+                    }
+                    
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        preventStealing: true
+                        
+                        property real jointAngleOffset: 0
+                        property real startControlsRotation: 0
+                        
+                        onPressed: function(mouse) {
+                            // Store the starting rotation
+                            startControlsRotation = controlsContainer.controlsRotation
+                            
+                            // Get the center of the controls in viewport coordinates
+                            var centerX = controlsContainer.x + controlsContainer.width / 2
+                            var centerY = controlsContainer.y + controlsContainer.height / 2
+                            
+                            // Get mouse position in viewport coordinates
+                            var mouseGlobal = mapToItem(root, mouse.x, mouse.y)
+                            
+                            // Calculate angle from center to mouse
+                            var dx = mouseGlobal.x - centerX
+                            var dy = mouseGlobal.y - centerY
+                            var mouseAngle = Math.atan2(dy, dx) * 180 / Math.PI
+                            
+                            // Store the angle offset to maintain the joint's position under the mouse
+                            jointAngleOffset = mouseAngle - startControlsRotation
+                        }
+                        
+                        onPositionChanged: function(mouse) {
+                            if (!pressed) return
+                            
+                            // Get the center of the controls in viewport coordinates
+                            var centerX = controlsContainer.x + controlsContainer.width / 2
+                            var centerY = controlsContainer.y + controlsContainer.height / 2
+                            
+                            // Get mouse position in viewport coordinates
+                            var mouseGlobal = mapToItem(root, mouse.x, mouse.y)
+                            
+                            // Calculate current angle from center to mouse
+                            var dx = mouseGlobal.x - centerX
+                            var dy = mouseGlobal.y - centerY
+                            var currentMouseAngle = Math.atan2(dy, dx) * 180 / Math.PI
+                            
+                            // Set rotation to maintain the offset, keeping the joint under the mouse
+                            controlsContainer.controlsRotation = currentMouseAngle - jointAngleOffset
                         }
                     }
                 }
