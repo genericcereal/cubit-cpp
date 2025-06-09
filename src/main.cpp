@@ -16,6 +16,11 @@ int main(int argc, char *argv[])
 {
     QtWebEngineQuick::initialize();
 
+    // Enable antialiasing for smoother rendering
+    QSurfaceFormat format = QSurfaceFormat::defaultFormat();
+    format.setSamples(4); // 4x MSAA
+    QSurfaceFormat::setDefaultFormat(format);
+
     QGuiApplication app(argc, argv);
     app.setApplicationName("Cubit");
     app.setOrganizationName("Cubit");
