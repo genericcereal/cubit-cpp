@@ -16,6 +16,10 @@ Item {
     property var creationDragHandler: canvasView ? canvasView.creationDragHandler : null
     property var controller: canvasView ? canvasView.controller : null
     
+    // Canvas bounds from canvasView
+    property real canvasMinX: canvasView ? canvasView.canvasMinX : 0
+    property real canvasMinY: canvasView ? canvasView.canvasMinY : 0
+    
     // Selection box visual
     Rectangle {
         id: selectionBox
@@ -28,13 +32,13 @@ Item {
         x: {
             if (!canvasView || !canvasView.selectionBoxHandler.active) return 0
             var handler = canvasView.selectionBoxHandler
-            return Math.min(handler.startPoint.x, handler.currentPoint.x) * zoomLevel - flickable.contentX
+            return (Math.min(handler.startPoint.x, handler.currentPoint.x) - root.canvasMinX) * zoomLevel - flickable.contentX
         }
         
         y: {
             if (!canvasView || !canvasView.selectionBoxHandler.active) return 0
             var handler = canvasView.selectionBoxHandler
-            return Math.min(handler.startPoint.y, handler.currentPoint.y) * zoomLevel - flickable.contentY
+            return (Math.min(handler.startPoint.y, handler.currentPoint.y) - root.canvasMinY) * zoomLevel - flickable.contentY
         }
         
         width: {
@@ -72,7 +76,7 @@ Item {
     property real selectionBoundingWidth: {
         if (selectedElements.length === 0) return 0
         var minX = Number.MAX_VALUE
-        var maxX = Number.MIN_VALUE
+        var maxX = -Infinity  
         for (var i = 0; i < selectedElements.length; i++) {
             minX = Math.min(minX, selectedElements[i].x)
             maxX = Math.max(maxX, selectedElements[i].x + selectedElements[i].width)
@@ -83,7 +87,7 @@ Item {
     property real selectionBoundingHeight: {
         if (selectedElements.length === 0) return 0
         var minY = Number.MAX_VALUE
-        var maxY = Number.MIN_VALUE
+        var maxY = -Infinity
         for (var i = 0; i < selectedElements.length; i++) {
             minY = Math.min(minY, selectedElements[i].y)
             maxY = Math.max(maxY, selectedElements[i].y + selectedElements[i].height)
@@ -96,8 +100,8 @@ Item {
         visible: selectedElements.length > 0
         
         // Always use bounding box calculations for consistency
-        property real controlX: selectionBoundingX * zoomLevel - flickable.contentX
-        property real controlY: selectionBoundingY * zoomLevel - flickable.contentY
+        property real controlX: (selectionBoundingX - root.canvasMinX) * zoomLevel - (flickable ? flickable.contentX : 0)
+        property real controlY: (selectionBoundingY - root.canvasMinY) * zoomLevel - (flickable ? flickable.contentY : 0)
         property real controlWidth: selectionBoundingWidth * zoomLevel
         property real controlHeight: selectionBoundingHeight * zoomLevel
         
@@ -105,6 +109,15 @@ Item {
         y: controlY
         width: controlWidth
         height: controlHeight
+        
+        
+        
+        // Helper function to convert viewport coordinates to canvas coordinates
+        function viewportToCanvas(viewX, viewY) {
+            var canvasX = (flickable.contentX + viewX) / zoomLevel + root.canvasMinX
+            var canvasY = (flickable.contentY + viewY) / zoomLevel + root.canvasMinY
+            return Qt.point(canvasX, canvasY)
+        }
         
         // Inner rectangle (yellow with 5% opacity)
         Rectangle {
@@ -134,14 +147,15 @@ Item {
                 cursorShape: Qt.SizeVerCursor
                 preventStealing: true
                 
-                property real startMouseY: 0
+                property real startCanvasY: 0
                 property var startElementStates: []
                 property real startBoundingY: 0
                 property real startBoundingHeight: 0
                 
                 onPressed: function(mouse) {
                     var globalPos = mapToItem(root, mouse.x, mouse.y)
-                    startMouseY = globalPos.y
+                    var canvasPos = parent.parent.viewportToCanvas(globalPos.x, globalPos.y)
+                    startCanvasY = canvasPos.y
                     
                     // Store initial states
                     startElementStates = []
@@ -160,7 +174,8 @@ Item {
                 onPositionChanged: function(mouse) {
                     if (pressed) {
                         var globalPos = mapToItem(root, mouse.x, mouse.y)
-                        var deltaY = (globalPos.y - startMouseY) / zoomLevel
+                        var canvasPos = parent.parent.viewportToCanvas(globalPos.x, globalPos.y)
+                        var deltaY = canvasPos.y - startCanvasY
                         
                         if (selectedElements.length === 1) {
                             // Single selection - direct manipulation
@@ -180,6 +195,7 @@ Item {
                                 selectedElements[0].y = newTop
                                 selectedElements[0].height = bottom - newTop
                             }
+                            console.log("Top bar resize: element y =", selectedElements[0].y, "height =", selectedElements[0].height)
                         } else {
                             // Multiple selection - proportional scaling
                             var newBoundingTop = startBoundingY + deltaY
@@ -236,14 +252,15 @@ Item {
                 cursorShape: Qt.SizeVerCursor
                 preventStealing: true
                 
-                property real startMouseY: 0
+                property real startCanvasY: 0
                 property var startElementStates: []
                 property real startBoundingY: 0
                 property real startBoundingHeight: 0
                 
                 onPressed: function(mouse) {
                     var globalPos = mapToItem(root, mouse.x, mouse.y)
-                    startMouseY = globalPos.y
+                    var canvasPos = parent.parent.viewportToCanvas(globalPos.x, globalPos.y)
+                    startCanvasY = canvasPos.y
                     
                     // Store initial states
                     startElementStates = []
@@ -262,7 +279,8 @@ Item {
                 onPositionChanged: function(mouse) {
                     if (pressed) {
                         var globalPos = mapToItem(root, mouse.x, mouse.y)
-                        var deltaY = (globalPos.y - startMouseY) / zoomLevel
+                        var canvasPos = parent.parent.viewportToCanvas(globalPos.x, globalPos.y)
+                        var deltaY = canvasPos.y - startCanvasY
                         
                         if (selectedElements.length === 1) {
                             // Single selection - direct manipulation
@@ -338,14 +356,15 @@ Item {
                 cursorShape: Qt.SizeHorCursor
                 preventStealing: true
                 
-                property real startMouseX: 0
+                property real startCanvasX: 0
                 property var startElementStates: []
                 property real startBoundingX: 0
                 property real startBoundingWidth: 0
                 
                 onPressed: function(mouse) {
                     var globalPos = mapToItem(root, mouse.x, mouse.y)
-                    startMouseX = globalPos.x
+                    var canvasPos = parent.parent.viewportToCanvas(globalPos.x, globalPos.y)
+                    startCanvasX = canvasPos.x
                     
                     // Store initial states
                     startElementStates = []
@@ -364,7 +383,8 @@ Item {
                 onPositionChanged: function(mouse) {
                     if (pressed) {
                         var globalPos = mapToItem(root, mouse.x, mouse.y)
-                        var deltaX = (globalPos.x - startMouseX) / zoomLevel
+                        var canvasPos = parent.parent.viewportToCanvas(globalPos.x, globalPos.y)
+                        var deltaX = canvasPos.x - startCanvasX
                         
                         if (selectedElements.length === 1) {
                             // Single selection - direct manipulation
@@ -440,14 +460,15 @@ Item {
                 cursorShape: Qt.SizeHorCursor
                 preventStealing: true
                 
-                property real startMouseX: 0
+                property real startCanvasX: 0
                 property var startElementStates: []
                 property real startBoundingX: 0
                 property real startBoundingWidth: 0
                 
                 onPressed: function(mouse) {
                     var globalPos = mapToItem(root, mouse.x, mouse.y)
-                    startMouseX = globalPos.x
+                    var canvasPos = parent.parent.viewportToCanvas(globalPos.x, globalPos.y)
+                    startCanvasX = canvasPos.x
                     
                     // Store initial states
                     startElementStates = []
@@ -466,7 +487,8 @@ Item {
                 onPositionChanged: function(mouse) {
                     if (pressed) {
                         var globalPos = mapToItem(root, mouse.x, mouse.y)
-                        var deltaX = (globalPos.x - startMouseX) / zoomLevel
+                        var canvasPos = parent.parent.viewportToCanvas(globalPos.x, globalPos.y)
+                        var deltaX = canvasPos.x - startCanvasX
                         
                         if (selectedElements.length === 1) {
                             // Single selection - direct manipulation
@@ -595,8 +617,8 @@ Item {
         border.color: Config.hoverColor
         border.width: 1
         
-        x: hoveredElement ? hoveredElement.x * zoomLevel - flickable.contentX : 0
-        y: hoveredElement ? hoveredElement.y * zoomLevel - flickable.contentY : 0
+        x: hoveredElement ? (hoveredElement.x - root.canvasMinX) * zoomLevel - flickable.contentX : 0
+        y: hoveredElement ? (hoveredElement.y - root.canvasMinY) * zoomLevel - flickable.contentY : 0
         width: hoveredElement ? hoveredElement.width * zoomLevel : 0
         height: hoveredElement ? hoveredElement.height * zoomLevel : 0
     }
