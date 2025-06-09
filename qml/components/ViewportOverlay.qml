@@ -197,33 +197,51 @@ Item {
                             }
                             console.log("Top bar resize: element y =", selectedElements[0].y, "height =", selectedElements[0].height)
                         } else {
-                            // Multiple selection - proportional scaling
+                            // Multiple selection - proportional scaling with flipping
                             var newBoundingTop = startBoundingY + deltaY
                             var boundingBottom = startBoundingY + startBoundingHeight
                             
-                            // Calculate scale factor (maintain bottom edge)
-                            var scaleFactor = 1.0
-                            if (newBoundingTop < boundingBottom - 1) {
-                                scaleFactor = (boundingBottom - newBoundingTop) / startBoundingHeight
-                            } else {
-                                // Minimum height constraint
-                                newBoundingTop = boundingBottom - 1
-                                scaleFactor = 1 / startBoundingHeight
-                            }
+                            // Check if we need to flip (top edge dragged past bottom edge)
+                            var isFlipped = newBoundingTop > boundingBottom - 1
                             
-                            // Apply proportional changes to all elements
-                            for (var i = 0; i < selectedElements.length; i++) {
-                                var elem = selectedElements[i]
-                                var state = startElementStates[i]
+                            if (!isFlipped) {
+                                // Normal resize - maintain bottom edge
+                                var scaleFactor = (boundingBottom - newBoundingTop) / startBoundingHeight
                                 
-                                // Calculate relative position from bottom edge
-                                var relativeFromBottom = (startBoundingY + startBoundingHeight) - (state.y + state.height)
+                                // Apply proportional changes to all elements
+                                for (var i = 0; i < selectedElements.length; i++) {
+                                    var elem = selectedElements[i]
+                                    var state = startElementStates[i]
+                                    
+                                    // Calculate relative position from bottom edge
+                                    var relativeFromBottom = (startBoundingY + startBoundingHeight) - (state.y + state.height)
+                                    
+                                    // New height scaled proportionally
+                                    elem.height = state.height * scaleFactor
+                                    
+                                    // Position calculated from the bottom edge, scaled properly
+                                    elem.y = boundingBottom - relativeFromBottom * scaleFactor - elem.height
+                                }
+                            } else {
+                                // Flipped state - elements flip around the original bottom edge
+                                var flippedHeight = newBoundingTop - boundingBottom
+                                var scaleFactor = flippedHeight / startBoundingHeight
                                 
-                                // New height scaled proportionally
-                                elem.height = state.height * scaleFactor
-                                
-                                // Position calculated from the new bottom edge, scaled properly
-                                elem.y = boundingBottom - relativeFromBottom * scaleFactor - elem.height
+                                // Apply flipped transformation to all elements
+                                for (var i = 0; i < selectedElements.length; i++) {
+                                    var elem = selectedElements[i]
+                                    var state = startElementStates[i]
+                                    
+                                    // Calculate relative position from top edge (since we're flipping)
+                                    var relativeFromTop = state.y - startBoundingY
+                                    
+                                    // New height scaled proportionally
+                                    elem.height = state.height * scaleFactor
+                                    
+                                    // Position calculated from the flipped position
+                                    // Elements that were on the top are now on the bottom
+                                    elem.y = boundingBottom + (startBoundingHeight - relativeFromTop - state.height) * scaleFactor
+                                }
                             }
                         }
                     }
@@ -301,33 +319,51 @@ Item {
                                 element.height = newBottom - top
                             }
                         } else {
-                            // Multiple selection - proportional scaling
+                            // Multiple selection - proportional scaling with flipping
                             var boundingTop = startBoundingY
                             var newBoundingBottom = startBoundingY + startBoundingHeight + deltaY
                             
-                            // Calculate scale factor (maintain top edge)
-                            var scaleFactor = 1.0
-                            if (newBoundingBottom > boundingTop + 1) {
-                                scaleFactor = (newBoundingBottom - boundingTop) / startBoundingHeight
-                            } else {
-                                // Minimum height constraint
-                                newBoundingBottom = boundingTop + 1
-                                scaleFactor = 20 / startBoundingHeight
-                            }
+                            // Check if we need to flip (bottom edge dragged past top edge)
+                            var isFlipped = newBoundingBottom < boundingTop + 1
                             
-                            // Apply proportional changes to all elements
-                            for (var i = 0; i < selectedElements.length; i++) {
-                                var elem = selectedElements[i]
-                                var state = startElementStates[i]
+                            if (!isFlipped) {
+                                // Normal resize - maintain top edge
+                                var scaleFactor = (newBoundingBottom - boundingTop) / startBoundingHeight
                                 
-                                // Calculate relative position from top edge
-                                var relativeTop = state.y - startBoundingY
+                                // Apply proportional changes to all elements
+                                for (var i = 0; i < selectedElements.length; i++) {
+                                    var elem = selectedElements[i]
+                                    var state = startElementStates[i]
+                                    
+                                    // Calculate relative position from top edge
+                                    var relativeTop = state.y - startBoundingY
+                                    
+                                    // Position remains relative to top edge
+                                    elem.y = boundingTop + relativeTop * scaleFactor
+                                    
+                                    // Height scaled proportionally
+                                    elem.height = state.height * scaleFactor
+                                }
+                            } else {
+                                // Flipped state - elements flip around the original top edge
+                                var flippedHeight = boundingTop - newBoundingBottom
+                                var scaleFactor = flippedHeight / startBoundingHeight
                                 
-                                // Position remains relative to top edge
-                                elem.y = boundingTop + relativeTop * scaleFactor
-                                
-                                // Height scaled proportionally
-                                elem.height = state.height * scaleFactor
+                                // Apply flipped transformation to all elements
+                                for (var i = 0; i < selectedElements.length; i++) {
+                                    var elem = selectedElements[i]
+                                    var state = startElementStates[i]
+                                    
+                                    // Calculate relative position from bottom edge (since we're flipping)
+                                    var relativeFromBottom = (startBoundingY + startBoundingHeight) - (state.y + state.height)
+                                    
+                                    // New height scaled proportionally
+                                    elem.height = state.height * scaleFactor
+                                    
+                                    // Position calculated from the flipped position
+                                    // Elements that were on the bottom are now on the top
+                                    elem.y = newBoundingBottom + relativeFromBottom * scaleFactor
+                                }
                             }
                         }
                     }
@@ -405,33 +441,51 @@ Item {
                                 element.width = right - newLeft
                             }
                         } else {
-                            // Multiple selection - proportional scaling
+                            // Multiple selection - proportional scaling with flipping
                             var newBoundingLeft = startBoundingX + deltaX
                             var boundingRight = startBoundingX + startBoundingWidth
                             
-                            // Calculate scale factor (maintain right edge)
-                            var scaleFactor = 1.0
-                            if (newBoundingLeft < boundingRight - 1) {
-                                scaleFactor = (boundingRight - newBoundingLeft) / startBoundingWidth
-                            } else {
-                                // Minimum width constraint
-                                newBoundingLeft = boundingRight - 1
-                                scaleFactor = 1 / startBoundingWidth
-                            }
+                            // Check if we need to flip (left edge dragged past right edge)
+                            var isFlipped = newBoundingLeft > boundingRight - 1
                             
-                            // Apply proportional changes to all elements
-                            for (var i = 0; i < selectedElements.length; i++) {
-                                var elem = selectedElements[i]
-                                var state = startElementStates[i]
+                            if (!isFlipped) {
+                                // Normal resize - maintain right edge
+                                var scaleFactor = (boundingRight - newBoundingLeft) / startBoundingWidth
                                 
-                                // Calculate relative position from right edge
-                                var relativeFromRight = (startBoundingX + startBoundingWidth) - (state.x + state.width)
+                                // Apply proportional changes to all elements
+                                for (var i = 0; i < selectedElements.length; i++) {
+                                    var elem = selectedElements[i]
+                                    var state = startElementStates[i]
+                                    
+                                    // Calculate relative position from right edge
+                                    var relativeFromRight = (startBoundingX + startBoundingWidth) - (state.x + state.width)
+                                    
+                                    // New width scaled proportionally
+                                    elem.width = state.width * scaleFactor
+                                    
+                                    // Position calculated from the right edge, scaled properly
+                                    elem.x = boundingRight - relativeFromRight * scaleFactor - elem.width
+                                }
+                            } else {
+                                // Flipped state - elements flip around the original right edge
+                                var flippedWidth = newBoundingLeft - boundingRight
+                                var scaleFactor = flippedWidth / startBoundingWidth
                                 
-                                // New width scaled proportionally
-                                elem.width = state.width * scaleFactor
-                                
-                                // Position calculated from the new right edge, scaled properly
-                                elem.x = boundingRight - relativeFromRight * scaleFactor - elem.width
+                                // Apply flipped transformation to all elements
+                                for (var i = 0; i < selectedElements.length; i++) {
+                                    var elem = selectedElements[i]
+                                    var state = startElementStates[i]
+                                    
+                                    // Calculate relative position from left edge (since we're flipping)
+                                    var relativeFromLeft = state.x - startBoundingX
+                                    
+                                    // New width scaled proportionally
+                                    elem.width = state.width * scaleFactor
+                                    
+                                    // Position calculated from the flipped position
+                                    // Elements that were on the left are now on the right
+                                    elem.x = boundingRight + (startBoundingWidth - relativeFromLeft - state.width) * scaleFactor
+                                }
                             }
                         }
                     }
@@ -509,33 +563,51 @@ Item {
                                 element.width = newRight - left
                             }
                         } else {
-                            // Multiple selection - proportional scaling
+                            // Multiple selection - proportional scaling with flipping
                             var boundingLeft = startBoundingX
                             var newBoundingRight = startBoundingX + startBoundingWidth + deltaX
                             
-                            // Calculate scale factor (maintain left edge)
-                            var scaleFactor = 1.0
-                            if (newBoundingRight > boundingLeft + 1) {
-                                scaleFactor = (newBoundingRight - boundingLeft) / startBoundingWidth
-                            } else {
-                                // Minimum width constraint
-                                newBoundingRight = boundingLeft + 1
-                                scaleFactor = 1 / startBoundingWidth
-                            }
+                            // Check if we need to flip (right edge dragged past left edge)
+                            var isFlipped = newBoundingRight < boundingLeft + 1
                             
-                            // Apply proportional changes to all elements
-                            for (var i = 0; i < selectedElements.length; i++) {
-                                var elem = selectedElements[i]
-                                var state = startElementStates[i]
+                            if (!isFlipped) {
+                                // Normal resize - maintain left edge
+                                var scaleFactor = (newBoundingRight - boundingLeft) / startBoundingWidth
                                 
-                                // Calculate relative position from left edge
-                                var relativeLeft = state.x - startBoundingX
+                                // Apply proportional changes to all elements
+                                for (var i = 0; i < selectedElements.length; i++) {
+                                    var elem = selectedElements[i]
+                                    var state = startElementStates[i]
+                                    
+                                    // Calculate relative position from left edge
+                                    var relativeLeft = state.x - startBoundingX
+                                    
+                                    // Position remains relative to left edge
+                                    elem.x = boundingLeft + relativeLeft * scaleFactor
+                                    
+                                    // Width scaled proportionally
+                                    elem.width = state.width * scaleFactor
+                                }
+                            } else {
+                                // Flipped state - elements flip around the original left edge
+                                var flippedWidth = boundingLeft - newBoundingRight
+                                var scaleFactor = flippedWidth / startBoundingWidth
                                 
-                                // Position remains relative to left edge
-                                elem.x = boundingLeft + relativeLeft * scaleFactor
-                                
-                                // Width scaled proportionally
-                                elem.width = state.width * scaleFactor
+                                // Apply flipped transformation to all elements
+                                for (var i = 0; i < selectedElements.length; i++) {
+                                    var elem = selectedElements[i]
+                                    var state = startElementStates[i]
+                                    
+                                    // Calculate relative position from right edge (since we're flipping)
+                                    var relativeFromRight = (startBoundingX + startBoundingWidth) - (state.x + state.width)
+                                    
+                                    // New width scaled proportionally
+                                    elem.width = state.width * scaleFactor
+                                    
+                                    // Position calculated from the flipped position
+                                    // Elements that were on the right are now on the left
+                                    elem.x = newBoundingRight + relativeFromRight * scaleFactor
+                                }
                             }
                         }
                     }
