@@ -657,6 +657,15 @@ Item {
                     height: Config.controlResizeJointSize
                     color: Config.controlResizeJointColor
                     
+                    property string position: {
+                        switch(index) {
+                            case 0: return "top-left"
+                            case 1: return "top-right"
+                            case 2: return "bottom-right"
+                            case 3: return "bottom-left"
+                        }
+                    }
+                    
                     x: {
                         switch(index) {
                             case 0: return -Config.controlBarWidth/2 // top-left
@@ -672,6 +681,393 @@ Item {
                             case 1: return -Config.controlBarHeight/2 // top-right
                             case 2: return parent.height - Config.controlBarHeight/2 // bottom-right
                             case 3: return parent.height - Config.controlBarHeight/2 // bottom-left
+                        }
+                    }
+                    
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: {
+                            switch(parent.position) {
+                                case "top-left":
+                                case "bottom-right":
+                                    return Qt.SizeFDiagCursor
+                                case "top-right":
+                                case "bottom-left":
+                                    return Qt.SizeBDiagCursor
+                                default:
+                                    return Qt.ArrowCursor
+                            }
+                        }
+                        preventStealing: true
+                        
+                        property real startCanvasX: 0
+                        property real startCanvasY: 0
+                        property var startElementStates: []
+                        property real startBoundingX: 0
+                        property real startBoundingY: 0
+                        property real startBoundingWidth: 0
+                        property real startBoundingHeight: 0
+                        
+                        onPressed: function(mouse) {
+                            var globalPos = mapToItem(root, mouse.x, mouse.y)
+                            var canvasPos = parent.parent.parent.viewportToCanvas(globalPos.x, globalPos.y)
+                            startCanvasX = canvasPos.x
+                            startCanvasY = canvasPos.y
+                            
+                            // Store initial states
+                            startElementStates = []
+                            for (var i = 0; i < selectedElements.length; i++) {
+                                startElementStates.push({
+                                    x: selectedElements[i].x,
+                                    y: selectedElements[i].y,
+                                    width: selectedElements[i].width,
+                                    height: selectedElements[i].height
+                                })
+                            }
+                            
+                            // Store bounding box for proportional scaling
+                            startBoundingX = selectionBoundingX
+                            startBoundingY = selectionBoundingY
+                            startBoundingWidth = selectionBoundingWidth
+                            startBoundingHeight = selectionBoundingHeight
+                        }
+                        
+                        onPositionChanged: function(mouse) {
+                            if (!pressed) return
+                            
+                            var globalPos = mapToItem(root, mouse.x, mouse.y)
+                            var canvasPos = parent.parent.parent.viewportToCanvas(globalPos.x, globalPos.y)
+                            var deltaX = canvasPos.x - startCanvasX
+                            var deltaY = canvasPos.y - startCanvasY
+                            
+                            if (selectedElements.length === 1) {
+                                // Single selection - direct manipulation
+                                var element = selectedElements[0]
+                                var startState = startElementStates[0]
+                                
+                                switch(parent.position) {
+                                    case "top-left":
+                                        // Move top-left corner
+                                        var newLeft = startState.x + deltaX
+                                        var newTop = startState.y + deltaY
+                                        var right = startState.x + startState.width
+                                        var bottom = startState.y + startState.height
+                                        
+                                        // Handle horizontal flipping
+                                        if (newLeft + 1 > right) {
+                                            element.x = right - 1
+                                            element.width = 1 + (newLeft - right)
+                                        } else {
+                                            element.x = newLeft
+                                            element.width = right - newLeft
+                                        }
+                                        
+                                        // Handle vertical flipping
+                                        if (newTop + 1 > bottom) {
+                                            element.y = bottom - 1
+                                            element.height = 1 + (newTop - bottom)
+                                        } else {
+                                            element.y = newTop
+                                            element.height = bottom - newTop
+                                        }
+                                        break
+                                        
+                                    case "top-right":
+                                        // Move top-right corner
+                                        var left = startState.x
+                                        var newTop = startState.y + deltaY
+                                        var newRight = startState.x + startState.width + deltaX
+                                        var bottom = startState.y + startState.height
+                                        
+                                        // Handle horizontal flipping
+                                        if (newRight < left + 1) {
+                                            element.x = newRight
+                                            element.width = 1 + (left - newRight)
+                                        } else {
+                                            element.x = left
+                                            element.width = newRight - left
+                                        }
+                                        
+                                        // Handle vertical flipping
+                                        if (newTop + 1 > bottom) {
+                                            element.y = bottom - 1
+                                            element.height = 1 + (newTop - bottom)
+                                        } else {
+                                            element.y = newTop
+                                            element.height = bottom - newTop
+                                        }
+                                        break
+                                        
+                                    case "bottom-right":
+                                        // Move bottom-right corner
+                                        var left = startState.x
+                                        var top = startState.y
+                                        var newRight = startState.x + startState.width + deltaX
+                                        var newBottom = startState.y + startState.height + deltaY
+                                        
+                                        // Handle horizontal flipping
+                                        if (newRight < left + 1) {
+                                            element.x = newRight
+                                            element.width = 1 + (left - newRight)
+                                        } else {
+                                            element.x = left
+                                            element.width = newRight - left
+                                        }
+                                        
+                                        // Handle vertical flipping
+                                        if (newBottom < top + 1) {
+                                            element.y = newBottom
+                                            element.height = 1 + (top - newBottom)
+                                        } else {
+                                            element.y = top
+                                            element.height = newBottom - top
+                                        }
+                                        break
+                                        
+                                    case "bottom-left":
+                                        // Move bottom-left corner
+                                        var newLeft = startState.x + deltaX
+                                        var top = startState.y
+                                        var right = startState.x + startState.width
+                                        var newBottom = startState.y + startState.height + deltaY
+                                        
+                                        // Handle horizontal flipping
+                                        if (newLeft + 1 > right) {
+                                            element.x = right - 1
+                                            element.width = 1 + (newLeft - right)
+                                        } else {
+                                            element.x = newLeft
+                                            element.width = right - newLeft
+                                        }
+                                        
+                                        // Handle vertical flipping
+                                        if (newBottom < top + 1) {
+                                            element.y = newBottom
+                                            element.height = 1 + (top - newBottom)
+                                        } else {
+                                            element.y = top
+                                            element.height = newBottom - top
+                                        }
+                                        break
+                                }
+                            } else {
+                                // Multiple selection - proportional scaling
+                                // Calculate scale factors based on corner movement
+                                var scaleX = 1.0
+                                var scaleY = 1.0
+                                var newBoundingX = startBoundingX
+                                var newBoundingY = startBoundingY
+                                
+                                switch(parent.position) {
+                                    case "top-left":
+                                        // Scale from bottom-right anchor
+                                        var newLeft = startBoundingX + deltaX
+                                        var newTop = startBoundingY + deltaY
+                                        var anchorX = startBoundingX + startBoundingWidth
+                                        var anchorY = startBoundingY + startBoundingHeight
+                                        
+                                        // Calculate scales (with flip handling)
+                                        if (newLeft >= anchorX - 1) {
+                                            scaleX = (newLeft - anchorX + 1) / startBoundingWidth
+                                            newBoundingX = anchorX - 1
+                                        } else {
+                                            scaleX = (anchorX - newLeft) / startBoundingWidth
+                                            newBoundingX = newLeft
+                                        }
+                                        
+                                        if (newTop >= anchorY - 1) {
+                                            scaleY = (newTop - anchorY + 1) / startBoundingHeight
+                                            newBoundingY = anchorY - 1
+                                        } else {
+                                            scaleY = (anchorY - newTop) / startBoundingHeight
+                                            newBoundingY = newTop
+                                        }
+                                        
+                                        // Apply scaling to all elements
+                                        for (var i = 0; i < selectedElements.length; i++) {
+                                            var elem = selectedElements[i]
+                                            var state = startElementStates[i]
+                                            
+                                            // Calculate distance from anchor point
+                                            var distX = anchorX - (state.x + state.width)
+                                            var distY = anchorY - (state.y + state.height)
+                                            
+                                            elem.width = state.width * Math.abs(scaleX)
+                                            elem.height = state.height * Math.abs(scaleY)
+                                            
+                                            if (newLeft >= anchorX - 1) {
+                                                // Flipped horizontally
+                                                elem.x = anchorX + distX * Math.abs(scaleX)
+                                            } else {
+                                                elem.x = anchorX - distX * Math.abs(scaleX) - elem.width
+                                            }
+                                            
+                                            if (newTop >= anchorY - 1) {
+                                                // Flipped vertically
+                                                elem.y = anchorY + distY * Math.abs(scaleY)
+                                            } else {
+                                                elem.y = anchorY - distY * Math.abs(scaleY) - elem.height
+                                            }
+                                        }
+                                        break
+                                        
+                                    case "top-right":
+                                        // Scale from bottom-left anchor
+                                        var newRight = startBoundingX + startBoundingWidth + deltaX
+                                        var newTop = startBoundingY + deltaY
+                                        var anchorX = startBoundingX
+                                        var anchorY = startBoundingY + startBoundingHeight
+                                        
+                                        // Calculate scales (with flip handling)
+                                        if (newRight <= anchorX + 1) {
+                                            scaleX = (anchorX - newRight + 1) / startBoundingWidth
+                                            newBoundingX = newRight
+                                        } else {
+                                            scaleX = (newRight - anchorX) / startBoundingWidth
+                                            newBoundingX = anchorX
+                                        }
+                                        
+                                        if (newTop >= anchorY - 1) {
+                                            scaleY = (newTop - anchorY + 1) / startBoundingHeight
+                                            newBoundingY = anchorY - 1
+                                        } else {
+                                            scaleY = (anchorY - newTop) / startBoundingHeight
+                                            newBoundingY = newTop
+                                        }
+                                        
+                                        // Apply scaling to all elements
+                                        for (var i = 0; i < selectedElements.length; i++) {
+                                            var elem = selectedElements[i]
+                                            var state = startElementStates[i]
+                                            
+                                            // Calculate distance from anchor point
+                                            var distX = state.x - anchorX
+                                            var distY = anchorY - (state.y + state.height)
+                                            
+                                            elem.width = state.width * Math.abs(scaleX)
+                                            elem.height = state.height * Math.abs(scaleY)
+                                            
+                                            if (newRight <= anchorX + 1) {
+                                                // Flipped horizontally
+                                                elem.x = anchorX - distX * Math.abs(scaleX) - elem.width
+                                            } else {
+                                                elem.x = anchorX + distX * Math.abs(scaleX)
+                                            }
+                                            
+                                            if (newTop >= anchorY - 1) {
+                                                // Flipped vertically
+                                                elem.y = anchorY + distY * Math.abs(scaleY)
+                                            } else {
+                                                elem.y = anchorY - distY * Math.abs(scaleY) - elem.height
+                                            }
+                                        }
+                                        break
+                                        
+                                    case "bottom-right":
+                                        // Scale from top-left anchor
+                                        var newRight = startBoundingX + startBoundingWidth + deltaX
+                                        var newBottom = startBoundingY + startBoundingHeight + deltaY
+                                        var anchorX = startBoundingX
+                                        var anchorY = startBoundingY
+                                        
+                                        // Calculate scales (with flip handling)
+                                        if (newRight <= anchorX + 1) {
+                                            scaleX = (anchorX - newRight + 1) / startBoundingWidth
+                                            newBoundingX = newRight
+                                        } else {
+                                            scaleX = (newRight - anchorX) / startBoundingWidth
+                                            newBoundingX = anchorX
+                                        }
+                                        
+                                        if (newBottom <= anchorY + 1) {
+                                            scaleY = (anchorY - newBottom + 1) / startBoundingHeight
+                                            newBoundingY = newBottom
+                                        } else {
+                                            scaleY = (newBottom - anchorY) / startBoundingHeight
+                                            newBoundingY = anchorY
+                                        }
+                                        
+                                        // Apply scaling to all elements
+                                        for (var i = 0; i < selectedElements.length; i++) {
+                                            var elem = selectedElements[i]
+                                            var state = startElementStates[i]
+                                            
+                                            // Calculate distance from anchor point
+                                            var distX = state.x - anchorX
+                                            var distY = state.y - anchorY
+                                            
+                                            elem.width = state.width * Math.abs(scaleX)
+                                            elem.height = state.height * Math.abs(scaleY)
+                                            
+                                            if (newRight <= anchorX + 1) {
+                                                // Flipped horizontally
+                                                elem.x = anchorX - distX * Math.abs(scaleX) - elem.width
+                                            } else {
+                                                elem.x = anchorX + distX * Math.abs(scaleX)
+                                            }
+                                            
+                                            if (newBottom <= anchorY + 1) {
+                                                // Flipped vertically
+                                                elem.y = anchorY - distY * Math.abs(scaleY) - elem.height
+                                            } else {
+                                                elem.y = anchorY + distY * Math.abs(scaleY)
+                                            }
+                                        }
+                                        break
+                                        
+                                    case "bottom-left":
+                                        // Scale from top-right anchor
+                                        var newLeft = startBoundingX + deltaX
+                                        var newBottom = startBoundingY + startBoundingHeight + deltaY
+                                        var anchorX = startBoundingX + startBoundingWidth
+                                        var anchorY = startBoundingY
+                                        
+                                        // Calculate scales (with flip handling)
+                                        if (newLeft >= anchorX - 1) {
+                                            scaleX = (newLeft - anchorX + 1) / startBoundingWidth
+                                            newBoundingX = anchorX - 1
+                                        } else {
+                                            scaleX = (anchorX - newLeft) / startBoundingWidth
+                                            newBoundingX = newLeft
+                                        }
+                                        
+                                        if (newBottom <= anchorY + 1) {
+                                            scaleY = (anchorY - newBottom + 1) / startBoundingHeight
+                                            newBoundingY = newBottom
+                                        } else {
+                                            scaleY = (newBottom - anchorY) / startBoundingHeight
+                                            newBoundingY = anchorY
+                                        }
+                                        
+                                        // Apply scaling to all elements
+                                        for (var i = 0; i < selectedElements.length; i++) {
+                                            var elem = selectedElements[i]
+                                            var state = startElementStates[i]
+                                            
+                                            // Calculate distance from anchor point
+                                            var distX = anchorX - (state.x + state.width)
+                                            var distY = state.y - anchorY
+                                            
+                                            elem.width = state.width * Math.abs(scaleX)
+                                            elem.height = state.height * Math.abs(scaleY)
+                                            
+                                            if (newLeft >= anchorX - 1) {
+                                                // Flipped horizontally
+                                                elem.x = anchorX + distX * Math.abs(scaleX)
+                                            } else {
+                                                elem.x = anchorX - distX * Math.abs(scaleX) - elem.width
+                                            }
+                                            
+                                            if (newBottom <= anchorY + 1) {
+                                                // Flipped vertically
+                                                elem.y = anchorY - distY * Math.abs(scaleY) - elem.height
+                                            } else {
+                                                elem.y = anchorY + distY * Math.abs(scaleY)
+                                            }
+                                        }
+                                        break
+                                }
+                            }
                         }
                     }
                 }
