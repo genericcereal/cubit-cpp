@@ -374,3 +374,66 @@ All UI panels were already implemented in the qtquick directory. Updated all pan
 ### Migration Notes
 
 _This section will be updated as the migration progresses with lessons learned, decisions made, and any deviations from the original plan._
+
+## Infinite Canvas Migration Plan
+
+### Overview
+Convert the current finite canvas (0,0 at top-left) to an infinite canvas with (0,0) at the center.
+
+### Current State Analysis
+- **Coordinate System**: 0,0 is top-left, canvas has bounds (min 4000x4000)
+- **Architecture**: CanvasController (C++) + CanvasView (QML) + ViewportOverlay
+- **Scrolling**: Flickable with dynamic content size
+- **Zoom**: 0.1x to 5.0x, maintains point under cursor
+
+### Migration Strategy
+
+#### Phase 1: Coordinate System Transformation
+1. **Update CanvasController coordinate conversion**:
+   - Add viewport center offset to make (0,0) the center
+   - Update `viewToCanvas()` and `canvasToView()` methods
+   - Elements can have negative coordinates
+
+2. **Update element bounds calculation**:
+   - Remove minimum canvas size constraint
+   - Calculate bounds from actual element positions
+   - Add symmetric padding around all elements
+
+#### Phase 2: Infinite Scrolling
+1. **Replace Flickable bounds**:
+   - Remove fixed contentWidth/contentHeight
+   - Implement virtual scrolling with no hard limits
+   - Update content position based on element bounds
+
+2. **Optimize rendering**:
+   - Implement viewport culling (only render visible elements)
+   - Add element spatial indexing for efficient hit testing
+
+#### Phase 3: Visual Feedback
+1. **Add grid overlay**:
+   - Show grid when zoomed in (as mentioned in CLAUDE.md)
+   - Grid centered at (0,0)
+   - Axis indicators at origin
+
+2. **Update scroll indicators**:
+   - Show position relative to origin
+   - Add mini-map for navigation
+
+#### Phase 4: Performance Optimization
+1. **Lazy loading**: Only create QML items for visible elements
+2. **Level of detail**: Simplified rendering when zoomed out
+3. **Spatial indexing**: Quadtree or R-tree for element lookup
+
+### Implementation Order
+1. Update coordinate conversion methods (CanvasController)
+2. Modify Flickable to support infinite scrolling
+3. Update element positioning to support negative coordinates
+4. Add grid overlay and origin indicators
+5. Implement viewport culling
+6. Optimize performance
+
+### Key Considerations
+- Maintain backwards compatibility with existing element positions
+- Ensure smooth pan/zoom behavior during transition
+- Test with large numbers of elements spread across space
+- Consider adding "reset view" to return to origin

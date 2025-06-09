@@ -15,7 +15,17 @@ Item {
             controller.setElementModel(elementModel)
             controller.setSelectionManager(selectionManager)
         }
-        updateCanvasBounds()
+        centerViewAtOrigin()
+    }
+    
+    // Center the view at canvas origin (0,0)
+    function centerViewAtOrigin() {
+        // Calculate the position to center (0,0) in the viewport
+        var centerX = (-canvasMinX) * zoomLevel - flickable.width / 2
+        var centerY = (-canvasMinY) * zoomLevel - flickable.height / 2
+        
+        flickable.contentX = centerX
+        flickable.contentY = centerY
     }
     
     // Canvas properties
@@ -30,49 +40,14 @@ Item {
     property alias selectionBoxHandler: selectionBoxHandler
     property var hoveredElement: null
     
-    // Canvas configuration - infinite canvas
-    property real canvasMinX: 0
-    property real canvasMinY: 0
-    property real canvasMaxX: 0
-    property real canvasMaxY: 0
+    // Canvas configuration - infinite canvas with center at (0,0)
+    // Using larger fixed bounds to avoid coordinate system shifts during element manipulation
+    property real canvasMinX: -10000
+    property real canvasMinY: -10000
+    property real canvasMaxX: 10000
+    property real canvasMaxY: 10000
     
-    // Dynamic canvas bounds based on elements
-    function updateCanvasBounds() {
-        if (!elementModel || elementModel.rowCount === 0) {
-            canvasMinX = 0
-            canvasMinY = 0
-            canvasMaxX = 4000
-            canvasMaxY = 4000
-            return
-        }
-        
-        var minX = 0
-        var minY = 0
-        var maxX = 4000
-        var maxY = 4000
-        
-        var elements = elementModel.getAllElements()
-        for (var i = 0; i < elements.length; i++) {
-            var elem = elements[i]
-            minX = Math.min(minX, elem.x)
-            minY = Math.min(minY, elem.y)
-            maxX = Math.max(maxX, elem.x + elem.width)
-            maxY = Math.max(maxY, elem.y + elem.height)
-        }
-        
-        // Add padding
-        canvasMinX = minX - 500
-        canvasMinY = minY - 500
-        canvasMaxX = maxX + 500
-        canvasMaxY = maxY + 500
-    }
-    
-    Connections {
-        target: elementModel
-        function onElementAdded() { updateCanvasBounds() }
-        function onElementRemoved() { updateCanvasBounds() }
-        function onElementChanged() { updateCanvasBounds() }
-    }
+    // With fixed bounds, we don't need dynamic updates
     
     // Background
     Rectangle {
@@ -121,6 +96,10 @@ Item {
                             property var element: model.element
                             property string elementType: model.elementType
                             
+                            // Position elements relative to canvas origin
+                            x: element ? element.x - root.canvasMinX : 0
+                            y: element ? element.y - root.canvasMinY : 0
+                            
                             sourceComponent: {
                                 switch(elementType) {
                                     case "Frame": return frameComponent
@@ -153,8 +132,8 @@ Item {
                         border.color: "#0066cc"
                         border.width: 2
                         
-                        x: Math.min(creationDragHandler.startPoint.x, creationDragHandler.currentPoint.x)
-                        y: Math.min(creationDragHandler.startPoint.y, creationDragHandler.currentPoint.y)
+                        x: Math.min(creationDragHandler.startPoint.x, creationDragHandler.currentPoint.x) - root.canvasMinX
+                        y: Math.min(creationDragHandler.startPoint.y, creationDragHandler.currentPoint.y) - root.canvasMinY
                         width: Math.abs(creationDragHandler.currentPoint.x - creationDragHandler.startPoint.x)
                         height: Math.abs(creationDragHandler.currentPoint.y - creationDragHandler.startPoint.y)
                     }
@@ -176,8 +155,8 @@ Item {
         
         // Convert mouse position to canvas coordinates
         function toCanvasCoords(mouseX, mouseY) {
-            var canvasX = (flickable.contentX + mouseX) / root.zoomLevel
-            var canvasY = (flickable.contentY + mouseY) / root.zoomLevel
+            var canvasX = (flickable.contentX + mouseX) / root.zoomLevel + root.canvasMinX
+            var canvasY = (flickable.contentY + mouseY) / root.zoomLevel + root.canvasMinY
             return Qt.point(canvasX, canvasY)
         }
         
@@ -274,8 +253,8 @@ Item {
                 root.zoomLevel = newZoom
                 
                 // Adjust content position to keep mouse point stable
-                flickable.contentX = canvasPoint.x * root.zoomLevel - wheel.x
-                flickable.contentY = canvasPoint.y * root.zoomLevel - wheel.y
+                flickable.contentX = (canvasPoint.x - root.canvasMinX) * root.zoomLevel - wheel.x
+                flickable.contentY = (canvasPoint.y - root.canvasMinY) * root.zoomLevel - wheel.y
                 
                 wheel.accepted = true
             } else {

@@ -10,9 +10,7 @@ Item {
     property var elementModel
     property TextElement textElement: element as TextElement
     
-    // Common properties bound to C++ element
-    x: element ? element.x : 0
-    y: element ? element.y : 0
+    // Size properties bound to C++ element (position is handled by parent Loader)
     width: element ? element.width : 100
     height: element ? element.height : 100
     
