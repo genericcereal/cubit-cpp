@@ -7,7 +7,7 @@ Rectangle {
     
     // Position can be "top", "bottom", "left", "right"
     property string position: "top"
-    property var controlsContainer: null
+    property var controlsContainer: parent  // The parent is always controlsContainer
     property var selectedElements: []
     property real zoomLevel: 1.0
     

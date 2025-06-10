@@ -6,6 +6,7 @@ import Cubit.UI 1.0
 // their visual size regardless of canvas zoom level
 Item {
     id: root
+    objectName: "viewportOverlay"
     
     // Core properties from CanvasView
     property var canvasView
@@ -117,7 +118,6 @@ Item {
         // Edge resize bars
         ControlBar {
             position: "top"
-            controlsContainer: parent
             selectedElements: root.selectedElements
             zoomLevel: root.zoomLevel
             selectionBoundingX: root.selectionBoundingX
@@ -128,7 +128,6 @@ Item {
         
         ControlBar {
             position: "bottom"
-            controlsContainer: parent
             selectedElements: root.selectedElements
             zoomLevel: root.zoomLevel
             selectionBoundingX: root.selectionBoundingX
@@ -139,7 +138,6 @@ Item {
         
         ControlBar {
             position: "left"
-            controlsContainer: parent
             selectedElements: root.selectedElements
             zoomLevel: root.zoomLevel
             selectionBoundingX: root.selectionBoundingX
@@ -150,7 +148,6 @@ Item {
         
         ControlBar {
             position: "right"
-            controlsContainer: parent
             selectedElements: root.selectedElements
             zoomLevel: root.zoomLevel
             selectionBoundingX: root.selectionBoundingX
@@ -176,7 +173,6 @@ Item {
                             case 3: return "bottom-left"
                         }
                     }
-                    controlsContainer: controlsContainer
                     selectedElements: root.selectedElements
                     zoomLevel: root.zoomLevel
                     selectionBoundingX: root.selectionBoundingX
@@ -199,7 +195,6 @@ Item {
                             case 3: return "bottom-left"
                         }
                     }
-                    controlsContainer: controlsContainer
                     selectedElements: root.selectedElements
                     zoomLevel: root.zoomLevel
                     selectionBoundingX: root.selectionBoundingX
