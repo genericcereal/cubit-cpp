@@ -113,6 +113,16 @@ Rectangle {
         property real startBoundingY: 0
         property real startBoundingWidth: 0
         property real startBoundingHeight: 0
+        property real startLocalX: 0
+        property real startLocalY: 0
+        property real anchorWorldX: 0
+        property real anchorWorldY: 0
+        property real startControlsX: 0
+        property real startControlsY: 0
+        property real startControlsWidth: 0
+        property real startControlsHeight: 0
+        property real mouseOffsetX: 0
+        property real mouseOffsetY: 0
         
         onPressed: function(mouse) {
             if (jointType === "rotation") {
@@ -177,10 +187,66 @@ Rectangle {
         function handleResizePress(mouse) {
             if (!controlsContainer || !controlsContainer.parent) return
             
+            // Pause bindings during drag
+            controlsContainer.dragging = true
+            
             var globalPos = mapToItem(controlsContainer.parent, mouse.x, mouse.y)
             var canvasPos = controlsContainer.viewportToCanvas(globalPos.x, globalPos.y)
             startCanvasX = canvasPos.x
             startCanvasY = canvasPos.y
+            
+            // Store initial mouse position in container-local coords
+            var localMouse = controlsContainer.mapFromItem(controlsContainer.parent, globalPos.x, globalPos.y)
+            startLocalX = localMouse.x
+            startLocalY = localMouse.y
+            
+            // Calculate anchor point (opposite corner)
+            var anchorLocal
+            switch(root.position) {
+                case "top-left":
+                    anchorLocal = Qt.point(controlsContainer.width, controlsContainer.height)
+                    break
+                case "top-right":
+                    anchorLocal = Qt.point(0, controlsContainer.height)
+                    break
+                case "bottom-right":
+                    anchorLocal = Qt.point(0, 0)
+                    break
+                case "bottom-left":
+                    anchorLocal = Qt.point(controlsContainer.width, 0)
+                    break
+            }
+            
+            // Map anchor to world coords
+            var anchorWorld = controlsContainer.mapToItem(controlsContainer.parent, anchorLocal.x, anchorLocal.y)
+            anchorWorldX = anchorWorld.x
+            anchorWorldY = anchorWorld.y
+            
+            // Store initial controls state
+            startControlsX = controlsContainer.x
+            startControlsY = controlsContainer.y
+            startControlsWidth = controlsContainer.width
+            startControlsHeight = controlsContainer.height
+            
+            // Calculate initial offset between mouse and corner in local space
+            switch(root.position) {
+                case "top-left":
+                    mouseOffsetX = localMouse.x - 0
+                    mouseOffsetY = localMouse.y - 0
+                    break
+                case "top-right":
+                    mouseOffsetX = localMouse.x - controlsContainer.width
+                    mouseOffsetY = localMouse.y - 0
+                    break
+                case "bottom-right":
+                    mouseOffsetX = localMouse.x - controlsContainer.width
+                    mouseOffsetY = localMouse.y - controlsContainer.height
+                    break
+                case "bottom-left":
+                    mouseOffsetX = localMouse.x - 0
+                    mouseOffsetY = localMouse.y - controlsContainer.height
+                    break
+            }
             
             // Store initial states
             startElementStates = []
@@ -203,17 +269,130 @@ Rectangle {
         function handleResizeDrag(mouse) {
             if (!controlsContainer) return
             
+            // Get current mouse position in both coordinate systems
             var globalPos = mapToItem(controlsContainer.parent, mouse.x, mouse.y)
-            var canvasPos = controlsContainer.viewportToCanvas(globalPos.x, globalPos.y)
-            var deltaX = canvasPos.x - startCanvasX
-            var deltaY = canvasPos.y - startCanvasY
+            var localMouse = controlsContainer.mapFromItem(controlsContainer.parent, globalPos.x, globalPos.y)
             
-            if (selectedElements.length === 1) {
-                handleSingleElementResize(deltaX, deltaY)
-            } else {
-                handleMultipleElementResize(deltaX, deltaY)
+            // Calculate new dimensions based on which corner is being dragged in local space
+            var newWidth = startControlsWidth
+            var newHeight = startControlsHeight
+            var deltaX = 0
+            var deltaY = 0
+            
+            switch(root.position) {
+                case "top-left":
+                    // Mouse position determines top-left corner in local space
+                    var desiredX = localMouse.x - mouseOffsetX
+                    var desiredY = localMouse.y - mouseOffsetY
+                    deltaX = desiredX - 0
+                    deltaY = desiredY - 0
+                    newWidth = startControlsWidth - deltaX
+                    newHeight = startControlsHeight - deltaY
+                    break
+                case "top-right":
+                    // Mouse position determines top-right corner in local space
+                    var desiredX = localMouse.x - mouseOffsetX
+                    var desiredY = localMouse.y - mouseOffsetY
+                    deltaX = desiredX - startControlsWidth
+                    deltaY = desiredY - 0
+                    newWidth = startControlsWidth + deltaX
+                    newHeight = startControlsHeight - deltaY
+                    break
+                case "bottom-right":
+                    // Mouse position determines bottom-right corner in local space
+                    var desiredX = localMouse.x - mouseOffsetX
+                    var desiredY = localMouse.y - mouseOffsetY
+                    deltaX = desiredX - startControlsWidth
+                    deltaY = desiredY - startControlsHeight
+                    newWidth = startControlsWidth + deltaX
+                    newHeight = startControlsHeight + deltaY
+                    break
+                case "bottom-left":
+                    // Mouse position determines bottom-left corner in local space
+                    var desiredX = localMouse.x - mouseOffsetX
+                    var desiredY = localMouse.y - mouseOffsetY
+                    deltaX = desiredX - 0
+                    deltaY = desiredY - startControlsHeight
+                    newWidth = startControlsWidth - deltaX
+                    newHeight = startControlsHeight + deltaY
+                    break
             }
+            
+            // Convert to canvas space
+            var canvasScale = 1.0 / zoomLevel
+            var canvasDeltaX = deltaX * canvasScale
+            var canvasDeltaY = deltaY * canvasScale
+            
+            // Update elements
+            if (selectedElements.length === 1) {
+                // For corner resize, we need to use the full position/size deltas
+                var element = selectedElements[0]
+                var startState = startElementStates[0]
+                
+                switch(root.position) {
+                    case "top-left":
+                        element.x = startState.x + canvasDeltaX
+                        element.y = startState.y + canvasDeltaY
+                        element.width = startState.width - canvasDeltaX
+                        element.height = startState.height - canvasDeltaY
+                        break
+                    case "top-right":
+                        element.y = startState.y + canvasDeltaY
+                        element.width = startState.width + canvasDeltaX
+                        element.height = startState.height - canvasDeltaY
+                        break
+                    case "bottom-right":
+                        element.width = startState.width + canvasDeltaX
+                        element.height = startState.height + canvasDeltaY
+                        break
+                    case "bottom-left":
+                        element.x = startState.x + canvasDeltaX
+                        element.width = startState.width - canvasDeltaX
+                        element.height = startState.height + canvasDeltaY
+                        break
+                }
+            } else {
+                // For multiple selection, we need to pass scale factors
+                var scaleX = newWidth / startControlsWidth  
+                var scaleY = newHeight / startControlsHeight
+                handleMultipleElementResize(canvasDeltaX, canvasDeltaY)
+            }
+            
+            // Update controls size
+            controlsContainer.width = newWidth
+            controlsContainer.height = newHeight
+            
+            // Update position to keep anchor fixed
+            var anchorLocal
+            switch(root.position) {
+                case "top-left":
+                    anchorLocal = Qt.point(controlsContainer.width, controlsContainer.height)
+                    break
+                case "top-right":
+                    anchorLocal = Qt.point(0, controlsContainer.height)
+                    break
+                case "bottom-right":
+                    anchorLocal = Qt.point(0, 0)
+                    break
+                case "bottom-left":
+                    anchorLocal = Qt.point(controlsContainer.width, 0)
+                    break
+            }
+            
+            var currentAnchorWorld = controlsContainer.mapToItem(controlsContainer.parent, anchorLocal.x, anchorLocal.y)
+            var offsetX = anchorWorldX - currentAnchorWorld.x
+            var offsetY = anchorWorldY - currentAnchorWorld.y
+            controlsContainer.x += offsetX
+            controlsContainer.y += offsetY
+            
+            // Logging
+            console.log("ControlJoint resize - position:", root.position)
+            console.log("  Local mouse:", localMouse.x, localMouse.y)
+            console.log("  Delta local:", deltaX, deltaY)
+            console.log("  Controls rotation:", controlsContainer.rotation)
+            console.log("  Anchor offset:", offsetX, offsetY)
         }
+        
         
         // Single element corner resize
         function handleSingleElementResize(deltaX, deltaY) {
@@ -377,6 +556,13 @@ Rectangle {
                     elem.y = flippedY ? anchorY - distY * Math.abs(scaleY) - elem.height
                                      : anchorY + distY * Math.abs(scaleY)
                 }
+            }
+        }
+        
+        onReleased: {
+            // Resume bindings
+            if (controlsContainer && jointType === "resize") {
+                controlsContainer.dragging = false
             }
         }
     }

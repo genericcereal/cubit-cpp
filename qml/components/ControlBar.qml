@@ -67,6 +67,14 @@ Rectangle {
         property real startRotation: 0
         property real anchorWorldX: 0
         property real anchorWorldY: 0
+        property real startLocalY: 0
+        property real startLocalX: 0
+        property real startControlsX: 0
+        property real startControlsY: 0
+        property real startControlsWidth: 0
+        property real startControlsHeight: 0
+        property real mouseOffsetX: 0
+        property real mouseOffsetY: 0
         
         // Get the anchor edge (opposite edge that stays fixed during resize)
         function getAnchorPosition() {
@@ -78,26 +86,11 @@ Rectangle {
             }
         }
         
-        // Transform local point to world coordinates considering rotation
-        function localToWorld(localX, localY) {
-            var angle = controlsContainer.controlsRotation * Math.PI / 180
-            var cos = Math.cos(angle)
-            var sin = Math.sin(angle)
-            
-            var centerX = controlsContainer.x + controlsContainer.width / 2
-            var centerY = controlsContainer.y + controlsContainer.height / 2
-            
-            var relX = localX - controlsContainer.width / 2
-            var relY = localY - controlsContainer.height / 2
-            
-            return {
-                x: centerX + relX * cos - relY * sin,
-                y: centerY + relX * sin + relY * cos
-            }
-        }
-        
         onPressed: function(mouse) {
             if (!controlsContainer || !controlsContainer.parent) return
+            
+            // Pause bindings during drag
+            controlsContainer.dragging = true
             
             var globalPos = mapToItem(controlsContainer.parent, mouse.x, mouse.y)
             var canvasPos = controlsContainer.viewportToCanvas(globalPos.x, globalPos.y)
@@ -107,9 +100,36 @@ Rectangle {
             
             // Calculate anchor point in world coordinates
             var anchorLocal = getAnchorPosition()
-            var anchorWorld = localToWorld(anchorLocal.x, anchorLocal.y)
+            var anchorWorld = controlsContainer.mapToItem(controlsContainer.parent, anchorLocal.x, anchorLocal.y)
             anchorWorldX = anchorWorld.x
             anchorWorldY = anchorWorld.y
+            
+            // Store initial mouse position in container-local coords
+            var localMouse = controlsContainer.mapFromItem(controlsContainer.parent, globalPos.x, globalPos.y)
+            startLocalX = localMouse.x
+            startLocalY = localMouse.y
+            
+            // Store initial controls state
+            startControlsX = controlsContainer.x
+            startControlsY = controlsContainer.y
+            startControlsWidth = controlsContainer.width
+            startControlsHeight = controlsContainer.height
+            
+            // Calculate initial offset between mouse and edge in local space
+            switch(root.position) {
+                case "top":
+                    mouseOffsetY = localMouse.y - 0
+                    break
+                case "bottom":
+                    mouseOffsetY = localMouse.y - controlsContainer.height
+                    break
+                case "left":
+                    mouseOffsetX = localMouse.x - 0
+                    break
+                case "right":
+                    mouseOffsetX = localMouse.x - controlsContainer.width
+                    break
+            }
             
             // Store initial states
             startElementStates = []
@@ -132,40 +152,76 @@ Rectangle {
         onPositionChanged: function(mouse) {
             if (!pressed) return
             
+            // Get current mouse position in both coordinate systems
             var globalPos = mapToItem(controlsContainer.parent, mouse.x, mouse.y)
-            var canvasPos = controlsContainer.viewportToCanvas(globalPos.x, globalPos.y)
+            var localMouse = controlsContainer.mapFromItem(controlsContainer.parent, globalPos.x, globalPos.y)
             
-            // Calculate raw delta
-            var rawDeltaX = canvasPos.x - startCanvasX
-            var rawDeltaY = canvasPos.y - startCanvasY
+            // Calculate where the edge should be in local space
+            var desiredEdgeLocal = 0
+            var deltaLocal = 0
             
-            // Transform delta into control's local coordinate system if rotated
-            var deltaX = rawDeltaX
-            var deltaY = rawDeltaY
-            if (controlsContainer.controlsRotation !== 0) {
-                var angle = -controlsContainer.controlsRotation * Math.PI / 180
-                var cos = Math.cos(angle)
-                var sin = Math.sin(angle)
-                deltaX = rawDeltaX * cos - rawDeltaY * sin
-                deltaY = rawDeltaX * sin + rawDeltaY * cos
-            }
-            
-            // Apply resize based on bar position
             if (root.position === "top") {
-                resizeTop(deltaY)
+                // In local space, top edge should be at mouse minus offset
+                desiredEdgeLocal = localMouse.y - mouseOffsetY
+                deltaLocal = desiredEdgeLocal - 0  // Top edge starts at 0
+                
+                // Update size and calculate canvas delta
+                var newHeight = startControlsHeight - deltaLocal
+                controlsContainer.height = newHeight
+                
+                var canvasDeltaY = deltaLocal / zoomLevel
+                resizeTop(canvasDeltaY)
             } else if (root.position === "bottom") {
-                resizeBottom(deltaY)
+                // In local space, bottom edge should be at mouse minus offset
+                desiredEdgeLocal = localMouse.y - mouseOffsetY
+                deltaLocal = desiredEdgeLocal - startControlsHeight
+                
+                // Update size
+                var newHeight = startControlsHeight + deltaLocal
+                controlsContainer.height = newHeight
+                
+                var canvasDeltaY = deltaLocal / zoomLevel
+                resizeBottom(canvasDeltaY)
             } else if (root.position === "left") {
-                resizeLeft(deltaX)
+                // In local space, left edge should be at mouse minus offset
+                desiredEdgeLocal = localMouse.x - mouseOffsetX
+                deltaLocal = desiredEdgeLocal - 0  // Left edge starts at 0
+                
+                // Update size
+                var newWidth = startControlsWidth - deltaLocal
+                controlsContainer.width = newWidth
+                
+                var canvasDeltaX = deltaLocal / zoomLevel
+                resizeLeft(canvasDeltaX)
             } else if (root.position === "right") {
-                resizeRight(deltaX)
+                // In local space, right edge should be at mouse minus offset
+                desiredEdgeLocal = localMouse.x - mouseOffsetX
+                deltaLocal = desiredEdgeLocal - startControlsWidth
+                
+                // Update size
+                var newWidth = startControlsWidth + deltaLocal
+                controlsContainer.width = newWidth
+                
+                var canvasDeltaX = deltaLocal / zoomLevel
+                resizeRight(canvasDeltaX)
             }
             
-            // Compensate for anchor movement if rotated
-            if (controlsContainer.controlsRotation !== 0 && startRotation !== 0) {
-                compensateAnchorMovement()
-            }
+            // Update position to keep anchor fixed
+            var anchorLocal = getAnchorPosition()
+            var currentAnchorWorld = controlsContainer.mapToItem(controlsContainer.parent, anchorLocal.x, anchorLocal.y)
+            var offsetX = anchorWorldX - currentAnchorWorld.x
+            var offsetY = anchorWorldY - currentAnchorWorld.y
+            controlsContainer.x += offsetX
+            controlsContainer.y += offsetY
+            
+            // Logging
+            console.log("ControlBar drag - position:", root.position)
+            console.log("  Local mouse:", localMouse.x, localMouse.y)
+            console.log("  Delta local:", deltaLocal)
+            console.log("  Controls rotation:", controlsContainer.rotation)
+            console.log("  Anchor offset:", offsetX, offsetY)
         }
+        
         
         // Resize functions for each edge
         function resizeTop(deltaY) {
@@ -379,20 +435,10 @@ Rectangle {
             }
         }
         
-        // Compensate for anchor movement during rotation
-        function compensateAnchorMovement() {
-            var anchorLocal = getAnchorPosition()
-            var currentAnchor = localToWorld(anchorLocal.x, anchorLocal.y)
-            
-            var offsetX = anchorWorldX - currentAnchor.x
-            var offsetY = anchorWorldY - currentAnchor.y
-            
-            var canvasOffsetX = offsetX / zoomLevel
-            var canvasOffsetY = offsetY / zoomLevel
-            
-            for (var i = 0; i < selectedElements.length; i++) {
-                selectedElements[i].x += canvasOffsetX
-                selectedElements[i].y += canvasOffsetY
+        onReleased: {
+            // Resume bindings
+            if (controlsContainer) {
+                controlsContainer.dragging = false
             }
         }
     }
