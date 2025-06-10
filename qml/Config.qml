@@ -18,6 +18,11 @@ QtObject {
     readonly property color controlJointCircleFill: Qt.rgba(1, 1, 1, 1.0)    // White fill
     readonly property color controlJointCircleBorder: Qt.rgba(0, 0.4, 1, 1.0) // Blue border
     
+    // Hover badge colors
+    readonly property color hoverBadgeBackgroundColor: "#2196F3"  // Blue
+    readonly property color hoverBadgeBorderColor: "#1976D2"      // Darker blue
+    readonly property color hoverBadgeTextColor: "#FFFFFF"        // White
+    
     // Sizes
     readonly property int defaultElementWidth: 200
     readonly property int defaultElementHeight: 150
@@ -38,6 +43,7 @@ QtObject {
     readonly property int zControls: 1000
     readonly property int zSelection: 2000
     readonly property int zPanels: 3000
+    readonly property int zHoverBadge: 4000
     
     // Canvas
     readonly property int canvasWidth: 4000

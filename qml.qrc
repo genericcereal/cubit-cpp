@@ -13,6 +13,7 @@
         <file>qml/components/ResizeHandle.qml</file>
         <file>qml/components/SelectionBox.qml</file>
         <file>qml/components/HoverIndicator.qml</file>
+        <file>qml/components/HoverBadge.qml</file>
         <file>qml/components/Controls.qml</file>
         <file>qml/panels/DetailPanel.qml</file>
         <file>qml/panels/ElementList.qml</file>
