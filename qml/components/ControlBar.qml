@@ -75,6 +75,8 @@ Rectangle {
         property real startControlsHeight: 0
         property real mouseOffsetX: 0
         property real mouseOffsetY: 0
+        property real startMouseGlobalX: 0
+        property real startMouseGlobalY: 0
         
         // Get the anchor edge (opposite edge that stays fixed during resize)
         function getAnchorPosition() {
@@ -97,6 +99,8 @@ Rectangle {
             startCanvasX = canvasPos.x
             startCanvasY = canvasPos.y
             startRotation = controlsContainer.controlsRotation
+            startMouseGlobalX = globalPos.x
+            startMouseGlobalY = globalPos.y
             
             // Calculate anchor point in world coordinates
             var anchorLocal = getAnchorPosition()
@@ -105,7 +109,8 @@ Rectangle {
             anchorWorldY = anchorWorld.y
             
             // Store initial mouse position in container-local coords
-            var localMouse = controlsContainer.mapFromItem(controlsContainer.parent, globalPos.x, globalPos.y)
+            // Map from the bar to the container
+            var localMouse = mapToItem(controlsContainer, mouse.x, mouse.y)
             startLocalX = localMouse.x
             startLocalY = localMouse.y
             
@@ -154,22 +159,36 @@ Rectangle {
             
             // Get current mouse position in both coordinate systems
             var globalPos = mapToItem(controlsContainer.parent, mouse.x, mouse.y)
-            var localMouse = controlsContainer.mapFromItem(controlsContainer.parent, globalPos.x, globalPos.y)
+            var localMouse = mapToItem(controlsContainer, mouse.x, mouse.y)
             
             // Calculate where the edge should be in local space
             var desiredEdgeLocal = 0
             var deltaLocal = 0
             
             if (root.position === "top") {
-                // In local space, top edge should be at mouse minus offset
-                desiredEdgeLocal = localMouse.y - mouseOffsetY
-                deltaLocal = desiredEdgeLocal - 0  // Top edge starts at 0
+                // Calculate mouse movement in global coordinates
+                var mouseDeltaGlobalX = globalPos.x - startMouseGlobalX
+                var mouseDeltaGlobalY = globalPos.y - startMouseGlobalY
                 
-                // Update size and calculate canvas delta
-                var newHeight = startControlsHeight - deltaLocal
+                // Project the mouse movement onto the bar's normal direction
+                // For a top bar, the normal points up (-Y direction in local space)
+                // In global space with rotation, this normal is rotated
+                var angle = startRotation * Math.PI / 180
+                var normalX = Math.sin(angle)
+                var normalY = -Math.cos(angle)
+                
+                // Project mouse delta onto the normal (dot product)
+                var projectedDelta = mouseDeltaGlobalX * normalX + mouseDeltaGlobalY * normalY
+                
+                // Update container size (the projected delta represents how much to shrink/grow)
+                // When dragging down (positive delta), height should increase
+                var newHeight = startControlsHeight + projectedDelta
                 controlsContainer.height = newHeight
                 
-                var canvasDeltaY = deltaLocal / zoomLevel
+                // Calculate canvas delta
+                // For top edge, negative projected delta means edge moves up (Y decreases)
+                var canvasDeltaY = -projectedDelta / zoomLevel
+                
                 resizeTop(canvasDeltaY)
             } else if (root.position === "bottom") {
                 // In local space, bottom edge should be at mouse minus offset
@@ -180,18 +199,36 @@ Rectangle {
                 var newHeight = startControlsHeight + deltaLocal
                 controlsContainer.height = newHeight
                 
-                var canvasDeltaY = deltaLocal / zoomLevel
+                // When rotated, we need to account for rotation in the canvas delta calculation
+                var angle = startRotation * Math.PI / 180
+                var canvasDeltaY = deltaLocal * Math.cos(angle) / zoomLevel
+                var canvasDeltaX = -deltaLocal * Math.sin(angle) / zoomLevel
+                
                 resizeBottom(canvasDeltaY)
             } else if (root.position === "left") {
-                // In local space, left edge should be at mouse minus offset
-                desiredEdgeLocal = localMouse.x - mouseOffsetX
-                deltaLocal = desiredEdgeLocal - 0  // Left edge starts at 0
+                // Calculate mouse movement in global coordinates
+                var mouseDeltaGlobalX = globalPos.x - startMouseGlobalX
+                var mouseDeltaGlobalY = globalPos.y - startMouseGlobalY
                 
-                // Update size
-                var newWidth = startControlsWidth - deltaLocal
+                // Project the mouse movement onto the bar's normal direction
+                // For a left bar, the normal points left (-X direction in local space)
+                // In global space with rotation, this normal is rotated
+                var angle = startRotation * Math.PI / 180
+                var normalX = -Math.cos(angle)
+                var normalY = -Math.sin(angle)
+                
+                // Project mouse delta onto the normal (dot product)
+                var projectedDelta = mouseDeltaGlobalX * normalX + mouseDeltaGlobalY * normalY
+                
+                // Update container size (the projected delta represents how much to shrink/grow)
+                // When dragging right (positive delta), width should increase
+                var newWidth = startControlsWidth + projectedDelta
                 controlsContainer.width = newWidth
                 
-                var canvasDeltaX = deltaLocal / zoomLevel
+                // Calculate canvas delta
+                // For left edge, negative projected delta means edge moves left (X decreases)
+                var canvasDeltaX = -projectedDelta / zoomLevel
+                
                 resizeLeft(canvasDeltaX)
             } else if (root.position === "right") {
                 // In local space, right edge should be at mouse minus offset
@@ -202,7 +239,11 @@ Rectangle {
                 var newWidth = startControlsWidth + deltaLocal
                 controlsContainer.width = newWidth
                 
-                var canvasDeltaX = deltaLocal / zoomLevel
+                // When rotated, we need to account for rotation in the canvas delta calculation
+                var angle = startRotation * Math.PI / 180
+                var canvasDeltaX = deltaLocal * Math.cos(angle) / zoomLevel
+                var canvasDeltaY = deltaLocal * Math.sin(angle) / zoomLevel
+                
                 resizeRight(canvasDeltaX)
             }
             
@@ -214,12 +255,6 @@ Rectangle {
             controlsContainer.x += offsetX
             controlsContainer.y += offsetY
             
-            // Logging
-            console.log("ControlBar drag - position:", root.position)
-            console.log("  Local mouse:", localMouse.x, localMouse.y)
-            console.log("  Delta local:", deltaLocal)
-            console.log("  Controls rotation:", controlsContainer.rotation)
-            console.log("  Anchor offset:", offsetX, offsetY)
         }
         
         
