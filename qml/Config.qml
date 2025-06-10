@@ -14,6 +14,9 @@ QtObject {
     readonly property color controlRotationJointColor: Qt.rgba(1, 0, 0, 0.1) // Red with 10% opacity
     readonly property color controlResizeJointColor: Qt.rgba(0, 0, 1, 0.1)   // Blue with 10% opacity
     readonly property color controlInnerRectColor: Qt.rgba(1, 0.8, 0, 0.05)  // Yellow with 5% opacity
+    readonly property color controlBarLineColor: Qt.rgba(0, 0.4, 1, 1.0)     // Blue with 100% opacity
+    readonly property color controlJointCircleFill: Qt.rgba(1, 1, 1, 1.0)    // White fill
+    readonly property color controlJointCircleBorder: Qt.rgba(0, 0.4, 1, 1.0) // Blue border
     
     // Sizes
     readonly property int defaultElementWidth: 200

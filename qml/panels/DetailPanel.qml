@@ -5,6 +5,7 @@ import QtQuick.Layouts
 Rectangle {
     id: root
     color: "#ffffff"
+    antialiasing: true
     
     property var elementModel
     property var selectionManager
@@ -19,6 +20,7 @@ Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 40
             color: "#f0f0f0"
+            antialiasing: true
             
             Label {
                 anchors.centerIn: parent
@@ -33,6 +35,7 @@ Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 1
             color: "#e0e0e0"
+            antialiasing: true
         }
         
         // Content area with tabs

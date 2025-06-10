@@ -16,6 +16,7 @@ Rectangle {
     border.color: "#004499"
     border.width: 1
     radius: 2
+    antialiasing: true
     
     // Position the handle based on element bounds and handle position
     x: {

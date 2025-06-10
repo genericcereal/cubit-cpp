@@ -136,6 +136,25 @@ Item {
                 }
             }
             
+            // Decorative line through the middle of the bar
+            Rectangle {
+                color: Config.controlBarLineColor
+                anchors.centerIn: parent
+                width: {
+                    switch(index) {
+                        case 0: case 2: return parent.width - 4 // horizontal bars
+                        case 1: case 3: return 1 // vertical bars
+                    }
+                }
+                height: {
+                    switch(index) {
+                        case 0: case 2: return 1 // horizontal bars
+                        case 1: case 3: return parent.height - 4 // vertical bars
+                    }
+                }
+                antialiasing: true
+            }
+            
             MouseArea {
                 anchors.fill: parent
                 cursorShape: root.getEdgeCursor(index)
@@ -320,33 +339,33 @@ Item {
         }
     }
     
-    // Rotation Joints (blue, 30x30, behind resize joints)
+    // Rotation Joints (red, 20x20, behind resize joints)
     Repeater {
         model: 4
         
         Rectangle {
             id: rotationJoint
-            width: 30
-            height: 30
+            width: 20
+            height: 20
             color: Config.controlRotationJointColor
             antialiasing: true
             z: 1
             
             x: {
                 switch(index) {
-                    case 0: return -15 // top-left
-                    case 1: return parent.width - 15 // top-right
-                    case 2: return parent.width - 15 // bottom-right
-                    case 3: return -15 // bottom-left
+                    case 0: return -15 // top-left: bottom-right corner at (5, 5) to overlap resize joint
+                    case 1: return parent.width - 5 // top-right: bottom-left corner at (parent.width - 5, 5) to overlap resize joint
+                    case 2: return parent.width - 5 // bottom-right: top-left corner at (parent.width - 5, parent.height - 5) to overlap resize joint
+                    case 3: return -15 // bottom-left: top-right corner at (5, parent.height - 5) to overlap resize joint
                 }
             }
             
             y: {
                 switch(index) {
-                    case 0: return -15 // top-left
-                    case 1: return -15 // top-right
-                    case 2: return parent.height - 15 // bottom-right
-                    case 3: return parent.height - 15 // bottom-left
+                    case 0: return -15 // top-left: bottom-right corner at (5, 5) to overlap resize joint
+                    case 1: return -15 // top-right: bottom-left corner at (parent.width - 5, 5) to overlap resize joint
+                    case 2: return parent.height - 5 // bottom-right: top-left corner at (parent.width - 5, parent.height - 5) to overlap resize joint
+                    case 3: return parent.height - 5 // bottom-left: top-right corner at (5, parent.height - 5) to overlap resize joint
                 }
             }
             
@@ -429,6 +448,18 @@ Item {
             }
             
             property int cornerIndex: index
+            
+            // Decorative circle inside the resize joint
+            Rectangle {
+                anchors.centerIn: parent
+                width: 10
+                height: 10
+                radius: 5
+                color: Config.controlJointCircleFill
+                border.color: Config.controlJointCircleBorder
+                border.width: 1
+                antialiasing: true
+            }
             
             MouseArea {
                 anchors.fill: parent
