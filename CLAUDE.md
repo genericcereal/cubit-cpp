@@ -31,6 +31,30 @@ qmake6 -o Makefile qt-hello.pro
 
 The controls system is designed to move, resize, and rotate the current selection. It should be implemented in the viewport overlay - the controls surface should scale with canvas zooms, but the individual control elements (bars, joints) should always stay a fixed size.
 
+## Controls Implementation Summary
+
+The controls system consists of:
+
+**Visual Components:**
+- **Surface**: Transparent yellow (0.05 opacity) bounding box for move operations
+- **Bars**: 4 edge handles, 10px wide/tall, transparent red (0.2 opacity), overlap surface by 5px
+- **Resize Joints**: 4 corner handles, 10x10px yellow squares (0.2 opacity)
+- **Rotation Joints**: 4 corner handles, 30x30px blue squares (0.2 opacity), positioned behind resize joints
+
+**Key Behaviors:**
+- **Move**: Drag surface to move selection
+- **Resize**: Drag bars/joints with dynamic transform origin (opposite edge becomes anchor)
+- **Rotate**: Drag rotation joints to rotate around center
+- **Click-to-select**: Click surface with multiple selections to select single element beneath cursor
+
+**Technical Implementation:**
+- Uses rotation-aware coordinate transformation (viewport → local control space)
+- Index-based elements (0-3) instead of hardcoded positions
+- Handles edge flipping for both single and multiple selections
+- Maintains minimum 1x1 pixel size during resize
+- Components scale with canvas zoom, but individual control elements maintain fixed size
+- Implemented in Controls.qml within ViewportOverlay.qml
+
 ## Control Components
 
 Control components consist of bars, joints, and a surface. Controls should ONLY be displayed when there's an active selection or during frame creation.
