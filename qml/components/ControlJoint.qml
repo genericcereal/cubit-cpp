@@ -11,14 +11,23 @@ Rectangle {
     // Position: "top-left", "top-right", "bottom-left", "bottom-right"
     property string position: "top-left"
     
-    // Parent controls container reference
-    property var controlsContainer: null
+    // Parent controls container reference - find it from the parent hierarchy
+    property var controlsContainer: parent && parent.parent ? parent.parent : null
     property var selectedElements: []
     property real zoomLevel: 1.0
     
-    // The viewport overlay root is always 3 levels up from the joint
-    // ControlJoint -> Item (joints container) -> controlsContainer -> ViewportOverlay
-    property Item viewportRoot: parent && parent.parent && parent.parent.parent ? parent.parent.parent : null
+    // The viewport overlay root - we need to find it properly
+    property Item viewportRoot: {
+        var p = parent
+        while (p) {
+            if (p.objectName === "viewportOverlay" || (p.canvasView !== undefined && p.flickable !== undefined)) {
+                return p
+            }
+            p = p.parent
+        }
+        return null
+    }
+    
     
     // Bounding box properties
     property real selectionBoundingX: 0
@@ -125,7 +134,7 @@ Rectangle {
         
         // Rotation handling
         function handleRotationPress(mouse) {
-            if (!controlsContainer) return
+            if (!controlsContainer || !controlsContainer.parent) return
             
             startControlsRotation = controlsContainer.controlsRotation
             
@@ -166,9 +175,9 @@ Rectangle {
         
         // Resize handling
         function handleResizePress(mouse) {
-            if (!controlsContainer) return
+            if (!controlsContainer || !controlsContainer.parent) return
             
-            var globalPos = mapToItem(viewportRoot, mouse.x, mouse.y)
+            var globalPos = mapToItem(controlsContainer.parent, mouse.x, mouse.y)
             var canvasPos = controlsContainer.viewportToCanvas(globalPos.x, globalPos.y)
             startCanvasX = canvasPos.x
             startCanvasY = canvasPos.y
