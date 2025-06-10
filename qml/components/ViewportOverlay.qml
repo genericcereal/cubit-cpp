@@ -82,23 +82,60 @@ Item {
         // Controls rotation angle
         property real controlsRotation: 0
         
+        // Flag to pause bindings during drag
+        property bool dragging: false
+        onDraggingChanged: console.log("controlsContainer.dragging changed to:", dragging)
+        
         // Position and size based on selection bounding box
         property real controlX: (selectionBoundingX - root.canvasMinX) * zoomLevel - (flickable ? flickable.contentX : 0)
         property real controlY: (selectionBoundingY - root.canvasMinY) * zoomLevel - (flickable ? flickable.contentY : 0)
         property real controlWidth: selectionBoundingWidth * zoomLevel
         property real controlHeight: selectionBoundingHeight * zoomLevel
         
+        onControlXChanged: console.log("controlX changed:", controlX, "dragging:", dragging)
+        onControlYChanged: console.log("controlY changed:", controlY, "dragging:", dragging)
+        onControlWidthChanged: console.log("controlWidth changed:", controlWidth, "dragging:", dragging)
+        onControlHeightChanged: console.log("controlHeight changed:", controlHeight, "dragging:", dragging)
+        
+        // Initialize position and size
         x: controlX
         y: controlY
         width: controlWidth
         height: controlHeight
         
-        // Apply rotation around center
-        transform: Rotation {
-            origin.x: controlsContainer.width / 2
-            origin.y: controlsContainer.height / 2
-            angle: controlsContainer.controlsRotation
+        // Use Binding elements to allow pausing during drag
+        Binding {
+            target: controlsContainer
+            property: "x"
+            value: controlX
+            when: !controlsContainer.dragging
         }
+        
+        Binding {
+            target: controlsContainer
+            property: "y"
+            value: controlY
+            when: !controlsContainer.dragging
+        }
+        
+        // Pause size bindings during drag too
+        Binding {
+            target: controlsContainer
+            property: "width"
+            value: controlWidth
+            when: !controlsContainer.dragging
+        }
+        
+        Binding {
+            target: controlsContainer
+            property: "height"
+            value: controlHeight
+            when: !controlsContainer.dragging
+        }
+        
+        // Let QML handle rotation pivot naturally at center
+        transformOrigin: Item.Center
+        rotation: controlsRotation
         
         // Helper function to convert viewport coordinates to canvas coordinates
         function viewportToCanvas(viewX, viewY) {
