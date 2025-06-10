@@ -53,6 +53,7 @@ Item {
     Rectangle {
         anchors.fill: parent
         color: "#f5f5f5"
+        antialiasing: true
     }
     
     // Main canvas flickable area

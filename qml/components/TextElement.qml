@@ -26,6 +26,7 @@ Item {
         border.width: selected ? 2 : 0
         visible: selected
         z: 1000
+        antialiasing: true
     }
     
     // Text visual representation

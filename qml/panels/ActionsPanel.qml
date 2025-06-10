@@ -8,6 +8,7 @@ Rectangle {
     height: 50
     radius: 8
     color: Qt.rgba(0, 0, 0, 0.8)
+    antialiasing: true
     
     signal modeChanged(string mode)
     
@@ -40,6 +41,7 @@ Rectangle {
             background: Rectangle {
                 color: parent.checked ? "#0066cc" : "transparent"
                 radius: 4
+                antialiasing: true
             }
             
             onClicked: {
@@ -69,6 +71,7 @@ Rectangle {
             background: Rectangle {
                 color: parent.checked ? "#0066cc" : "transparent"
                 radius: 4
+                antialiasing: true
             }
             
             onClicked: {
@@ -98,6 +101,7 @@ Rectangle {
             background: Rectangle {
                 color: parent.checked ? "#0066cc" : "transparent"
                 radius: 4
+                antialiasing: true
             }
             
             onClicked: {
@@ -127,6 +131,7 @@ Rectangle {
             background: Rectangle {
                 color: parent.checked ? "#0066cc" : "transparent"
                 radius: 4
+                antialiasing: true
             }
             
             onClicked: {
@@ -156,6 +161,7 @@ Rectangle {
             background: Rectangle {
                 color: parent.checked ? "#0066cc" : "transparent"
                 radius: 4
+                antialiasing: true
             }
             
             onClicked: {

@@ -17,6 +17,7 @@ ScrollView {
             width: listView.width
             height: 40
             color: model.selected ? "#e3f2fd" : (mouseArea.containsMouse ? "#f5f5f5" : "#ffffff")
+            antialiasing: true
             
             RowLayout {
                 anchors.fill: parent
@@ -35,6 +36,7 @@ ScrollView {
                             default: return "#757575"
                         }
                     }
+                    antialiasing: true
                 }
                 
                 Label {

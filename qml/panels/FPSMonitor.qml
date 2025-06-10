@@ -7,6 +7,7 @@ Rectangle {
     height: 30
     radius: 4
     color: Qt.rgba(0, 0, 0, 0.7)
+    antialiasing: true
     
     property int frameCount: 0
     property real fps: 0

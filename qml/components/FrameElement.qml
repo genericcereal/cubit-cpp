@@ -27,6 +27,7 @@ Item {
         color: "#E6F3FF"  // Light blue
         border.width: 0
         radius: frameElement ? frameElement.borderRadius : 0
+        antialiasing: true
         
         // Content container for child elements
         Item {
