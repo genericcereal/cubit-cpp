@@ -4,6 +4,10 @@ import Cubit.UI 1.0
 Item {
     id: root
     
+    // Start with 0 size to ensure controls are not visible until properly initialized
+    width: 0
+    height: 0
+    
     property real controlX: 0
     property real controlY: 0
     property real controlWidth: 100
@@ -22,10 +26,7 @@ Item {
     property bool widthFlipped: controlWidth < 0
     property bool heightFlipped: controlHeight < 0
     
-    x: controlX
-    y: controlY
-    width: Math.abs(controlWidth)
-    height: Math.abs(controlHeight)
+    // Visual properties are set by parent, not bound to control properties
     rotation: controlRotation
     transformOrigin: Item.Center
     
@@ -58,14 +59,6 @@ Item {
         color: Config.controlInnerRectColor
         antialiasing: true
         
-        // Flip the surface visually if dimensions are negative
-        transform: Scale {
-            xScale: widthFlipped ? -1 : 1
-            yScale: heightFlipped ? -1 : 1
-            origin.x: width / 2
-            origin.y: height / 2
-        }
-        
         MouseArea {
             id: surfaceMouseArea
             anchors.fill: parent
@@ -77,7 +70,7 @@ Item {
                 // Store mouse position in parent coordinates to handle rotation correctly
                 var mouseInParent = mapToItem(root.parent, mouse.x, mouse.y)
                 root.dragStartPoint = mouseInParent
-                root.dragStartControlPos = Qt.point(root.x, root.y)
+                root.dragStartControlPos = Qt.point(root.controlX, root.controlY)
                 mouse.accepted = true
             }
             
@@ -92,8 +85,10 @@ Item {
                     var mouseInParent = mapToItem(root.parent, mouse.x, mouse.y)
                     var deltaX = mouseInParent.x - root.dragStartPoint.x
                     var deltaY = mouseInParent.y - root.dragStartPoint.y
-                    root.x = root.dragStartControlPos.x + deltaX
-                    root.y = root.dragStartControlPos.y + deltaY
+                    
+                    // Update control position in canvas coordinates
+                    root.controlX = root.dragStartControlPos.x + deltaX / root.parent.zoomLevel
+                    root.controlY = root.dragStartControlPos.y + deltaY / root.parent.zoomLevel
                 }
             }
         }
@@ -311,11 +306,15 @@ Item {
                             break
                     }
                     
-                    // Update control properties
-                    root.controlWidth = newWidth
-                    root.controlHeight = newHeight
-                    root.x = centerX - Math.abs(newWidth) / 2
-                    root.y = centerY - Math.abs(newHeight) / 2
+                    // Convert from viewport to canvas coordinates
+                    var viewportX = centerX - Math.abs(newWidth) / 2
+                    var viewportY = centerY - Math.abs(newHeight) / 2
+                    
+                    // Update control properties in canvas coordinates
+                    root.controlWidth = newWidth / root.parent.zoomLevel
+                    root.controlHeight = newHeight / root.parent.zoomLevel
+                    root.controlX = viewportX / root.parent.zoomLevel + root.parent.canvasMinX + root.parent.flickable.contentX / root.parent.zoomLevel
+                    root.controlY = viewportY / root.parent.zoomLevel + root.parent.canvasMinY + root.parent.flickable.contentY / root.parent.zoomLevel
                 }
             }
         }
@@ -368,7 +367,7 @@ Item {
                     )
                     startMousePos = mapToItem(root.parent, mouse.x, mouse.y)
                     startAngle = Math.atan2(startMousePos.y - centerPoint.y, startMousePos.x - centerPoint.x) * 180 / Math.PI
-                    root.dragStartRotation = root.rotation
+                    root.dragStartRotation = root.controlRotation
                     mouse.accepted = true
                 }
                 
@@ -392,7 +391,7 @@ Item {
                         while (deltaAngle > 180) deltaAngle -= 360
                         while (deltaAngle < -180) deltaAngle += 360
                         
-                        root.rotation = root.dragStartRotation + deltaAngle
+                        root.controlRotation = root.dragStartRotation + deltaAngle
                     }
                 }
             }
@@ -586,11 +585,15 @@ Item {
                     if (proj2 < 0) newHeight = -Math.abs(newHeight)
                     else newHeight = Math.abs(newHeight)
                     
-                    // Update control properties
-                    root.controlWidth = newWidth
-                    root.controlHeight = newHeight
-                    root.x = centerX - Math.abs(newWidth) / 2
-                    root.y = centerY - Math.abs(newHeight) / 2
+                    // Convert from viewport to canvas coordinates
+                    var viewportX = centerX - Math.abs(newWidth) / 2
+                    var viewportY = centerY - Math.abs(newHeight) / 2
+                    
+                    // Update control properties in canvas coordinates
+                    root.controlWidth = newWidth / root.parent.zoomLevel
+                    root.controlHeight = newHeight / root.parent.zoomLevel
+                    root.controlX = viewportX / root.parent.zoomLevel + root.parent.canvasMinX + root.parent.flickable.contentX / root.parent.zoomLevel
+                    root.controlY = viewportY / root.parent.zoomLevel + root.parent.canvasMinY + root.parent.flickable.contentY / root.parent.zoomLevel
                 }
             }
         }
