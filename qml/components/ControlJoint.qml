@@ -269,59 +269,82 @@ Rectangle {
         function handleResizeDrag(mouse) {
             if (!controlsContainer) return
             
-            // Get current mouse position in both coordinate systems
+            // Get current mouse position in global coordinates
             var globalPos = mapToItem(controlsContainer.parent, mouse.x, mouse.y)
-            var localMouse = controlsContainer.mapFromItem(controlsContainer.parent, globalPos.x, globalPos.y)
             
-            // Calculate new dimensions based on which corner is being dragged in local space
+            // Calculate the desired corner position in global space
+            var desiredCornerX = globalPos.x - mouseOffsetX * zoomLevel
+            var desiredCornerY = globalPos.y - mouseOffsetY * zoomLevel
+            
+            // Calculate new dimensions and position based on which corner is being dragged
+            var newX = startControlsX
+            var newY = startControlsY
             var newWidth = startControlsWidth
             var newHeight = startControlsHeight
-            var deltaX = 0
-            var deltaY = 0
             
             switch(root.position) {
                 case "top-left":
-                    // Mouse position determines top-left corner in local space
-                    var desiredX = localMouse.x - mouseOffsetX
-                    var desiredY = localMouse.y - mouseOffsetY
-                    deltaX = desiredX - 0
-                    deltaY = desiredY - 0
-                    newWidth = startControlsWidth - deltaX
-                    newHeight = startControlsHeight - deltaY
+                    // Top-left corner moves to desired position, bottom-right stays at anchor
+                    newX = desiredCornerX
+                    newY = desiredCornerY
+                    newWidth = anchorWorldX - desiredCornerX
+                    newHeight = anchorWorldY - desiredCornerY
                     break
                 case "top-right":
-                    // Mouse position determines top-right corner in local space
-                    var desiredX = localMouse.x - mouseOffsetX
-                    var desiredY = localMouse.y - mouseOffsetY
-                    deltaX = desiredX - startControlsWidth
-                    deltaY = desiredY - 0
-                    newWidth = startControlsWidth + deltaX
-                    newHeight = startControlsHeight - deltaY
+                    // Top-right corner moves to desired position, bottom-left stays at anchor
+                    newY = desiredCornerY
+                    newWidth = desiredCornerX - anchorWorldX
+                    newHeight = anchorWorldY - desiredCornerY
                     break
                 case "bottom-right":
-                    // Mouse position determines bottom-right corner in local space
-                    var desiredX = localMouse.x - mouseOffsetX
-                    var desiredY = localMouse.y - mouseOffsetY
-                    deltaX = desiredX - startControlsWidth
-                    deltaY = desiredY - startControlsHeight
-                    newWidth = startControlsWidth + deltaX
-                    newHeight = startControlsHeight + deltaY
+                    // Bottom-right corner moves to desired position, top-left stays at anchor
+                    newWidth = desiredCornerX - anchorWorldX
+                    newHeight = desiredCornerY - anchorWorldY
                     break
                 case "bottom-left":
-                    // Mouse position determines bottom-left corner in local space
-                    var desiredX = localMouse.x - mouseOffsetX
-                    var desiredY = localMouse.y - mouseOffsetY
-                    deltaX = desiredX - 0
-                    deltaY = desiredY - startControlsHeight
-                    newWidth = startControlsWidth - deltaX
-                    newHeight = startControlsHeight + deltaY
+                    // Bottom-left corner moves to desired position, top-right stays at anchor
+                    newX = desiredCornerX
+                    newWidth = anchorWorldX - desiredCornerX
+                    newHeight = desiredCornerY - anchorWorldY
                     break
             }
             
-            // Convert to canvas space
-            var canvasScale = 1.0 / zoomLevel
-            var canvasDeltaX = deltaX * canvasScale
-            var canvasDeltaY = deltaY * canvasScale
+            // Apply minimum size constraints and handle flipping
+            if (newWidth < 1) {
+                // Handle horizontal flip
+                switch(root.position) {
+                    case "top-left":
+                    case "bottom-left":
+                        newX = anchorWorldX - 1
+                        break
+                    case "top-right":
+                    case "bottom-right":
+                        newX = anchorWorldX
+                        break
+                }
+                newWidth = 1
+            }
+            
+            if (newHeight < 1) {
+                // Handle vertical flip
+                switch(root.position) {
+                    case "top-left":
+                    case "top-right":
+                        newY = anchorWorldY - 1
+                        break
+                    case "bottom-left":
+                    case "bottom-right":
+                        newY = anchorWorldY
+                        break
+                }
+                newHeight = 1
+            }
+            
+            // Calculate deltas for element updates
+            var deltaX = (newX - startControlsX) / zoomLevel
+            var deltaY = (newY - startControlsY) / zoomLevel
+            var deltaWidth = (newWidth - startControlsWidth) / zoomLevel
+            var deltaHeight = (newHeight - startControlsHeight) / zoomLevel
             
             // Update elements
             if (selectedElements.length === 1) {
@@ -331,66 +354,58 @@ Rectangle {
                 
                 switch(root.position) {
                     case "top-left":
-                        element.x = startState.x + canvasDeltaX
-                        element.y = startState.y + canvasDeltaY
-                        element.width = startState.width - canvasDeltaX
-                        element.height = startState.height - canvasDeltaY
+                        element.x = startState.x + deltaX
+                        element.y = startState.y + deltaY
+                        element.width = startState.width - deltaX
+                        element.height = startState.height - deltaY
                         break
                     case "top-right":
-                        element.y = startState.y + canvasDeltaY
-                        element.width = startState.width + canvasDeltaX
-                        element.height = startState.height - canvasDeltaY
+                        element.y = startState.y + deltaY
+                        element.width = startState.width + deltaWidth
+                        element.height = startState.height - deltaY
                         break
                     case "bottom-right":
-                        element.width = startState.width + canvasDeltaX
-                        element.height = startState.height + canvasDeltaY
+                        element.width = startState.width + deltaWidth
+                        element.height = startState.height + deltaHeight
                         break
                     case "bottom-left":
-                        element.x = startState.x + canvasDeltaX
-                        element.width = startState.width - canvasDeltaX
-                        element.height = startState.height + canvasDeltaY
+                        element.x = startState.x + deltaX
+                        element.width = startState.width - deltaX
+                        element.height = startState.height + deltaHeight
                         break
                 }
             } else {
-                // For multiple selection, we need to pass scale factors
-                var scaleX = newWidth / startControlsWidth  
-                var scaleY = newHeight / startControlsHeight
+                // For multiple selection, calculate position-based deltas in canvas space
+                var canvasDeltaX = 0
+                var canvasDeltaY = 0
+                
+                switch(root.position) {
+                    case "top-left":
+                        canvasDeltaX = deltaX
+                        canvasDeltaY = deltaY
+                        break
+                    case "top-right":
+                        canvasDeltaX = 0
+                        canvasDeltaY = deltaY
+                        break
+                    case "bottom-right":
+                        canvasDeltaX = 0
+                        canvasDeltaY = 0
+                        break
+                    case "bottom-left":
+                        canvasDeltaX = deltaX
+                        canvasDeltaY = 0
+                        break
+                }
+                
                 handleMultipleElementResize(canvasDeltaX, canvasDeltaY)
             }
             
-            // Update controls size
+            // Update controls - direct assignment, no incremental changes
+            controlsContainer.x = newX
+            controlsContainer.y = newY
             controlsContainer.width = newWidth
             controlsContainer.height = newHeight
-            
-            // Update position to keep anchor fixed
-            var anchorLocal
-            switch(root.position) {
-                case "top-left":
-                    anchorLocal = Qt.point(controlsContainer.width, controlsContainer.height)
-                    break
-                case "top-right":
-                    anchorLocal = Qt.point(0, controlsContainer.height)
-                    break
-                case "bottom-right":
-                    anchorLocal = Qt.point(0, 0)
-                    break
-                case "bottom-left":
-                    anchorLocal = Qt.point(controlsContainer.width, 0)
-                    break
-            }
-            
-            var currentAnchorWorld = controlsContainer.mapToItem(controlsContainer.parent, anchorLocal.x, anchorLocal.y)
-            var offsetX = anchorWorldX - currentAnchorWorld.x
-            var offsetY = anchorWorldY - currentAnchorWorld.y
-            controlsContainer.x += offsetX
-            controlsContainer.y += offsetY
-            
-            // Logging
-            console.log("ControlJoint resize - position:", root.position)
-            console.log("  Local mouse:", localMouse.x, localMouse.y)
-            console.log("  Delta local:", deltaX, deltaY)
-            console.log("  Controls rotation:", controlsContainer.rotation)
-            console.log("  Anchor offset:", offsetX, offsetY)
         }
         
         

@@ -84,18 +84,12 @@ Item {
         
         // Flag to pause bindings during drag
         property bool dragging: false
-        onDraggingChanged: console.log("controlsContainer.dragging changed to:", dragging)
         
         // Position and size based on selection bounding box
         property real controlX: (selectionBoundingX - root.canvasMinX) * zoomLevel - (flickable ? flickable.contentX : 0)
         property real controlY: (selectionBoundingY - root.canvasMinY) * zoomLevel - (flickable ? flickable.contentY : 0)
         property real controlWidth: selectionBoundingWidth * zoomLevel
         property real controlHeight: selectionBoundingHeight * zoomLevel
-        
-        onControlXChanged: console.log("controlX changed:", controlX, "dragging:", dragging)
-        onControlYChanged: console.log("controlY changed:", controlY, "dragging:", dragging)
-        onControlWidthChanged: console.log("controlWidth changed:", controlWidth, "dragging:", dragging)
-        onControlHeightChanged: console.log("controlHeight changed:", controlHeight, "dragging:", dragging)
         
         // Initialize position and size
         x: controlX
