@@ -18,6 +18,11 @@ namespace Config {
     constexpr const char* CONTROL_JOINT_CIRCLE_FILL = "rgba(255, 255, 255, 1.0)"; // White fill
     constexpr const char* CONTROL_JOINT_CIRCLE_BORDER = "rgba(0, 100, 255, 1.0)"; // Blue border
     
+    // Hover badge colors
+    constexpr const char* HOVER_BADGE_BACKGROUND_COLOR = "#2196F3";  // Blue
+    constexpr const char* HOVER_BADGE_BORDER_COLOR = "#1976D2";      // Darker blue
+    constexpr const char* HOVER_BADGE_TEXT_COLOR = "#FFFFFF";        // White
+    
     // Sizes
     constexpr int DEFAULT_ELEMENT_WIDTH = 200;
     constexpr int DEFAULT_ELEMENT_HEIGHT = 150;
@@ -38,6 +43,7 @@ namespace Config {
     constexpr int Z_CONTROLS = 1000;
     constexpr int Z_SELECTION = 2000;
     constexpr int Z_PANELS = 3000;
+    constexpr int Z_HOVER_BADGE = 4000;
     
     // Canvas
     constexpr int CANVAS_WIDTH = 4000;

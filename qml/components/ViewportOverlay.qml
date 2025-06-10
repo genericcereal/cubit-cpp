@@ -306,4 +306,20 @@ Item {
         canvasMinX: root.canvasMinX
         canvasMinY: root.canvasMinY
     }
+    
+    // Hover badge that shows dimensions during resize or rotation angle during rotate
+    HoverBadge {
+        id: hoverBadge
+        parent: root
+        visible: selectionControls.dragging && (selectionControls.dragMode.startsWith("resize-") || selectionControls.dragMode === "rotate")
+        text: {
+            if (selectionControls.dragMode === "rotate") {
+                return Math.round(selectionControls.controlRotation) + "°"
+            } else {
+                return Math.round(Math.abs(selectionControls.controlWidth)) + " x " + Math.round(Math.abs(selectionControls.controlHeight))
+            }
+        }
+        mousePosition: selectionControls.lastMousePosition
+        z: Config.zHoverBadge
+    }
 }
