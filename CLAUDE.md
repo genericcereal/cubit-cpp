@@ -5,9 +5,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Terminology
 
 - **Selection Box/Rectangle**: The blue rectangle that appears when dragging to select multiple elements
-- **Controls**: The resize handles that appear on selected elements, consisting of:
-  - **Bars**: The lines/borders around selected elements that can be dragged to resize
-  - **Joints**: The corner handles (8x8 squares) that can be dragged to resize
 
 ## Building and Running
 
@@ -27,55 +24,150 @@ make
 ### Regenerating Makefile from Qt Project
 
 ```bash
-qmake -o Makefile qt-hello.pro
+qmake6 -o Makefile qt-hello.pro
 ```
 
-## Architecture
+### CONTROLS
 
-This project is a Qt-based C++ application with a layered UI architecture:
+The controls system is designed to move, resize, and rotate the current selection. It should be implemented in the viewport overlay - the controls surface should scale with canvas zooms, but the individual control elements (bars, joints) should always stay a fixed size.
 
-### Controls System Architecture
+## Control Components
 
-The controls system is designed to support both current resize functionality and future rotation features:
+Control components consist of bars, joints, and a surface. Controls should ONLY be displayed when there's an active selection or during frame creation.
 
-#### Control Elements
+- **Bars**: The rectangles around selected elements/frames that can be dragged to resize the selection. Bars should be 10px wide, 100% height for vertical bars, and 10px tall, 100% wide for horizontal bars. Should be transparent red (0.2 opacity). Bars should overlap with the selection by 5px (so that 5px overlaps with the Control Surface, and 5px overlaps on the canvas)
+- **Joints**:
+  - **Resize joints** Corner handles that appear at the intersection of bars. Should be a 10px square and yellow (0.2 opacity), fits at the intersection of a vertical, horizontal joint.
+  - **Rotation joints** Rotate the selection. When a rotation operation occurs, the controls should follow the dragged rotation joint. Should appear behind resize joints, and should be larger - 30px square and blue (0.2 opacity)
+- **Surface**: The bounding box of all selected elements. Should be transparent yellow (0.2 opacity).
 
-- **Bars**: The lines/borders around selected elements that can be dragged to resize
-- **Joints**: Corner handles that appear at the intersection of bars
-  - **Resize joints** (yellow, smaller): Currently decorative, will handle corner resizing
-  - **Rotation joints** (blue, larger): Currently decorative, will handle rotation
+## Move Behavior
 
-#### Resize Behavior
+- **General behavior**: When the user drags the control surface, the surface should follow the cursor and the selection moves with the control surface
+- **Click to select**: When a user clicks on the control surface when multiple elements are selected, the item immediately below the users cursor should become single selected. We need to make a distinction between drag and click for this use case.
+
+## Resize Behavior
 
 - **Single Selection**: Direct manipulation of the element
 - **Multiple Selection**: Proportional scaling of all selected elements
-- **Edge Flipping**: When a bar is dragged past its opposite bar:
+- **Edge Flipping**: When a bar is dragged past its opposite bar (or a resize joint is dragged past an opposide edge, corner):
   - Single selection: The element flips and continues resizing
   - Multiple selection: All elements maintain their relative positions but flip as a group
+- **Transform Origin**: The transform origin should update to be the opposite of the active bar. For example, if the right bar is dragged, the transform origin of the controls should be on the left left. The same logic should apply to resize joints - if the top left corner is dragged, the bottom right corner should be the transform origin.
+- **Bars and joints functionally depend on rotation**: Controls use rotation-aware logic where bars and joints adapt their behavior based on the current rotation angle. For example, if the controls are rotated 180 degrees, the top bar will functionally become the bottom bar. This is implemented using coordinate transformation matrices to convert mouse deltas to local control space.
 
-#### Design Principles for Future Rotation Support
+## Rotation Behavior
 
-1. **Edge-Agnostic Logic**: Controls should work based on "start/end" edges rather than "top/bottom/left/right"
+1. **Rotation-Aware Implementation**: Controls use coordinate transformation to handle rotation properly:
+   - Mouse deltas are transformed from viewport space to local control space using rotation matrices
+   - Edge and corner indices are used instead of hardcoded "top/bottom/left/right" logic
+   - Mouse cursors dynamically adjust based on the effective edge/corner after rotation
 2. **Unified Behavior**: Single selection is treated as a special case of multiple selection for consistency
-3. **Transformation Pipeline**: When rotation is added, transformations will be applied in order:
-   - Calculate changes in local coordinate space
-   - Apply rotation transformation
-   - Update element properties
+3. **Transformation Pipeline**: When resizing or rotating:
+   - Mouse movements are captured in viewport/parent coordinates
+   - Deltas are transformed to local control space: `localDelta = rotate(viewportDelta, -controlRotation)`
+   - Resize operations are applied in local space
+   - Position adjustments account for rotation to maintain proper anchor points
 
-#### Implementation Notes
+## Controls Implementation Notes
 
-- Controls always render the same way regardless of selection count
-- The control overlay uses a bounding box approach for both single and multiple selections
 - Mouse interactions are handled in viewport coordinates and converted to canvas coordinates
 - Minimum element size of 1x1 pixels is enforced during all resize operations (bars can overlap)
+- Use QML transformations as much as possible (for example, use Item.Center for transformOrigin during rotation)
 
-#### Known Resize Behavior Issues
+## Controls Implementation Strategy
 
-- **Left vs Right Bar Asymmetry**: The left bar resize calculates transformations differently than the right bar
-  - Right bar correctly maintains element proportions during resize
-  - Left bar has incorrect transform origin, causing unexpected scaling behavior
-  - This affects both single and multiple selection
-- **Solution**: Both bars should use the same scaling approach - calculate scale factor based on new size vs original size, then apply uniformly
+### Architecture Overview
+
+The controls system is implemented as a separate Controls.qml component that manages all control elements (surface, bars, and joints). This component uses rotation-aware logic where all resize and movement operations are transformed to local control space, ensuring that bars and joints behave correctly regardless of rotation angle. The implementation uses:
+
+- **Index-based elements**: Bars and joints are created using Repeaters with indices (0-3) rather than named positions
+- **Coordinate transformation**: Mouse deltas are transformed from viewport to local space using rotation matrices
+- **Dynamic cursors**: Mouse cursors adjust based on the effective edge/corner after rotation
+- **Unified resize logic**: All bars use the same resize logic pattern, with behavior determined by their index
+
+### Component Structure
+
+1. **ControlsContainer** (in ViewportOverlay.qml)
+   - Main container that holds all control elements
+   - Manages control state (position, size, rotation)
+   - Handles coordinate transformations between viewport and canvas space
+   - Implements pause/resume for position bindings during drag operations
+
+2. **Control Surface**
+   - Rectangle with transparent yellow (0.05 opacity) fill
+   - Handles move operations when dragged
+   - Implements click-to-select behavior for multiple selections
+   - MouseArea covers entire surface area
+
+3. **Control Bars** (4 instances)
+   - Rectangles positioned at edges of control surface
+   - 10px wide/tall with transparent red (0.2 opacity) fill
+   - Overlap control surface by 5px on each side
+   - Each bar has its own MouseArea for drag handling
+   - Dynamic transform origin based on which bar is being dragged
+
+4. **Control Joints** (8 instances total)
+   - **Resize Joints** (4): 10x10px yellow squares at corners
+   - **Rotation Joints** (4): 30x30px blue squares behind resize joints
+   - Positioned at corners of control surface
+   - Resize joints handle proportional scaling
+   - Rotation joints handle rotation around center
+
+### Implementation Steps
+
+1. **Phase 1: Basic Structure**
+   - Create control surface with move functionality
+   - Implement coordinate transformation helpers
+   - Add visual feedback (colors, opacity)
+   - Ensure controls only appear when selection exists
+
+2. **Phase 2: Resize Bars**
+   - Implement individual bar components
+   - Add drag handlers for each edge
+   - Calculate new dimensions based on drag distance
+   - Update selected elements proportionally
+   - Handle edge flipping behavior
+
+3. **Phase 3: Resize Joints**
+   - Add corner resize joints
+   - Implement proportional corner resizing
+   - Maintain aspect ratio for single selection
+   - Scale all elements proportionally for multiple selection
+
+4. **Phase 4: Rotation Joints**
+   - Add rotation joints behind resize joints
+   - Calculate rotation angle from drag position
+   - Apply rotation to controls container
+   - Update element rotations accordingly
+
+5. **Phase 5: Advanced Behaviors**
+   - Implement click-to-select on surface
+   - Add proper state management for drag operations
+   - Ensure minimum size constraints
+   - Handle edge cases (zero size, negative dimensions)
+
+### Key Technical Considerations
+
+1. **Coordinate Systems**
+   - All mouse positions must be converted from viewport to canvas coordinates
+   - Use viewportToCanvas() helper function consistently
+   - Account for zoom level and scroll position
+
+2. **State Management**
+   - Use dragging flag to pause position bindings during operations
+   - Maintain separate states for move, resize, and rotate operations
+   - Ensure controls follow selection changes smoothly
+
+3. **Performance**
+   - Minimize property binding recalculations during drag
+   - Use Item transformations instead of manual calculations where possible
+   - Batch element updates to avoid multiple redraws
+
+4. **Visual Hierarchy**
+   - Z-ordering: Surface (bottom) → Rotation joints → Bars → Resize joints (top)
+   - Ensure proper hit testing with overlapping components
+   - Maintain consistent visual feedback across all operations
 
 ### Main Application Structure
 
@@ -248,8 +340,6 @@ qmlRegisterType<Frame>("Cubit", 1, 0, "Frame");
 qmlRegisterType<CanvasController>("Cubit", 1, 0, "CanvasController");
 ```
 
-### Migration Roadmap
-
 #### Phase 1: Foundation (2-3 weeks) - COMPLETED
 
 - [x] Set up Qt Quick project structure
@@ -336,49 +426,6 @@ All UI panels were already implemented in the qtquick directory. Updated all pan
 - [ ] Cross-platform testing
 - [ ] UI/UX refinements
 - [ ] Documentation
-
-### Key Technical Considerations
-
-**Performance Optimizations:**
-
-- Use `layer.enabled: true` for complex items
-- Implement object pooling for elements
-- Use `Loader` for on-demand component creation
-- Batch property updates with `Qt.callLater()`
-
-**Architecture Benefits:**
-
-- Declarative UI reduces code complexity
-- Better touch/mobile support
-- Hardware-accelerated rendering
-- Smoother animations and transitions
-- Easier theming and styling
-
-**Potential Challenges:**
-
-- Learning curve for QML/JavaScript
-- Different event handling model
-- Custom painting requires more work
-- WebEngineView integration complexity
-
-### Development Tools & Resources
-
-**Required Tools:**
-
-- Qt Creator with QML designer
-- QML profiler for performance
-- Gammaray for debugging
-- Qt Quick Controls 2 documentation
-
-**Recommended Libraries:**
-
-- Qt Quick Controls 2 for UI components
-- Qt Quick Shapes for custom graphics
-- Qt Quick Layouts for responsive design
-
-### Migration Notes
-
-_This section will be updated as the migration progresses with lessons learned, decisions made, and any deviations from the original plan._
 
 ### Other Notes
 
