@@ -50,7 +50,7 @@ void CanvasController::handleMousePress(qreal x, qreal y)
         m_isDragging = true;
         
         // Create element immediately for frame mode
-        if (m_mode == "frame") {
+        if (m_mode == "frame" || m_mode == "text" || m_mode == "html") {
             createElement(m_mode, x, y, 1, 1);
             // The last created element becomes the drag element
             if (m_elementModel && m_elementModel->rowCount() > 0) {
@@ -68,7 +68,7 @@ void CanvasController::handleMouseMove(qreal x, qreal y)
     if (m_dragElement) {
         if (m_mode == "select") {
             updateDrag(x, y);
-        } else if (m_mode == "frame") {
+        } else if (m_mode == "frame" || m_mode == "text" || m_mode == "html") {
             // Update frame size during creation
             qreal width = qAbs(x - m_dragStartPos.x());
             qreal height = qAbs(y - m_dragStartPos.y());
@@ -105,7 +105,7 @@ void CanvasController::handleMouseRelease(qreal x, qreal y)
             }
         }
         endDrag();
-    } else if (m_mode == "frame") {
+    } else if (m_mode == "frame" || m_mode == "text" || m_mode == "html") {
         // Finalize frame creation
         if (m_dragElement) {
             // Ensure minimum size
@@ -148,26 +148,9 @@ void CanvasController::createElement(const QString &type, qreal x, qreal y, qrea
         element = new Frame(id);
     } else if (type == "text") {
         // Create frame with text
-        Frame *frame = new Frame(id);
-        frame->setRect(QRectF(x, y, width, height));
-        m_elementModel->addElement(frame);
-        
-        int textId = m_elementModel->generateId();
-        Text *text = new Text(textId);
-        text->setParentElementId(id);
-        text->setRect(QRectF(0, 0, width, height));
-        element = text;
+        element = new Frame(id);
     } else if (type == "html") {
-        // Create frame with html
-        Frame *frame = new Frame(id);
-        frame->setRect(QRectF(x, y, width, height));
-        m_elementModel->addElement(frame);
-        
-        int htmlId = m_elementModel->generateId();
-        Html *html = new Html(htmlId);
-        html->setParentElementId(id);
-        html->setRect(QRectF(0, 0, width, height));
-        element = html;
+        element = new Frame(id);
     } else if (type == "variable") {
         element = new Variable(id);
     }
