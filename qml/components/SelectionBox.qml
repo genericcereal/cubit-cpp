@@ -6,10 +6,10 @@ Rectangle {
     id: root
     
     property var selectionBoxHandler  // Handler from canvasView
-    property real zoomLevel: 1.0
-    property var flickable: null
-    property real canvasMinX: 0
-    property real canvasMinY: 0
+    property real zoomLevel: parent.zoomLevel
+    property var flickable: parent.flickable
+    property real canvasMinX: parent.canvasMinX
+    property real canvasMinY: parent.canvasMinY
     
     visible: selectionBoxHandler && selectionBoxHandler.active
     color: "transparent"

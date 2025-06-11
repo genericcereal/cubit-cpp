@@ -1,13 +1,19 @@
 TEMPLATE = app
 TARGET = cubit-tests
-QT += quick qml testlib quickcontrols2 webenginecore webenginequick
-
-CONFIG += qt warn_on qmltestcase
+QT += quick qml testlib webenginecore webenginequick
+CONFIG += c++17 qt warn_on testcase
 
 # Include paths
 INCLUDEPATH += ../src
 
-# Source files from main project
+# Test sources
+SOURCES += \
+    test_main.cpp \
+    tst_FrameOperations.cpp \
+    tst_SelectionManager.cpp \
+    tst_ElementModel.cpp
+
+# Include the main project's source files directly
 SOURCES += \
     ../src/Element.cpp \
     ../src/Frame.cpp \
@@ -16,11 +22,11 @@ SOURCES += \
     ../src/Variable.cpp \
     ../src/CanvasController.cpp \
     ../src/ElementModel.cpp \
-    ../src/SelectionManager.cpp \
-    test_main.cpp
+    ../src/SelectionManager.cpp
 
-# Header files from main project
+# Headers
 HEADERS += \
+    QmlTestHelper.h \
     ../src/Element.h \
     ../src/Frame.h \
     ../src/Text.h \
@@ -31,16 +37,8 @@ HEADERS += \
     ../src/SelectionManager.h \
     ../src/Config.h
 
-# QML test files
-QML_FILES += \
-    tst_FrameOperations.qml
+# Import path for QML modules
+QML_IMPORT_PATH = ../qml
 
-# Resources from main project
-RESOURCES += \
-    ../qml.qrc
-
-# Import paths for QML
-QML_IMPORT_PATH += ../qml
-
-# Additional test resources
-OTHER_FILES += $$QML_FILES
+# Additional import path for finding our custom QML types
+QML_IMPORT_PATH += ..

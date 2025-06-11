@@ -1,0 +1,9 @@
+<RCC>
+    <qresource prefix="/">
+        <file>tst_SimpleFrameOperations.qml</file>
+        <file>tst_SelectionTests.qml</file>
+        <file>tst_ResizeTests.qml</file>
+        <file>tst_MovementTests.qml</file>
+        <file>tst_CanvasInteractionTests.qml</file>
+    </qresource>
+</RCC>
