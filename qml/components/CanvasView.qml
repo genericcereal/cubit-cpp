@@ -185,10 +185,7 @@ Item {
                     }
                 } else {
                     // Start element creation
-                    if (controller.mode !== "frame") {
-                        // Use visual feedback for non-frame elements
-                        creationDragHandler.startCreation(canvasPoint)
-                    }
+                   
                     controller.handleMousePress(canvasPoint.x, canvasPoint.y)
                 }
             }

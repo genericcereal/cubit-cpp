@@ -3,6 +3,7 @@
         "classes": [
             {
                 "className": "CanvasController",
+                "lineNumber": 8,
                 "methods": [
                     {
                         "access": "public",
@@ -12,6 +13,7 @@
                                 "type": "QString"
                             }
                         ],
+                        "index": 11,
                         "name": "setMode",
                         "returnType": "void"
                     },
@@ -23,6 +25,7 @@
                                 "type": "ElementModel*"
                             }
                         ],
+                        "index": 12,
                         "name": "setElementModel",
                         "returnType": "void"
                     },
@@ -34,6 +37,7 @@
                                 "type": "SelectionManager*"
                             }
                         ],
+                        "index": 13,
                         "name": "setSelectionManager",
                         "returnType": "void"
                     },
@@ -49,6 +53,7 @@
                                 "type": "qreal"
                             }
                         ],
+                        "index": 14,
                         "name": "hitTest",
                         "returnType": "Element*"
                     }
@@ -75,6 +80,7 @@
                 "signals": [
                     {
                         "access": "public",
+                        "index": 0,
                         "name": "modeChanged",
                         "returnType": "void"
                     },
@@ -86,6 +92,7 @@
                                 "type": "Element*"
                             }
                         ],
+                        "index": 1,
                         "name": "elementCreated",
                         "returnType": "void"
                     }
@@ -103,6 +110,7 @@
                                 "type": "qreal"
                             }
                         ],
+                        "index": 2,
                         "name": "handleMousePress",
                         "returnType": "void"
                     },
@@ -118,6 +126,7 @@
                                 "type": "qreal"
                             }
                         ],
+                        "index": 3,
                         "name": "handleMouseMove",
                         "returnType": "void"
                     },
@@ -133,6 +142,7 @@
                                 "type": "qreal"
                             }
                         ],
+                        "index": 4,
                         "name": "handleMouseRelease",
                         "returnType": "void"
                     },
@@ -160,6 +170,7 @@
                                 "type": "qreal"
                             }
                         ],
+                        "index": 5,
                         "name": "createElement",
                         "returnType": "void"
                     },
@@ -183,6 +194,8 @@
                                 "type": "qreal"
                             }
                         ],
+                        "index": 6,
+                        "isCloned": true,
                         "name": "createElement",
                         "returnType": "void"
                     },
@@ -202,6 +215,8 @@
                                 "type": "qreal"
                             }
                         ],
+                        "index": 7,
+                        "isCloned": true,
                         "name": "createElement",
                         "returnType": "void"
                     },
@@ -213,16 +228,19 @@
                                 "type": "QRectF"
                             }
                         ],
+                        "index": 8,
                         "name": "selectElementsInRect",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
+                        "index": 9,
                         "name": "selectAll",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
+                        "index": 10,
                         "name": "deleteSelectedElements",
                         "returnType": "void"
                     }
@@ -236,7 +254,7 @@
             }
         ],
         "inputFile": "CanvasController.h",
-        "outputRevision": 68
+        "outputRevision": 69
     },
     {
         "classes": [
@@ -255,6 +273,7 @@
                         ]
                     }
                 ],
+                "lineNumber": 8,
                 "object": true,
                 "properties": [
                     {
@@ -393,46 +412,55 @@
                 "signals": [
                     {
                         "access": "public",
+                        "index": 0,
                         "name": "nameChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
+                        "index": 1,
                         "name": "xChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
+                        "index": 2,
                         "name": "yChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
+                        "index": 3,
                         "name": "widthChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
+                        "index": 4,
                         "name": "heightChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
+                        "index": 5,
                         "name": "parentIdChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
+                        "index": 6,
                         "name": "selectedChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
+                        "index": 7,
                         "name": "elementChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
+                        "index": 8,
                         "name": "geometryChanged",
                         "returnType": "void"
                     }
@@ -446,12 +474,13 @@
             }
         ],
         "inputFile": "Element.h",
-        "outputRevision": 68
+        "outputRevision": 69
     },
     {
         "classes": [
             {
                 "className": "ElementModel",
+                "lineNumber": 6,
                 "methods": [
                     {
                         "access": "public",
@@ -461,6 +490,7 @@
                                 "type": "Element*"
                             }
                         ],
+                        "index": 5,
                         "name": "addElement",
                         "returnType": "void"
                     },
@@ -472,6 +502,7 @@
                                 "type": "int"
                             }
                         ],
+                        "index": 6,
                         "name": "removeElement",
                         "returnType": "void"
                     },
@@ -483,6 +514,8 @@
                                 "type": "int"
                             }
                         ],
+                        "index": 7,
+                        "isConst": true,
                         "name": "getElementById",
                         "returnType": "Element*"
                     },
@@ -494,21 +527,27 @@
                                 "type": "int"
                             }
                         ],
+                        "index": 8,
+                        "isConst": true,
                         "name": "elementAt",
                         "returnType": "Element*"
                     },
                     {
                         "access": "public",
+                        "index": 9,
+                        "isConst": true,
                         "name": "getAllElements",
                         "returnType": "QList<Element*>"
                     },
                     {
                         "access": "public",
+                        "index": 10,
                         "name": "clear",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
+                        "index": 11,
                         "name": "generateId",
                         "returnType": "int"
                     }
@@ -524,6 +563,7 @@
                                 "type": "Element*"
                             }
                         ],
+                        "index": 0,
                         "name": "elementAdded",
                         "returnType": "void"
                     },
@@ -535,6 +575,7 @@
                                 "type": "int"
                             }
                         ],
+                        "index": 1,
                         "name": "elementRemoved",
                         "returnType": "void"
                     },
@@ -546,11 +587,13 @@
                                 "type": "Element*"
                             }
                         ],
+                        "index": 2,
                         "name": "elementUpdated",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
+                        "index": 3,
                         "name": "elementChanged",
                         "returnType": "void"
                     }
@@ -558,6 +601,7 @@
                 "slots": [
                     {
                         "access": "private",
+                        "index": 4,
                         "name": "onElementChanged",
                         "returnType": "void"
                     }
@@ -571,12 +615,13 @@
             }
         ],
         "inputFile": "ElementModel.h",
-        "outputRevision": 68
+        "outputRevision": 69
     },
     {
         "classes": [
             {
                 "className": "Frame",
+                "lineNumber": 5,
                 "object": true,
                 "properties": [
                     {
@@ -659,26 +704,31 @@
                 "signals": [
                     {
                         "access": "public",
+                        "index": 0,
                         "name": "backgroundColorChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
+                        "index": 1,
                         "name": "borderColorChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
+                        "index": 2,
                         "name": "borderWidthChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
+                        "index": 3,
                         "name": "borderRadiusChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
+                        "index": 4,
                         "name": "clipContentChanged",
                         "returnType": "void"
                     }
@@ -692,12 +742,13 @@
             }
         ],
         "inputFile": "Frame.h",
-        "outputRevision": 68
+        "outputRevision": 69
     },
     {
         "classes": [
             {
                 "className": "Html",
+                "lineNumber": 4,
                 "object": true,
                 "properties": [
                     {
@@ -735,11 +786,13 @@
                 "signals": [
                     {
                         "access": "public",
+                        "index": 0,
                         "name": "htmlChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
+                        "index": 1,
                         "name": "urlChanged",
                         "returnType": "void"
                     }
@@ -753,12 +806,13 @@
             }
         ],
         "inputFile": "Html.h",
-        "outputRevision": 68
+        "outputRevision": 69
     },
     {
         "classes": [
             {
                 "className": "SelectionManager",
+                "lineNumber": 7,
                 "object": true,
                 "properties": [
                     {
@@ -864,6 +918,7 @@
                 "signals": [
                     {
                         "access": "public",
+                        "index": 0,
                         "name": "selectionChanged",
                         "returnType": "void"
                     },
@@ -875,6 +930,7 @@
                                 "type": "Element*"
                             }
                         ],
+                        "index": 1,
                         "name": "elementSelected",
                         "returnType": "void"
                     },
@@ -886,6 +942,7 @@
                                 "type": "Element*"
                             }
                         ],
+                        "index": 2,
                         "name": "elementDeselected",
                         "returnType": "void"
                     }
@@ -899,6 +956,7 @@
                                 "type": "Element*"
                             }
                         ],
+                        "index": 3,
                         "name": "selectElement",
                         "returnType": "void"
                     },
@@ -910,6 +968,7 @@
                                 "type": "Element*"
                             }
                         ],
+                        "index": 4,
                         "name": "deselectElement",
                         "returnType": "void"
                     },
@@ -921,6 +980,7 @@
                                 "type": "Element*"
                             }
                         ],
+                        "index": 5,
                         "name": "toggleSelection",
                         "returnType": "void"
                     },
@@ -932,6 +992,7 @@
                                 "type": "Element*"
                             }
                         ],
+                        "index": 6,
                         "name": "selectOnly",
                         "returnType": "void"
                     },
@@ -943,16 +1004,19 @@
                                 "type": "QList<Element*>"
                             }
                         ],
+                        "index": 7,
                         "name": "selectAll",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
+                        "index": 8,
                         "name": "clearSelection",
                         "returnType": "void"
                     },
                     {
                         "access": "private",
+                        "index": 9,
                         "name": "onElementGeometryChanged",
                         "returnType": "void"
                     }
@@ -966,12 +1030,13 @@
             }
         ],
         "inputFile": "SelectionManager.h",
-        "outputRevision": 68
+        "outputRevision": 69
     },
     {
         "classes": [
             {
                 "className": "Text",
+                "lineNumber": 6,
                 "object": true,
                 "properties": [
                     {
@@ -1024,16 +1089,19 @@
                 "signals": [
                     {
                         "access": "public",
+                        "index": 0,
                         "name": "textChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
+                        "index": 1,
                         "name": "fontChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
+                        "index": 2,
                         "name": "colorChanged",
                         "returnType": "void"
                     }
@@ -1047,12 +1115,13 @@
             }
         ],
         "inputFile": "Text.h",
-        "outputRevision": 68
+        "outputRevision": 69
     },
     {
         "classes": [
             {
                 "className": "Variable",
+                "lineNumber": 5,
                 "object": true,
                 "properties": [
                     {
@@ -1075,6 +1144,7 @@
                 "signals": [
                     {
                         "access": "public",
+                        "index": 0,
                         "name": "valueChanged",
                         "returnType": "void"
                     }
@@ -1088,6 +1158,6 @@
             }
         ],
         "inputFile": "Variable.h",
-        "outputRevision": 68
+        "outputRevision": 69
     }
 ]
