@@ -26,10 +26,6 @@ Item {
     SelectionBox {
         id: selectionBox
         selectionBoxHandler: canvasView?.selectionBoxHandler ?? null
-        zoomLevel: root.zoomLevel
-        flickable: root.flickable
-        canvasMinX: root.canvasMinX
-        canvasMinY: root.canvasMinY
     }
     
     // Use bounding box properties computed in C++ for better performance
