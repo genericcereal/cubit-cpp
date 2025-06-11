@@ -39,6 +39,7 @@ void Element::setX(qreal x)
     if (!qFuzzyCompare(canvasPosition.x(), x)) {
         canvasPosition.setX(x);
         emit xChanged();
+        emit geometryChanged();
         emit elementChanged();
     }
 }
@@ -48,6 +49,7 @@ void Element::setY(qreal y)
     if (!qFuzzyCompare(canvasPosition.y(), y)) {
         canvasPosition.setY(y);
         emit yChanged();
+        emit geometryChanged();
         emit elementChanged();
     }
 }
@@ -57,6 +59,7 @@ void Element::setWidth(qreal w)
     if (!qFuzzyCompare(canvasSize.width(), w)) {
         canvasSize.setWidth(w);
         emit widthChanged();
+        emit geometryChanged();
         emit elementChanged();
     }
 }
@@ -66,6 +69,7 @@ void Element::setHeight(qreal h)
     if (!qFuzzyCompare(canvasSize.height(), h)) {
         canvasSize.setHeight(h);
         emit heightChanged();
+        emit geometryChanged();
         emit elementChanged();
     }
 }
@@ -87,6 +91,7 @@ void Element::setRect(const QRectF &rect)
             emit widthChanged();
             emit heightChanged();
         }
+        emit geometryChanged();
         emit elementChanged();
     }
 }

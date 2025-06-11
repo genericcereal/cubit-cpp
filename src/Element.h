@@ -68,6 +68,7 @@ signals:
     void parentIdChanged();
     void selectedChanged();
     void elementChanged();
+    void geometryChanged();  // Emitted when x, y, width, or height change
     
 protected:
     ElementType elementType;

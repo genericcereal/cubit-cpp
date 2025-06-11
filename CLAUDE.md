@@ -291,6 +291,12 @@ When creating new UI components:
 - Eliminate all unused/stale methods, variables, etc. when you come across them. Don't leave unused code in the code base.
 - Always look for Qts helpers before implementing something bespoke. For example, use QWidget::mouseDoubleClickEvent instead of creating double clicks with timers.
 - DRY (Don't Repeat Yourself) code is incredibly important to this project. Where possible, modularize and re-use code. Point out redundancy and duplication when you come across it.
+- Always use Qt::UniqueConnection when connecting signals to prevent duplicate connections. Example:
+  ```cpp
+  connect(element, &Element::geometryChanged,
+          this, &SelectionManager::onElementGeometryChanged,
+          Qt::UniqueConnection);
+  ```
 
 ## Qt Quick Migration Plan
 

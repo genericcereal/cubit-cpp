@@ -430,6 +430,11 @@
                         "access": "public",
                         "name": "elementChanged",
                         "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "name": "geometryChanged",
+                        "returnType": "void"
                     }
                 ],
                 "superClasses": [
@@ -797,6 +802,62 @@
                         "stored": true,
                         "type": "QList<Element*>",
                         "user": false
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 3,
+                        "name": "boundingX",
+                        "notify": "selectionChanged",
+                        "read": "boundingX",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "qreal",
+                        "user": false
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 4,
+                        "name": "boundingY",
+                        "notify": "selectionChanged",
+                        "read": "boundingY",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "qreal",
+                        "user": false
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 5,
+                        "name": "boundingWidth",
+                        "notify": "selectionChanged",
+                        "read": "boundingWidth",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "qreal",
+                        "user": false
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 6,
+                        "name": "boundingHeight",
+                        "notify": "selectionChanged",
+                        "read": "boundingHeight",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "qreal",
+                        "user": false
                     }
                 ],
                 "qualifiedClassName": "SelectionManager",
@@ -888,6 +949,11 @@
                     {
                         "access": "public",
                         "name": "clearSelection",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "private",
+                        "name": "onElementGeometryChanged",
                         "returnType": "void"
                     }
                 ],

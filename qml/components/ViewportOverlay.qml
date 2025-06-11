@@ -10,69 +10,34 @@ Item {
     
     // Core properties from CanvasView
     property var canvasView
-    property real zoomLevel: canvasView ? canvasView.zoomLevel : 1.0
-    property var flickable: canvasView ? canvasView.flickable : null
+    property real zoomLevel: canvasView?.zoomLevel ?? 1.0
+    property var flickable: canvasView?.flickable ?? null
     property var hoveredElement: null
-    property var selectionManager: canvasView ? canvasView.selectionManager : null
-    property var selectedElements: selectionManager ? selectionManager.selectedElements : []
-    property var creationDragHandler: canvasView ? canvasView.creationDragHandler : null
-    property var controller: canvasView ? canvasView.controller : null
+    property var selectionManager: canvasView?.selectionManager ?? null
+    property var selectedElements: selectionManager?.selectedElements ?? []
+    property var creationDragHandler: canvasView?.creationDragHandler ?? null
+    property var controller: canvasView?.controller ?? null
     
     // Canvas bounds from canvasView
-    property real canvasMinX: canvasView ? canvasView.canvasMinX : 0
-    property real canvasMinY: canvasView ? canvasView.canvasMinY : 0
+    property real canvasMinX: canvasView?.canvasMinX ?? 0
+    property real canvasMinY: canvasView?.canvasMinY ?? 0
     
     // Selection box visual during drag selection
     SelectionBox {
         id: selectionBox
-        selectionBoxHandler: canvasView ? canvasView.selectionBoxHandler : null
+        selectionBoxHandler: canvasView?.selectionBoxHandler ?? null
         zoomLevel: root.zoomLevel
         flickable: root.flickable
         canvasMinX: root.canvasMinX
         canvasMinY: root.canvasMinY
     }
     
-    // Calculate bounding box for all selected elements
-    // These properties are used by the controls to determine their size and position
-    property real selectionBoundingX: {
-        if (!selectedElements || selectedElements.length === 0) return 0
-        var minX = Number.MAX_VALUE
-        for (var i = 0; i < selectedElements.length; i++) {
-            minX = Math.min(minX, selectedElements[i].x)
-        }
-        return minX
-    }
-    
-    property real selectionBoundingY: {
-        if (!selectedElements || selectedElements.length === 0) return 0
-        var minY = Number.MAX_VALUE
-        for (var i = 0; i < selectedElements.length; i++) {
-            minY = Math.min(minY, selectedElements[i].y)
-        }
-        return minY
-    }
-    
-    property real selectionBoundingWidth: {
-        if (!selectedElements || selectedElements.length === 0) return 0
-        var minX = Number.MAX_VALUE
-        var maxX = -Infinity  
-        for (var i = 0; i < selectedElements.length; i++) {
-            minX = Math.min(minX, selectedElements[i].x)
-            maxX = Math.max(maxX, selectedElements[i].x + selectedElements[i].width)
-        }
-        return maxX - minX
-    }
-    
-    property real selectionBoundingHeight: {
-        if (!selectedElements || selectedElements.length === 0) return 0
-        var minY = Number.MAX_VALUE
-        var maxY = -Infinity
-        for (var i = 0; i < selectedElements.length; i++) {
-            minY = Math.min(minY, selectedElements[i].y)
-            maxY = Math.max(maxY, selectedElements[i].y + selectedElements[i].height)
-        }
-        return maxY - minY
-    }
+    // Use bounding box properties computed in C++ for better performance
+    // Use readonly to ensure we always get the latest value from C++
+    readonly property real selectionBoundingX: selectionManager?.boundingX ?? 0
+    readonly property real selectionBoundingY: selectionManager?.boundingY ?? 0
+    readonly property real selectionBoundingWidth: selectionManager?.boundingWidth ?? 0
+    readonly property real selectionBoundingHeight: selectionManager?.boundingHeight ?? 0
     
     // Controls that follow selected elements
     Controls {
@@ -87,49 +52,68 @@ Item {
             return false
         }
         
-        onVisibleChanged: {
-            console.log("Controls visibility changed to:", visible)
-            console.log("  selectedElements.length:", selectedElements ? selectedElements.length : "null")
-            console.log("  creationDragHandler.active:", creationDragHandler ? creationDragHandler.active : "null")
-        }
-        
         // Initialize from selection bounding box
         Component.onCompleted: {
-            console.log("Controls onCompleted - selectedElements:", selectedElements)
-            console.log("Controls onCompleted - selectedElements.length:", selectedElements ? selectedElements.length : "null")
-            console.log("Controls onCompleted - creationDragHandler:", creationDragHandler)
-            console.log("Controls onCompleted - creationDragHandler.active:", creationDragHandler ? creationDragHandler.active : "null")
             initializeFromSelection()
         }
         
-        // Re-initialize when selection changes
+        // Consolidated connections for selection updates
         Connections {
             target: root
+            enabled: !selectionControls.dragging  // Disable during drag for performance
+            
             function onSelectedElementsChanged() {
-                if (selectedElements.length > 0 && !selectionControls.dragging) {
-                    selectionControls.initializeFromSelection()
+                if (selectedElements.length > 0) {
+                    // Defer initialization to ensure bounding box is updated
+                    Qt.callLater(selectionControls.initializeFromSelection)
                 }
             }
         }
         
+        // Direct connection to selection manager for bounding box updates
+        Connections {
+            target: selectionManager
+            enabled: !selectionControls.dragging && selectionManager !== null
+            
+            function onSelectionChanged() {
+                if (selectedElements.length > 0 && selectionControls.visible) {
+                    // Update control properties when selection bounds change
+                    selectionControls.controlX = selectionBoundingX
+                    selectionControls.controlY = selectionBoundingY
+                    selectionControls.controlWidth = selectionBoundingWidth
+                    selectionControls.controlHeight = selectionBoundingHeight
+                }
+            }
+        }
+        
+        // Ensure controls are positioned when they become visible
+        onVisibleChanged: {
+            if (visible && !dragging) {
+                Qt.callLater(initializeFromSelection)
+            }
+        }
+        
         // Update during creation drag
-        property bool creationActive: creationDragHandler ? creationDragHandler.active : false
+        property bool creationActive: creationDragHandler?.active ?? false
         onCreationActiveChanged: {
             if (creationActive) {
                 updateFromCreationDrag()
             }
         }
         
-        // Watch for creation drag updates
-        property point creationStart: creationDragHandler ? creationDragHandler.startPoint : Qt.point(0, 0)
-        property point creationCurrent: creationDragHandler ? creationDragHandler.currentPoint : Qt.point(0, 0)
+        // Watch for creation drag updates with conditional execution
+        property point creationStart: creationDragHandler?.startPoint ?? Qt.point(0, 0)
+        property point creationCurrent: creationDragHandler?.currentPoint ?? Qt.point(0, 0)
         onCreationStartChanged: if (creationActive) updateFromCreationDrag()
         onCreationCurrentChanged: if (creationActive) updateFromCreationDrag()
         
         function initializeFromSelection() {
-            console.log("initializeFromSelection called, selectedElements.length:", selectedElements ? selectedElements.length : "null")
             if (!selectedElements || selectedElements.length === 0) {
                 // Reset controls to zero size when no selection
+                controlX = 0
+                controlY = 0
+                controlWidth = 0
+                controlHeight = 0
                 width = 0
                 height = 0
                 return
@@ -165,23 +149,45 @@ Item {
             updateViewportPosition()
         }
         
+        // Use Binding objects for efficient position updates
+        Binding {
+            target: selectionControls
+            property: "x"
+            value: (selectionControls.controlX - canvasMinX) * zoomLevel - (flickable?.contentX ?? 0)
+            when: !selectionControls.dragging && selectionControls.visible
+            restoreMode: Binding.RestoreBinding
+        }
+        
+        Binding {
+            target: selectionControls
+            property: "y"
+            value: (selectionControls.controlY - canvasMinY) * zoomLevel - (flickable?.contentY ?? 0)
+            when: !selectionControls.dragging && selectionControls.visible
+            restoreMode: Binding.RestoreBinding
+        }
+        
+        Binding {
+            target: selectionControls
+            property: "width"
+            value: Math.abs(selectionControls.controlWidth) * zoomLevel
+            when: !selectionControls.dragging && selectionControls.visible
+            restoreMode: Binding.RestoreBinding
+        }
+        
+        Binding {
+            target: selectionControls
+            property: "height"
+            value: Math.abs(selectionControls.controlHeight) * zoomLevel
+            when: !selectionControls.dragging && selectionControls.visible
+            restoreMode: Binding.RestoreBinding
+        }
+        
         function updateViewportPosition() {
-            x = (controlX - canvasMinX) * zoomLevel - flickable.contentX
-            y = (controlY - canvasMinY) * zoomLevel - flickable.contentY
+            // Manually update position when needed (e.g., during drag)
+            x = (controlX - canvasMinX) * zoomLevel - (flickable?.contentX ?? 0)
+            y = (controlY - canvasMinY) * zoomLevel - (flickable?.contentY ?? 0)
             width = Math.abs(controlWidth) * zoomLevel
             height = Math.abs(controlHeight) * zoomLevel
-        }
-        
-        // Update viewport position when view changes
-        Connections {
-            target: root
-            function onZoomLevelChanged() { selectionControls.updateViewportPosition() }
-        }
-        
-        Connections {
-            target: flickable
-            function onContentXChanged() { selectionControls.updateViewportPosition() }
-            function onContentYChanged() { selectionControls.updateViewportPosition() }
         }
         
         // Track initial states when drag starts
@@ -190,6 +196,19 @@ Item {
         property real initialControlY: 0
         property real initialControlWidth: 0
         property real initialControlHeight: 0
+        
+        // Frame throttling for drag updates
+        property bool updateFramePending: false
+        
+        function scheduleUpdateFrame() {
+            if (!updateFramePending) {
+                updateFramePending = true
+                Qt.callLater(function() {
+                    updateElements()
+                    updateFramePending = false
+                })
+            }
+        }
         
         onDraggingChanged: {
             if (dragging) {
@@ -200,12 +219,12 @@ Item {
             }
         }
         
-        // Update elements when controls change during drag
-        onControlXChanged: if (dragging) updateElements()
-        onControlYChanged: if (dragging) updateElements()
-        onControlWidthChanged: if (dragging) updateElements()
-        onControlHeightChanged: if (dragging) updateElements()
-        onControlRotationChanged: if (dragging) updateElements()
+        // Update elements when controls change during drag - throttled to once per frame
+        onControlXChanged: if (dragging) scheduleUpdateFrame()
+        onControlYChanged: if (dragging) scheduleUpdateFrame()
+        onControlWidthChanged: if (dragging) scheduleUpdateFrame()
+        onControlHeightChanged: if (dragging) scheduleUpdateFrame()
+        onControlRotationChanged: if (dragging) scheduleUpdateFrame()
         
         function captureInitialStates() {
             // Store initial control bounds
