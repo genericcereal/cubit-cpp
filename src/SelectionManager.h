@@ -1,6 +1,7 @@
 #pragma once
 #include <QObject>
 #include <QList>
+#include <QSet>
 #include "Element.h"
 
 class SelectionManager : public QObject {
@@ -8,6 +9,10 @@ class SelectionManager : public QObject {
     Q_PROPERTY(bool hasSelection READ hasSelection NOTIFY selectionChanged)
     Q_PROPERTY(int selectionCount READ selectionCount NOTIFY selectionChanged)
     Q_PROPERTY(QList<Element*> selectedElements READ selectedElements NOTIFY selectionChanged)
+    Q_PROPERTY(qreal boundingX READ boundingX NOTIFY selectionChanged)
+    Q_PROPERTY(qreal boundingY READ boundingY NOTIFY selectionChanged)
+    Q_PROPERTY(qreal boundingWidth READ boundingWidth NOTIFY selectionChanged)
+    Q_PROPERTY(qreal boundingHeight READ boundingHeight NOTIFY selectionChanged)
     
 public:
     explicit SelectionManager(QObject *parent = nullptr);
@@ -15,8 +20,14 @@ public:
     // Selection queries
     bool hasSelection() const { return !m_selectedElements.isEmpty(); }
     int selectionCount() const { return m_selectedElements.size(); }
-    QList<Element*> selectedElements() const { return m_selectedElements; }
+    QList<Element*> selectedElements() const { return m_selectedElements.values(); }
     bool isSelected(Element *element) const;
+    
+    // Bounding box properties
+    qreal boundingX() const { return m_boundingX; }
+    qreal boundingY() const { return m_boundingY; }
+    qreal boundingWidth() const { return m_boundingWidth; }
+    qreal boundingHeight() const { return m_boundingHeight; }
     
 public slots:
     // Selection manipulation
@@ -27,13 +38,23 @@ public slots:
     void selectAll(const QList<Element*> &elements);
     void clearSelection();
     
+private slots:
+    void onElementGeometryChanged();
+    
 signals:
     void selectionChanged();
     void elementSelected(Element *element);
     void elementDeselected(Element *element);
     
 private:
-    QList<Element*> m_selectedElements;
+    QSet<Element*> m_selectedElements;
+    qreal m_boundingX = 0;
+    qreal m_boundingY = 0;
+    qreal m_boundingWidth = 0;
+    qreal m_boundingHeight = 0;
     
     void updateElementSelection(Element *element, bool selected);
+    void recalculateBoundingBox();
+    void expandBoundingBox(Element *element);
+    void shrinkBoundingBox();
 };
