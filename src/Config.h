@@ -10,6 +10,11 @@ namespace Config {
     constexpr const char* PANEL_HEADER_BACKGROUND = "#f0f0f0";
     constexpr const char* ELEMENT_BACKGROUND_COLOR = "#E6F3FF";  // Light blue for frames and text
     
+    // Node colors
+    constexpr const char* NODE_DEFAULT_COLOR = "#E6F3FF";       // Light blue (same as element background)
+    constexpr const char* NODE_START_COLOR = "#E6F3FF";         // Light blue for start node
+    constexpr const char* NODE_PROCESS_COLOR = "#E6F3FF";       // Light blue for process node
+    
     // Control colors
     constexpr const char* CONTROL_BAR_COLOR = "rgba(255, 0, 0, 0.1)";           // Red with 10% opacity
     constexpr const char* CONTROL_ROTATION_JOINT_COLOR = "rgba(255, 0, 0, 0.1)"; // Red with 10% opacity

@@ -4,6 +4,7 @@
 #include "Text.h"
 #include "Html.h"
 #include "Variable.h"
+#include "Node.h"
 #include "ElementModel.h"
 #include "SelectionManager.h"
 #include "Config.h"
@@ -189,16 +190,24 @@ Element* CanvasController::hitTest(qreal x, qreal y)
 {
     if (!m_elementModel) return nullptr;
     
-    // For script canvas, we'll test nodes instead of elements (to be implemented)
-    if (m_canvasType == "script") {
-        // TODO: Implement node hit testing
-        return nullptr;
-    }
-    
-    // Test in reverse order (top to bottom)
+    // Test in reverse order (top to bottom) for all canvas types
     QList<Element*> elements = m_elementModel->getAllElements();
     for (int i = elements.size() - 1; i >= 0; --i) {
         Element *element = elements[i];
+        
+        // For script canvas, only test nodes
+        if (m_canvasType == "script") {
+            if (element->getType() != Element::NodeType) {
+                continue;
+            }
+        }
+        // For design canvas, skip nodes
+        else if (m_canvasType == "design") {
+            if (element->getType() == Element::NodeType || element->getType() == Element::EdgeType) {
+                continue;
+            }
+        }
+        
         if (element->rect().contains(QPointF(x, y))) {
             return element;
         }
@@ -279,17 +288,23 @@ void CanvasController::selectElementsInRect(const QRectF &rect)
 {
     if (!m_elementModel || !m_selectionManager) return;
     
-    // For script canvas, we'll select nodes instead of elements (to be implemented)
-    if (m_canvasType == "script") {
-        // TODO: Implement node selection in rect
-        m_selectionManager->clearSelection();
-        return;
-    }
-    
     QList<Element*> elementsToSelect;
     QList<Element*> allElements = m_elementModel->getAllElements();
     
     for (Element *element : allElements) {
+        // For script canvas, only select nodes
+        if (m_canvasType == "script") {
+            if (element->getType() != Element::NodeType) {
+                continue;
+            }
+        }
+        // For design canvas, skip nodes and edges
+        else if (m_canvasType == "design") {
+            if (element->getType() == Element::NodeType || element->getType() == Element::EdgeType) {
+                continue;
+            }
+        }
+        
         if (rect.intersects(element->rect())) {
             elementsToSelect.append(element);
         }
@@ -322,5 +337,32 @@ void CanvasController::deleteSelectedElements()
     // Delete elements
     for (Element *element : selectedElements) {
         m_elementModel->removeElement(element->getId());
+    }
+}
+
+void CanvasController::createNode(qreal x, qreal y, const QString &title, const QString &color)
+{
+    if (!m_elementModel) return;
+    
+    // Only create nodes for script canvas
+    if (m_canvasType != "script") {
+        qDebug() << "Cannot create nodes on" << m_canvasType << "canvas";
+        return;
+    }
+    
+    QString id = m_elementModel->generateId();
+    Node *node = new Node(id);
+    
+    if (node) {
+        node->setX(x);
+        node->setY(y);
+        node->setNodeTitle(title);
+        if (!color.isEmpty()) {
+            node->setNodeColor(QColor(color));
+        }
+        // If no color specified, it will use the default from Config
+        
+        m_elementModel->addElement(node);
+        emit elementCreated(node);
     }
 }

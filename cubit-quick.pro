@@ -15,6 +15,8 @@ SOURCES += \
     src/Text.cpp \
     src/Html.cpp \
     src/Variable.cpp \
+    src/Node.cpp \
+    src/Edge.cpp \
     src/CanvasController.cpp \
     src/ElementModel.cpp \
     src/SelectionManager.cpp
@@ -25,6 +27,8 @@ HEADERS += \
     src/Text.h \
     src/Html.h \
     src/Variable.h \
+    src/Node.h \
+    src/Edge.h \
     src/CanvasController.h \
     src/ElementModel.h \
     src/SelectionManager.h \
