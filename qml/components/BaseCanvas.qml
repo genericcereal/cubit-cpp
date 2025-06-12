@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import Cubit 1.0
+import "."
 
 Item {
     id: root
@@ -217,38 +218,12 @@ Item {
     }
     
     // Selection box handler
-    QtObject {
+    SelectionBoxHandler {
         id: selectionBoxHandler
-        property bool active: false
-        property point startPoint: Qt.point(0, 0)
-        property point currentPoint: Qt.point(0, 0)
-        
-        function startSelection(point) {
-            active = true
-            startPoint = point
-            currentPoint = point
-            if (selectionManager) {
-                selectionManager.clearSelection()
-            }
-        }
-        
-        function updateSelection(point) {
-            currentPoint = point
-            
-            // Find elements in selection box
-            var rect = Qt.rect(
-                Math.min(startPoint.x, currentPoint.x),
-                Math.min(startPoint.y, currentPoint.y),
-                Math.abs(currentPoint.x - startPoint.x),
-                Math.abs(currentPoint.y - startPoint.y)
-            )
-            
+        selectionManager: root.selectionManager
+        onSelectionRectChanged: function(rect) {
             // Let subclasses handle what to select
             handleSelectionRect(rect)
-        }
-        
-        function endSelection() {
-            active = false
         }
     }
     

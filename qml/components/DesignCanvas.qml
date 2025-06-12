@@ -40,42 +40,83 @@ BaseCanvas {
         
         // Add design-specific initialization
         var contentLayer = getContentLayer()
-        elementsLayer.parent = contentLayer
-        elementsLayer.anchors.fill = contentLayer
+        if (contentLayer) {
+            elementsLoader.parent = contentLayer
+        }
+        
+        // Activate the loader after setup
+        activationTimer.start()
     }
     
-    // Elements layer
-    Item {
-        id: elementsLayer
-        // Don't set anchors here - will be set when parent is assigned
+    // Clean up on destruction
+    Component.onDestruction: {
+        elementsLoader.active = false
+    }
+    
+    // Elements layer loader
+    Loader {
+        id: elementsLoader
+        active: false
+        asynchronous: false
         
-        Repeater {
-            id: elementRepeater
-            model: root.elementModel
-            
-            delegate: Loader {
-                property var element: model.element
-                property string elementType: model.elementType
+        sourceComponent: Component {
+            Item {
+                id: elementsLayer
+                anchors.fill: parent
                 
-                // Position elements relative to canvas origin
-                x: element ? element.x - root.canvasMinX : 0
-                y: element ? element.y - root.canvasMinY : 0
-                
-                sourceComponent: {
-                    switch(elementType) {
-                        case "Frame": return frameComponent
-                        case "Text": return textComponent
-                        default: return null
-                    }
-                }
-                
-                onLoaded: {
-                    if (item) {
-                        item.element = element
-                        item.elementModel = root.elementModel
+                Repeater {
+                    id: elementRepeater
+                    model: root.elementModel
+                    
+                    delegate: Loader {
+                        property var element: model.element
+                        property string elementType: model.elementType
+                        
+                        // Position elements relative to canvas origin
+                        x: element ? element.x - root.canvasMinX : 0
+                        y: element ? element.y - root.canvasMinY : 0
+                        
+                        sourceComponent: {
+                            if (!element || !elementType) return null
+                            switch(elementType) {
+                                case "Frame": return frameComponent
+                                case "Text": return textComponent
+                                default: return null
+                            }
+                        }
+                        
+                        onLoaded: {
+                            if (item && element) {
+                                item.element = element
+                                item.elementModel = root.elementModel
+                            }
+                        }
                     }
                 }
             }
+        }
+        
+        onLoaded: {
+            if (item && parent) {
+                item.anchors.fill = parent
+            }
+        }
+    }
+    
+    // Activation timer to prevent race conditions
+    Timer {
+        id: activationTimer
+        interval: 50  // Shorter delay for design canvas
+        onTriggered: {
+            elementsLoader.active = true
+        }
+    }
+    
+    onVisibleChanged: {
+        if (visible) {
+            activationTimer.start()
+        } else {
+            elementsLoader.active = false
         }
     }
     
