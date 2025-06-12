@@ -18,6 +18,8 @@
         <file>qml/components/HoverIndicator.qml</file>
         <file>qml/components/HoverBadge.qml</file>
         <file>qml/components/Controls.qml</file>
+        <file>qml/components/SelectionBoxHandler.qml</file>
+        <file>qml/components/GridOverlay.qml</file>
         <file>qml/panels/DetailPanel.qml</file>
         <file>qml/panels/ElementList.qml</file>
         <file>qml/panels/PropertiesPanel.qml</file>
