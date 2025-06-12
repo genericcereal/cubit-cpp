@@ -8,6 +8,7 @@ namespace Config {
     constexpr const char* CANVAS_BACKGROUND = "#f5f5f5";
     constexpr const char* PANEL_BACKGROUND = "#ffffff";
     constexpr const char* PANEL_HEADER_BACKGROUND = "#f0f0f0";
+    constexpr const char* ELEMENT_BACKGROUND_COLOR = "#E6F3FF";  // Light blue for frames and text
     
     // Control colors
     constexpr const char* CONTROL_BAR_COLOR = "rgba(255, 0, 0, 0.1)";           // Red with 10% opacity

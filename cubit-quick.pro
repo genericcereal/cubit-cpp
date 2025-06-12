@@ -28,7 +28,8 @@ HEADERS += \
     src/CanvasController.h \
     src/ElementModel.h \
     src/SelectionManager.h \
-    src/Config.h
+    src/Config.h \
+    src/UniqueIdGenerator.h
 
 RESOURCES += qml.qrc
 

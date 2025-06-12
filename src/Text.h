@@ -10,7 +10,7 @@ class Text : public Element {
     Q_PROPERTY(QColor color READ color WRITE setColor NOTIFY colorChanged)
     
 public:
-    explicit Text(int id, QObject *parent = nullptr);
+    explicit Text(const QString &id, QObject *parent = nullptr);
     
     QString text() const { return m_text; }
     QFont font() const { return m_font; }

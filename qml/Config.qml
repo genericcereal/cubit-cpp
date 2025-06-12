@@ -8,6 +8,7 @@ QtObject {
     readonly property string canvasBackground: "#f5f5f5"
     readonly property string panelBackground: "#ffffff"
     readonly property string panelHeaderBackground: "#f0f0f0"
+    readonly property string elementBackgroundColor: "#E6F3FF"  // Light blue for frames and text
     
     // Control colors
     readonly property color controlBarColor: Qt.rgba(1, 0, 0, 0.1)           // Red with 10% opacity

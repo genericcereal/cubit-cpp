@@ -1,10 +1,10 @@
 #include "Element.h"
 
-Element::Element(ElementType type, int id, QObject *parent)
+Element::Element(ElementType type, const QString &id, QObject *parent)
     : QObject(parent)
     , elementType(type)
     , elementId(id)
-    , parentElementId(-1)
+    , parentElementId()
     , selected(false)
 {
 }
@@ -96,7 +96,7 @@ void Element::setRect(const QRectF &rect)
     }
 }
 
-void Element::setParentElementId(int parentId)
+void Element::setParentElementId(const QString &parentId)
 {
     if (parentElementId != parentId) {
         parentElementId = parentId;

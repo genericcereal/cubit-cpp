@@ -1,6 +1,6 @@
 #include "Frame.h"
 
-Frame::Frame(int id, QObject *parent)
+Frame::Frame(const QString &id, QObject *parent)
     : Element(FrameType, id, parent)
     , m_backgroundColor(Qt::white)
     , m_borderColor(Qt::black)
@@ -8,7 +8,7 @@ Frame::Frame(int id, QObject *parent)
     , m_borderRadius(0)
     , m_clipContent(true)
 {
-    setName(QString("Frame %1").arg(id));
+    setName(QString("Frame %1").arg(id.right(4)));  // Use last 4 digits for display
 }
 
 void Frame::setBackgroundColor(const QColor &color)

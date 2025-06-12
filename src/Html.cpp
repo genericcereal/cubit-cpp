@@ -1,9 +1,9 @@
 #include "Html.h"
 
-Html::Html(int id, QObject *parent)
+Html::Html(const QString &id, QObject *parent)
     : Element(HtmlType, id, parent)
 {
-    setName(QString("Html %1").arg(id));
+    setName(QString("Html %1").arg(id.right(4)));  // Use last 4 digits for display
 }
 
 void Html::setHtml(const QString &html)
