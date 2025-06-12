@@ -10,6 +10,11 @@ QtObject {
     readonly property string panelHeaderBackground: "#f0f0f0"
     readonly property string elementBackgroundColor: "#E6F3FF"  // Light blue for frames and text
     
+    // Node colors
+    readonly property string nodeDefaultColor: "#E6F3FF"       // Light blue (same as element background)
+    readonly property string nodeStartColor: "#E6F3FF"         // Light blue for start node
+    readonly property string nodeProcessColor: "#E6F3FF"       // Light blue for process node
+    
     // Control colors
     readonly property color controlBarColor: Qt.rgba(1, 0, 0, 0.1)           // Red with 10% opacity
     readonly property color controlRotationJointColor: Qt.rgba(1, 0, 0, 0.1) // Red with 10% opacity

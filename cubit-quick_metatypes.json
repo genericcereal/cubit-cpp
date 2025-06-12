@@ -3,7 +3,6 @@
         "classes": [
             {
                 "className": "CanvasController",
-                "lineNumber": 8,
                 "methods": [
                     {
                         "access": "public",
@@ -13,7 +12,6 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 12,
                         "name": "setMode",
                         "returnType": "void"
                     },
@@ -25,7 +23,6 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 13,
                         "name": "setCanvasType",
                         "returnType": "void"
                     },
@@ -37,7 +34,6 @@
                                 "type": "ElementModel*"
                             }
                         ],
-                        "index": 14,
                         "name": "setElementModel",
                         "returnType": "void"
                     },
@@ -49,7 +45,6 @@
                                 "type": "SelectionManager*"
                             }
                         ],
-                        "index": 15,
                         "name": "setSelectionManager",
                         "returnType": "void"
                     },
@@ -65,7 +60,6 @@
                                 "type": "qreal"
                             }
                         ],
-                        "index": 16,
                         "name": "hitTest",
                         "returnType": "Element*"
                     }
@@ -107,13 +101,11 @@
                 "signals": [
                     {
                         "access": "public",
-                        "index": 0,
                         "name": "modeChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 1,
                         "name": "canvasTypeChanged",
                         "returnType": "void"
                     },
@@ -125,7 +117,6 @@
                                 "type": "Element*"
                             }
                         ],
-                        "index": 2,
                         "name": "elementCreated",
                         "returnType": "void"
                     }
@@ -143,7 +134,6 @@
                                 "type": "qreal"
                             }
                         ],
-                        "index": 3,
                         "name": "handleMousePress",
                         "returnType": "void"
                     },
@@ -159,7 +149,6 @@
                                 "type": "qreal"
                             }
                         ],
-                        "index": 4,
                         "name": "handleMouseMove",
                         "returnType": "void"
                     },
@@ -175,7 +164,6 @@
                                 "type": "qreal"
                             }
                         ],
-                        "index": 5,
                         "name": "handleMouseRelease",
                         "returnType": "void"
                     },
@@ -203,7 +191,6 @@
                                 "type": "qreal"
                             }
                         ],
-                        "index": 6,
                         "name": "createElement",
                         "returnType": "void"
                     },
@@ -227,8 +214,6 @@
                                 "type": "qreal"
                             }
                         ],
-                        "index": 7,
-                        "isCloned": true,
                         "name": "createElement",
                         "returnType": "void"
                     },
@@ -248,9 +233,64 @@
                                 "type": "qreal"
                             }
                         ],
-                        "index": 8,
-                        "isCloned": true,
                         "name": "createElement",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "x",
+                                "type": "qreal"
+                            },
+                            {
+                                "name": "y",
+                                "type": "qreal"
+                            },
+                            {
+                                "name": "title",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "color",
+                                "type": "QString"
+                            }
+                        ],
+                        "name": "createNode",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "x",
+                                "type": "qreal"
+                            },
+                            {
+                                "name": "y",
+                                "type": "qreal"
+                            },
+                            {
+                                "name": "title",
+                                "type": "QString"
+                            }
+                        ],
+                        "name": "createNode",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "x",
+                                "type": "qreal"
+                            },
+                            {
+                                "name": "y",
+                                "type": "qreal"
+                            }
+                        ],
+                        "name": "createNode",
                         "returnType": "void"
                     },
                     {
@@ -261,19 +301,16 @@
                                 "type": "QRectF"
                             }
                         ],
-                        "index": 9,
                         "name": "selectElementsInRect",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 10,
                         "name": "selectAll",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 11,
                         "name": "deleteSelectedElements",
                         "returnType": "void"
                     }
@@ -287,7 +324,206 @@
             }
         ],
         "inputFile": "CanvasController.h",
-        "outputRevision": 69
+        "outputRevision": 68
+    },
+    {
+        "classes": [
+            {
+                "className": "Edge",
+                "object": true,
+                "properties": [
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 0,
+                        "name": "sourceNodeId",
+                        "notify": "sourceNodeIdChanged",
+                        "read": "sourceNodeId",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "QString",
+                        "user": false,
+                        "write": "setSourceNodeId"
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 1,
+                        "name": "targetNodeId",
+                        "notify": "targetNodeIdChanged",
+                        "read": "targetNodeId",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "QString",
+                        "user": false,
+                        "write": "setTargetNodeId"
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 2,
+                        "name": "sourcePortIndex",
+                        "notify": "sourcePortIndexChanged",
+                        "read": "sourcePortIndex",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "int",
+                        "user": false,
+                        "write": "setSourcePortIndex"
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 3,
+                        "name": "targetPortIndex",
+                        "notify": "targetPortIndexChanged",
+                        "read": "targetPortIndex",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "int",
+                        "user": false,
+                        "write": "setTargetPortIndex"
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 4,
+                        "name": "edgeColor",
+                        "notify": "edgeColorChanged",
+                        "read": "edgeColor",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "QColor",
+                        "user": false,
+                        "write": "setEdgeColor"
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 5,
+                        "name": "edgeWidth",
+                        "notify": "edgeWidthChanged",
+                        "read": "edgeWidth",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "qreal",
+                        "user": false,
+                        "write": "setEdgeWidth"
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 6,
+                        "name": "isActive",
+                        "notify": "isActiveChanged",
+                        "read": "isActive",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "bool",
+                        "user": false,
+                        "write": "setIsActive"
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 7,
+                        "name": "sourcePoint",
+                        "notify": "sourcePointChanged",
+                        "read": "sourcePoint",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "QPointF",
+                        "user": false
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 8,
+                        "name": "targetPoint",
+                        "notify": "targetPointChanged",
+                        "read": "targetPoint",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "QPointF",
+                        "user": false
+                    }
+                ],
+                "qualifiedClassName": "Edge",
+                "signals": [
+                    {
+                        "access": "public",
+                        "name": "sourceNodeIdChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "name": "targetNodeIdChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "name": "sourcePortIndexChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "name": "targetPortIndexChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "name": "edgeColorChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "name": "edgeWidthChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "name": "isActiveChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "name": "sourcePointChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "name": "targetPointChanged",
+                        "returnType": "void"
+                    }
+                ],
+                "superClasses": [
+                    {
+                        "access": "public",
+                        "name": "Element"
+                    }
+                ]
+            }
+        ],
+        "inputFile": "Edge.h",
+        "outputRevision": 68
     },
     {
         "classes": [
@@ -302,11 +538,12 @@
                             "FrameType",
                             "TextType",
                             "VariableType",
-                            "HtmlType"
+                            "HtmlType",
+                            "NodeType",
+                            "EdgeType"
                         ]
                     }
                 ],
-                "lineNumber": 8,
                 "object": true,
                 "properties": [
                     {
@@ -445,55 +682,46 @@
                 "signals": [
                     {
                         "access": "public",
-                        "index": 0,
                         "name": "nameChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 1,
                         "name": "xChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 2,
                         "name": "yChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 3,
                         "name": "widthChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 4,
                         "name": "heightChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 5,
                         "name": "parentIdChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 6,
                         "name": "selectedChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 7,
                         "name": "elementChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 8,
                         "name": "geometryChanged",
                         "returnType": "void"
                     }
@@ -507,13 +735,12 @@
             }
         ],
         "inputFile": "Element.h",
-        "outputRevision": 69
+        "outputRevision": 68
     },
     {
         "classes": [
             {
                 "className": "ElementModel",
-                "lineNumber": 6,
                 "methods": [
                     {
                         "access": "public",
@@ -523,7 +750,6 @@
                                 "type": "Element*"
                             }
                         ],
-                        "index": 5,
                         "name": "addElement",
                         "returnType": "void"
                     },
@@ -535,7 +761,6 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 6,
                         "name": "removeElement",
                         "returnType": "void"
                     },
@@ -547,8 +772,6 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 7,
-                        "isConst": true,
                         "name": "getElementById",
                         "returnType": "Element*"
                     },
@@ -560,27 +783,21 @@
                                 "type": "int"
                             }
                         ],
-                        "index": 8,
-                        "isConst": true,
                         "name": "elementAt",
                         "returnType": "Element*"
                     },
                     {
                         "access": "public",
-                        "index": 9,
-                        "isConst": true,
                         "name": "getAllElements",
                         "returnType": "QList<Element*>"
                     },
                     {
                         "access": "public",
-                        "index": 10,
                         "name": "clear",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 11,
                         "name": "generateId",
                         "returnType": "QString"
                     }
@@ -596,7 +813,6 @@
                                 "type": "Element*"
                             }
                         ],
-                        "index": 0,
                         "name": "elementAdded",
                         "returnType": "void"
                     },
@@ -608,7 +824,6 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 1,
                         "name": "elementRemoved",
                         "returnType": "void"
                     },
@@ -620,13 +835,11 @@
                                 "type": "Element*"
                             }
                         ],
-                        "index": 2,
                         "name": "elementUpdated",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 3,
                         "name": "elementChanged",
                         "returnType": "void"
                     }
@@ -634,7 +847,6 @@
                 "slots": [
                     {
                         "access": "private",
-                        "index": 4,
                         "name": "onElementChanged",
                         "returnType": "void"
                     }
@@ -648,13 +860,12 @@
             }
         ],
         "inputFile": "ElementModel.h",
-        "outputRevision": 69
+        "outputRevision": 68
     },
     {
         "classes": [
             {
                 "className": "Frame",
-                "lineNumber": 5,
                 "object": true,
                 "properties": [
                     {
@@ -737,31 +948,26 @@
                 "signals": [
                     {
                         "access": "public",
-                        "index": 0,
                         "name": "backgroundColorChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 1,
                         "name": "borderColorChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 2,
                         "name": "borderWidthChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 3,
                         "name": "borderRadiusChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 4,
                         "name": "clipContentChanged",
                         "returnType": "void"
                     }
@@ -775,13 +981,12 @@
             }
         ],
         "inputFile": "Frame.h",
-        "outputRevision": 69
+        "outputRevision": 68
     },
     {
         "classes": [
             {
                 "className": "Html",
-                "lineNumber": 4,
                 "object": true,
                 "properties": [
                     {
@@ -819,13 +1024,11 @@
                 "signals": [
                     {
                         "access": "public",
-                        "index": 0,
                         "name": "htmlChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 1,
                         "name": "urlChanged",
                         "returnType": "void"
                     }
@@ -839,13 +1042,133 @@
             }
         ],
         "inputFile": "Html.h",
-        "outputRevision": 69
+        "outputRevision": 68
+    },
+    {
+        "classes": [
+            {
+                "className": "Node",
+                "object": true,
+                "properties": [
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 0,
+                        "name": "nodeTitle",
+                        "notify": "nodeTitleChanged",
+                        "read": "nodeTitle",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "QString",
+                        "user": false,
+                        "write": "setNodeTitle"
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 1,
+                        "name": "nodeColor",
+                        "notify": "nodeColorChanged",
+                        "read": "nodeColor",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "QColor",
+                        "user": false,
+                        "write": "setNodeColor"
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 2,
+                        "name": "inputPorts",
+                        "notify": "inputPortsChanged",
+                        "read": "inputPorts",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "QStringList",
+                        "user": false,
+                        "write": "setInputPorts"
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 3,
+                        "name": "outputPorts",
+                        "notify": "outputPortsChanged",
+                        "read": "outputPorts",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "QStringList",
+                        "user": false,
+                        "write": "setOutputPorts"
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 4,
+                        "name": "isExecuting",
+                        "notify": "isExecutingChanged",
+                        "read": "isExecuting",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "bool",
+                        "user": false,
+                        "write": "setIsExecuting"
+                    }
+                ],
+                "qualifiedClassName": "Node",
+                "signals": [
+                    {
+                        "access": "public",
+                        "name": "nodeTitleChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "name": "nodeColorChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "name": "inputPortsChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "name": "outputPortsChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "name": "isExecutingChanged",
+                        "returnType": "void"
+                    }
+                ],
+                "superClasses": [
+                    {
+                        "access": "public",
+                        "name": "Element"
+                    }
+                ]
+            }
+        ],
+        "inputFile": "Node.h",
+        "outputRevision": 68
     },
     {
         "classes": [
             {
                 "className": "SelectionManager",
-                "lineNumber": 7,
                 "methods": [
                     {
                         "access": "public",
@@ -855,8 +1178,6 @@
                                 "type": "Element*"
                             }
                         ],
-                        "index": 10,
-                        "isConst": true,
                         "name": "isSelected",
                         "returnType": "bool"
                     }
@@ -966,7 +1287,6 @@
                 "signals": [
                     {
                         "access": "public",
-                        "index": 0,
                         "name": "selectionChanged",
                         "returnType": "void"
                     },
@@ -978,7 +1298,6 @@
                                 "type": "Element*"
                             }
                         ],
-                        "index": 1,
                         "name": "elementSelected",
                         "returnType": "void"
                     },
@@ -990,7 +1309,6 @@
                                 "type": "Element*"
                             }
                         ],
-                        "index": 2,
                         "name": "elementDeselected",
                         "returnType": "void"
                     }
@@ -1004,7 +1322,6 @@
                                 "type": "Element*"
                             }
                         ],
-                        "index": 3,
                         "name": "selectElement",
                         "returnType": "void"
                     },
@@ -1016,7 +1333,6 @@
                                 "type": "Element*"
                             }
                         ],
-                        "index": 4,
                         "name": "deselectElement",
                         "returnType": "void"
                     },
@@ -1028,7 +1344,6 @@
                                 "type": "Element*"
                             }
                         ],
-                        "index": 5,
                         "name": "toggleSelection",
                         "returnType": "void"
                     },
@@ -1040,7 +1355,6 @@
                                 "type": "Element*"
                             }
                         ],
-                        "index": 6,
                         "name": "selectOnly",
                         "returnType": "void"
                     },
@@ -1052,19 +1366,16 @@
                                 "type": "QList<Element*>"
                             }
                         ],
-                        "index": 7,
                         "name": "selectAll",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 8,
                         "name": "clearSelection",
                         "returnType": "void"
                     },
                     {
                         "access": "private",
-                        "index": 9,
                         "name": "onElementGeometryChanged",
                         "returnType": "void"
                     }
@@ -1078,13 +1389,12 @@
             }
         ],
         "inputFile": "SelectionManager.h",
-        "outputRevision": 69
+        "outputRevision": 68
     },
     {
         "classes": [
             {
                 "className": "Text",
-                "lineNumber": 6,
                 "object": true,
                 "properties": [
                     {
@@ -1137,19 +1447,16 @@
                 "signals": [
                     {
                         "access": "public",
-                        "index": 0,
                         "name": "textChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 1,
                         "name": "fontChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 2,
                         "name": "colorChanged",
                         "returnType": "void"
                     }
@@ -1163,13 +1470,12 @@
             }
         ],
         "inputFile": "Text.h",
-        "outputRevision": 69
+        "outputRevision": 68
     },
     {
         "classes": [
             {
                 "className": "Variable",
-                "lineNumber": 5,
                 "object": true,
                 "properties": [
                     {
@@ -1192,7 +1498,6 @@
                 "signals": [
                     {
                         "access": "public",
-                        "index": 0,
                         "name": "valueChanged",
                         "returnType": "void"
                     }
@@ -1206,6 +1511,6 @@
             }
         ],
         "inputFile": "Variable.h",
-        "outputRevision": 69
+        "outputRevision": 68
     }
 ]

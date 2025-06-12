@@ -36,6 +36,7 @@ public slots:
     
     // Element creation
     void createElement(const QString &type, qreal x, qreal y, qreal width = 200, qreal height = 150);
+    Q_INVOKABLE void createNode(qreal x, qreal y, const QString &title = "Node", const QString &color = "");
     
     // Selection
     void selectElementsInRect(const QRectF &rect);

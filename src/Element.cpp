@@ -20,6 +20,10 @@ QString Element::getTypeName() const
             return "Variable";
         case HtmlType:
             return "Html";
+        case NodeType:
+            return "Node";
+        case EdgeType:
+            return "Edge";
         default:
             return "Unknown";
     }

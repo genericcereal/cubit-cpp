@@ -22,7 +22,9 @@ public:
         FrameType,
         TextType,
         VariableType,
-        HtmlType
+        HtmlType,
+        NodeType,
+        EdgeType
     };
     Q_ENUM(ElementType)
 

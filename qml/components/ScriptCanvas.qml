@@ -70,8 +70,35 @@ BaseCanvas {
                 id: nodesLayer
                 anchors.fill: parent
                 
-                // Placeholder for node rendering
-                // Will be implemented when nodes are added
+                Repeater {
+                    id: nodeRepeater
+                    model: root.elementModel
+                    
+                    delegate: Loader {
+                        property var element: model.element
+                        property string elementType: model.elementType
+                        
+                        // Position elements relative to canvas origin
+                        x: element ? element.x - root.canvasMinX : 0
+                        y: element ? element.y - root.canvasMinY : 0
+                        
+                        sourceComponent: {
+                            if (!element || !elementType) return null
+                            switch(elementType) {
+                                case "Node": return nodeComponent
+                                case "Edge": return null  // Edges will be handled separately
+                                default: return null
+                            }
+                        }
+                        
+                        onLoaded: {
+                            if (item && element) {
+                                item.element = element
+                                item.elementModel = root.elementModel
+                            }
+                        }
+                    }
+                }
             }
         }
         
@@ -89,6 +116,9 @@ BaseCanvas {
         onTriggered: {
             edgesLoader.active = true
             nodesLoader.active = true
+            
+            // Create default nodes after loaders are active
+            createDefaultNodes()
         }
     }
     
@@ -104,14 +134,15 @@ BaseCanvas {
     // Override virtual functions for script canvas behavior
     function handleLeftButtonPress(canvasPoint) {
         if (controller.mode === "select") {
-            // For now, just handle selection box (no nodes to select yet)
-            // When nodes are added, we'll check for node hits here
+            // Let the controller handle the press for node selection/dragging
+            controller.handleMousePress(canvasPoint.x, canvasPoint.y)
         }
         // Other modes will be handled when node creation is implemented
     }
     
     function handleMouseDrag(canvasPoint) {
-        // Will handle node dragging when implemented
+        // Let the controller handle drag
+        controller.handleMouseMove(canvasPoint.x, canvasPoint.y)
     }
     
     function handleMouseHover(canvasPoint) {
@@ -119,7 +150,8 @@ BaseCanvas {
     }
     
     function handleLeftButtonRelease(canvasPoint) {
-        // Will handle node creation/connection when implemented
+        // Let the controller handle release
+        controller.handleMouseRelease(canvasPoint.x, canvasPoint.y)
     }
     
     function handleMouseExit() {
@@ -129,5 +161,24 @@ BaseCanvas {
     function handleSelectionRect(rect) {
         // Will select nodes in rect when implemented
         // For now, no elements to select
+    }
+    
+    // Create default nodes
+    function createDefaultNodes() {
+        if (!controller || !elementModel) return
+        
+        // Create first node - use light blue from Config
+        controller.createNode(-150, -50, "Start Node", "")
+        
+        // Create second node - also light blue
+        controller.createNode(50, -50, "Process Node", "")
+        
+        // TODO: Add port configuration once Node port methods are exposed to QML
+    }
+    
+    // Component definitions
+    Component {
+        id: nodeComponent
+        NodeElement {}
     }
 }

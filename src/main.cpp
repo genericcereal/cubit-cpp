@@ -8,6 +8,8 @@
 #include "Text.h"
 #include "Html.h"
 #include "Variable.h"
+#include "Node.h"
+#include "Edge.h"
 #include "CanvasController.h"
 #include "ElementModel.h"
 #include "SelectionManager.h"
@@ -33,6 +35,8 @@ int main(int argc, char *argv[])
     qmlRegisterType<Text>("Cubit", 1, 0, "TextElement");  // Rename to avoid conflict with QML Text
     qmlRegisterType<Html>("Cubit", 1, 0, "Html");
     qmlRegisterType<Variable>("Cubit", 1, 0, "Variable");
+    qmlRegisterType<Node>("Cubit", 1, 0, "Node");
+    qmlRegisterType<Edge>("Cubit", 1, 0, "Edge");
     
     // Register singleton controllers
     qmlRegisterType<CanvasController>("Cubit", 1, 0, "CanvasController");
