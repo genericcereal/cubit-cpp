@@ -12,6 +12,10 @@ BaseCanvas {
     property var nodes: []
     property var edges: []
     
+    // Hover state
+    property var hoveredElement: null
+    property point hoveredPoint: Qt.point(0, 0)
+    
     // Override content layer with script elements
     Component.onCompleted: {
         // Call base implementation
@@ -95,6 +99,7 @@ BaseCanvas {
                             if (item && element) {
                                 item.element = element
                                 item.elementModel = root.elementModel
+                                item.canvas = root  // Pass canvas reference
                             }
                         }
                     }
@@ -146,7 +151,19 @@ BaseCanvas {
     }
     
     function handleMouseHover(canvasPoint) {
-        // Will handle node hover when implemented
+        // Check if hovering over a node
+        if (controller) {
+            var element = controller.hitTest(canvasPoint.x, canvasPoint.y)
+            hoveredPoint = canvasPoint
+            if (element !== hoveredElement) {
+                hoveredElement = element
+                if (element && element.objectName === "Node") {
+                    console.log("Started hovering over node:", element.nodeTitle)
+                } else if (!element && hoveredElement) {
+                    console.log("Stopped hovering")
+                }
+            }
+        }
     }
     
     function handleLeftButtonRelease(canvasPoint) {
