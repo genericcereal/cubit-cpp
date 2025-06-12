@@ -150,9 +150,14 @@ Item {
                     
                     // If in select mode and mouse moved, start selection box
                     if (controller && controller.mode === "select" && !selectionBoxHandler.active) {
+                        console.log("BaseCanvas: Checking if should start selection box")
+                        console.log("  controller.mode:", controller.mode)
+                        console.log("  selectionBoxHandler.active:", selectionBoxHandler.active)
                         // Check if we're not dragging an element
                         var element = controller.hitTest(canvasPoint.x, canvasPoint.y)
+                        console.log("  hit test result:", element)
                         if (!element) {
+                            console.log("  Starting selection box at:", JSON.stringify(toCanvasCoords(pressPoint.x, pressPoint.y)))
                             selectionBoxHandler.startSelection(toCanvasCoords(pressPoint.x, pressPoint.y))
                         }
                     }
@@ -182,6 +187,7 @@ Item {
                 isPanning = false
                 cursorShape = Qt.ArrowCursor
             } else if (selectionBoxHandler.active) {
+                console.log("BaseCanvas: Ending selection box")
                 selectionBoxHandler.endSelection()
             } else if (mouse.button === Qt.LeftButton) {
                 var canvasPoint = toCanvasCoords(mouse.x, mouse.y)
@@ -222,6 +228,7 @@ Item {
         id: selectionBoxHandler
         selectionManager: root.selectionManager
         onSelectionRectChanged: function(rect) {
+            console.log("BaseCanvas: onSelectionRectChanged called with rect:", JSON.stringify({x: rect.x, y: rect.y, width: rect.width, height: rect.height}))
             // Let subclasses handle what to select
             handleSelectionRect(rect)
         }

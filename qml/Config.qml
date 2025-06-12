@@ -9,6 +9,7 @@ QtObject {
     readonly property string panelBackground: "#ffffff"
     readonly property string panelHeaderBackground: "#f0f0f0"
     readonly property string elementBackgroundColor: "#E6F3FF"  // Light blue for frames and text
+    readonly property string nodeSelectionBoundsColor: "#0066cc"  // Blue for node multi-select bounding box
     
     // Node colors
     readonly property string nodeDefaultColor: "#E6F3FF"       // Light blue (same as element background)

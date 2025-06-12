@@ -29,6 +29,17 @@ Item {
         selectionBoxHandler: canvasView?.selectionBoxHandler ?? null
     }
     
+    // Node selection bounds (only for script canvas)
+    NodeSelectionBounds {
+        id: nodeSelectionBounds
+        visible: canvasType === "script"
+        selectionManager: root.selectionManager
+        zoomLevel: root.zoomLevel
+        flickable: root.flickable
+        canvasMinX: root.canvasMinX
+        canvasMinY: root.canvasMinY
+    }
+    
     // Use bounding box properties computed in C++ for better performance
     // Use readonly to ensure we always get the latest value from C++
     readonly property real selectionBoundingX: selectionManager?.boundingX ?? 0
