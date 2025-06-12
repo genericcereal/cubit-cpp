@@ -8,6 +8,9 @@ Node::Node(const QString &id, QObject *parent)
     , m_nodeColor(Config::NODE_DEFAULT_COLOR)
     , m_isExecuting(false)
 {
+    // Set object name for type identification
+    setObjectName("Node");
+    
     // Set default size for nodes
     setWidth(150);
     setHeight(80);

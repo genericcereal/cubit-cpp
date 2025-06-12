@@ -13,6 +13,7 @@
         <file>qml/components/TextElement.qml</file>
         <file>qml/components/HtmlElement.qml</file>
         <file>qml/components/NodeElement.qml</file>
+        <file>qml/components/NodeSelectionBounds.qml</file>
         <file>qml/components/ViewportOverlay.qml</file>
         <file>qml/components/ResizeHandle.qml</file>
         <file>qml/components/SelectionBox.qml</file>

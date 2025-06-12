@@ -18,6 +18,18 @@ Item {
     // Selection state
     property bool selected: element ? element.selected : false
     
+    // Log node properties when element changes
+    onElementChanged: {
+        if (element) {
+            console.log("NodeElement created/updated:")
+            console.log("  id:", element.id)
+            console.log("  objectName:", element.objectName)
+            console.log("  position:", element.x, ",", element.y)
+            console.log("  size:", element.width, "x", element.height)
+            console.log("  nodeTitle:", nodeElement ? nodeElement.nodeTitle : "null")
+        }
+    }
+    
     // Simple node visual representation for debugging
     Rectangle {
         id: nodeBody

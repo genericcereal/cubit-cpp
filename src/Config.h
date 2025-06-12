@@ -9,6 +9,7 @@ namespace Config {
     constexpr const char* PANEL_BACKGROUND = "#ffffff";
     constexpr const char* PANEL_HEADER_BACKGROUND = "#f0f0f0";
     constexpr const char* ELEMENT_BACKGROUND_COLOR = "#E6F3FF";  // Light blue for frames and text
+    constexpr const char* NODE_SELECTION_BOUNDS_COLOR = "#0066cc";  // Blue for node multi-select bounding box
     
     // Node colors
     constexpr const char* NODE_DEFAULT_COLOR = "#E6F3FF";       // Light blue (same as element background)
