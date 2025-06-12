@@ -19,6 +19,12 @@ Window {
         onModeChanged: {
             console.log("Main.qml: CanvasController mode changed to:", mode)
         }
+        
+        Component.onCompleted: {
+            setElementModel(elementModel)
+            setSelectionManager(selectionManager)
+            setCanvasType("design")  // Default to design canvas
+        }
     }
 
     SelectionManager {
@@ -39,19 +45,41 @@ Window {
             SplitView.preferredWidth: parent.width * 0.7
             SplitView.minimumWidth: 400
 
-            CanvasView {
-                id: canvasView
+            Loader {
+                id: canvasLoader
                 anchors.fill: parent
-                controller: canvasController
-                selectionManager: selectionManager
-                elementModel: elementModel
+                sourceComponent: detailPanel.currentCanvasType === "design" ? designCanvasComponent : scriptCanvasComponent
+                
+                property alias canvasView: canvasLoader.item
+                
+                onLoaded: {
+                    if (item) {
+                        item.controller = canvasController
+                        item.selectionManager = selectionManager
+                        item.elementModel = elementModel
+                    }
+                }
+            }
+            
+            Component {
+                id: designCanvasComponent
+                DesignCanvas {
+                    // Properties will be set by Loader.onLoaded
+                }
+            }
+            
+            Component {
+                id: scriptCanvasComponent
+                ScriptCanvas {
+                    // Properties will be set by Loader.onLoaded
+                }
             }
             
             // Viewport overlay for non-scaling UI elements
             ViewportOverlay {
                 anchors.fill: parent
-                canvasView: canvasView
-                hoveredElement: canvasView.hoveredElement
+                canvasView: canvasLoader.item
+                hoveredElement: canvasLoader.item?.hoveredElement ?? null
             }
 
             // Overlay panels
@@ -87,6 +115,14 @@ Window {
             SplitView.minimumWidth: 250
             elementModel: elementModel
             selectionManager: selectionManager
+            
+            onCanvasTypeChanged: (canvasType) => {
+                canvasController.setCanvasType(canvasType)
+                // Clear selection when switching canvas types
+                selectionManager.clearSelection()
+                // Reset to select mode
+                canvasController.setMode("select")
+            }
         }
     }
 }

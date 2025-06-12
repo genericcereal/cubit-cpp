@@ -17,6 +17,7 @@ Item {
     property var selectedElements: selectionManager?.selectedElements ?? []
     property var creationDragHandler: canvasView?.creationDragHandler ?? null
     property var controller: canvasView?.controller ?? null
+    property string canvasType: canvasView?.canvasType ?? "design"
     
     // Canvas bounds from canvasView
     property real canvasMinX: canvasView?.canvasMinX ?? 0
@@ -35,10 +36,14 @@ Item {
     readonly property real selectionBoundingWidth: selectionManager?.boundingWidth ?? 0
     readonly property real selectionBoundingHeight: selectionManager?.boundingHeight ?? 0
     
-    // Controls that follow selected elements
+    // Controls that follow selected elements (only for design canvas)
     Controls {
         id: selectionControls
         visible: {
+            // Controls only visible on design canvas
+            if (canvasType !== "design") {
+                return false
+            }
             if (selectedElements && selectedElements.length > 0) {
                 return true
             }
@@ -312,7 +317,7 @@ Item {
         }
     }
     
-    // Hover indicator for elements under mouse
+    // Hover indicator for elements under mouse (only for design canvas)
     HoverIndicator {
         hoveredElement: root.hoveredElement
         selectionManager: root.selectionManager
@@ -320,13 +325,14 @@ Item {
         flickable: root.flickable
         canvasMinX: root.canvasMinX
         canvasMinY: root.canvasMinY
+        canvasType: root.canvasType
     }
     
-    // Hover badge that shows dimensions during resize or rotation angle during rotate
+    // Hover badge that shows dimensions during resize or rotation angle during rotate (only for design canvas)
     HoverBadge {
         id: hoverBadge
         parent: root
-        visible: selectionControls.dragging && (selectionControls.dragMode.startsWith("resize-") || selectionControls.dragMode === "rotate")
+        visible: canvasType === "design" && selectionControls.dragging && (selectionControls.dragMode.startsWith("resize-") || selectionControls.dragMode === "rotate")
         text: {
             if (selectionControls.dragMode === "rotate") {
                 return Math.round(selectionControls.controlRotation) + "°"
