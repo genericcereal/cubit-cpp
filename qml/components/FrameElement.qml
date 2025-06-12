@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import Cubit 1.0
+import Cubit.UI 1.0
 
 Item {
     id: root
@@ -24,7 +25,7 @@ Item {
         anchors.fill: parent
         
         // Frame-specific properties - light blue box with no border
-        color: "#E6F3FF"  // Light blue
+        color: Config.elementBackgroundColor
         border.width: 0
         radius: frameElement ? frameElement.borderRadius : 0
         antialiasing: true

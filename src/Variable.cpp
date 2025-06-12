@@ -1,9 +1,9 @@
 #include "Variable.h"
 
-Variable::Variable(int id, QObject *parent)
+Variable::Variable(const QString &id, QObject *parent)
     : Element(VariableType, id, parent)
 {
-    setName(QString("Variable %1").arg(id));
+    setName(QString("Variable %1").arg(id.right(4)));  // Use last 4 digits for display
 }
 
 void Variable::setValue(const QVariant &value)

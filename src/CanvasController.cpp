@@ -7,6 +7,7 @@
 #include "ElementModel.h"
 #include "SelectionManager.h"
 #include "Config.h"
+#include "UniqueIdGenerator.h"
 #include <QDebug>
 #include <QtMath>
 
@@ -141,14 +142,16 @@ void CanvasController::createElement(const QString &type, qreal x, qreal y, qrea
 {
     if (!m_elementModel) return;
     
-    int id = m_elementModel->generateId();
+    QString id = m_elementModel->generateId();
     Element *element = nullptr;
+    
+    qDebug() << "Creating element with unique ID:" << id;
     
     if (type == "frame") {
         element = new Frame(id);
     } else if (type == "text") {
         // Create frame with text
-        element = new Frame(id);
+        element = new Text(id);
     } else if (type == "html") {
         element = new Frame(id);
     } else if (type == "variable") {

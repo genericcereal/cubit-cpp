@@ -7,7 +7,7 @@ class Html : public Element {
     Q_PROPERTY(QString url READ url WRITE setUrl NOTIFY urlChanged)
     
 public:
-    explicit Html(int id, QObject *parent = nullptr);
+    explicit Html(const QString &id, QObject *parent = nullptr);
     
     QString html() const { return m_html; }
     QString url() const { return m_url; }

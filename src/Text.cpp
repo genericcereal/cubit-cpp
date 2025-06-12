@@ -1,11 +1,11 @@
 #include "Text.h"
 
-Text::Text(int id, QObject *parent)
+Text::Text(const QString &id, QObject *parent)
     : Element(TextType, id, parent)
     , m_text("Text")
     , m_color(Qt::black)
 {
-    setName(QString("Text %1").arg(id));
+    setName(QString("Text %1").arg(id.right(4)));  // Use last 4 digits for display
 }
 
 void Text::setText(const QString &text)

@@ -286,7 +286,7 @@
                         "required": false,
                         "scriptable": true,
                         "stored": true,
-                        "type": "int",
+                        "type": "QString",
                         "user": false
                     },
                     {
@@ -388,7 +388,7 @@
                         "required": false,
                         "scriptable": true,
                         "stored": true,
-                        "type": "int",
+                        "type": "QString",
                         "user": false,
                         "write": "setParentElementId"
                     },
@@ -499,7 +499,7 @@
                         "arguments": [
                             {
                                 "name": "elementId",
-                                "type": "int"
+                                "type": "QString"
                             }
                         ],
                         "index": 6,
@@ -511,7 +511,7 @@
                         "arguments": [
                             {
                                 "name": "elementId",
-                                "type": "int"
+                                "type": "QString"
                             }
                         ],
                         "index": 7,
@@ -549,7 +549,7 @@
                         "access": "public",
                         "index": 11,
                         "name": "generateId",
-                        "returnType": "int"
+                        "returnType": "QString"
                     }
                 ],
                 "object": true,
@@ -572,7 +572,7 @@
                         "arguments": [
                             {
                                 "name": "elementId",
-                                "type": "int"
+                                "type": "QString"
                             }
                         ],
                         "index": 1,

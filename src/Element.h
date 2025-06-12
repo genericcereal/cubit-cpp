@@ -7,14 +7,14 @@
 
 class Element : public QObject {
     Q_OBJECT
-    Q_PROPERTY(int elementId READ getId CONSTANT)
+    Q_PROPERTY(QString elementId READ getId CONSTANT)
     Q_PROPERTY(QString elementType READ getTypeName CONSTANT)
     Q_PROPERTY(QString name READ getName WRITE setName NOTIFY nameChanged)
     Q_PROPERTY(qreal x READ x WRITE setX NOTIFY xChanged)
     Q_PROPERTY(qreal y READ y WRITE setY NOTIFY yChanged)
     Q_PROPERTY(qreal width READ width WRITE setWidth NOTIFY widthChanged)
     Q_PROPERTY(qreal height READ height WRITE setHeight NOTIFY heightChanged)
-    Q_PROPERTY(int parentId READ getParentElementId WRITE setParentElementId NOTIFY parentIdChanged)
+    Q_PROPERTY(QString parentId READ getParentElementId WRITE setParentElementId NOTIFY parentIdChanged)
     Q_PROPERTY(bool selected READ isSelected WRITE setSelected NOTIFY selectedChanged)
     
 public:
@@ -26,11 +26,11 @@ public:
     };
     Q_ENUM(ElementType)
 
-    explicit Element(ElementType type, int id, QObject *parent = nullptr);
+    explicit Element(ElementType type, const QString &id, QObject *parent = nullptr);
     virtual ~Element() = default;
     
     // Property getters
-    int getId() const { return elementId; }
+    QString getId() const { return elementId; }
     ElementType getType() const { return elementType; }
     QString getTypeName() const;
     virtual QString getName() const { return name; }
@@ -51,9 +51,9 @@ public:
     void setRect(const QRectF &rect);
     
     // Parent management
-    void setParentElementId(int parentId);
-    int getParentElementId() const { return parentElementId; }
-    bool hasParent() const { return parentElementId != -1; }
+    void setParentElementId(const QString &parentId);
+    QString getParentElementId() const { return parentElementId; }
+    bool hasParent() const { return !parentElementId.isEmpty(); }
     
     // Selection state
     bool isSelected() const { return selected; }
@@ -72,8 +72,8 @@ signals:
     
 protected:
     ElementType elementType;
-    int elementId;
-    int parentElementId;
+    QString elementId;
+    QString parentElementId;
     QString name;
     QPointF canvasPosition;
     QSizeF canvasSize;

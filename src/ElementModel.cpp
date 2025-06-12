@@ -1,9 +1,9 @@
 #include "ElementModel.h"
 #include "Element.h"
+#include "UniqueIdGenerator.h"
 
 ElementModel::ElementModel(QObject *parent)
     : QAbstractListModel(parent)
-    , m_nextId(1)
 {
 }
 
@@ -80,7 +80,7 @@ void ElementModel::addElement(Element *element)
     emit elementChanged();
 }
 
-void ElementModel::removeElement(int elementId)
+void ElementModel::removeElement(const QString &elementId)
 {
     int index = findElementIndex(elementId);
     if (index < 0) return;
@@ -95,7 +95,7 @@ void ElementModel::removeElement(int elementId)
     element->deleteLater();
 }
 
-Element* ElementModel::getElementById(int elementId) const
+Element* ElementModel::getElementById(const QString &elementId) const
 {
     for (Element *element : m_elements) {
         if (element->getId() == elementId)
@@ -125,9 +125,9 @@ void ElementModel::clear()
     endResetModel();
 }
 
-int ElementModel::generateId()
+QString ElementModel::generateId()
 {
-    return m_nextId++;
+    return UniqueIdGenerator::generate16DigitId();
 }
 
 void ElementModel::onElementChanged()
@@ -156,7 +156,7 @@ void ElementModel::disconnectElement(Element *element)
     disconnect(element, &Element::selectedChanged, this, &ElementModel::onElementChanged);
 }
 
-int ElementModel::findElementIndex(int elementId) const
+int ElementModel::findElementIndex(const QString &elementId) const
 {
     for (int i = 0; i < m_elements.size(); ++i) {
         if (m_elements[i]->getId() == elementId)

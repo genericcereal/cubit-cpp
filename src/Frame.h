@@ -11,7 +11,7 @@ class Frame : public Element {
     Q_PROPERTY(bool clipContent READ clipContent WRITE setClipContent NOTIFY clipContentChanged)
     
 public:
-    explicit Frame(int id, QObject *parent = nullptr);
+    explicit Frame(const QString &id, QObject *parent = nullptr);
     
     // Property getters
     QColor backgroundColor() const { return m_backgroundColor; }

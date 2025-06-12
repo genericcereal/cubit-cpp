@@ -30,18 +30,18 @@ public:
     
     // Element management
     Q_INVOKABLE void addElement(Element *element);
-    Q_INVOKABLE void removeElement(int elementId);
-    Q_INVOKABLE Element* getElementById(int elementId) const;
+    Q_INVOKABLE void removeElement(const QString &elementId);
+    Q_INVOKABLE Element* getElementById(const QString &elementId) const;
     Q_INVOKABLE Element* elementAt(int index) const;
     Q_INVOKABLE QList<Element*> getAllElements() const { return m_elements; }
     Q_INVOKABLE void clear();
     
     // ID generation
-    Q_INVOKABLE int generateId();
+    Q_INVOKABLE QString generateId();
     
 signals:
     void elementAdded(Element *element);
-    void elementRemoved(int elementId);
+    void elementRemoved(const QString &elementId);
     void elementUpdated(Element *element);
     void elementChanged();
     
@@ -50,9 +50,8 @@ private slots:
     
 private:
     QList<Element*> m_elements;
-    int m_nextId;
     
     void connectElement(Element *element);
     void disconnectElement(Element *element);
-    int findElementIndex(int elementId) const;
+    int findElementIndex(const QString &elementId) const;
 };

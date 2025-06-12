@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import Cubit 1.0
+import Cubit.UI 1.0
 
 Item {
     id: root
@@ -17,16 +18,11 @@ Item {
     // Selection state
     property bool selected: element ? element.selected : false
     
-    // Selection visual feedback
+    // Background rectangle - light blue like frames
     Rectangle {
-        id: selectionBorder
         anchors.fill: parent
-        color: "transparent"
-        border.color: "#0066cc"
-        border.width: selected ? 2 : 0
-        visible: selected
-        z: 1000
-        antialiasing: true
+        color: Config.elementBackgroundColor
+        z: 0
     }
     
     // Text visual representation

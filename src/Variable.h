@@ -7,7 +7,7 @@ class Variable : public Element {
     Q_PROPERTY(QVariant value READ value WRITE setValue NOTIFY valueChanged)
     
 public:
-    explicit Variable(int id, QObject *parent = nullptr);
+    explicit Variable(const QString &id, QObject *parent = nullptr);
     
     QVariant value() const { return m_value; }
     void setValue(const QVariant &value);
