@@ -7,14 +7,16 @@ Rectangle {
     
     property var hoveredElement: null
     property var selectionManager: null
+    property string canvasType: ""
     property real zoomLevel: 1.0
     property var flickable: null
     property real canvasMinX: 0
     property real canvasMinY: 0
     
-    visible: hoveredElement !== null && 
-            (!selectionManager || 
-             (hoveredElement && !hoveredElement.selected))
+    visible: canvasType === "design" && 
+             hoveredElement !== null && 
+             selectionManager !== null &&
+             !selectionManager.isSelected(hoveredElement)
     color: "transparent"
     border.color: Config.hoverColor
     border.width: 1

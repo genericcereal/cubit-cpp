@@ -14,6 +14,7 @@
 CanvasController::CanvasController(QObject *parent)
     : QObject(parent)
     , m_mode("select")
+    , m_canvasType("design")
     , m_elementModel(nullptr)
     , m_selectionManager(nullptr)
     , m_isDragging(false)
@@ -29,6 +30,14 @@ void CanvasController::setMode(const QString &mode)
         m_mode = mode;
         qDebug() << "Mode changed, emitting signal";
         emit modeChanged();
+    }
+}
+
+void CanvasController::setCanvasType(const QString &type)
+{
+    if (m_canvasType != type) {
+        m_canvasType = type;
+        emit canvasTypeChanged();
     }
 }
 
@@ -142,6 +151,12 @@ void CanvasController::createElement(const QString &type, qreal x, qreal y, qrea
 {
     if (!m_elementModel) return;
     
+    // Only create elements for design canvas
+    if (m_canvasType != "design") {
+        qDebug() << "Cannot create elements on" << m_canvasType << "canvas";
+        return;
+    }
+    
     QString id = m_elementModel->generateId();
     Element *element = nullptr;
     
@@ -173,6 +188,12 @@ void CanvasController::createElement(const QString &type, qreal x, qreal y, qrea
 Element* CanvasController::hitTest(qreal x, qreal y)
 {
     if (!m_elementModel) return nullptr;
+    
+    // For script canvas, we'll test nodes instead of elements (to be implemented)
+    if (m_canvasType == "script") {
+        // TODO: Implement node hit testing
+        return nullptr;
+    }
     
     // Test in reverse order (top to bottom)
     QList<Element*> elements = m_elementModel->getAllElements();
@@ -257,6 +278,13 @@ void CanvasController::endDrag()
 void CanvasController::selectElementsInRect(const QRectF &rect)
 {
     if (!m_elementModel || !m_selectionManager) return;
+    
+    // For script canvas, we'll select nodes instead of elements (to be implemented)
+    if (m_canvasType == "script") {
+        // TODO: Implement node selection in rect
+        m_selectionManager->clearSelection();
+        return;
+    }
     
     QList<Element*> elementsToSelect;
     QList<Element*> allElements = m_elementModel->getAllElements();

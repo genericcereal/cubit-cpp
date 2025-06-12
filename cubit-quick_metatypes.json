@@ -13,8 +13,20 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 11,
+                        "index": 12,
                         "name": "setMode",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "type",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 13,
+                        "name": "setCanvasType",
                         "returnType": "void"
                     },
                     {
@@ -25,7 +37,7 @@
                                 "type": "ElementModel*"
                             }
                         ],
-                        "index": 12,
+                        "index": 14,
                         "name": "setElementModel",
                         "returnType": "void"
                     },
@@ -37,7 +49,7 @@
                                 "type": "SelectionManager*"
                             }
                         ],
-                        "index": 13,
+                        "index": 15,
                         "name": "setSelectionManager",
                         "returnType": "void"
                     },
@@ -53,7 +65,7 @@
                                 "type": "qreal"
                             }
                         ],
-                        "index": 14,
+                        "index": 16,
                         "name": "hitTest",
                         "returnType": "Element*"
                     }
@@ -74,6 +86,21 @@
                         "type": "QString",
                         "user": false,
                         "write": "setMode"
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 1,
+                        "name": "canvasType",
+                        "notify": "canvasTypeChanged",
+                        "read": "canvasType",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "QString",
+                        "user": false,
+                        "write": "setCanvasType"
                     }
                 ],
                 "qualifiedClassName": "CanvasController",
@@ -86,13 +113,19 @@
                     },
                     {
                         "access": "public",
+                        "index": 1,
+                        "name": "canvasTypeChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
                         "arguments": [
                             {
                                 "name": "element",
                                 "type": "Element*"
                             }
                         ],
-                        "index": 1,
+                        "index": 2,
                         "name": "elementCreated",
                         "returnType": "void"
                     }
@@ -110,7 +143,7 @@
                                 "type": "qreal"
                             }
                         ],
-                        "index": 2,
+                        "index": 3,
                         "name": "handleMousePress",
                         "returnType": "void"
                     },
@@ -126,7 +159,7 @@
                                 "type": "qreal"
                             }
                         ],
-                        "index": 3,
+                        "index": 4,
                         "name": "handleMouseMove",
                         "returnType": "void"
                     },
@@ -142,7 +175,7 @@
                                 "type": "qreal"
                             }
                         ],
-                        "index": 4,
+                        "index": 5,
                         "name": "handleMouseRelease",
                         "returnType": "void"
                     },
@@ -170,7 +203,7 @@
                                 "type": "qreal"
                             }
                         ],
-                        "index": 5,
+                        "index": 6,
                         "name": "createElement",
                         "returnType": "void"
                     },
@@ -194,7 +227,7 @@
                                 "type": "qreal"
                             }
                         ],
-                        "index": 6,
+                        "index": 7,
                         "isCloned": true,
                         "name": "createElement",
                         "returnType": "void"
@@ -215,7 +248,7 @@
                                 "type": "qreal"
                             }
                         ],
-                        "index": 7,
+                        "index": 8,
                         "isCloned": true,
                         "name": "createElement",
                         "returnType": "void"
@@ -228,19 +261,19 @@
                                 "type": "QRectF"
                             }
                         ],
-                        "index": 8,
+                        "index": 9,
                         "name": "selectElementsInRect",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 9,
+                        "index": 10,
                         "name": "selectAll",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 10,
+                        "index": 11,
                         "name": "deleteSelectedElements",
                         "returnType": "void"
                     }
@@ -813,6 +846,21 @@
             {
                 "className": "SelectionManager",
                 "lineNumber": 7,
+                "methods": [
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "element",
+                                "type": "Element*"
+                            }
+                        ],
+                        "index": 10,
+                        "isConst": true,
+                        "name": "isSelected",
+                        "returnType": "bool"
+                    }
+                ],
                 "object": true,
                 "properties": [
                     {

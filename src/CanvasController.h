@@ -8,6 +8,7 @@ class SelectionManager;
 class CanvasController : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString mode READ mode WRITE setMode NOTIFY modeChanged)
+    Q_PROPERTY(QString canvasType READ canvasType WRITE setCanvasType NOTIFY canvasTypeChanged)
     
 public:
     explicit CanvasController(QObject *parent = nullptr);
@@ -15,6 +16,10 @@ public:
     // Mode management
     QString mode() const { return m_mode; }
     Q_INVOKABLE void setMode(const QString &mode);
+    
+    // Canvas type management
+    QString canvasType() const { return m_canvasType; }
+    Q_INVOKABLE void setCanvasType(const QString &type);
     
     // Element model and selection manager
     Q_INVOKABLE void setElementModel(ElementModel *model) { m_elementModel = model; }
@@ -39,10 +44,12 @@ public slots:
     
 signals:
     void modeChanged();
+    void canvasTypeChanged();
     void elementCreated(Element *element);
     
 private:
     QString m_mode;
+    QString m_canvasType;
     ElementModel *m_elementModel;
     SelectionManager *m_selectionManager;
     

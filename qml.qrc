@@ -3,6 +3,9 @@
         <file>qml/main.qml</file>
         <file>qml/Config.qml</file>
         <file>qml/qmldir</file>
+        <file>qml/components/BaseCanvas.qml</file>
+        <file>qml/components/DesignCanvas.qml</file>
+        <file>qml/components/ScriptCanvas.qml</file>
         <file>qml/components/CanvasView.qml</file>
         <file>qml/components/ElementItem.qml</file>
         <file>qml/components/ElementRenderer.qml</file>

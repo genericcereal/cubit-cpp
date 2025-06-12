@@ -21,7 +21,7 @@ public:
     bool hasSelection() const { return !m_selectedElements.isEmpty(); }
     int selectionCount() const { return m_selectedElements.size(); }
     QList<Element*> selectedElements() const { return m_selectedElements.values(); }
-    bool isSelected(Element *element) const;
+    Q_INVOKABLE bool isSelected(Element *element) const;
     
     // Bounding box properties
     qreal boundingX() const { return m_boundingX; }
