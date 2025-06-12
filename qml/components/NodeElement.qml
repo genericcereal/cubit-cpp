@@ -9,6 +9,7 @@ Item {
     // The C++ Element object
     property var element
     property var elementModel
+    property var canvas  // Reference to the canvas
     property Node nodeElement: element as Node
     
     // Size properties bound to C++ element (position is handled by parent Loader)
@@ -17,6 +18,28 @@ Item {
     
     // Selection state
     property bool selected: element ? element.selected : false
+    
+    // Hover state - check if this element is hovered in the canvas
+    property bool elementHovered: canvas && canvas.hoveredElement === element
+    
+    // Check if hover is specifically over the node handle
+    property bool handleHovered: {
+        if (!elementHovered || !canvas) return false
+        
+        // Get the hover point relative to this element
+        var localX = canvas.hoveredPoint.x - element.x
+        var localY = canvas.hoveredPoint.y - element.y
+        
+        // Check if point is within the handle bounds
+        // Handle is anchored right/bottom with 10px margins
+        var handleLeft = element.width - 40  // width - margin - handleWidth
+        var handleTop = element.height - 40  // height - margin - handleHeight
+        var handleRight = element.width - 10
+        var handleBottom = element.height - 10
+        
+        return localX >= handleLeft && localX <= handleRight && 
+               localY >= handleTop && localY <= handleBottom
+    }
     
     // Log node properties when element changes
     onElementChanged: {
@@ -54,6 +77,17 @@ Item {
             text: nodeElement ? nodeElement.nodeTitle : "Node"
             color: "black"
             font.pixelSize: 16
+        }
+        
+        // Node Handle
+        Rectangle {
+            id: nodeHandle
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            anchors.margins: 10
+            width: 30
+            height: 30
+            color: root.handleHovered ? "green" : "red"
         }
     }
 }
