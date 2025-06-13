@@ -40,6 +40,8 @@ public slots:
     Q_INVOKABLE void createEdge(const QString &sourceNodeId, const QString &targetNodeId, 
                                 const QString &sourceHandleType, const QString &targetHandleType,
                                 int sourcePortIndex, int targetPortIndex);
+    Q_INVOKABLE void createEdgeByPortId(const QString &sourceNodeId, const QString &targetNodeId,
+                                        const QString &sourcePortId, const QString &targetPortId);
     
     // JSON-based creation
     Q_INVOKABLE QString createNodeFromJson(const QString &jsonData);
