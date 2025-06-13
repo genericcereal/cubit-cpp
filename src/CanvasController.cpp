@@ -13,6 +13,10 @@
 #include "UniqueIdGenerator.h"
 #include <QDebug>
 #include <QtMath>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
+#include <QJsonValue>
 
 CanvasController::CanvasController(QObject *parent)
     : QObject(parent)
@@ -500,4 +504,212 @@ void CanvasController::createEdge(const QString &sourceNodeId, const QString &ta
         qDebug() << "Created edge from node" << sourceNodeId << "port" << sourcePortIndex
                  << "to node" << targetNodeId << "port" << targetPortIndex;
     }
+}
+
+QString CanvasController::createNodeFromJson(const QString &jsonData)
+{
+    if (m_canvasType != "script") {
+        qWarning() << "createNodeFromJson can only be used on script canvas";
+        return QString();
+    }
+    
+    if (!m_elementModel) {
+        qWarning() << "No element model set";
+        return QString();
+    }
+    
+    QJsonDocument doc = QJsonDocument::fromJson(jsonData.toUtf8());
+    if (!doc.isObject()) {
+        qWarning() << "Invalid JSON format - expected object";
+        return QString();
+    }
+    
+    QJsonObject nodeObj = doc.object();
+    
+    // Extract required fields
+    QString nodeId = nodeObj.value("id").toString();
+    if (nodeId.isEmpty()) {
+        nodeId = UniqueIdGenerator::generateUuid();
+    }
+    
+    QString name = nodeObj.value("name").toString("Node");
+    qreal x = nodeObj.value("x").toDouble(0);
+    qreal y = nodeObj.value("y").toDouble(0);
+    QString color = nodeObj.value("color").toString("");
+    
+    // Create the node
+    Node *node = new Node(nodeId);
+    node->setX(x);
+    node->setY(y);
+    node->setNodeTitle(name);
+    
+    if (!color.isEmpty()) {
+        node->setNodeColor(color);
+    }
+    
+    // Parse targets (input ports)
+    QJsonArray targets = nodeObj.value("targets").toArray();
+    QStringList inputPorts;
+    QList<Node::RowConfig> rowConfigs;
+    
+    for (int i = 0; i < targets.size(); ++i) {
+        QJsonObject target = targets[i].toObject();
+        QString targetId = target.value("id").toString();
+        QString targetType = target.value("type").toString("Variable");
+        QString targetLabel = target.value("label").toString(targetId);
+        
+        if (!targetId.isEmpty()) {
+            inputPorts.append(targetId);
+            node->setInputPortType(i, targetType);
+            
+            // Add to row configuration
+            Node::RowConfig config;
+            config.hasTarget = true;
+            config.targetLabel = targetLabel;
+            config.targetType = targetType;
+            config.targetPortIndex = i;
+            config.hasSource = false;
+            rowConfigs.append(config);
+        }
+    }
+    
+    // Parse sources (output ports)
+    QJsonArray sources = nodeObj.value("sources").toArray();
+    QStringList outputPorts;
+    
+    for (int i = 0; i < sources.size(); ++i) {
+        QJsonObject source = sources[i].toObject();
+        QString sourceId = source.value("id").toString();
+        QString sourceType = source.value("type").toString("Variable");
+        QString sourceLabel = source.value("label").toString(sourceId);
+        
+        if (!sourceId.isEmpty()) {
+            outputPorts.append(sourceId);
+            node->setOutputPortType(i, sourceType);
+            
+            // Check if we can add to existing row or need new row
+            if (i < rowConfigs.size()) {
+                rowConfigs[i].hasSource = true;
+                rowConfigs[i].sourceLabel = sourceLabel;
+                rowConfigs[i].sourceType = sourceType;
+                rowConfigs[i].sourcePortIndex = i;
+            } else {
+                Node::RowConfig config;
+                config.hasTarget = false;
+                config.hasSource = true;
+                config.sourceLabel = sourceLabel;
+                config.sourceType = sourceType;
+                config.sourcePortIndex = i;
+                rowConfigs.append(config);
+            }
+        }
+    }
+    
+    // Set the ports
+    node->setInputPorts(inputPorts);
+    node->setOutputPorts(outputPorts);
+    
+    // Add rows
+    for (const auto &config : rowConfigs) {
+        node->addRow(config);
+    }
+    
+    // Add to model
+    m_elementModel->addElement(node);
+    emit elementCreated(node);
+    
+    qDebug() << "Created node from JSON:" << nodeId << "at" << x << "," << y;
+    return nodeId;
+}
+
+void CanvasController::createNodesFromJson(const QString &jsonData)
+{
+    if (m_canvasType != "script") {
+        qWarning() << "createNodesFromJson can only be used on script canvas";
+        return;
+    }
+    
+    QJsonDocument doc = QJsonDocument::fromJson(jsonData.toUtf8());
+    if (!doc.isArray()) {
+        qWarning() << "Invalid JSON format - expected array";
+        return;
+    }
+    
+    QJsonArray nodesArray = doc.array();
+    QStringList createdNodeIds;
+    
+    for (const QJsonValue &value : nodesArray) {
+        if (value.isObject()) {
+            QJsonDocument nodeDoc(value.toObject());
+            QString nodeId = createNodeFromJson(nodeDoc.toJson(QJsonDocument::Compact));
+            if (!nodeId.isEmpty()) {
+                createdNodeIds.append(nodeId);
+            }
+        }
+    }
+    
+    qDebug() << "Created" << createdNodeIds.size() << "nodes from JSON array";
+}
+
+void CanvasController::createGraphFromJson(const QString &jsonData)
+{
+    if (m_canvasType != "script") {
+        qWarning() << "createGraphFromJson can only be used on script canvas";
+        return;
+    }
+    
+    QJsonDocument doc = QJsonDocument::fromJson(jsonData.toUtf8());
+    if (!doc.isObject()) {
+        qWarning() << "Invalid JSON format - expected object";
+        return;
+    }
+    
+    QJsonObject graphObj = doc.object();
+    
+    // Create nodes first
+    QJsonArray nodes = graphObj.value("nodes").toArray();
+    QMap<QString, QString> idMap; // Map original IDs to generated IDs
+    
+    for (const QJsonValue &value : nodes) {
+        if (value.isObject()) {
+            QJsonObject nodeObj = value.toObject();
+            QString originalId = nodeObj.value("id").toString();
+            
+            QJsonDocument nodeDoc(nodeObj);
+            QString newId = createNodeFromJson(nodeDoc.toJson(QJsonDocument::Compact));
+            
+            if (!originalId.isEmpty() && !newId.isEmpty()) {
+                idMap[originalId] = newId;
+            }
+        }
+    }
+    
+    // Create edges
+    QJsonArray edges = graphObj.value("edges").toArray();
+    for (const QJsonValue &value : edges) {
+        if (value.isObject()) {
+            QJsonObject edgeObj = value.toObject();
+            
+            QString sourceNodeId = edgeObj.value("sourceNodeId").toString();
+            QString targetNodeId = edgeObj.value("targetNodeId").toString();
+            int sourcePortIndex = edgeObj.value("sourcePortIndex").toInt(0);
+            int targetPortIndex = edgeObj.value("targetPortIndex").toInt(0);
+            
+            // Map IDs if necessary
+            if (idMap.contains(sourceNodeId)) {
+                sourceNodeId = idMap[sourceNodeId];
+            }
+            if (idMap.contains(targetNodeId)) {
+                targetNodeId = idMap[targetNodeId];
+            }
+            
+            // Create the edge
+            if (!sourceNodeId.isEmpty() && !targetNodeId.isEmpty()) {
+                createEdge(sourceNodeId, targetNodeId, "right", "left", 
+                          sourcePortIndex, targetPortIndex);
+            }
+        }
+    }
+    
+    qDebug() << "Created graph from JSON with" << idMap.size() << "nodes and" << edges.size() << "edges";
 }

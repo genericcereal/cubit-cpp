@@ -26,6 +26,12 @@ BaseCanvas {
     // Signal to notify when dragging starts
     signal canvasDragStarted()
     
+    // Default nodes creator
+    DefaultNodesCreator {
+        id: defaultNodesCreator
+        controller: root.controller
+    }
+    
     // Handle drag state
     property bool isDraggingHandle: false
     property var dragSourceNode: null
@@ -544,21 +550,13 @@ BaseCanvas {
     
     // Create default nodes
     function createDefaultNodes() {
-        console.log("ScriptCanvas.createDefaultNodes called")
-        if (!controller || !elementModel) {
-            console.log("  Missing controller or elementModel")
+        // Check if nodes already exist
+        if (elementModel && elementModel.rowCount() > 0) {
+            console.log("ScriptCanvas.createDefaultNodes: Nodes already exist, skipping creation")
             return
         }
         
-        // Create first node - use light blue from Config
-        console.log("  Creating first node at (-150, -50)")
-        controller.createNode(-150, -50, "Start Node", "")
-        
-        // Create second node - also light blue
-        console.log("  Creating second node at (50, -50)")
-        controller.createNode(50, -50, "Process Node", "")
-        
-        console.log("  Default nodes created")
+        defaultNodesCreator.createDefaultNodes()
     }
     
     // Helper function to check if a point is over a handle
