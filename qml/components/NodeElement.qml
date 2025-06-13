@@ -22,8 +22,8 @@ Item {
     // Hover state - check if this element is hovered in the canvas
     property bool elementHovered: canvas && canvas.hoveredElement === element
     
-    // Track the currently active TextField
-    property var activeTextField: null
+    // Track the currently active ComboBox
+    property var activeComboBox: null
     
     // Force re-evaluation of bindings when model changes
     property int modelUpdateCount: 0
@@ -50,20 +50,20 @@ Item {
                 clickPoint.y >= element.y && clickPoint.y <= element.y + element.height) {
                 // Node was clicked, check if it's on a text input
                 root.handleClick(clickPoint)
-            } else if (root.activeTextField) {
-                // Click outside of node, blur active TextField
-                root.activeTextField.focus = false
-                root.activeTextField = null
-                console.log("Blurred active TextField due to click outside node")
+            } else if (root.activeComboBox) {
+                // Click outside of node, close active ComboBox
+                root.activeComboBox.popup.close()
+                root.activeComboBox = null
+                console.log("Closed active ComboBox due to click outside node")
             }
         }
         
         function onCanvasDragStarted() {
-            // Blur active TextField when dragging starts
-            if (root.activeTextField) {
-                root.activeTextField.focus = false
-                root.activeTextField = null
-                console.log("Blurred active TextField due to drag start")
+            // Close active ComboBox when dragging starts
+            if (root.activeComboBox) {
+                root.activeComboBox.popup.close()
+                root.activeComboBox = null
+                console.log("Closed active ComboBox due to drag start")
             }
         }
     }
@@ -80,54 +80,58 @@ Item {
         }
     }
     
-    // Handle click to focus text inputs
+    // Handle click to open combo boxes
     function handleClick(clickPoint) {
         // Get the click position relative to the node
         var localX = clickPoint.x - element.x
         var localY = clickPoint.y - element.y
         
-        var clickedOnTextField = false
+        var clickedOnComboBox = false
         
-        // Check each row in the rowContainer
-        var titleAndMargins = titleText.height + titleText.anchors.topMargin + rowContainer.anchors.topMargin
+        // Check targets column
+        var titleAndMargins = titleText.height + titleText.anchors.topMargin + columnsContainer.anchors.topMargin
         
-        // Check if click is within the rows area
+        // Check if click is within the columns area
         if (localY > titleAndMargins) {
-            var rowLocalY = localY - titleAndMargins
-            var rowIndex = Math.floor(rowLocalY / 40) // 30px row height + 10px spacing
+            var columnsLocalY = localY - titleAndMargins
+            var columnsLocalX = localX - columnsContainer.anchors.leftMargin
             
-            // Get the row item if it exists through the repeater
-            if (rowIndex >= 0 && rowIndex < rowRepeater.count) {
-                var row = rowRepeater.itemAt(rowIndex)
-                if (row && row.hasTarget && row.targetType === "Variable" && !row.hasIncomingEdge) {
-                    // Check if click is on the text input
-                    var inputX = 20 + (row.targetLabel !== "" ? 50 : 25) // targetHandle width + margins
-                    var inputWidth = 80
-                    var rowLocalX = localX - rowContainer.anchors.leftMargin
-                    
-                    if (rowLocalX >= inputX && rowLocalX <= inputX + inputWidth) {
-                        // Focus the text input using the alias
-                        if (row.variableInput) {
-                            // Blur any previously active field
-                            if (activeTextField && activeTextField !== row.variableInput) {
-                                activeTextField.focus = false
-                            }
+            // Check if click is in the targets column
+            if (columnsLocalX >= 0 && columnsLocalX <= targetsColumn.width) {
+                // Find which target item was clicked
+                var targetIndex = Math.floor(columnsLocalY / 40) // 30px height + 10px spacing
+                
+                if (targetIndex >= 0 && targetIndex < targetsColumn.children.length) {
+                    var targetItem = targetsColumn.children[targetIndex]
+                    if (targetItem && targetItem.children.length > 1) {
+                        var comboBox = targetItem.children[1] // ComboBox is the second child
+                        if (comboBox && comboBox.visible) {
+                            // Check if click is on the combo box
+                            var comboX = 25 // handle width + margin
+                            var comboWidth = 80
                             
-                            row.variableInput.forceActiveFocus()
-                            activeTextField = row.variableInput
-                            clickedOnTextField = true
-                            console.log("Focused TextField at row", rowIndex, "port:", row.targetPortIndex)
+                            if (columnsLocalX >= comboX && columnsLocalX <= comboX + comboWidth) {
+                                // Close any previously active combo box
+                                if (activeComboBox && activeComboBox !== comboBox) {
+                                    activeComboBox.popup.close()
+                                }
+                                
+                                comboBox.popup.open()
+                                activeComboBox = comboBox
+                                clickedOnComboBox = true
+                                console.log("Opened ComboBox for target port:", targetItem.targetPortIndex)
+                            }
                         }
                     }
                 }
             }
         }
         
-        // If we didn't click on a text field, blur the active one
-        if (!clickedOnTextField && activeTextField) {
-            activeTextField.focus = false
-            activeTextField = null
-            console.log("Blurred active TextField")
+        // If we didn't click on a combo box, close the active one
+        if (!clickedOnComboBox && activeComboBox) {
+            activeComboBox.popup.close()
+            activeComboBox = null
+            console.log("Closed active ComboBox")
         }
     }
     
@@ -161,236 +165,238 @@ Item {
             font.bold: true
         }
         
-        // Container for NodeRow components
-        Column {
-            id: rowContainer
+        // Two column layout for targets and sources
+        Row {
+            id: columnsContainer
             anchors.top: titleText.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.margins: 10
             anchors.topMargin: 15
-            spacing: 10
+            spacing: 20
             
-            // NodeRow component definition
-            component NodeRow: Item {
-                id: nodeRow
-                width: parent.width
-                height: 30
+            // Left column - Target handles
+            Column {
+                id: targetsColumn
+                width: (parent.width - parent.spacing) / 2
+                spacing: 10
                 
-                property int rowIndex: 0
-                property alias variableInput: variableInput
-                
-                
-                // Target (input) properties
-                property bool hasTarget: false
-                property string targetLabel: ""
-                property string targetType: "Flow"  // "Flow" or "Variable"
-                property int targetPortIndex: -1
-                
-                // Source (output) properties  
-                property bool hasSource: false
-                property string sourceLabel: ""
-                property string sourceType: "Flow"  // "Flow" or "Variable"
-                property int sourcePortIndex: -1
-                
-                // Check if this target port has an incoming edge
-                property bool hasIncomingEdge: {
-                    if (!nodeRow.hasTarget || !root.elementModel || !root.element) return false
-                    
-                    // Use modelUpdateCount to trigger re-evaluation when model changes
-                    var dummy = root.modelUpdateCount
-                    
-                    var edges = root.elementModel.getAllElements()
-                    for (var i = 0; i < edges.length; i++) {
-                        var edge = edges[i]
-                        if (edge && edge.objectName === "Edge") {
-                            // Check if this edge connects to our target port
-                            if (edge.targetNodeId === root.element.elementId && 
-                                edge.targetPortIndex === nodeRow.targetPortIndex) {
-                                console.log("Found incoming edge for port", nodeRow.targetPortIndex, "on node", root.element.nodeTitle)
-                                return true
+                Repeater {
+                    model: {
+                        if (!nodeElement || !nodeElement.rowConfigurations) return []
+                        // Filter only configurations that have targets
+                        var targets = []
+                        for (var i = 0; i < nodeElement.rowConfigurations.length; i++) {
+                            var config = nodeElement.rowConfigurations[i]
+                            if (config.hasTarget) {
+                                targets.push(config)
                             }
                         }
-                    }
-                    return false
-                }
-                
-                // Check if target (left) handle is hovered
-                property bool targetHandleHovered: {
-                    if (!nodeRow.hasTarget || !root.elementHovered || !root.canvas) return false
-                    
-                    // Get the hover point relative to this nodeRow
-                    var localX = root.canvas.hoveredPoint.x - root.element.x - rowContainer.anchors.leftMargin - nodeRow.x
-                    var localY = root.canvas.hoveredPoint.y - root.element.y - titleText.height - titleText.anchors.topMargin - rowContainer.anchors.topMargin - nodeRow.y
-                    
-                    // Check if point is within the left handle bounds
-                    return localX >= 0 && localX <= 20 && 
-                           localY >= 5 && localY <= 25  // vertically centered, 30px tall row
-                }
-                
-                // Check if source (right) handle is hovered
-                property bool sourceHandleHovered: {
-                    if (!nodeRow.hasSource || !root.elementHovered || !root.canvas) return false
-                    
-                    // Get the hover point relative to this nodeRow
-                    var localX = root.canvas.hoveredPoint.x - root.element.x - rowContainer.anchors.leftMargin - nodeRow.x
-                    var localY = root.canvas.hoveredPoint.y - root.element.y - titleText.height - titleText.anchors.topMargin - rowContainer.anchors.topMargin - nodeRow.y
-                    
-                    // Check if point is within the right handle bounds
-                    var rightHandleX = nodeRow.width - 20
-                    return localX >= rightHandleX && localX <= nodeRow.width && 
-                           localY >= 5 && localY <= 25  // vertically centered, 30px tall row
-                }
-                
-                // Check if the text input is hovered
-                property bool textInputHovered: {
-                    if (!nodeRow.hasTarget || nodeRow.targetType !== "Variable" || nodeRow.hasIncomingEdge) return false
-                    if (!root.elementHovered || !root.canvas) return false
-                    
-                    // Get the hover point relative to this nodeRow
-                    var localX = root.canvas.hoveredPoint.x - root.element.x - rowContainer.anchors.leftMargin - nodeRow.x
-                    var localY = root.canvas.hoveredPoint.y - root.element.y - titleText.height - titleText.anchors.topMargin - rowContainer.anchors.topMargin - nodeRow.y
-                    
-                    // Calculate text input bounds
-                    var inputX = targetHandle.width + (nodeRow.targetLabel !== "" ? 50 : 25)
-                    var inputWidth = 80
-                    var inputY = (nodeRow.height - 24) / 2  // vertically centered, 24px tall input
-                    var inputHeight = 24
-                    
-                    // Check if point is within the text input bounds
-                    return localX >= inputX && localX <= inputX + inputWidth && 
-                           localY >= inputY && localY <= inputY + inputHeight
-                }
-                
-                // Target (left) handle
-                Rectangle {
-                    id: targetHandle
-                    visible: nodeRow.hasTarget
-                    anchors.left: parent.left
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 20
-                    height: 20
-                    radius: nodeRow.targetType === "Flow" ? 10 : 0  // Circle for Flow, Square for Variable
-                    color: {
-                        if (nodeRow.targetHandleHovered) {
-                            return nodeRow.targetType === "Flow" ? "#4CAF50" : "#FF9800"  // Green for Flow, Orange for Variable
-                        } else {
-                            return nodeRow.targetType === "Flow" ? "#666666" : "#795548"  // Gray for Flow, Brown for Variable
-                        }
-                    }
-                    border.width: 2
-                    border.color: {
-                        if (nodeRow.targetHandleHovered) {
-                            return nodeRow.targetType === "Flow" ? "#2E7D32" : "#E65100"
-                        } else {
-                            return nodeRow.targetType === "Flow" ? "#333333" : "#5D4037"
-                        }
-                    }
-                }
-                
-                // Target label (left side)
-                Text {
-                    visible: nodeRow.hasTarget && nodeRow.targetLabel !== ""
-                    anchors.left: targetHandle.right
-                    anchors.leftMargin: 5
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: nodeRow.targetLabel
-                    color: "#333333"
-                    font.pixelSize: 12
-                }
-                
-                // Variable input field (only for Variable type targets without edges)
-                TextField {
-                    id: variableInput
-                    visible: nodeRow.hasTarget && nodeRow.targetType === "Variable" && !nodeRow.hasIncomingEdge
-                    anchors.left: targetHandle.right
-                    anchors.leftMargin: nodeRow.targetLabel !== "" ? 50 : 25  // More space if there's a label
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 80
-                    height: 24
-                    text: "0"  // Default value
-                    font.pixelSize: 11
-                    horizontalAlignment: TextInput.AlignHCenter
-                    
-                    onVisibleChanged: {
-                        console.log("TextField visibility changed to:", visible, 
-                                   "for port", nodeRow.targetPortIndex,
-                                   "hasIncomingEdge:", nodeRow.hasIncomingEdge)
+                        return targets
                     }
                     
-                    background: Rectangle {
-                        color: nodeRow.textInputHovered ? "#E8F4FD" : "#F5F5F5"
-                        border.color: variableInput.activeFocus ? "#2196F3" : (nodeRow.textInputHovered ? "#90CAF9" : "#CCCCCC")
-                        border.width: nodeRow.textInputHovered ? 2 : 1
-                        radius: 3
+                    delegate: Item {
+                        width: parent.width
+                        height: 30
                         
-                        Behavior on color {
-                            ColorAnimation { duration: 150 }
+                        property var targetConfig: modelData
+                        property int targetPortIndex: targetConfig.targetPortIndex || -1
+                        property string targetType: targetConfig.targetType || "Flow"
+                        property string targetLabel: targetConfig.targetLabel || ""
+                        
+                        // Check if this target port has an incoming edge
+                        property bool hasIncomingEdge: {
+                            if (!root.elementModel || !root.element) return false
+                            
+                            var dummy = root.modelUpdateCount
+                            var edges = root.elementModel.getAllElements()
+                            for (var i = 0; i < edges.length; i++) {
+                                var edge = edges[i]
+                                if (edge && edge.objectName === "Edge") {
+                                    if (edge.targetNodeId === root.element.elementId && 
+                                        edge.targetPortIndex === targetPortIndex) {
+                                        return true
+                                    }
+                                }
+                            }
+                            return false
                         }
-                        Behavior on border.color {
-                            ColorAnimation { duration: 150 }
+                        
+                        // Check if handle is hovered
+                        property bool handleHovered: {
+                            if (!root.elementHovered || !root.canvas) return false
+                            
+                            var localX = root.canvas.hoveredPoint.x - root.element.x - columnsContainer.anchors.leftMargin
+                            var localY = root.canvas.hoveredPoint.y - root.element.y - titleText.height - titleText.anchors.topMargin - columnsContainer.anchors.topMargin - y
+                            
+                            return localX >= 0 && localX <= 20 && 
+                                   localY >= 5 && localY <= 25
                         }
-                    }
-                    
-                    onEditingFinished: {
-                        console.log("Variable input value changed to:", text, "for port:", nodeRow.targetPortIndex)
-                        // TODO: Store this value in the node's data
-                    }
-                }
-                
-                // Source label (right side)
-                Text {
-                    visible: nodeRow.hasSource && nodeRow.sourceLabel !== ""
-                    anchors.right: sourceHandle.left
-                    anchors.rightMargin: 5
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: nodeRow.sourceLabel
-                    color: "#333333"
-                    font.pixelSize: 12
-                }
-                
-                // Source (right) handle
-                Rectangle {
-                    id: sourceHandle
-                    visible: nodeRow.hasSource
-                    anchors.right: parent.right
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 20
-                    height: 20
-                    radius: nodeRow.sourceType === "Flow" ? 10 : 0  // Circle for Flow, Square for Variable
-                    color: {
-                        if (nodeRow.sourceHandleHovered) {
-                            return nodeRow.sourceType === "Flow" ? "#2196F3" : "#FF9800"  // Blue for Flow, Orange for Variable
-                        } else {
-                            return nodeRow.sourceType === "Flow" ? "#666666" : "#795548"  // Gray for Flow, Brown for Variable
+                        
+                        // Check if combo box is hovered
+                        property bool comboBoxHovered: {
+                            if (targetType !== "Variable" || hasIncomingEdge) return false
+                            if (!root.elementHovered || !root.canvas) return false
+                            
+                            var localX = root.canvas.hoveredPoint.x - root.element.x - columnsContainer.anchors.leftMargin
+                            var localY = root.canvas.hoveredPoint.y - root.element.y - titleText.height - titleText.anchors.topMargin - columnsContainer.anchors.topMargin - y
+                            
+                            var inputX = 25
+                            var inputWidth = 80
+                            var inputY = 3
+                            var inputHeight = 24
+                            
+                            return localX >= inputX && localX <= inputX + inputWidth && 
+                                   localY >= inputY && localY <= inputY + inputHeight
                         }
-                    }
-                    border.width: 2
-                    border.color: {
-                        if (nodeRow.sourceHandleHovered) {
-                            return nodeRow.sourceType === "Flow" ? "#1565C0" : "#E65100"
-                        } else {
-                            return nodeRow.sourceType === "Flow" ? "#333333" : "#5D4037"
+                        
+                        // Target handle
+                        Rectangle {
+                            id: targetHandle
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 20
+                            height: 20
+                            radius: targetType === "Flow" ? 10 : 0
+                            color: {
+                                if (handleHovered) {
+                                    return targetType === "Flow" ? "#4CAF50" : "#FF9800"
+                                } else {
+                                    return targetType === "Flow" ? "#666666" : "#795548"
+                                }
+                            }
+                            border.width: 2
+                            border.color: {
+                                if (handleHovered) {
+                                    return targetType === "Flow" ? "#2E7D32" : "#E65100"
+                                } else {
+                                    return targetType === "Flow" ? "#333333" : "#5D4037"
+                                }
+                            }
+                        }
+                        
+                        // Variable input or label
+                        ComboBox {
+                            id: targetComboBox
+                            visible: targetType === "Variable" && !hasIncomingEdge
+                            anchors.left: targetHandle.right
+                            anchors.leftMargin: 5
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 80
+                            height: 24
+                            font.pixelSize: 11
+                            currentIndex: 0
+                            model: ["Option 1", "Option 2", "Option 3", "Option 4", "Option 5"]
+                            
+                            background: Rectangle {
+                                color: comboBoxHovered ? "#E8F4FD" : "#F5F5F5"
+                                border.color: targetComboBox.activeFocus ? "#2196F3" : (comboBoxHovered ? "#90CAF9" : "#CCCCCC")
+                                border.width: comboBoxHovered ? 2 : 1
+                                radius: 3
+                                
+                                Behavior on color {
+                                    ColorAnimation { duration: 150 }
+                                }
+                                Behavior on border.color {
+                                    ColorAnimation { duration: 150 }
+                                }
+                            }
+                            
+                            onCurrentTextChanged: {
+                                console.log("Target input changed to:", currentText, "for port:", targetPortIndex)
+                            }
+                        }
+                        
+                        Text {
+                            visible: targetLabel !== "" && (targetType === "Flow" || hasIncomingEdge)
+                            anchors.left: targetHandle.right
+                            anchors.leftMargin: 5
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: targetLabel
+                            color: "#333333"
+                            font.pixelSize: 12
                         }
                     }
                 }
             }
             
-            // Dynamic row generation from node configuration
-            Repeater {
-                id: rowRepeater
-                model: nodeElement ? nodeElement.rowConfigurations : []
+            // Right column - Source handles
+            Column {
+                id: sourcesColumn
+                width: (parent.width - parent.spacing) / 2
+                spacing: 10
                 
-                NodeRow {
-                    rowIndex: index
-                    hasTarget: modelData.hasTarget || false
-                    targetLabel: modelData.targetLabel || ""
-                    targetType: modelData.targetType || "Flow"
-                    targetPortIndex: modelData.targetPortIndex || -1
-                    hasSource: modelData.hasSource || false
-                    sourceLabel: modelData.sourceLabel || ""
-                    sourceType: modelData.sourceType || "Flow"
-                    sourcePortIndex: modelData.sourcePortIndex || -1
+                Repeater {
+                    model: {
+                        if (!nodeElement || !nodeElement.rowConfigurations) return []
+                        // Filter only configurations that have sources
+                        var sources = []
+                        for (var i = 0; i < nodeElement.rowConfigurations.length; i++) {
+                            var config = nodeElement.rowConfigurations[i]
+                            if (config.hasSource) {
+                                sources.push(config)
+                            }
+                        }
+                        return sources
+                    }
+                    
+                    delegate: Item {
+                        width: parent.width
+                        height: 30
+                        
+                        property var sourceConfig: modelData
+                        property int sourcePortIndex: sourceConfig.sourcePortIndex || -1
+                        property string sourceType: sourceConfig.sourceType || "Flow"
+                        property string sourceLabel: sourceConfig.sourceLabel || ""
+                        
+                        // Check if handle is hovered
+                        property bool handleHovered: {
+                            if (!root.elementHovered || !root.canvas) return false
+                            
+                            var localX = root.canvas.hoveredPoint.x - root.element.x - columnsContainer.anchors.leftMargin - sourcesColumn.x
+                            var localY = root.canvas.hoveredPoint.y - root.element.y - titleText.height - titleText.anchors.topMargin - columnsContainer.anchors.topMargin - y
+                            
+                            var handleX = parent.width - 20
+                            return localX >= handleX && localX <= parent.width && 
+                                   localY >= 5 && localY <= 25
+                        }
+                        
+                        // Source label
+                        Text {
+                            visible: sourceLabel !== ""
+                            anchors.right: sourceHandle.left
+                            anchors.rightMargin: 5
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: sourceLabel
+                            color: "#333333"
+                            font.pixelSize: 12
+                        }
+                        
+                        // Source handle
+                        Rectangle {
+                            id: sourceHandle
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 20
+                            height: 20
+                            radius: sourceType === "Flow" ? 10 : 0
+                            color: {
+                                if (handleHovered) {
+                                    return sourceType === "Flow" ? "#2196F3" : "#FF9800"
+                                } else {
+                                    return sourceType === "Flow" ? "#666666" : "#795548"
+                                }
+                            }
+                            border.width: 2
+                            border.color: {
+                                if (handleHovered) {
+                                    return sourceType === "Flow" ? "#1565C0" : "#E65100"
+                                } else {
+                                    return sourceType === "Flow" ? "#333333" : "#5D4037"
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }

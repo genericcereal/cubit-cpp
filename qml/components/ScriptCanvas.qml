@@ -93,38 +93,57 @@ BaseCanvas {
                 function updateEdgePositions() {
                     if (!edgeObj || !sourceNode || !targetNode) return
                     
-                    // NodeRow calculation from NodeElement.qml:
-                    // - Title height: 10 (top margin) + ~20 (text height) = 30
-                    // - Row container top margin: 15
-                    // - Each row height: 30, spacing: 10
-                    // - Handle is vertically centered in row (30/2 = 15)
+                    var titleAndMargins = 30 + 15  // Title height + margins
+                    var columnsMargin = 10  // Left/right margin of columns container
+                    var columnSpacing = 20  // Spacing between columns
                     
-                    var titleAndMargins = 30 + 15  // 45
-                    var handleCenterY = 15  // center of 30px row
+                    // Find the source port index in the sources column
+                    var sourceIndex = 0
+                    var foundSource = false
+                    for (var i = 0; i < sourceNode.rowConfigurations.length; i++) {
+                        var config = sourceNode.rowConfigurations[i]
+                        if (config.hasSource) {
+                            if (config.sourcePortIndex === edgeObj.sourcePortIndex) {
+                                foundSource = true
+                                break
+                            }
+                            sourceIndex++
+                        }
+                    }
                     
-                    // Get row index from node's configuration
-                    var sourceRowIndex = sourceNode.getRowForOutputPort(edgeObj.sourcePortIndex)
-                    if (sourceRowIndex === -1) {
-                        console.log("Warning: Could not find row for output port", edgeObj.sourcePortIndex)
+                    if (!foundSource) {
+                        console.log("Warning: Could not find source port", edgeObj.sourcePortIndex)
                         return
                     }
-                    var sourceRowOffset = sourceRowIndex * 40  // row height (30) + spacing (10)
                     
-                    // Calculate source point (right side of source node, center of handle)
-                    var sourceX = sourceNode.x + sourceNode.width - 20  // Right handle center
-                    var sourceY = sourceNode.y + titleAndMargins + sourceRowOffset + handleCenterY
+                    // Calculate source point (right column, right side)
+                    var columnWidth = (sourceNode.width - 2 * columnsMargin - columnSpacing) / 2
+                    var rightColumnX = sourceNode.x + columnsMargin + columnWidth + columnSpacing
+                    var sourceX = rightColumnX + columnWidth - 10  // 10px from right edge to center
+                    var sourceY = sourceNode.y + titleAndMargins + sourceIndex * 40 + 15  // center of 30px item
                     
-                    // Get row index for target port
-                    var targetRowIndex = targetNode.getRowForInputPort(edgeObj.targetPortIndex)
-                    if (targetRowIndex === -1) {
-                        console.log("Warning: Could not find row for input port", edgeObj.targetPortIndex)
+                    // Find the target port index in the targets column
+                    var targetIndex = 0
+                    var foundTarget = false
+                    for (var j = 0; j < targetNode.rowConfigurations.length; j++) {
+                        var targetConfig = targetNode.rowConfigurations[j]
+                        if (targetConfig.hasTarget) {
+                            if (targetConfig.targetPortIndex === edgeObj.targetPortIndex) {
+                                foundTarget = true
+                                break
+                            }
+                            targetIndex++
+                        }
+                    }
+                    
+                    if (!foundTarget) {
+                        console.log("Warning: Could not find target port", edgeObj.targetPortIndex)
                         return
                     }
-                    var targetRowOffset = targetRowIndex * 40
                     
-                    // Calculate target point (left side of target node, center of handle)
-                    var targetX = targetNode.x + 20  // Left handle center
-                    var targetY = targetNode.y + titleAndMargins + targetRowOffset + handleCenterY
+                    // Calculate target point (left column, left side)
+                    var targetX = targetNode.x + columnsMargin + 10  // 10px to center of 20px handle
+                    var targetY = targetNode.y + titleAndMargins + targetIndex * 40 + 15
                     
                     // Update the edge points
                     edgeObj.sourcePoint = Qt.point(sourceX, sourceY)
@@ -178,23 +197,57 @@ BaseCanvas {
                 if (!root.dragSourceNode) return Qt.point(0, 0)
                 
                 var titleAndMargins = 30 + 15
-                // Get row index dynamically from node
-                var rowIndex = root.dragSourceHandleType === "right" ? 
-                    root.dragSourceNode.getRowForOutputPort(root.dragSourcePortIndex) :
-                    root.dragSourceNode.getRowForInputPort(root.dragSourcePortIndex)
-                    
-                if (rowIndex === -1) {
-                    console.log("Warning: Could not find row for port", root.dragSourcePortIndex)
-                    return Qt.point(0, 0)
-                }
-                
-                var rowOffset = rowIndex * 40
-                var handleCenterY = root.dragSourceNode.y + titleAndMargins + rowOffset + 15
+                var columnsMargin = 10
+                var columnSpacing = 20
                 
                 if (root.dragSourceHandleType === "right") {
-                    return Qt.point(root.dragSourceNode.x + root.dragSourceNode.width - 20, handleCenterY)
+                    // Find source port index in sources column
+                    var sourceIndex = 0
+                    var foundSource = false
+                    for (var i = 0; i < root.dragSourceNode.rowConfigurations.length; i++) {
+                        var config = root.dragSourceNode.rowConfigurations[i]
+                        if (config.hasSource) {
+                            if (config.sourcePortIndex === root.dragSourcePortIndex) {
+                                foundSource = true
+                                break
+                            }
+                            sourceIndex++
+                        }
+                    }
+                    
+                    if (!foundSource) {
+                        console.log("Warning: Could not find source port", root.dragSourcePortIndex)
+                        return Qt.point(0, 0)
+                    }
+                    
+                    var columnWidth = (root.dragSourceNode.width - 2 * columnsMargin - columnSpacing) / 2
+                    var rightColumnX = root.dragSourceNode.x + columnsMargin + columnWidth + columnSpacing
+                    var handleX = rightColumnX + columnWidth - 10
+                    var handleY = root.dragSourceNode.y + titleAndMargins + sourceIndex * 40 + 15
+                    return Qt.point(handleX, handleY)
                 } else {
-                    return Qt.point(root.dragSourceNode.x + 20, handleCenterY)
+                    // Find target port index in targets column
+                    var targetIndex = 0
+                    var foundTarget = false
+                    for (var j = 0; j < root.dragSourceNode.rowConfigurations.length; j++) {
+                        var targetConfig = root.dragSourceNode.rowConfigurations[j]
+                        if (targetConfig.hasTarget) {
+                            if (targetConfig.targetPortIndex === root.dragSourcePortIndex) {
+                                foundTarget = true
+                                break
+                            }
+                            targetIndex++
+                        }
+                    }
+                    
+                    if (!foundTarget) {
+                        console.log("Warning: Could not find target port", root.dragSourcePortIndex)
+                        return Qt.point(0, 0)
+                    }
+                    
+                    var targetHandleX = root.dragSourceNode.x + columnsMargin + 10
+                    var targetHandleY = root.dragSourceNode.y + titleAndMargins + targetIndex * 40 + 15
+                    return Qt.point(targetHandleX, targetHandleY)
                 }
             }
             
@@ -516,41 +569,52 @@ BaseCanvas {
         for (var i = 0; i < elements.length; i++) {
             var element = elements[i]
             if (element && element.objectName === "Node") {
-                // Check each port/row in the node
-                // Using same calculations from NodeElement.qml
                 var titleAndMargins = 30 + 15  // Title height + margins
+                var columnsMargin = 10  // Left/right margin of columns container
+                var columnSpacing = 20  // Spacing between columns
                 
                 // Get row configurations from the node
                 var rowConfigs = element.rowConfigurations
                 if (!rowConfigs) continue
                 
-                for (var rowIndex = 0; rowIndex < rowConfigs.length; rowIndex++) {
-                    var row = rowConfigs[rowIndex]
-                    var rowOffset = rowIndex * 40  // row height (30) + spacing (10)
-                    var handleCenterY = element.y + titleAndMargins + rowOffset + 15  // center of 30px row
-                    
-                    // Check left handle if this row has a target
-                    if (row.hasTarget) {
-                        var leftHandleX = element.x + 20  // 20px from left edge
-                        if (Math.abs(point.x - leftHandleX) <= 10 && Math.abs(point.y - handleCenterY) <= 10) {
+                // Check target handles (left column)
+                var targetIndex = 0
+                for (var j = 0; j < rowConfigs.length; j++) {
+                    var config = rowConfigs[j]
+                    if (config.hasTarget) {
+                        var handleY = element.y + titleAndMargins + targetIndex * 40 + 15  // center of 30px item
+                        var handleX = element.x + columnsMargin + 10  // 10px to center of 20px handle
+                        
+                        if (Math.abs(point.x - handleX) <= 10 && Math.abs(point.y - handleY) <= 10) {
                             return {
                                 node: element,
                                 handleType: "left",
-                                portIndex: row.targetPortIndex
+                                portIndex: config.targetPortIndex
                             }
                         }
+                        targetIndex++
                     }
-                    
-                    // Check right handle if this row has a source
-                    if (row.hasSource) {
-                        var rightHandleX = element.x + element.width - 20  // 20px from right edge
-                        if (Math.abs(point.x - rightHandleX) <= 10 && Math.abs(point.y - handleCenterY) <= 10) {
+                }
+                
+                // Check source handles (right column)
+                var sourceIndex = 0
+                var columnWidth = (element.width - 2 * columnsMargin - columnSpacing) / 2
+                var rightColumnX = element.x + columnsMargin + columnWidth + columnSpacing
+                
+                for (var k = 0; k < rowConfigs.length; k++) {
+                    var sourceConfig = rowConfigs[k]
+                    if (sourceConfig.hasSource) {
+                        var sourceHandleY = element.y + titleAndMargins + sourceIndex * 40 + 15
+                        var sourceHandleX = rightColumnX + columnWidth - 10  // 10px from right edge to center
+                        
+                        if (Math.abs(point.x - sourceHandleX) <= 10 && Math.abs(point.y - sourceHandleY) <= 10) {
                             return {
                                 node: element,
                                 handleType: "right",
-                                portIndex: row.sourcePortIndex
+                                portIndex: sourceConfig.sourcePortIndex
                             }
                         }
+                        sourceIndex++
                     }
                 }
             }
