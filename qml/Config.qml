@@ -25,6 +25,11 @@ QtObject {
     readonly property color controlJointCircleFill: Qt.rgba(1, 1, 1, 1.0)    // White fill
     readonly property color controlJointCircleBorder: Qt.rgba(0, 0.4, 1, 1.0) // Blue border
     
+    // Element creation preview
+    readonly property color elementCreationPreviewColor: Qt.rgba(0, 0.4, 1, 0.1)  // Blue with 10% opacity
+    readonly property string elementCreationPreviewBorderColor: "#0066cc"          // Blue border
+    readonly property int elementCreationPreviewBorderWidth: 2
+    
     // Hover badge colors
     readonly property color hoverBadgeBackgroundColor: "#2196F3"  // Blue
     readonly property color hoverBadgeBorderColor: "#1976D2"      // Darker blue

@@ -2,6 +2,7 @@
     <qresource prefix="/">
         <file>qml/main.qml</file>
         <file>qml/Config.qml</file>
+        <file>qml/CanvasUtils.qml</file>
         <file>qml/qmldir</file>
         <file>qml/components/BaseCanvas.qml</file>
         <file>qml/components/DesignCanvas.qml</file>
@@ -23,6 +24,7 @@
         <file>qml/components/HoverBadge.qml</file>
         <file>qml/components/Controls.qml</file>
         <file>qml/components/SelectionBoxHandler.qml</file>
+        <file>qml/components/CreationDragHandler.qml</file>
         <file>qml/components/GridOverlay.qml</file>
         <file>qml/panels/DetailPanel.qml</file>
         <file>qml/panels/ElementList.qml</file>
