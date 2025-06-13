@@ -209,7 +209,7 @@ Element* CanvasController::hitTest(qreal x, qreal y)
             }
         }
         
-        if (element->rect().contains(QPointF(x, y))) {
+        if (element->containsPoint(QPointF(x, y))) {
             return element;
         }
     }

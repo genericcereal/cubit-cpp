@@ -1,4 +1,6 @@
 #include "Edge.h"
+#include <QPainterPath>
+#include <QtMath>
 
 Edge::Edge(const QString &id, QObject *parent)
     : Element(Element::EdgeType, id, parent)
@@ -187,4 +189,25 @@ void Edge::updateControlPoints()
     
     emit controlPoint1Changed();
     emit controlPoint2Changed();
+}
+
+bool Edge::containsPoint(const QPointF &point) const
+{
+    // If we don't have valid endpoints, fall back to bounding box
+    if (m_sourcePoint.isNull() || m_targetPoint.isNull()) {
+        return rect().contains(point);
+    }
+    
+    // Create a bezier path for the edge
+    QPainterPath path;
+    path.moveTo(m_sourcePoint);
+    path.cubicTo(m_controlPoint1, m_controlPoint2, m_targetPoint);
+    
+    // Create a stroker to expand the path by the edge width plus some tolerance
+    QPainterPathStroker stroker;
+    stroker.setWidth(m_edgeWidth + 10); // Add 10px tolerance for easier clicking
+    QPainterPath strokedPath = stroker.createStroke(path);
+    
+    // Check if the point is within the stroked path
+    return strokedPath.contains(point);
 }

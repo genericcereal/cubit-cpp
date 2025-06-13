@@ -116,3 +116,9 @@ void Element::setSelected(bool sel)
         emit selectedChanged();
     }
 }
+
+bool Element::containsPoint(const QPointF &point) const
+{
+    // Default implementation uses bounding box
+    return rect().contains(point);
+}

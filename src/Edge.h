@@ -60,6 +60,9 @@ public:
     // Calculate bezier control points based on handle types
     void updateControlPoints();
     
+    // Override hit testing for bezier curve
+    bool containsPoint(const QPointF &point) const override;
+    
 signals:
     void sourceNodeIdChanged();
     void targetNodeIdChanged();

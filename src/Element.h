@@ -44,6 +44,9 @@ public:
     
     QRectF rect() const { return QRectF(canvasPosition, canvasSize); }
     
+    // Hit testing - can be overridden for custom shapes
+    virtual bool containsPoint(const QPointF &point) const;
+    
     // Property setters
     virtual void setName(const QString &newName);
     void setX(qreal x);
