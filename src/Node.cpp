@@ -119,3 +119,73 @@ QPointF Node::getOutputPortPosition(int index) const
     
     return QPointF(x() + width(), portY);
 }
+
+void Node::setInputPortType(int index, const QString &type)
+{
+    m_inputPortTypes[index] = type;
+}
+
+void Node::setOutputPortType(int index, const QString &type)
+{
+    m_outputPortTypes[index] = type;
+}
+
+QString Node::getInputPortType(int index) const
+{
+    return m_inputPortTypes.value(index, "Flow"); // Default to Flow
+}
+
+QString Node::getOutputPortType(int index) const
+{
+    return m_outputPortTypes.value(index, "Flow"); // Default to Flow
+}
+
+void Node::addRow(const RowConfig &config)
+{
+    m_rowConfigs.append(config);
+    emit rowConfigurationsChanged();
+}
+
+void Node::clearRows()
+{
+    m_rowConfigs.clear();
+    emit rowConfigurationsChanged();
+}
+
+QVariantList Node::rowConfigurations() const
+{
+    QVariantList rows;
+    for (const auto &config : m_rowConfigs) {
+        QVariantMap row;
+        row["hasTarget"] = config.hasTarget;
+        row["targetLabel"] = config.targetLabel;
+        row["targetType"] = config.targetType;
+        row["targetPortIndex"] = config.targetPortIndex;
+        row["hasSource"] = config.hasSource;
+        row["sourceLabel"] = config.sourceLabel;
+        row["sourceType"] = config.sourceType;
+        row["sourcePortIndex"] = config.sourcePortIndex;
+        rows.append(row);
+    }
+    return rows;
+}
+
+int Node::getRowForInputPort(int portIndex) const
+{
+    for (int i = 0; i < m_rowConfigs.size(); ++i) {
+        if (m_rowConfigs[i].hasTarget && m_rowConfigs[i].targetPortIndex == portIndex) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+int Node::getRowForOutputPort(int portIndex) const
+{
+    for (int i = 0; i < m_rowConfigs.size(); ++i) {
+        if (m_rowConfigs[i].hasSource && m_rowConfigs[i].sourcePortIndex == portIndex) {
+            return i;
+        }
+    }
+    return -1;
+}

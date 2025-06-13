@@ -18,6 +18,8 @@ class Edge : public Element {
     Q_PROPERTY(QPointF controlPoint2 READ controlPoint2 NOTIFY controlPoint2Changed)
     Q_PROPERTY(QString sourceHandleType READ sourceHandleType WRITE setSourceHandleType NOTIFY sourceHandleTypeChanged)
     Q_PROPERTY(QString targetHandleType READ targetHandleType WRITE setTargetHandleType NOTIFY targetHandleTypeChanged)
+    Q_PROPERTY(QString sourcePortType READ sourcePortType WRITE setSourcePortType NOTIFY sourcePortTypeChanged)
+    Q_PROPERTY(QString targetPortType READ targetPortType WRITE setTargetPortType NOTIFY targetPortTypeChanged)
     
 public:
     explicit Edge(const QString &id, QObject *parent = nullptr);
@@ -36,6 +38,8 @@ public:
     QPointF controlPoint2() const { return m_controlPoint2; }
     QString sourceHandleType() const { return m_sourceHandleType; }
     QString targetHandleType() const { return m_targetHandleType; }
+    QString sourcePortType() const { return m_sourcePortType; }
+    QString targetPortType() const { return m_targetPortType; }
     
     // Property setters
     void setSourceNodeId(const QString &nodeId);
@@ -49,6 +53,8 @@ public:
     void setTargetPoint(const QPointF &point);
     void setSourceHandleType(const QString &type);
     void setTargetHandleType(const QString &type);
+    void setSourcePortType(const QString &type);
+    void setTargetPortType(const QString &type);
     
     // Edge state
     bool isConnected() const;
@@ -77,6 +83,8 @@ signals:
     void controlPoint2Changed();
     void sourceHandleTypeChanged();
     void targetHandleTypeChanged();
+    void sourcePortTypeChanged();
+    void targetPortTypeChanged();
     
 private:
     QString m_sourceNodeId;
@@ -92,4 +100,6 @@ private:
     QPointF m_controlPoint2;
     QString m_sourceHandleType; // "left" or "right"
     QString m_targetHandleType; // "left" or "right"
+    QString m_sourcePortType; // "Flow" or "Variable"
+    QString m_targetPortType; // "Flow" or "Variable"
 };

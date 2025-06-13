@@ -9,6 +9,7 @@
 #include "ElementModel.h"
 #include "SelectionManager.h"
 #include "Config.h"
+#include "HandleType.h"
 #include "UniqueIdGenerator.h"
 #include <QDebug>
 #include <QtMath>
@@ -363,6 +364,37 @@ void CanvasController::createNode(qreal x, qreal y, const QString &title, const 
         }
         // If no color specified, it will use the default from Config
         
+        // Set up default ports and rows
+        // Configure port types
+        node->setInputPortType(0, HandleType::Flow);      // Flow In
+        node->setInputPortType(1, HandleType::Variable);  // Value
+        node->setOutputPortType(1, HandleType::Variable); // Result  
+        node->setOutputPortType(2, HandleType::Flow);     // Flow Out
+        
+        // Configure rows
+        Node::RowConfig row0;
+        row0.hasTarget = true;
+        row0.targetLabel = "Flow In";
+        row0.targetType = HandleType::Flow;
+        row0.targetPortIndex = 0;
+        row0.hasSource = true;
+        row0.sourceLabel = "Flow Out";
+        row0.sourceType = HandleType::Flow;
+        row0.sourcePortIndex = 2;
+        
+        Node::RowConfig row1;
+        row1.hasTarget = true;
+        row1.targetLabel = "Value";
+        row1.targetType = HandleType::Variable;
+        row1.targetPortIndex = 1;
+        row1.hasSource = true;
+        row1.sourceLabel = "Result";
+        row1.sourceType = HandleType::Variable;
+        row1.sourcePortIndex = 1;
+        
+        node->addRow(row0);
+        node->addRow(row1);
+        
         qDebug() << "Created node with ID:" << node->getId() << "title:" << title;
         
         m_elementModel->addElement(node);
@@ -391,6 +423,29 @@ void CanvasController::createEdge(const QString &sourceNodeId, const QString &ta
         return;
     }
     
+    // Check if nodes are the correct type and get port types
+    Node *srcNode = qobject_cast<Node*>(sourceNode);
+    Node *tgtNode = qobject_cast<Node*>(targetNode);
+    
+    if (srcNode && tgtNode) {
+        // Get port types
+        QString sourcePortType = srcNode->getOutputPortType(sourcePortIndex);
+        QString targetPortType = tgtNode->getInputPortType(targetPortIndex);
+        
+        qDebug() << "Edge validation - source port" << sourcePortIndex << "type:" << sourcePortType
+                 << "target port" << targetPortIndex << "type:" << targetPortType;
+        
+        // Validate that port types can connect
+        if (!HandleType::canConnect(sourcePortType, targetPortType)) {
+            qDebug() << "Cannot create edge: port types don't match -"
+                     << "source:" << sourcePortType 
+                     << "target:" << targetPortType;
+            return;
+        }
+        
+        qDebug() << "Port types match, creating edge";
+    }
+    
     QString id = m_elementModel->generateId();
     Edge *edge = new Edge(id);
     
@@ -404,6 +459,12 @@ void CanvasController::createEdge(const QString &sourceNodeId, const QString &ta
         edge->setTargetHandleType(targetHandleType);
         edge->setSourcePortIndex(sourcePortIndex);
         edge->setTargetPortIndex(targetPortIndex);
+        
+        // Set port types
+        if (srcNode && tgtNode) {
+            edge->setSourcePortType(srcNode->getOutputPortType(sourcePortIndex));
+            edge->setTargetPortType(tgtNode->getInputPortType(targetPortIndex));
+        }
         
         // Calculate connection points based on port indices
         qreal sourceX, sourceY, targetX, targetY;

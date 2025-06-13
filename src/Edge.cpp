@@ -11,6 +11,8 @@ Edge::Edge(const QString &id, QObject *parent)
     , m_isActive(false)
     , m_sourceHandleType("right")
     , m_targetHandleType("left")
+    , m_sourcePortType("Flow")
+    , m_targetPortType("Flow")
 {
     // Set object name for type identification
     setObjectName("Edge");
@@ -210,4 +212,22 @@ bool Edge::containsPoint(const QPointF &point) const
     
     // Check if the point is within the stroked path
     return strokedPath.contains(point);
+}
+
+void Edge::setSourcePortType(const QString &type)
+{
+    if (m_sourcePortType != type) {
+        m_sourcePortType = type;
+        emit sourcePortTypeChanged();
+        emit elementChanged();
+    }
+}
+
+void Edge::setTargetPortType(const QString &type)
+{
+    if (m_targetPortType != type) {
+        m_targetPortType = type;
+        emit targetPortTypeChanged();
+        emit elementChanged();
+    }
 }

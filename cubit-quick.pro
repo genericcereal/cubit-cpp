@@ -33,7 +33,8 @@ HEADERS += \
     src/ElementModel.h \
     src/SelectionManager.h \
     src/Config.h \
-    src/UniqueIdGenerator.h
+    src/UniqueIdGenerator.h \
+    src/HandleType.h
 
 RESOURCES += qml.qrc
 

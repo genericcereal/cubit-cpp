@@ -22,6 +22,22 @@ Item {
     // Hover state - check if this element is hovered in the canvas
     property bool elementHovered: canvas && canvas.hoveredElement === element
     
+    // Force re-evaluation of bindings when model changes
+    property int modelUpdateCount: 0
+    
+    Connections {
+        target: elementModel
+        function onRowsInserted() {
+            root.modelUpdateCount++
+        }
+        function onRowsRemoved() {
+            root.modelUpdateCount++
+        }
+        function onDataChanged() {
+            root.modelUpdateCount++
+        }
+    }
+    
     // Log node properties when element changes
     onElementChanged: {
         if (element) {
@@ -80,12 +96,45 @@ Item {
                 width: parent.width
                 height: 30
                 
-                property string label: "Port"
                 property int rowIndex: 0
                 
-                // Check if left handle is hovered
-                property bool leftHandleHovered: {
-                    if (!root.elementHovered || !root.canvas) return false
+                // Target (input) properties
+                property bool hasTarget: false
+                property string targetLabel: ""
+                property string targetType: "Flow"  // "Flow" or "Variable"
+                property int targetPortIndex: -1
+                
+                // Source (output) properties  
+                property bool hasSource: false
+                property string sourceLabel: ""
+                property string sourceType: "Flow"  // "Flow" or "Variable"
+                property int sourcePortIndex: -1
+                
+                // Check if this target port has an incoming edge
+                property bool hasIncomingEdge: {
+                    if (!nodeRow.hasTarget || !root.elementModel || !root.element) return false
+                    
+                    // Use modelUpdateCount to trigger re-evaluation when model changes
+                    var dummy = root.modelUpdateCount
+                    
+                    var edges = root.elementModel.getAllElements()
+                    for (var i = 0; i < edges.length; i++) {
+                        var edge = edges[i]
+                        if (edge && edge.objectName === "Edge") {
+                            // Check if this edge connects to our target port
+                            if (edge.targetNodeId === root.element.elementId && 
+                                edge.targetPortIndex === nodeRow.targetPortIndex) {
+                                console.log("Found incoming edge for port", nodeRow.targetPortIndex, "on node", root.element.nodeTitle)
+                                return true
+                            }
+                        }
+                    }
+                    return false
+                }
+                
+                // Check if target (left) handle is hovered
+                property bool targetHandleHovered: {
+                    if (!nodeRow.hasTarget || !root.elementHovered || !root.canvas) return false
                     
                     // Get the hover point relative to this nodeRow
                     var localX = root.canvas.hoveredPoint.x - root.element.x - rowContainer.anchors.leftMargin - nodeRow.x
@@ -96,9 +145,9 @@ Item {
                            localY >= 5 && localY <= 25  // vertically centered, 30px tall row
                 }
                 
-                // Check if right handle is hovered
-                property bool rightHandleHovered: {
-                    if (!root.elementHovered || !root.canvas) return false
+                // Check if source (right) handle is hovered
+                property bool sourceHandleHovered: {
+                    if (!nodeRow.hasSource || !root.elementHovered || !root.canvas) return false
                     
                     // Get the hover point relative to this nodeRow
                     var localX = root.canvas.hoveredPoint.x - root.element.x - rowContainer.anchors.leftMargin - nodeRow.x
@@ -110,55 +159,128 @@ Item {
                            localY >= 5 && localY <= 25  // vertically centered, 30px tall row
                 }
                 
-                // Left handle
+                // Target (left) handle
                 Rectangle {
-                    id: leftHandle
+                    id: targetHandle
+                    visible: nodeRow.hasTarget
                     anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
                     width: 20
                     height: 20
-                    radius: 10
-                    color: nodeRow.leftHandleHovered ? "#4CAF50" : "#666666"
+                    radius: nodeRow.targetType === "Flow" ? 10 : 0  // Circle for Flow, Square for Variable
+                    color: {
+                        if (nodeRow.targetHandleHovered) {
+                            return nodeRow.targetType === "Flow" ? "#4CAF50" : "#FF9800"  // Green for Flow, Orange for Variable
+                        } else {
+                            return nodeRow.targetType === "Flow" ? "#666666" : "#795548"  // Gray for Flow, Brown for Variable
+                        }
+                    }
                     border.width: 2
-                    border.color: nodeRow.leftHandleHovered ? "#2E7D32" : "#333333"
+                    border.color: {
+                        if (nodeRow.targetHandleHovered) {
+                            return nodeRow.targetType === "Flow" ? "#2E7D32" : "#E65100"
+                        } else {
+                            return nodeRow.targetType === "Flow" ? "#333333" : "#5D4037"
+                        }
+                    }
                 }
                 
-                // Label in the middle
+                // Target label (left side)
                 Text {
-                    anchors.centerIn: parent
-                    text: nodeRow.label
+                    visible: nodeRow.hasTarget && nodeRow.targetLabel !== ""
+                    anchors.left: targetHandle.right
+                    anchors.leftMargin: 5
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: nodeRow.targetLabel
                     color: "#333333"
                     font.pixelSize: 12
                 }
                 
-                // Right handle
+                // Variable input field (only for Variable type targets without edges)
+                TextField {
+                    id: variableInput
+                    visible: nodeRow.hasTarget && nodeRow.targetType === "Variable" && !nodeRow.hasIncomingEdge
+                    anchors.left: targetHandle.right
+                    anchors.leftMargin: nodeRow.targetLabel !== "" ? 50 : 25  // More space if there's a label
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 80
+                    height: 24
+                    text: "0"  // Default value
+                    font.pixelSize: 11
+                    horizontalAlignment: TextInput.AlignHCenter
+                    
+                    onVisibleChanged: {
+                        console.log("TextField visibility changed to:", visible, 
+                                   "for port", nodeRow.targetPortIndex,
+                                   "hasIncomingEdge:", nodeRow.hasIncomingEdge)
+                    }
+                    
+                    background: Rectangle {
+                        color: "#F5F5F5"
+                        border.color: variableInput.activeFocus ? "#2196F3" : "#CCCCCC"
+                        border.width: 1
+                        radius: 3
+                    }
+                    
+                    onEditingFinished: {
+                        console.log("Variable input value changed to:", text, "for port:", nodeRow.targetPortIndex)
+                        // TODO: Store this value in the node's data
+                    }
+                }
+                
+                // Source label (right side)
+                Text {
+                    visible: nodeRow.hasSource && nodeRow.sourceLabel !== ""
+                    anchors.right: sourceHandle.left
+                    anchors.rightMargin: 5
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: nodeRow.sourceLabel
+                    color: "#333333"
+                    font.pixelSize: 12
+                }
+                
+                // Source (right) handle
                 Rectangle {
-                    id: rightHandle
+                    id: sourceHandle
+                    visible: nodeRow.hasSource
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
                     width: 20
                     height: 20
-                    radius: 10
-                    color: nodeRow.rightHandleHovered ? "#2196F3" : "#666666"
+                    radius: nodeRow.sourceType === "Flow" ? 10 : 0  // Circle for Flow, Square for Variable
+                    color: {
+                        if (nodeRow.sourceHandleHovered) {
+                            return nodeRow.sourceType === "Flow" ? "#2196F3" : "#FF9800"  // Blue for Flow, Orange for Variable
+                        } else {
+                            return nodeRow.sourceType === "Flow" ? "#666666" : "#795548"  // Gray for Flow, Brown for Variable
+                        }
+                    }
                     border.width: 2
-                    border.color: nodeRow.rightHandleHovered ? "#1565C0" : "#333333"
+                    border.color: {
+                        if (nodeRow.sourceHandleHovered) {
+                            return nodeRow.sourceType === "Flow" ? "#1565C0" : "#E65100"
+                        } else {
+                            return nodeRow.sourceType === "Flow" ? "#333333" : "#5D4037"
+                        }
+                    }
                 }
             }
             
-            // Example NodeRow instances
-            NodeRow {
-                label: "Input 1"
-                rowIndex: 0
-            }
-            
-            NodeRow {
-                label: "Input 2"
-                rowIndex: 1
-            }
-            
-            NodeRow {
-                label: "Output"
-                rowIndex: 2
+            // Dynamic row generation from node configuration
+            Repeater {
+                model: nodeElement ? nodeElement.rowConfigurations : []
+                
+                NodeRow {
+                    rowIndex: index
+                    hasTarget: modelData.hasTarget || false
+                    targetLabel: modelData.targetLabel || ""
+                    targetType: modelData.targetType || "Flow"
+                    targetPortIndex: modelData.targetPortIndex || -1
+                    hasSource: modelData.hasSource || false
+                    sourceLabel: modelData.sourceLabel || ""
+                    sourceType: modelData.sourceType || "Flow"
+                    sourcePortIndex: modelData.sourcePortIndex || -1
+                }
             }
         }
     }

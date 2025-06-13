@@ -90,17 +90,31 @@ BaseCanvas {
                     // - Handle is vertically centered in row (30/2 = 15)
                     
                     var titleAndMargins = 30 + 15  // 45
-                    var rowOffset = edgeObj.sourcePortIndex * 40  // row height (30) + spacing (10)
                     var handleCenterY = 15  // center of 30px row
+                    
+                    // Get row index from node's configuration
+                    var sourceRowIndex = sourceNode.getRowForOutputPort(edgeObj.sourcePortIndex)
+                    if (sourceRowIndex === -1) {
+                        console.log("Warning: Could not find row for output port", edgeObj.sourcePortIndex)
+                        return
+                    }
+                    var sourceRowOffset = sourceRowIndex * 40  // row height (30) + spacing (10)
                     
                     // Calculate source point (right side of source node, center of handle)
                     var sourceX = sourceNode.x + sourceNode.width - 20  // Right handle center
-                    var sourceY = sourceNode.y + titleAndMargins + rowOffset + handleCenterY
+                    var sourceY = sourceNode.y + titleAndMargins + sourceRowOffset + handleCenterY
+                    
+                    // Get row index for target port
+                    var targetRowIndex = targetNode.getRowForInputPort(edgeObj.targetPortIndex)
+                    if (targetRowIndex === -1) {
+                        console.log("Warning: Could not find row for input port", edgeObj.targetPortIndex)
+                        return
+                    }
+                    var targetRowOffset = targetRowIndex * 40
                     
                     // Calculate target point (left side of target node, center of handle)
-                    rowOffset = edgeObj.targetPortIndex * 40
                     var targetX = targetNode.x + 20  // Left handle center
-                    var targetY = targetNode.y + titleAndMargins + rowOffset + handleCenterY
+                    var targetY = targetNode.y + titleAndMargins + targetRowOffset + handleCenterY
                     
                     // Update the edge points
                     edgeObj.sourcePoint = Qt.point(sourceX, sourceY)
@@ -154,7 +168,17 @@ BaseCanvas {
                 if (!root.dragSourceNode) return Qt.point(0, 0)
                 
                 var titleAndMargins = 30 + 15
-                var rowOffset = root.dragSourcePortIndex * 40
+                // Get row index dynamically from node
+                var rowIndex = root.dragSourceHandleType === "right" ? 
+                    root.dragSourceNode.getRowForOutputPort(root.dragSourcePortIndex) :
+                    root.dragSourceNode.getRowForInputPort(root.dragSourcePortIndex)
+                    
+                if (rowIndex === -1) {
+                    console.log("Warning: Could not find row for port", root.dragSourcePortIndex)
+                    return Qt.point(0, 0)
+                }
+                
+                var rowOffset = rowIndex * 40
                 var handleCenterY = root.dragSourceNode.y + titleAndMargins + rowOffset + 15
                 
                 if (root.dragSourceHandleType === "right") {
@@ -462,59 +486,6 @@ BaseCanvas {
         controller.createNode(50, -50, "Process Node", "")
         
         console.log("  Default nodes created")
-        
-        // Create a default edge between the nodes
-        Qt.callLater(function() {
-            createDefaultEdge()
-        })
-    }
-    
-    // Create default edge between the two nodes
-    function createDefaultEdge() {
-        console.log("ScriptCanvas.createDefaultEdge called")
-        var elements = elementModel.getAllElements()
-        var nodes = []
-        
-        // Find the two nodes
-        for (var i = 0; i < elements.length; i++) {
-            if (elements[i].objectName === "Node") {
-                nodes.push(elements[i])
-            }
-        }
-        
-        if (nodes.length >= 2) {
-            console.log("  Found", nodes.length, "nodes, creating edge")
-            console.log("  Node 0 ID:", nodes[0].elementId)
-            console.log("  Node 1 ID:", nodes[1].elementId)
-            
-            // Create first edge using controller method
-            // Connect from first node's output (right) to second node's input (left)
-            controller.createEdge(
-                nodes[0].elementId,     // sourceNodeId
-                nodes[1].elementId,     // targetNodeId
-                "right",                // sourceHandleType
-                "left",                 // targetHandleType
-                2,                      // sourcePortIndex (Output row)
-                0                       // targetPortIndex (Input 1 row)
-            )
-            
-            console.log("  First edge creation requested")
-            
-            // Create second edge on the second handle row
-            // Connect from first node's Process row (right) to second node's Input 2 row (left)
-            controller.createEdge(
-                nodes[0].elementId,     // sourceNodeId
-                nodes[1].elementId,     // targetNodeId
-                "right",                // sourceHandleType
-                "left",                 // targetHandleType
-                1,                      // sourcePortIndex (Process row)
-                1                       // targetPortIndex (Input 2 row)
-            )
-            
-            console.log("  Second edge creation requested")
-        } else {
-            console.log("  Not enough nodes found:", nodes.length)
-        }
     }
     
     // Helper function to check if a point is over a handle
@@ -529,28 +500,36 @@ BaseCanvas {
                 // Using same calculations from NodeElement.qml
                 var titleAndMargins = 30 + 15  // Title height + margins
                 
-                // Check 3 rows (hardcoded for now, should be dynamic based on node ports)
-                for (var portIndex = 0; portIndex < 3; portIndex++) {
-                    var rowOffset = portIndex * 40  // row height (30) + spacing (10)
+                // Get row configurations from the node
+                var rowConfigs = element.rowConfigurations
+                if (!rowConfigs) continue
+                
+                for (var rowIndex = 0; rowIndex < rowConfigs.length; rowIndex++) {
+                    var row = rowConfigs[rowIndex]
+                    var rowOffset = rowIndex * 40  // row height (30) + spacing (10)
                     var handleCenterY = element.y + titleAndMargins + rowOffset + 15  // center of 30px row
                     
-                    // Check left handle
-                    var leftHandleX = element.x + 20  // 20px from left edge
-                    if (Math.abs(point.x - leftHandleX) <= 10 && Math.abs(point.y - handleCenterY) <= 10) {
-                        return {
-                            node: element,
-                            handleType: "left",
-                            portIndex: portIndex
+                    // Check left handle if this row has a target
+                    if (row.hasTarget) {
+                        var leftHandleX = element.x + 20  // 20px from left edge
+                        if (Math.abs(point.x - leftHandleX) <= 10 && Math.abs(point.y - handleCenterY) <= 10) {
+                            return {
+                                node: element,
+                                handleType: "left",
+                                portIndex: row.targetPortIndex
+                            }
                         }
                     }
                     
-                    // Check right handle
-                    var rightHandleX = element.x + element.width - 20  // 20px from right edge
-                    if (Math.abs(point.x - rightHandleX) <= 10 && Math.abs(point.y - handleCenterY) <= 10) {
-                        return {
-                            node: element,
-                            handleType: "right",
-                            portIndex: portIndex
+                    // Check right handle if this row has a source
+                    if (row.hasSource) {
+                        var rightHandleX = element.x + element.width - 20  // 20px from right edge
+                        if (Math.abs(point.x - rightHandleX) <= 10 && Math.abs(point.y - handleCenterY) <= 10) {
+                            return {
+                                node: element,
+                                handleType: "right",
+                                portIndex: row.sourcePortIndex
+                            }
                         }
                     }
                 }
