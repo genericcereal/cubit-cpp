@@ -16,6 +16,16 @@ BaseCanvas {
     property var hoveredElement: null
     property point hoveredPoint: Qt.point(0, 0)
     
+    // Click state for text input focus
+    property bool clickedThisFrame: false
+    property point clickPoint: Qt.point(0, 0)
+    
+    // Signal to notify when a click occurs
+    signal canvasClicked(point clickPoint)
+    
+    // Signal to notify when dragging starts
+    signal canvasDragStarted()
+    
     // Handle drag state
     property bool isDraggingHandle: false
     property var dragSourceNode: null
@@ -310,6 +320,11 @@ BaseCanvas {
     
     // Override virtual functions for script canvas behavior
     function handleLeftButtonPress(canvasPoint) {
+        // Set click state and emit signal for text input focus
+        clickedThisFrame = true
+        clickPoint = canvasPoint
+        canvasClicked(canvasPoint)
+        
         if (controller.mode === "select") {
             // Check if we're over a handle first
             var handleInfo = getHandleAtPoint(canvasPoint)
@@ -332,6 +347,11 @@ BaseCanvas {
     }
     
     function handleMouseDrag(canvasPoint) {
+        // Emit drag started signal on first drag movement
+        if (!isDraggingHandle) {
+            canvasDragStarted()
+        }
+        
         if (isDraggingHandle) {
             // Update drag position for edge preview
             dragCurrentPoint = canvasPoint

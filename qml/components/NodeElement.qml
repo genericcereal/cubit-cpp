@@ -22,6 +22,9 @@ Item {
     // Hover state - check if this element is hovered in the canvas
     property bool elementHovered: canvas && canvas.hoveredElement === element
     
+    // Track the currently active TextField
+    property var activeTextField: null
+    
     // Force re-evaluation of bindings when model changes
     property int modelUpdateCount: 0
     
@@ -38,6 +41,33 @@ Item {
         }
     }
     
+    // Listen for canvas clicks to focus text inputs
+    Connections {
+        target: canvas
+        function onCanvasClicked(clickPoint) {
+            // Check if click is within this node
+            if (clickPoint.x >= element.x && clickPoint.x <= element.x + element.width &&
+                clickPoint.y >= element.y && clickPoint.y <= element.y + element.height) {
+                // Node was clicked, check if it's on a text input
+                root.handleClick(clickPoint)
+            } else if (root.activeTextField) {
+                // Click outside of node, blur active TextField
+                root.activeTextField.focus = false
+                root.activeTextField = null
+                console.log("Blurred active TextField due to click outside node")
+            }
+        }
+        
+        function onCanvasDragStarted() {
+            // Blur active TextField when dragging starts
+            if (root.activeTextField) {
+                root.activeTextField.focus = false
+                root.activeTextField = null
+                console.log("Blurred active TextField due to drag start")
+            }
+        }
+    }
+    
     // Log node properties when element changes
     onElementChanged: {
         if (element) {
@@ -47,6 +77,57 @@ Item {
             console.log("  position:", element.x, ",", element.y)
             console.log("  size:", element.width, "x", element.height)
             console.log("  nodeTitle:", nodeElement ? nodeElement.nodeTitle : "null")
+        }
+    }
+    
+    // Handle click to focus text inputs
+    function handleClick(clickPoint) {
+        // Get the click position relative to the node
+        var localX = clickPoint.x - element.x
+        var localY = clickPoint.y - element.y
+        
+        var clickedOnTextField = false
+        
+        // Check each row in the rowContainer
+        var titleAndMargins = titleText.height + titleText.anchors.topMargin + rowContainer.anchors.topMargin
+        
+        // Check if click is within the rows area
+        if (localY > titleAndMargins) {
+            var rowLocalY = localY - titleAndMargins
+            var rowIndex = Math.floor(rowLocalY / 40) // 30px row height + 10px spacing
+            
+            // Get the row item if it exists through the repeater
+            if (rowIndex >= 0 && rowIndex < rowRepeater.count) {
+                var row = rowRepeater.itemAt(rowIndex)
+                if (row && row.hasTarget && row.targetType === "Variable" && !row.hasIncomingEdge) {
+                    // Check if click is on the text input
+                    var inputX = 20 + (row.targetLabel !== "" ? 50 : 25) // targetHandle width + margins
+                    var inputWidth = 80
+                    var rowLocalX = localX - rowContainer.anchors.leftMargin
+                    
+                    if (rowLocalX >= inputX && rowLocalX <= inputX + inputWidth) {
+                        // Focus the text input using the alias
+                        if (row.variableInput) {
+                            // Blur any previously active field
+                            if (activeTextField && activeTextField !== row.variableInput) {
+                                activeTextField.focus = false
+                            }
+                            
+                            row.variableInput.forceActiveFocus()
+                            activeTextField = row.variableInput
+                            clickedOnTextField = true
+                            console.log("Focused TextField at row", rowIndex, "port:", row.targetPortIndex)
+                        }
+                    }
+                }
+            }
+        }
+        
+        // If we didn't click on a text field, blur the active one
+        if (!clickedOnTextField && activeTextField) {
+            activeTextField.focus = false
+            activeTextField = null
+            console.log("Blurred active TextField")
         }
     }
     
@@ -97,6 +178,8 @@ Item {
                 height: 30
                 
                 property int rowIndex: 0
+                property alias variableInput: variableInput
+                
                 
                 // Target (input) properties
                 property bool hasTarget: false
@@ -159,6 +242,26 @@ Item {
                            localY >= 5 && localY <= 25  // vertically centered, 30px tall row
                 }
                 
+                // Check if the text input is hovered
+                property bool textInputHovered: {
+                    if (!nodeRow.hasTarget || nodeRow.targetType !== "Variable" || nodeRow.hasIncomingEdge) return false
+                    if (!root.elementHovered || !root.canvas) return false
+                    
+                    // Get the hover point relative to this nodeRow
+                    var localX = root.canvas.hoveredPoint.x - root.element.x - rowContainer.anchors.leftMargin - nodeRow.x
+                    var localY = root.canvas.hoveredPoint.y - root.element.y - titleText.height - titleText.anchors.topMargin - rowContainer.anchors.topMargin - nodeRow.y
+                    
+                    // Calculate text input bounds
+                    var inputX = targetHandle.width + (nodeRow.targetLabel !== "" ? 50 : 25)
+                    var inputWidth = 80
+                    var inputY = (nodeRow.height - 24) / 2  // vertically centered, 24px tall input
+                    var inputHeight = 24
+                    
+                    // Check if point is within the text input bounds
+                    return localX >= inputX && localX <= inputX + inputWidth && 
+                           localY >= inputY && localY <= inputY + inputHeight
+                }
+                
                 // Target (left) handle
                 Rectangle {
                     id: targetHandle
@@ -216,10 +319,17 @@ Item {
                     }
                     
                     background: Rectangle {
-                        color: "#F5F5F5"
-                        border.color: variableInput.activeFocus ? "#2196F3" : "#CCCCCC"
-                        border.width: 1
+                        color: nodeRow.textInputHovered ? "#E8F4FD" : "#F5F5F5"
+                        border.color: variableInput.activeFocus ? "#2196F3" : (nodeRow.textInputHovered ? "#90CAF9" : "#CCCCCC")
+                        border.width: nodeRow.textInputHovered ? 2 : 1
                         radius: 3
+                        
+                        Behavior on color {
+                            ColorAnimation { duration: 150 }
+                        }
+                        Behavior on border.color {
+                            ColorAnimation { duration: 150 }
+                        }
                     }
                     
                     onEditingFinished: {
@@ -268,6 +378,7 @@ Item {
             
             // Dynamic row generation from node configuration
             Repeater {
+                id: rowRepeater
                 model: nodeElement ? nodeElement.rowConfigurations : []
                 
                 NodeRow {
