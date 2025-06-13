@@ -16,6 +16,14 @@ BaseCanvas {
     property var hoveredElement: null
     property point hoveredPoint: Qt.point(0, 0)
     
+    // Handle drag state
+    property bool isDraggingHandle: false
+    property var dragSourceNode: null
+    property string dragSourceHandleType: ""  // "left" or "right"
+    property int dragSourcePortIndex: -1
+    property point dragCurrentPoint: Qt.point(0, 0)
+    property point dragStartPoint: Qt.point(0, 0)
+    
     // Override content layer with script elements
     Component.onCompleted: {
         // Call base implementation
@@ -135,6 +143,73 @@ BaseCanvas {
                 }
             }
         }
+        
+        // Temporary edge preview during handle drag
+        Item {
+            id: tempEdgeContainer
+            visible: root.isDraggingHandle && root.dragSourceNode
+            anchors.fill: parent
+            
+            property point sourcePoint: {
+                if (!root.dragSourceNode) return Qt.point(0, 0)
+                
+                var titleAndMargins = 30 + 15
+                var rowOffset = root.dragSourcePortIndex * 40
+                var handleCenterY = root.dragSourceNode.y + titleAndMargins + rowOffset + 15
+                
+                if (root.dragSourceHandleType === "right") {
+                    return Qt.point(root.dragSourceNode.x + root.dragSourceNode.width - 20, handleCenterY)
+                } else {
+                    return Qt.point(root.dragSourceNode.x + 20, handleCenterY)
+                }
+            }
+            
+            // Create temporary edge object for bezier rendering
+            QtObject {
+                id: tempEdge
+                property point sourcePoint: tempEdgeContainer.sourcePoint
+                property point targetPoint: root.dragCurrentPoint
+                property point controlPoint1: Qt.point(
+                    sourcePoint.x + (targetPoint.x - sourcePoint.x) * 0.5,
+                    sourcePoint.y
+                )
+                property point controlPoint2: Qt.point(
+                    sourcePoint.x + (targetPoint.x - sourcePoint.x) * 0.5,
+                    targetPoint.y
+                )
+            }
+            
+            // Bezier curve preview
+            BezierEdge {
+                anchors.fill: parent
+                edge: tempEdge
+                canvasMinX: root.canvasMinX
+                canvasMinY: root.canvasMinY
+                opacity: 0.5
+            }
+            
+            // Source handle circle (visual feedback)
+            Rectangle {
+                x: tempEdgeContainer.sourcePoint.x - root.canvasMinX - 10
+                y: tempEdgeContainer.sourcePoint.y - root.canvasMinY - 10
+                width: 20
+                height: 20
+                radius: 10
+                color: root.dragSourceHandleType === "right" ? "blue" : "green"
+                opacity: 0.8
+            }
+            
+            // Target position circle
+            Rectangle {
+                x: root.dragCurrentPoint.x - root.canvasMinX - 10
+                y: root.dragCurrentPoint.y - root.canvasMinY - 10
+                width: 20
+                height: 20
+                radius: 10
+                color: "orange"
+                opacity: 0.8
+            }
+        }
     }
     
     // Nodes layer loader
@@ -212,15 +287,34 @@ BaseCanvas {
     // Override virtual functions for script canvas behavior
     function handleLeftButtonPress(canvasPoint) {
         if (controller.mode === "select") {
-            // Let the controller handle the press for node selection/dragging
-            controller.handleMousePress(canvasPoint.x, canvasPoint.y)
+            // Check if we're over a handle first
+            var handleInfo = getHandleAtPoint(canvasPoint)
+            if (handleInfo) {
+                // Start handle drag immediately
+                isDraggingHandle = true
+                dragSourceNode = handleInfo.node
+                dragSourceHandleType = handleInfo.handleType
+                dragSourcePortIndex = handleInfo.portIndex
+                dragCurrentPoint = canvasPoint
+                dragStartPoint = canvasPoint
+                console.log("Started dragging handle:", handleInfo.handleType, "port:", handleInfo.portIndex, "from node:", handleInfo.node.nodeTitle)
+            } else {
+                // Store the start point and let the controller handle the press
+                dragStartPoint = canvasPoint
+                controller.handleMousePress(canvasPoint.x, canvasPoint.y)
+            }
         }
         // Other modes will be handled when node creation is implemented
     }
     
     function handleMouseDrag(canvasPoint) {
-        // Let the controller handle drag
-        controller.handleMouseMove(canvasPoint.x, canvasPoint.y)
+        if (isDraggingHandle) {
+            // Update drag position for edge preview
+            dragCurrentPoint = canvasPoint
+        } else {
+            // Let the controller handle drag
+            controller.handleMouseMove(canvasPoint.x, canvasPoint.y)
+        }
     }
     
     function handleMouseHover(canvasPoint) {
@@ -240,15 +334,42 @@ BaseCanvas {
     }
     
     function handleLeftButtonRelease(canvasPoint) {
-        // Check if this was a click on empty canvas (no selection box was drawn)
-        var element = controller.hitTest(canvasPoint.x, canvasPoint.y)
-        if (!element && !selectionBoxHandler.active && selectionManager && selectionManager.hasSelection) {
-            // Clear selection when clicking on empty canvas
-            selectionManager.clearSelection()
+        if (isDraggingHandle) {
+            // End handle drag
+            var targetHandleInfo = getHandleAtPoint(canvasPoint)
+            if (targetHandleInfo && targetHandleInfo.node !== dragSourceNode) {
+                // Create edge between source and target
+                console.log("Creating edge from", dragSourceNode.nodeTitle, "to", targetHandleInfo.node.nodeTitle)
+                controller.createEdge(
+                    dragSourceNode.elementId,
+                    targetHandleInfo.node.elementId,
+                    dragSourceHandleType,
+                    targetHandleInfo.handleType,
+                    dragSourcePortIndex,
+                    targetHandleInfo.portIndex
+                )
+            }
+            
+            // Reset drag state
+            isDraggingHandle = false
+            dragSourceNode = null
+            dragSourceHandleType = ""
+            dragSourcePortIndex = -1
+            dragStartPoint = Qt.point(0, 0)
+        } else {
+            // Check if this was a click on empty canvas (no selection box was drawn)
+            var element = controller.hitTest(canvasPoint.x, canvasPoint.y)
+            if (!element && !selectionBoxHandler.active && selectionManager && selectionManager.hasSelection) {
+                // Clear selection when clicking on empty canvas
+                selectionManager.clearSelection()
+            }
+            
+            // Let the controller handle release
+            controller.handleMouseRelease(canvasPoint.x, canvasPoint.y)
+            
+            // Reset drag start point
+            dragStartPoint = Qt.point(0, 0)
         }
-        
-        // Let the controller handle release
-        controller.handleMouseRelease(canvasPoint.x, canvasPoint.y)
     }
     
     function handleMouseExit() {
@@ -366,7 +487,7 @@ BaseCanvas {
             console.log("  Node 0 ID:", nodes[0].elementId)
             console.log("  Node 1 ID:", nodes[1].elementId)
             
-            // Create edge using controller method
+            // Create first edge using controller method
             // Connect from first node's output (right) to second node's input (left)
             controller.createEdge(
                 nodes[0].elementId,     // sourceNodeId
@@ -377,10 +498,66 @@ BaseCanvas {
                 0                       // targetPortIndex (Input 1 row)
             )
             
-            console.log("  Edge creation requested")
+            console.log("  First edge creation requested")
+            
+            // Create second edge on the second handle row
+            // Connect from first node's Process row (right) to second node's Input 2 row (left)
+            controller.createEdge(
+                nodes[0].elementId,     // sourceNodeId
+                nodes[1].elementId,     // targetNodeId
+                "right",                // sourceHandleType
+                "left",                 // targetHandleType
+                1,                      // sourcePortIndex (Process row)
+                1                       // targetPortIndex (Input 2 row)
+            )
+            
+            console.log("  Second edge creation requested")
         } else {
             console.log("  Not enough nodes found:", nodes.length)
         }
+    }
+    
+    // Helper function to check if a point is over a handle
+    function getHandleAtPoint(point) {
+        if (!elementModel) return null
+        
+        var elements = elementModel.getAllElements()
+        for (var i = 0; i < elements.length; i++) {
+            var element = elements[i]
+            if (element && element.objectName === "Node") {
+                // Check each port/row in the node
+                // Using same calculations from NodeElement.qml
+                var titleAndMargins = 30 + 15  // Title height + margins
+                
+                // Check 3 rows (hardcoded for now, should be dynamic based on node ports)
+                for (var portIndex = 0; portIndex < 3; portIndex++) {
+                    var rowOffset = portIndex * 40  // row height (30) + spacing (10)
+                    var handleCenterY = element.y + titleAndMargins + rowOffset + 15  // center of 30px row
+                    
+                    // Check left handle
+                    var leftHandleX = element.x + 20  // 20px from left edge
+                    if (Math.abs(point.x - leftHandleX) <= 10 && Math.abs(point.y - handleCenterY) <= 10) {
+                        return {
+                            node: element,
+                            handleType: "left",
+                            portIndex: portIndex
+                        }
+                    }
+                    
+                    // Check right handle
+                    var rightHandleX = element.x + element.width - 20  // 20px from right edge
+                    if (Math.abs(point.x - rightHandleX) <= 10 && Math.abs(point.y - handleCenterY) <= 10) {
+                        return {
+                            node: element,
+                            handleType: "right",
+                            portIndex: portIndex
+                        }
+                    }
+                }
+            }
+        }
+        
+        return null
     }
     
     // Component definitions
