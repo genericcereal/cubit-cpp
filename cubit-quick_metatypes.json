@@ -582,6 +582,36 @@
                         "type": "QString",
                         "user": false,
                         "write": "setTargetHandleType"
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 13,
+                        "name": "sourcePortType",
+                        "notify": "sourcePortTypeChanged",
+                        "read": "sourcePortType",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "QString",
+                        "user": false,
+                        "write": "setSourcePortType"
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 14,
+                        "name": "targetPortType",
+                        "notify": "targetPortTypeChanged",
+                        "read": "targetPortType",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "QString",
+                        "user": false,
+                        "write": "setTargetPortType"
                     }
                 ],
                 "qualifiedClassName": "Edge",
@@ -662,6 +692,18 @@
                         "access": "public",
                         "index": 12,
                         "name": "targetHandleTypeChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 13,
+                        "name": "sourcePortTypeChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 14,
+                        "name": "targetPortTypeChanged",
                         "returnType": "void"
                     }
                 ],
@@ -1234,7 +1276,35 @@
         "classes": [
             {
                 "className": "Node",
-                "lineNumber": 6,
+                "lineNumber": 9,
+                "methods": [
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "portIndex",
+                                "type": "int"
+                            }
+                        ],
+                        "index": 6,
+                        "isConst": true,
+                        "name": "getRowForInputPort",
+                        "returnType": "int"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "portIndex",
+                                "type": "int"
+                            }
+                        ],
+                        "index": 7,
+                        "isConst": true,
+                        "name": "getRowForOutputPort",
+                        "returnType": "int"
+                    }
+                ],
                 "object": true,
                 "properties": [
                     {
@@ -1311,6 +1381,20 @@
                         "type": "bool",
                         "user": false,
                         "write": "setIsExecuting"
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 5,
+                        "name": "rowConfigurations",
+                        "notify": "rowConfigurationsChanged",
+                        "read": "rowConfigurations",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "QVariantList",
+                        "user": false
                     }
                 ],
                 "qualifiedClassName": "Node",
@@ -1343,6 +1427,12 @@
                         "access": "public",
                         "index": 4,
                         "name": "isExecutingChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 5,
+                        "name": "rowConfigurationsChanged",
                         "returnType": "void"
                     }
                 ],
