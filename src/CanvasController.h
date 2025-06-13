@@ -41,6 +41,11 @@ public slots:
                                 const QString &sourceHandleType, const QString &targetHandleType,
                                 int sourcePortIndex, int targetPortIndex);
     
+    // JSON-based creation
+    Q_INVOKABLE QString createNodeFromJson(const QString &jsonData);
+    Q_INVOKABLE void createNodesFromJson(const QString &jsonData);
+    Q_INVOKABLE void createGraphFromJson(const QString &jsonData);
+    
     // Selection
     void selectElementsInRect(const QRectF &rect);
     void selectAll();
