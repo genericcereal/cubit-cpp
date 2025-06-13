@@ -7,10 +7,15 @@ Edge::Edge(const QString &id, QObject *parent)
     , m_edgeColor("#94A3B8")  // Default slate color
     , m_edgeWidth(2.0)
     , m_isActive(false)
+    , m_sourceHandleType("right")
+    , m_targetHandleType("left")
 {
-    // Edges don't have a traditional position/size, they're defined by their endpoints
-    setWidth(0);
-    setHeight(0);
+    // Set object name for type identification
+    setObjectName("Edge");
+    
+    // Initialize with a bounding box that will be updated based on endpoints
+    setWidth(1);
+    setHeight(1);
 }
 
 void Edge::setSourceNodeId(const QString &nodeId)
@@ -84,6 +89,8 @@ void Edge::setSourcePoint(const QPointF &point)
     if (m_sourcePoint != point) {
         m_sourcePoint = point;
         emit sourcePointChanged();
+        updateControlPoints();
+        updateGeometry();
         emit elementChanged();
     }
 }
@@ -93,6 +100,28 @@ void Edge::setTargetPoint(const QPointF &point)
     if (m_targetPoint != point) {
         m_targetPoint = point;
         emit targetPointChanged();
+        updateControlPoints();
+        updateGeometry();
+        emit elementChanged();
+    }
+}
+
+void Edge::setSourceHandleType(const QString &type)
+{
+    if (m_sourceHandleType != type) {
+        m_sourceHandleType = type;
+        emit sourceHandleTypeChanged();
+        updateControlPoints();
+        emit elementChanged();
+    }
+}
+
+void Edge::setTargetHandleType(const QString &type)
+{
+    if (m_targetHandleType != type) {
+        m_targetHandleType = type;
+        emit targetHandleTypeChanged();
+        updateControlPoints();
         emit elementChanged();
     }
 }
@@ -111,8 +140,51 @@ bool Edge::isPartiallyConnected() const
 
 void Edge::updateGeometry()
 {
-    // This will be called when nodes move or ports change
-    // The actual endpoint calculation will be done in QML based on node positions
-    // For now, we just emit the changed signals
+    // Update the bounding box to encompass the edge and its control points
+    if (m_sourcePoint.isNull() || m_targetPoint.isNull()) {
+        return;
+    }
+    
+    // Calculate bounding box that includes all points
+    qreal minX = qMin(qMin(m_sourcePoint.x(), m_targetPoint.x()), 
+                      qMin(m_controlPoint1.x(), m_controlPoint2.x()));
+    qreal maxX = qMax(qMax(m_sourcePoint.x(), m_targetPoint.x()), 
+                      qMax(m_controlPoint1.x(), m_controlPoint2.x()));
+    qreal minY = qMin(qMin(m_sourcePoint.y(), m_targetPoint.y()), 
+                      qMin(m_controlPoint1.y(), m_controlPoint2.y()));
+    qreal maxY = qMax(qMax(m_sourcePoint.y(), m_targetPoint.y()), 
+                      qMax(m_controlPoint1.y(), m_controlPoint2.y()));
+    
+    // Add some padding for the edge width and selection
+    qreal padding = m_edgeWidth + 5;
+    setX(minX - padding);
+    setY(minY - padding);
+    setWidth(maxX - minX + 2 * padding);
+    setHeight(maxY - minY + 2 * padding);
+    
     emit geometryChanged();
+}
+
+void Edge::updateControlPoints()
+{
+    // Calculate bezier control points based on handle types and positions
+    qreal horizontalOffset = qAbs(m_targetPoint.x() - m_sourcePoint.x()) * 0.5;
+    horizontalOffset = qMax(horizontalOffset, 50.0); // Minimum offset for nice curves
+    
+    // Control point 1 extends from source
+    if (m_sourceHandleType == "right") {
+        m_controlPoint1 = QPointF(m_sourcePoint.x() + horizontalOffset, m_sourcePoint.y());
+    } else {
+        m_controlPoint1 = QPointF(m_sourcePoint.x() - horizontalOffset, m_sourcePoint.y());
+    }
+    
+    // Control point 2 extends from target
+    if (m_targetHandleType == "left") {
+        m_controlPoint2 = QPointF(m_targetPoint.x() - horizontalOffset, m_targetPoint.y());
+    } else {
+        m_controlPoint2 = QPointF(m_targetPoint.x() + horizontalOffset, m_targetPoint.y());
+    }
+    
+    emit controlPoint1Changed();
+    emit controlPoint2Changed();
 }

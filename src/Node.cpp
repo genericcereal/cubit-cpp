@@ -12,8 +12,8 @@ Node::Node(const QString &id, QObject *parent)
     setObjectName("Node");
     
     // Set default size for nodes
-    setWidth(150);
-    setHeight(80);
+    setWidth(200);
+    setHeight(180);
 }
 
 void Node::setNodeTitle(const QString &title)
