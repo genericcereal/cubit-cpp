@@ -37,6 +37,9 @@ public slots:
     // Element creation
     void createElement(const QString &type, qreal x, qreal y, qreal width = 200, qreal height = 150);
     Q_INVOKABLE void createNode(qreal x, qreal y, const QString &title = "Node", const QString &color = "");
+    Q_INVOKABLE void createEdge(const QString &sourceNodeId, const QString &targetNodeId, 
+                                const QString &sourceHandleType, const QString &targetHandleType,
+                                int sourcePortIndex, int targetPortIndex);
     
     // Selection
     void selectElementsInRect(const QRectF &rect);

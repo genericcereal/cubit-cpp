@@ -5,6 +5,7 @@
 #include "Html.h"
 #include "Variable.h"
 #include "Node.h"
+#include "Edge.h"
 #include "ElementModel.h"
 #include "SelectionManager.h"
 #include "Config.h"
@@ -195,9 +196,9 @@ Element* CanvasController::hitTest(qreal x, qreal y)
     for (int i = elements.size() - 1; i >= 0; --i) {
         Element *element = elements[i];
         
-        // For script canvas, only test nodes
+        // For script canvas, test nodes and edges
         if (m_canvasType == "script") {
-            if (element->getType() != Element::NodeType) {
+            if (element->getType() != Element::NodeType && element->getType() != Element::EdgeType) {
                 continue;
             }
         }
@@ -362,7 +363,80 @@ void CanvasController::createNode(qreal x, qreal y, const QString &title, const 
         }
         // If no color specified, it will use the default from Config
         
+        qDebug() << "Created node with ID:" << node->getId() << "title:" << title;
+        
         m_elementModel->addElement(node);
         emit elementCreated(node);
+    }
+}
+
+void CanvasController::createEdge(const QString &sourceNodeId, const QString &targetNodeId, 
+                                  const QString &sourceHandleType, const QString &targetHandleType,
+                                  int sourcePortIndex, int targetPortIndex)
+{
+    if (!m_elementModel) return;
+    
+    // Only create edges for script canvas
+    if (m_canvasType != "script") {
+        qDebug() << "Cannot create edges on" << m_canvasType << "canvas";
+        return;
+    }
+    
+    // Find the source and target nodes
+    Element *sourceNode = m_elementModel->getElementById(sourceNodeId);
+    Element *targetNode = m_elementModel->getElementById(targetNodeId);
+    
+    if (!sourceNode || !targetNode) {
+        qDebug() << "Cannot create edge: source or target node not found";
+        return;
+    }
+    
+    QString id = m_elementModel->generateId();
+    Edge *edge = new Edge(id);
+    
+    if (edge) {
+        qDebug() << "Creating edge with ID:" << id;
+        
+        // Set connections
+        edge->setSourceNodeId(sourceNodeId);
+        edge->setTargetNodeId(targetNodeId);
+        edge->setSourceHandleType(sourceHandleType);
+        edge->setTargetHandleType(targetHandleType);
+        edge->setSourcePortIndex(sourcePortIndex);
+        edge->setTargetPortIndex(targetPortIndex);
+        
+        // Calculate connection points based on port indices
+        qreal sourceX, sourceY, targetX, targetY;
+        
+        // Source point calculation
+        if (sourceHandleType == "right") {
+            sourceX = sourceNode->x() + sourceNode->width();
+        } else {
+            sourceX = sourceNode->x();
+        }
+        // Calculate Y based on port index (title height + row offset)
+        sourceY = sourceNode->y() + 60 + 15 + (sourcePortIndex * 40);
+        
+        // Target point calculation  
+        if (targetHandleType == "left") {
+            targetX = targetNode->x();
+        } else {
+            targetX = targetNode->x() + targetNode->width();
+        }
+        // Calculate Y based on port index
+        targetY = targetNode->y() + 60 + 15 + (targetPortIndex * 40);
+        
+        edge->setSourcePoint(QPointF(sourceX, sourceY));
+        edge->setTargetPoint(QPointF(targetX, targetY));
+        
+        qDebug() << "Edge points - Source:" << QPointF(sourceX, sourceY) 
+                 << "Target:" << QPointF(targetX, targetY);
+        qDebug() << "Edge bounds - Position:" << edge->x() << "," << edge->y()
+                 << "Size:" << edge->width() << "x" << edge->height();
+        
+        m_elementModel->addElement(edge);
+        emit elementCreated(edge);
+        qDebug() << "Created edge from node" << sourceNodeId << "port" << sourcePortIndex
+                 << "to node" << targetNodeId << "port" << targetPortIndex;
     }
 }

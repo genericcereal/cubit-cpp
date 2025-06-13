@@ -13,7 +13,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 15,
+                        "index": 16,
                         "name": "setMode",
                         "returnType": "void"
                     },
@@ -25,7 +25,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 16,
+                        "index": 17,
                         "name": "setCanvasType",
                         "returnType": "void"
                     },
@@ -37,7 +37,7 @@
                                 "type": "ElementModel*"
                             }
                         ],
-                        "index": 17,
+                        "index": 18,
                         "name": "setElementModel",
                         "returnType": "void"
                     },
@@ -49,7 +49,7 @@
                                 "type": "SelectionManager*"
                             }
                         ],
-                        "index": 18,
+                        "index": 19,
                         "name": "setSelectionManager",
                         "returnType": "void"
                     },
@@ -65,7 +65,7 @@
                                 "type": "qreal"
                             }
                         ],
-                        "index": 19,
+                        "index": 20,
                         "name": "hitTest",
                         "returnType": "Element*"
                     }
@@ -319,23 +319,55 @@
                         "access": "public",
                         "arguments": [
                             {
+                                "name": "sourceNodeId",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "targetNodeId",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "sourceHandleType",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "targetHandleType",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "sourcePortIndex",
+                                "type": "int"
+                            },
+                            {
+                                "name": "targetPortIndex",
+                                "type": "int"
+                            }
+                        ],
+                        "index": 12,
+                        "name": "createEdge",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
                                 "name": "rect",
                                 "type": "QRectF"
                             }
                         ],
-                        "index": 12,
+                        "index": 13,
                         "name": "selectElementsInRect",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 13,
+                        "index": 14,
                         "name": "selectAll",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 14,
+                        "index": 15,
                         "name": "deleteSelectedElements",
                         "returnType": "void"
                     }
@@ -475,7 +507,8 @@
                         "scriptable": true,
                         "stored": true,
                         "type": "QPointF",
-                        "user": false
+                        "user": false,
+                        "write": "setSourcePoint"
                     },
                     {
                         "constant": false,
@@ -489,7 +522,66 @@
                         "scriptable": true,
                         "stored": true,
                         "type": "QPointF",
+                        "user": false,
+                        "write": "setTargetPoint"
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 9,
+                        "name": "controlPoint1",
+                        "notify": "controlPoint1Changed",
+                        "read": "controlPoint1",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "QPointF",
                         "user": false
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 10,
+                        "name": "controlPoint2",
+                        "notify": "controlPoint2Changed",
+                        "read": "controlPoint2",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "QPointF",
+                        "user": false
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 11,
+                        "name": "sourceHandleType",
+                        "notify": "sourceHandleTypeChanged",
+                        "read": "sourceHandleType",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "QString",
+                        "user": false,
+                        "write": "setSourceHandleType"
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 12,
+                        "name": "targetHandleType",
+                        "notify": "targetHandleTypeChanged",
+                        "read": "targetHandleType",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "QString",
+                        "user": false,
+                        "write": "setTargetHandleType"
                     }
                 ],
                 "qualifiedClassName": "Edge",
@@ -546,6 +638,30 @@
                         "access": "public",
                         "index": 8,
                         "name": "targetPointChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 9,
+                        "name": "controlPoint1Changed",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 10,
+                        "name": "controlPoint2Changed",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 11,
+                        "name": "sourceHandleTypeChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 12,
+                        "name": "targetHandleTypeChanged",
                         "returnType": "void"
                     }
                 ],

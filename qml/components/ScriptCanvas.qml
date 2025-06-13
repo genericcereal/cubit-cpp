@@ -24,7 +24,6 @@ BaseCanvas {
         // Add script-specific initialization
         var contentLayer = getContentLayer()
         if (contentLayer) {
-            edgesLoader.parent = contentLayer
             nodesLoader.parent = contentLayer
         }
         
@@ -34,30 +33,106 @@ BaseCanvas {
     
     // Clean up on destruction
     Component.onDestruction: {
-        edgesLoader.active = false
         nodesLoader.active = false
     }
     
-    // Edges layer loader
-    Loader {
-        id: edgesLoader
-        active: false
-        asynchronous: false
-        z: 0
+    // Simple edge test - draw circles at handle positions
+    Item {
+        id: edgesLayer
+        parent: getContentLayer()
+        anchors.fill: parent
+        z: 10  // Very high z-order
         
-        sourceComponent: Component {
-            Item {
-                id: edgesLayer
-                anchors.fill: parent
+        Repeater {
+            model: root.elementModel
+            
+            delegate: Item {
+                visible: model.elementType === "Edge"
+                property var edge: model.element
+                property var edgeObj: edge as Edge
                 
-                // Placeholder for edge rendering
-                // Will be implemented when edges are added
-            }
-        }
-        
-        onLoaded: {
-            if (item && parent) {
-                item.anchors.fill = parent
+                // Get source and target nodes
+                property var sourceNode: edgeObj && root.elementModel ? root.elementModel.getElementById(edgeObj.sourceNodeId) : null
+                property var targetNode: edgeObj && root.elementModel ? root.elementModel.getElementById(edgeObj.targetNodeId) : null
+                
+                // Update edge positions when nodes move
+                Connections {
+                    target: sourceNode
+                    enabled: sourceNode !== null
+                    function onXChanged() { updateEdgePositions() }
+                    function onYChanged() { updateEdgePositions() }
+                    function onWidthChanged() { updateEdgePositions() }
+                }
+                
+                Connections {
+                    target: targetNode
+                    enabled: targetNode !== null
+                    function onXChanged() { updateEdgePositions() }
+                    function onYChanged() { updateEdgePositions() }
+                    function onHeightChanged() { updateEdgePositions() }
+                }
+                
+                function updateEdgePositions() {
+                    if (!edgeObj || !sourceNode || !targetNode) return
+                    
+                    // NodeRow calculation from NodeElement.qml:
+                    // - Title height: 10 (top margin) + ~20 (text height) = 30
+                    // - Row container top margin: 15
+                    // - Each row height: 30, spacing: 10
+                    // - Handle is vertically centered in row (30/2 = 15)
+                    
+                    var titleAndMargins = 30 + 15  // 45
+                    var rowOffset = edgeObj.sourcePortIndex * 40  // row height (30) + spacing (10)
+                    var handleCenterY = 15  // center of 30px row
+                    
+                    // Calculate source point (right side of source node, center of handle)
+                    var sourceX = sourceNode.x + sourceNode.width - 20  // Right handle center
+                    var sourceY = sourceNode.y + titleAndMargins + rowOffset + handleCenterY
+                    
+                    // Calculate target point (left side of target node, center of handle)
+                    rowOffset = edgeObj.targetPortIndex * 40
+                    var targetX = targetNode.x + 20  // Left handle center
+                    var targetY = targetNode.y + titleAndMargins + rowOffset + handleCenterY
+                    
+                    // Update the edge points
+                    edgeObj.sourcePoint = Qt.point(sourceX, sourceY)
+                    edgeObj.targetPoint = Qt.point(targetX, targetY)
+                }
+                
+                Component.onCompleted: {
+                    updateEdgePositions()
+                }
+                
+                // Bezier curve using Shape and PathSVG
+                BezierEdge {
+                    anchors.fill: parent
+                    edge: edgeObj
+                    canvasMinX: root.canvasMinX
+                    canvasMinY: root.canvasMinY
+                    z: -1
+                }
+                
+                // Source handle circle
+                Rectangle {
+                    x: edgeObj && edgeObj.sourcePoint ? edgeObj.sourcePoint.x - root.canvasMinX - 10 : 0
+                    y: edgeObj && edgeObj.sourcePoint ? edgeObj.sourcePoint.y - root.canvasMinY - 10 : 0
+                    width: 20
+                    height: 20
+                    radius: 10
+                    color: "red"
+                    opacity: 0.8
+                }
+                
+                // Target handle circle
+                Rectangle {
+                    x: edgeObj && edgeObj.targetPoint ? edgeObj.targetPoint.x - root.canvasMinX - 10 : 0
+                    y: edgeObj && edgeObj.targetPoint ? edgeObj.targetPoint.y - root.canvasMinY - 10 : 0
+                    width: 20
+                    height: 20
+                    radius: 10
+                    color: "blue"
+                    opacity: 0.8
+                }
             }
         }
     }
@@ -119,7 +194,6 @@ BaseCanvas {
         id: activationTimer
         interval: 100
         onTriggered: {
-            edgesLoader.active = true
             nodesLoader.active = true
             
             // Create default nodes after loaders are active
@@ -131,7 +205,6 @@ BaseCanvas {
         if (visible) {
             activationTimer.start()
         } else {
-            edgesLoader.active = false
             nodesLoader.active = false
         }
     }
@@ -268,12 +341,56 @@ BaseCanvas {
         controller.createNode(50, -50, "Process Node", "")
         
         console.log("  Default nodes created")
-        // TODO: Add port configuration once Node port methods are exposed to QML
+        
+        // Create a default edge between the nodes
+        Qt.callLater(function() {
+            createDefaultEdge()
+        })
+    }
+    
+    // Create default edge between the two nodes
+    function createDefaultEdge() {
+        console.log("ScriptCanvas.createDefaultEdge called")
+        var elements = elementModel.getAllElements()
+        var nodes = []
+        
+        // Find the two nodes
+        for (var i = 0; i < elements.length; i++) {
+            if (elements[i].objectName === "Node") {
+                nodes.push(elements[i])
+            }
+        }
+        
+        if (nodes.length >= 2) {
+            console.log("  Found", nodes.length, "nodes, creating edge")
+            console.log("  Node 0 ID:", nodes[0].elementId)
+            console.log("  Node 1 ID:", nodes[1].elementId)
+            
+            // Create edge using controller method
+            // Connect from first node's output (right) to second node's input (left)
+            controller.createEdge(
+                nodes[0].elementId,     // sourceNodeId
+                nodes[1].elementId,     // targetNodeId
+                "right",                // sourceHandleType
+                "left",                 // targetHandleType
+                2,                      // sourcePortIndex (Output row)
+                0                       // targetPortIndex (Input 1 row)
+            )
+            
+            console.log("  Edge creation requested")
+        } else {
+            console.log("  Not enough nodes found:", nodes.length)
+        }
     }
     
     // Component definitions
     Component {
         id: nodeComponent
         NodeElement {}
+    }
+    
+    Component {
+        id: edgeComponent
+        EdgeElement {}
     }
 }
