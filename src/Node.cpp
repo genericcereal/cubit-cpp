@@ -189,3 +189,13 @@ int Node::getRowForOutputPort(int portIndex) const
     }
     return -1;
 }
+
+int Node::getInputPortIndex(const QString &portId) const
+{
+    return m_inputPorts.indexOf(portId);
+}
+
+int Node::getOutputPortIndex(const QString &portId) const
+{
+    return m_outputPorts.indexOf(portId);
+}

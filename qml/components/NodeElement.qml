@@ -184,15 +184,8 @@ Item {
                 Repeater {
                     model: {
                         if (!nodeElement || !nodeElement.rowConfigurations) return []
-                        // Filter only configurations that have targets
-                        var targets = []
-                        for (var i = 0; i < nodeElement.rowConfigurations.length; i++) {
-                            var config = nodeElement.rowConfigurations[i]
-                            if (config.hasTarget) {
-                                targets.push(config)
-                            }
-                        }
-                        return targets
+                        // Use all row configurations, not just those with targets
+                        return nodeElement.rowConfigurations
                     }
                     
                     delegate: Item {
@@ -200,13 +193,14 @@ Item {
                         height: 30
                         
                         property var targetConfig: modelData
-                        property int targetPortIndex: targetConfig.targetPortIndex || -1
-                        property string targetType: targetConfig.targetType || "Flow"
-                        property string targetLabel: targetConfig.targetLabel || ""
+                        property bool hasTarget: targetConfig.hasTarget || false
+                        property int targetPortIndex: hasTarget ? (targetConfig.targetPortIndex || -1) : -1
+                        property string targetType: hasTarget ? (targetConfig.targetType || "Flow") : ""
+                        property string targetLabel: hasTarget ? (targetConfig.targetLabel || "") : ""
                         
                         // Check if this target port has an incoming edge
                         property bool hasIncomingEdge: {
-                            if (!root.elementModel || !root.element) return false
+                            if (!hasTarget || !root.elementModel || !root.element) return false
                             
                             var dummy = root.modelUpdateCount
                             var edges = root.elementModel.getAllElements()
@@ -224,7 +218,7 @@ Item {
                         
                         // Check if handle is hovered
                         property bool handleHovered: {
-                            if (!root.elementHovered || !root.canvas) return false
+                            if (!hasTarget || !root.elementHovered || !root.canvas) return false
                             
                             var localX = root.canvas.hoveredPoint.x - root.element.x - columnsContainer.anchors.leftMargin
                             var localY = root.canvas.hoveredPoint.y - root.element.y - titleText.height - titleText.anchors.topMargin - columnsContainer.anchors.topMargin - y
@@ -235,7 +229,7 @@ Item {
                         
                         // Check if combo box is hovered
                         property bool comboBoxHovered: {
-                            if (targetType !== "Variable" || hasIncomingEdge) return false
+                            if (!hasTarget || targetType !== "Variable" || hasIncomingEdge) return false
                             if (!root.elementHovered || !root.canvas) return false
                             
                             var localX = root.canvas.hoveredPoint.x - root.element.x - columnsContainer.anchors.leftMargin
@@ -253,6 +247,7 @@ Item {
                         // Target handle
                         Rectangle {
                             id: targetHandle
+                            visible: hasTarget
                             anchors.left: parent.left
                             anchors.verticalCenter: parent.verticalCenter
                             width: 20
@@ -278,7 +273,7 @@ Item {
                         // Variable input or label
                         ComboBox {
                             id: targetComboBox
-                            visible: targetType === "Variable" && !hasIncomingEdge
+                            visible: hasTarget && targetType === "Variable" && !hasIncomingEdge
                             anchors.left: targetHandle.right
                             anchors.leftMargin: 5
                             anchors.verticalCenter: parent.verticalCenter
@@ -308,7 +303,7 @@ Item {
                         }
                         
                         Text {
-                            visible: targetLabel !== "" && (targetType === "Flow" || hasIncomingEdge)
+                            visible: hasTarget && targetLabel !== "" && (targetType === "Flow" || hasIncomingEdge)
                             anchors.left: targetHandle.right
                             anchors.leftMargin: 5
                             anchors.verticalCenter: parent.verticalCenter
@@ -329,15 +324,8 @@ Item {
                 Repeater {
                     model: {
                         if (!nodeElement || !nodeElement.rowConfigurations) return []
-                        // Filter only configurations that have sources
-                        var sources = []
-                        for (var i = 0; i < nodeElement.rowConfigurations.length; i++) {
-                            var config = nodeElement.rowConfigurations[i]
-                            if (config.hasSource) {
-                                sources.push(config)
-                            }
-                        }
-                        return sources
+                        // Use all row configurations, not just those with sources
+                        return nodeElement.rowConfigurations
                     }
                     
                     delegate: Item {
@@ -345,13 +333,14 @@ Item {
                         height: 30
                         
                         property var sourceConfig: modelData
-                        property int sourcePortIndex: sourceConfig.sourcePortIndex || -1
-                        property string sourceType: sourceConfig.sourceType || "Flow"
-                        property string sourceLabel: sourceConfig.sourceLabel || ""
+                        property bool hasSource: sourceConfig.hasSource || false
+                        property int sourcePortIndex: hasSource ? (sourceConfig.sourcePortIndex || -1) : -1
+                        property string sourceType: hasSource ? (sourceConfig.sourceType || "Flow") : ""
+                        property string sourceLabel: hasSource ? (sourceConfig.sourceLabel || "") : ""
                         
                         // Check if handle is hovered
                         property bool handleHovered: {
-                            if (!root.elementHovered || !root.canvas) return false
+                            if (!hasSource || !root.elementHovered || !root.canvas) return false
                             
                             var localX = root.canvas.hoveredPoint.x - root.element.x - columnsContainer.anchors.leftMargin - sourcesColumn.x
                             var localY = root.canvas.hoveredPoint.y - root.element.y - titleText.height - titleText.anchors.topMargin - columnsContainer.anchors.topMargin - y
@@ -363,7 +352,7 @@ Item {
                         
                         // Source label
                         Text {
-                            visible: sourceLabel !== ""
+                            visible: hasSource && sourceLabel !== ""
                             anchors.right: sourceHandle.left
                             anchors.rightMargin: 5
                             anchors.verticalCenter: parent.verticalCenter
@@ -375,6 +364,7 @@ Item {
                         // Source handle
                         Rectangle {
                             id: sourceHandle
+                            visible: hasSource
                             anchors.right: parent.right
                             anchors.verticalCenter: parent.verticalCenter
                             width: 20

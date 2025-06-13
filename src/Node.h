@@ -67,6 +67,10 @@ public:
     Q_INVOKABLE int getRowForInputPort(int portIndex) const;
     Q_INVOKABLE int getRowForOutputPort(int portIndex) const;
     
+    // Port ID lookup
+    int getInputPortIndex(const QString &portId) const;
+    int getOutputPortIndex(const QString &portId) const;
+    
 signals:
     void nodeTitleChanged();
     void nodeColorChanged();

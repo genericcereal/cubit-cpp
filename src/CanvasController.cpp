@@ -406,6 +406,50 @@ void CanvasController::createNode(qreal x, qreal y, const QString &title, const 
     }
 }
 
+void CanvasController::createEdgeByPortId(const QString &sourceNodeId, const QString &targetNodeId,
+                                          const QString &sourcePortId, const QString &targetPortId)
+{
+    if (!m_elementModel) return;
+    
+    // Only create edges for script canvas
+    if (m_canvasType != "script") {
+        qDebug() << "Cannot create edges on" << m_canvasType << "canvas";
+        return;
+    }
+    
+    // Find the source and target nodes
+    Element *sourceElement = m_elementModel->getElementById(sourceNodeId);
+    Element *targetElement = m_elementModel->getElementById(targetNodeId);
+    
+    if (!sourceElement || !targetElement) {
+        qDebug() << "Cannot create edge: source or target node not found";
+        return;
+    }
+    
+    // Cast to Node to get port information
+    Node *srcNode = qobject_cast<Node*>(sourceElement);
+    Node *tgtNode = qobject_cast<Node*>(targetElement);
+    
+    if (!srcNode || !tgtNode) {
+        qDebug() << "Cannot create edge: elements are not nodes";
+        return;
+    }
+    
+    // Find port indices from port IDs
+    int sourcePortIndex = srcNode->getOutputPortIndex(sourcePortId);
+    int targetPortIndex = tgtNode->getInputPortIndex(targetPortId);
+    
+    if (sourcePortIndex == -1 || targetPortIndex == -1) {
+        qDebug() << "Cannot create edge: port not found -"
+                 << "sourcePortId:" << sourcePortId << "index:" << sourcePortIndex
+                 << "targetPortId:" << targetPortId << "index:" << targetPortIndex;
+        return;
+    }
+    
+    // Call the original createEdge method with the resolved indices
+    createEdge(sourceNodeId, targetNodeId, "right", "left", sourcePortIndex, targetPortIndex);
+}
+
 void CanvasController::createEdge(const QString &sourceNodeId, const QString &targetNodeId, 
                                   const QString &sourceHandleType, const QString &targetHandleType,
                                   int sourcePortIndex, int targetPortIndex)
@@ -692,8 +736,6 @@ void CanvasController::createGraphFromJson(const QString &jsonData)
             
             QString sourceNodeId = edgeObj.value("sourceNodeId").toString();
             QString targetNodeId = edgeObj.value("targetNodeId").toString();
-            int sourcePortIndex = edgeObj.value("sourcePortIndex").toInt(0);
-            int targetPortIndex = edgeObj.value("targetPortIndex").toInt(0);
             
             // Map IDs if necessary
             if (idMap.contains(sourceNodeId)) {
@@ -703,10 +745,25 @@ void CanvasController::createGraphFromJson(const QString &jsonData)
                 targetNodeId = idMap[targetNodeId];
             }
             
-            // Create the edge
-            if (!sourceNodeId.isEmpty() && !targetNodeId.isEmpty()) {
-                createEdge(sourceNodeId, targetNodeId, "right", "left", 
-                          sourcePortIndex, targetPortIndex);
+            // Check if the edge uses port IDs or indices
+            if (edgeObj.contains("sourcePortId") && edgeObj.contains("targetPortId")) {
+                // New format: use port IDs
+                QString sourcePortId = edgeObj.value("sourcePortId").toString();
+                QString targetPortId = edgeObj.value("targetPortId").toString();
+                
+                if (!sourceNodeId.isEmpty() && !targetNodeId.isEmpty() && 
+                    !sourcePortId.isEmpty() && !targetPortId.isEmpty()) {
+                    createEdgeByPortId(sourceNodeId, targetNodeId, sourcePortId, targetPortId);
+                }
+            } else {
+                // Legacy format: use port indices
+                int sourcePortIndex = edgeObj.value("sourcePortIndex").toInt(0);
+                int targetPortIndex = edgeObj.value("targetPortIndex").toInt(0);
+                
+                if (!sourceNodeId.isEmpty() && !targetNodeId.isEmpty()) {
+                    createEdge(sourceNodeId, targetNodeId, "right", "left", 
+                              sourcePortIndex, targetPortIndex);
+                }
             }
         }
     }
