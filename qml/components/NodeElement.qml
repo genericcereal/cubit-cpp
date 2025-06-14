@@ -283,6 +283,7 @@ Item {
                             currentIndex: 0
                             model: ["Option 1", "Option 2", "Option 3", "Option 4", "Option 5"]
                             
+                            
                             background: Rectangle {
                                 color: comboBoxHovered ? "#E8F4FD" : "#F5F5F5"
                                 border.color: targetComboBox.activeFocus ? "#2196F3" : (comboBoxHovered ? "#90CAF9" : "#CCCCCC")
@@ -294,6 +295,32 @@ Item {
                                 }
                                 Behavior on border.color {
                                     ColorAnimation { duration: 150 }
+                                }
+                            }
+                            
+                            // Custom popup that also scales
+                            popup: Popup {
+                                y: targetComboBox.height
+                                width: targetComboBox.width
+                                implicitHeight: contentItem.implicitHeight
+                                padding: 1
+                                
+                                // Apply zoom scale to match the canvas (not inverse)
+                                scale: root.canvas ? root.canvas.zoomLevel : 1.0
+                                transformOrigin: Item.TopLeft
+                                
+                                contentItem: ListView {
+                                    clip: true
+                                    implicitHeight: contentHeight
+                                    model: targetComboBox.popup.visible ? targetComboBox.delegateModel : null
+                                    currentIndex: targetComboBox.highlightedIndex
+                                    
+                                    ScrollIndicator.vertical: ScrollIndicator { }
+                                }
+                                
+                                background: Rectangle {
+                                    border.color: "#CCCCCC"
+                                    radius: 2
                                 }
                             }
                             
