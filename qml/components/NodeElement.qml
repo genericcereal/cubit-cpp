@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import Cubit 1.0
 import Cubit.UI 1.0
+import ".."
 
 Item {
     id: root
@@ -15,6 +16,39 @@ Item {
     // Size properties bound to C++ element (position is handled by parent Loader)
     width: element ? element.width : 200
     height: element ? element.height : 180
+    
+    // Track row configurations changes
+    property int rowConfigCount: nodeElement ? nodeElement.rowConfigurations.length : 0
+    
+    // Calculate the required height based on content
+    property real calculatedHeight: {
+        // Force re-evaluation when rowConfigCount changes
+        var dummy = rowConfigCount
+        
+        if (!nodeElement || !nodeElement.rowConfigurations) return 180
+        
+        var titleHeight = 30  // Title text height estimate
+        var topMargin = 10    // Title top margin
+        var titleBottomMargin = 15  // Space between title and columns
+        var containerBottomMargin = Config.nodeBottomMargin   // Bottom margin from Config
+        var rowHeight = 30   // Height of each row
+        var rowSpacing = 10  // Spacing between rows
+        
+        var numRows = nodeElement.rowConfigurations.length
+        var contentHeight = numRows * rowHeight + (numRows > 0 ? (numRows - 1) * rowSpacing : 0)
+        
+        var totalHeight = topMargin + titleHeight + titleBottomMargin + contentHeight + containerBottomMargin
+        
+        // Ensure minimum height from Config
+        return Math.max(totalHeight, Config.nodeMinHeight)
+    }
+    
+    // Update element height when calculated height changes
+    onCalculatedHeightChanged: {
+        if (element && Math.abs(element.height - calculatedHeight) > 1) {
+            element.height = calculatedHeight
+        }
+    }
     
     // Selection state
     property bool selected: element ? element.selected : false

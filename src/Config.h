@@ -16,6 +16,13 @@ namespace Config {
     constexpr const char* NODE_START_COLOR = "#E6F3FF";         // Light blue for start node
     constexpr const char* NODE_PROCESS_COLOR = "#E6F3FF";       // Light blue for process node
     
+    // Edge colors
+    constexpr const char* EDGE_FLOW_COLOR = "#666666";          // Dark gray for flow edges
+    constexpr const char* EDGE_FLOW_SELECTED_COLOR = "#2196F3"; // Blue for selected flow edges
+    constexpr const char* EDGE_VARIABLE_COLOR = "#FF9800";      // Orange for variable edges
+    constexpr const char* EDGE_VARIABLE_SELECTED_COLOR = "#FF5722"; // Darker orange for selected variable edges
+    constexpr const char* EDGE_PREVIEW_COLOR = "#999999";       // Light gray for edge previews
+    
     // Control colors
     constexpr const char* CONTROL_BAR_COLOR = "rgba(255, 0, 0, 0.1)";           // Red with 10% opacity
     constexpr const char* CONTROL_ROTATION_JOINT_COLOR = "rgba(255, 0, 0, 0.1)"; // Red with 10% opacity
@@ -35,6 +42,17 @@ namespace Config {
     constexpr int DEFAULT_ELEMENT_HEIGHT = 150;
     constexpr int SELECTION_HANDLE_SIZE = 8;
     constexpr int CONTROL_MARGIN = 4;
+    
+    // Node sizes
+    constexpr int NODE_MIN_HEIGHT = 100;
+    constexpr int NODE_BOTTOM_MARGIN = 10;
+    
+    // Edge sizes
+    constexpr int EDGE_FLOW_WIDTH = 3;              // Width for flow edges
+    constexpr int EDGE_FLOW_SELECTED_WIDTH = 4;     // Width for selected flow edges
+    constexpr int EDGE_VARIABLE_WIDTH = 2;          // Width for variable edges
+    constexpr int EDGE_VARIABLE_SELECTED_WIDTH = 3; // Width for selected variable edges
+    constexpr int EDGE_PREVIEW_WIDTH = 2;           // Width for edge previews
     
     // Control sizes
     constexpr int CONTROL_BAR_WIDTH = 10;

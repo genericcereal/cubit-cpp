@@ -37,6 +37,7 @@ BaseCanvas {
     property var dragSourceNode: null
     property string dragSourceHandleType: ""  // "left" or "right"
     property int dragSourcePortIndex: -1
+    property string dragSourcePortType: "Flow"  // "Flow" or "Variable"
     property point dragCurrentPoint: Qt.point(0, 0)
     property point dragStartPoint: Qt.point(0, 0)
     
@@ -270,6 +271,8 @@ BaseCanvas {
                     sourcePoint.x + (targetPoint.x - sourcePoint.x) * 0.5,
                     targetPoint.y
                 )
+                property string sourcePortType: root.dragSourcePortType
+                property bool selected: false
             }
             
             // Bezier curve preview
@@ -278,7 +281,7 @@ BaseCanvas {
                 edge: tempEdge
                 canvasMinX: root.canvasMinX
                 canvasMinY: root.canvasMinY
-                opacity: 0.5
+                isPreview: true
             }
             
             // Source handle circle (visual feedback)
@@ -393,9 +396,10 @@ BaseCanvas {
                 dragSourceNode = handleInfo.node
                 dragSourceHandleType = handleInfo.handleType
                 dragSourcePortIndex = handleInfo.portIndex
+                dragSourcePortType = handleInfo.portType
                 dragCurrentPoint = canvasPoint
                 dragStartPoint = canvasPoint
-                console.log("Started dragging handle:", handleInfo.handleType, "port:", handleInfo.portIndex, "from node:", handleInfo.node.nodeTitle)
+                console.log("Started dragging handle:", handleInfo.handleType, "port:", handleInfo.portIndex, "type:", handleInfo.portType, "from node:", handleInfo.node.nodeTitle)
             } else {
                 // Store the start point and let the controller handle the press
                 dragStartPoint = canvasPoint
@@ -458,6 +462,7 @@ BaseCanvas {
             dragSourceNode = null
             dragSourceHandleType = ""
             dragSourcePortIndex = -1
+            dragSourcePortType = "Flow"
             dragStartPoint = Qt.point(0, 0)
         } else {
             // Check if this was a click on empty canvas (no selection box was drawn)
@@ -587,7 +592,8 @@ BaseCanvas {
                             return {
                                 node: element,
                                 handleType: "left",
-                                portIndex: config.targetPortIndex
+                                portIndex: config.targetPortIndex,
+                                portType: config.targetType || "Flow"
                             }
                         }
                         targetIndex++
@@ -609,7 +615,8 @@ BaseCanvas {
                             return {
                                 node: element,
                                 handleType: "right",
-                                portIndex: sourceConfig.sourcePortIndex
+                                portIndex: sourceConfig.sourcePortIndex,
+                                portType: sourceConfig.sourceType || "Flow"
                             }
                         }
                         sourceIndex++

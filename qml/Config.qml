@@ -16,6 +16,13 @@ QtObject {
     readonly property string nodeStartColor: "#E6F3FF"         // Light blue for start node
     readonly property string nodeProcessColor: "#E6F3FF"       // Light blue for process node
     
+    // Edge colors
+    readonly property string edgeFlowColor: "#666666"          // Dark gray for flow edges
+    readonly property string edgeFlowSelectedColor: "#2196F3"  // Blue for selected flow edges
+    readonly property string edgeVariableColor: "#FF9800"      // Orange for variable edges
+    readonly property string edgeVariableSelectedColor: "#FF5722" // Darker orange for selected variable edges
+    readonly property string edgePreviewColor: "#999999"       // Light gray for edge previews
+    
     // Control colors
     readonly property color controlBarColor: Qt.rgba(1, 0, 0, 0.1)           // Red with 10% opacity
     readonly property color controlRotationJointColor: Qt.rgba(1, 0, 0, 0.1) // Red with 10% opacity
@@ -40,6 +47,17 @@ QtObject {
     readonly property int defaultElementHeight: 150
     readonly property int selectionHandleSize: 8
     readonly property int controlMargin: 4
+    
+    // Node sizes
+    readonly property int nodeMinHeight: 100
+    readonly property int nodeBottomMargin: 10
+    
+    // Edge sizes
+    readonly property int edgeFlowWidth: 3              // Width for flow edges
+    readonly property int edgeFlowSelectedWidth: 4     // Width for selected flow edges
+    readonly property int edgeVariableWidth: 2          // Width for variable edges
+    readonly property int edgeVariableSelectedWidth: 3 // Width for selected variable edges
+    readonly property int edgePreviewWidth: 2           // Width for edge previews
     
     // Control sizes
     readonly property int controlBarWidth: 10
