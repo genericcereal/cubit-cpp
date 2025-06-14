@@ -263,7 +263,7 @@ Item {
                         
                         // Check if combo box is hovered
                         property bool comboBoxHovered: {
-                            if (!hasTarget || targetType !== "Variable" || hasIncomingEdge) return false
+                            if (!hasTarget || targetType === "Flow" || hasIncomingEdge) return false
                             if (!root.elementHovered || !root.canvas) return false
                             
                             var localX = root.canvas.hoveredPoint.x - root.element.x - columnsContainer.anchors.leftMargin
@@ -307,7 +307,7 @@ Item {
                         // Variable input or label
                         ComboBox {
                             id: targetComboBox
-                            visible: hasTarget && targetType === "Variable" && !hasIncomingEdge
+                            visible: hasTarget && targetType !== "Flow" && !hasIncomingEdge
                             anchors.left: targetHandle.right
                             anchors.leftMargin: 5
                             anchors.verticalCenter: parent.verticalCenter

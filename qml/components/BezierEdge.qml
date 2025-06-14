@@ -53,9 +53,9 @@ Shape {
         strokeWidth: root.strokeWidth
         fillColor: "transparent"
         
-        // Add dashed style for variable edges
-        strokeStyle: root.edgeType === "Variable" ? ShapePath.DashLine : ShapePath.SolidLine
-        dashPattern: root.edgeType === "Variable" ? [5, 3] : []
+        // Add dashed style for data edges (non-Flow)
+        strokeStyle: root.edgeType !== "Flow" ? ShapePath.DashLine : ShapePath.SolidLine
+        dashPattern: root.edgeType !== "Flow" ? [5, 3] : []
         
         // Start at source point
         startX: sourcePoint.x

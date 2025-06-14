@@ -8,23 +8,21 @@ QtObject {
         "userInput": {
             "id": "userInput",
             "name": "User Input",
-            "color": "#4CAF50",
             "targets": [
                 {"id": "trigger", "type": "Flow", "label": "Trigger"}
             ],
             "sources": [
                 {"id": "flow", "type": "Flow", "label": "Start"},
-                {"id": "value", "type": "Variable", "label": "Input"}
+                {"id": "value", "type": "String", "label": "Input"}
             ]
         },
         
         "displayOutput": {
             "id": "displayOutput",
             "name": "Display Output",
-            "color": "#2196F3",
             "targets": [
                 {"id": "flow", "type": "Flow", "label": "Execute"},
-                {"id": "value", "type": "Variable", "label": "Value"}
+                {"id": "value", "type": "String", "label": "Value"}
             ],
             "sources": [
                 {"id": "done", "type": "Flow", "label": "Done"}
@@ -34,25 +32,23 @@ QtObject {
         "mathOperation": {
             "id": "mathOperation",
             "name": "Math Operation",
-            "color": "#FF9800",
             "targets": [
                 {"id": "flow", "type": "Flow", "label": "Execute"},
-                {"id": "a", "type": "Variable", "label": "A"},
-                {"id": "b", "type": "Variable", "label": "B"}
+                {"id": "a", "type": "Number", "label": "A"},
+                {"id": "b", "type": "Number", "label": "B"}
             ],
             "sources": [
                 {"id": "flow", "type": "Flow", "label": "Next"},
-                {"id": "result", "type": "Variable", "label": "Result"}
+                {"id": "result", "type": "Number", "label": "Result"}
             ]
         },
         
         "condition": {
             "id": "condition",
             "name": "Condition",
-            "color": "#9C27B0",
             "targets": [
                 {"id": "flow", "type": "Flow", "label": "Execute"},
-                {"id": "value", "type": "Variable", "label": "Test"}
+                {"id": "value", "type": "Boolean", "label": "Test"}
             ],
             "sources": [
                 {"id": "true", "type": "Flow", "label": "True"},
@@ -63,61 +59,57 @@ QtObject {
         "variable": {
             "id": "variable",
             "name": "Variable",
-            "color": "#607D8B",
             "targets": [
-                {"id": "set", "type": "Variable", "label": "Set"}
+                {"id": "set", "type": "String", "label": "Set"}
             ],
             "sources": [
-                {"id": "get", "type": "Variable", "label": "Get"}
+                {"id": "get", "type": "String", "label": "Get"}
             ]
         },
         
         "loop": {
             "id": "loop",
             "name": "For Loop",
-            "color": "#E91E63",
             "targets": [
                 {"id": "flow", "type": "Flow", "label": "Execute"},
-                {"id": "start", "type": "Variable", "label": "Start"},
-                {"id": "end", "type": "Variable", "label": "End"}
+                {"id": "start", "type": "Number", "label": "Start"},
+                {"id": "end", "type": "Number", "label": "End"}
             ],
             "sources": [
                 {"id": "loop", "type": "Flow", "label": "Loop Body"},
                 {"id": "done", "type": "Flow", "label": "Done"},
-                {"id": "index", "type": "Variable", "label": "Index"}
+                {"id": "index", "type": "Number", "label": "Index"}
             ]
         },
         
         "function": {
             "id": "function",
             "name": "Function",
-            "color": "#00BCD4",
             "targets": [
                 {"id": "flow", "type": "Flow", "label": "Call"},
-                {"id": "param1", "type": "Variable", "label": "Param 1"},
-                {"id": "param2", "type": "Variable", "label": "Param 2"}
+                {"id": "param1", "type": "String", "label": "Param 1"},
+                {"id": "param2", "type": "String", "label": "Param 2"}
             ],
             "sources": [
                 {"id": "flow", "type": "Flow", "label": "Return"},
-                {"id": "result", "type": "Variable", "label": "Result"}
+                {"id": "result", "type": "String", "label": "Result"}
             ]
         },
         
         "httpRequest": {
             "id": "httpRequest",
             "name": "HTTP Request",
-            "color": "#FFC107",
             "targets": [
                 {"id": "flow", "type": "Flow", "label": "Execute"},
-                {"id": "url", "type": "Variable", "label": "URL"},
-                {"id": "method", "type": "Variable", "label": "Method"},
-                {"id": "body", "type": "Variable", "label": "Body"}
+                {"id": "url", "type": "String", "label": "URL"},
+                {"id": "method", "type": "String", "label": "Method"},
+                {"id": "body", "type": "String", "label": "Body"}
             ],
             "sources": [
                 {"id": "success", "type": "Flow", "label": "Success"},
                 {"id": "error", "type": "Flow", "label": "Error"},
-                {"id": "response", "type": "Variable", "label": "Response"},
-                {"id": "status", "type": "Variable", "label": "Status"}
+                {"id": "response", "type": "String", "label": "Response"},
+                {"id": "status", "type": "Number", "label": "Status"}
             ]
         }
     }
@@ -145,7 +137,6 @@ QtObject {
             "name": nodeType.name,
             "x": x,
             "y": y,
-            "color": nodeType.color || "",
             "targets": nodeType.targets || [],
             "sources": nodeType.sources || []
         }
