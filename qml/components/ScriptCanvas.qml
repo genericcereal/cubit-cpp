@@ -26,6 +26,11 @@ BaseCanvas {
     // Signal to notify when dragging starts
     signal canvasDragStarted()
     
+    // Node catalog instance
+    NodeCatalog {
+        id: nodeCatalog
+    }
+    
     // Default nodes creator
     DefaultNodesCreator {
         id: defaultNodesCreator
@@ -40,6 +45,10 @@ BaseCanvas {
     property string dragSourcePortType: "Flow"  // "Flow" or "Variable"
     property point dragCurrentPoint: Qt.point(0, 0)
     property point dragStartPoint: Qt.point(0, 0)
+    
+    // Node catalog state
+    property bool showNodeCatalog: false
+    property point nodeCatalogPosition: Qt.point(0, 0)
     
     // Override content layer with script elements
     Component.onCompleted: {
@@ -197,7 +206,7 @@ BaseCanvas {
         // Temporary edge preview during handle drag
         Item {
             id: tempEdgeContainer
-            visible: root.isDraggingHandle && root.dragSourceNode
+            visible: (root.isDraggingHandle || root.showNodeCatalog) && root.dragSourceNode
             anchors.fill: parent
             
             property point sourcePoint: {
@@ -308,6 +317,55 @@ BaseCanvas {
         }
     }
     
+    // Fullscreen mouse area to catch clicks outside the catalog
+    MouseArea {
+        anchors.fill: parent
+        visible: root.showNodeCatalog
+        z: 999  // Just below the catalog popup
+        
+        onClicked: {
+            console.log("Clicked outside catalog - dismissing")
+            root.showNodeCatalog = false
+            root.dragSourceNode = null
+            root.dragSourceHandleType = ""
+            root.dragSourcePortIndex = -1
+            root.dragSourcePortType = "Flow"
+        }
+    }
+    
+    // Node catalog popup - Must be outside content layer to receive mouse events
+    NodeCatalogPopup {
+        id: nodeCatalogPopup
+        parent: root
+        canvas: root
+        nodeCatalog: nodeCatalog
+        showCatalog: root.showNodeCatalog
+        position: root.nodeCatalogPosition
+        dragSourceNode: root.dragSourceNode
+        dragSourceHandleType: root.dragSourceHandleType
+        dragSourcePortIndex: root.dragSourcePortIndex
+        dragSourcePortType: root.dragSourcePortType
+        z: 1000  // Ensure it's above everything
+        
+        onNodeSelected: {
+            // Clear catalog and drag state
+            root.showNodeCatalog = false
+            root.dragSourceNode = null
+            root.dragSourceHandleType = ""
+            root.dragSourcePortIndex = -1
+            root.dragSourcePortType = "Flow"
+        }
+        
+        onDismissed: {
+            // Clear catalog and drag state
+            root.showNodeCatalog = false
+            root.dragSourceNode = null
+            root.dragSourceHandleType = ""
+            root.dragSourcePortIndex = -1
+            root.dragSourcePortType = "Flow"
+        }
+    }
+    
     // Nodes layer loader
     Loader {
         id: nodesLoader
@@ -387,6 +445,7 @@ BaseCanvas {
         clickPoint = canvasPoint
         canvasClicked(canvasPoint)
         
+        
         if (controller.mode === "select") {
             // Check if we're over a handle first
             var handleInfo = getHandleAtPoint(canvasPoint)
@@ -455,15 +514,20 @@ BaseCanvas {
                     dragSourcePortIndex,
                     targetHandleInfo.portIndex
                 )
+                // Reset drag state
+                isDraggingHandle = false
+                dragSourceNode = null
+                dragSourceHandleType = ""
+                dragSourcePortIndex = -1
+                dragSourcePortType = "Flow"
+                dragStartPoint = Qt.point(0, 0)
+            } else {
+                // Show node catalog at release position
+                showNodeCatalog = true
+                nodeCatalogPosition = canvasPoint
+                isDraggingHandle = false
+                console.log("Showing node catalog at", canvasPoint.x, canvasPoint.y)
             }
-            
-            // Reset drag state
-            isDraggingHandle = false
-            dragSourceNode = null
-            dragSourceHandleType = ""
-            dragSourcePortIndex = -1
-            dragSourcePortType = "Flow"
-            dragStartPoint = Qt.point(0, 0)
         } else {
             // Check if this was a click on empty canvas (no selection box was drawn)
             var element = controller.hitTest(canvasPoint.x, canvasPoint.y)

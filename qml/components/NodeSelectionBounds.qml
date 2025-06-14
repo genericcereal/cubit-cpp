@@ -26,10 +26,10 @@ Item {
     }
     
     // Position and size from selection bounds
-    x: (selectionManager.boundingX - canvasMinX) * zoomLevel - (flickable?.contentX ?? 0)
-    y: (selectionManager.boundingY - canvasMinY) * zoomLevel - (flickable?.contentY ?? 0)
-    width: selectionManager.boundingWidth * zoomLevel
-    height: selectionManager.boundingHeight * zoomLevel
+    x: selectionManager ? ((selectionManager.boundingX - canvasMinX) * zoomLevel - (flickable?.contentX ?? 0)) : 0
+    y: selectionManager ? ((selectionManager.boundingY - canvasMinY) * zoomLevel - (flickable?.contentY ?? 0)) : 0
+    width: selectionManager ? (selectionManager.boundingWidth * zoomLevel) : 0
+    height: selectionManager ? (selectionManager.boundingHeight * zoomLevel) : 0
     
     // Blue border rectangle
     Rectangle {

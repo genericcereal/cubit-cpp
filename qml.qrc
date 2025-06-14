@@ -9,6 +9,7 @@
         <file>qml/components/ScriptCanvas.qml</file>
         <file>qml/components/DefaultNodesCreator.qml</file>
         <file>qml/components/NodeCatalog.qml</file>
+        <file>qml/components/NodeCatalogPopup.qml</file>
         <file>qml/components/CanvasView.qml</file>
         <file>qml/components/ElementItem.qml</file>
         <file>qml/components/ElementRenderer.qml</file>
