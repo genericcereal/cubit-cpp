@@ -42,7 +42,7 @@ BaseCanvas {
     property var dragSourceNode: null
     property string dragSourceHandleType: ""  // "left" or "right"
     property int dragSourcePortIndex: -1
-    property string dragSourcePortType: "Flow"  // "Flow" or "Variable"
+    property string dragSourcePortType: "Flow"  // "Flow", "Boolean", "String", or "Number"
     property point dragCurrentPoint: Qt.point(0, 0)
     property point dragStartPoint: Qt.point(0, 0)
     

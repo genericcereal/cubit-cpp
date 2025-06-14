@@ -370,30 +370,30 @@ void CanvasController::createNode(qreal x, qreal y, const QString &title, const 
         
         // Set up default ports and rows
         // Configure port types
-        node->setInputPortType(0, HandleType::Flow);      // Flow In
-        node->setInputPortType(1, HandleType::Variable);  // Value
-        node->setOutputPortType(1, HandleType::Variable); // Result  
-        node->setOutputPortType(2, HandleType::Flow);     // Flow Out
+        node->setInputPortType(0, PortType::Flow);      // Flow In
+        node->setInputPortType(1, PortType::String);    // Value (defaulting to String for now)
+        node->setOutputPortType(1, PortType::String);   // Result (defaulting to String for now)
+        node->setOutputPortType(2, PortType::Flow);     // Flow Out
         
         // Configure rows
         Node::RowConfig row0;
         row0.hasTarget = true;
         row0.targetLabel = "Flow In";
-        row0.targetType = HandleType::Flow;
+        row0.targetType = PortType::Flow;
         row0.targetPortIndex = 0;
         row0.hasSource = true;
         row0.sourceLabel = "Flow Out";
-        row0.sourceType = HandleType::Flow;
+        row0.sourceType = PortType::Flow;
         row0.sourcePortIndex = 2;
         
         Node::RowConfig row1;
         row1.hasTarget = true;
         row1.targetLabel = "Value";
-        row1.targetType = HandleType::Variable;
+        row1.targetType = PortType::String;  // defaulting to String for now
         row1.targetPortIndex = 1;
         row1.hasSource = true;
         row1.sourceLabel = "Result";
-        row1.sourceType = HandleType::Variable;
+        row1.sourceType = PortType::String;  // defaulting to String for now
         row1.sourcePortIndex = 1;
         
         node->addRow(row0);
@@ -484,7 +484,7 @@ void CanvasController::createEdge(const QString &sourceNodeId, const QString &ta
                  << "target port" << targetPortIndex << "type:" << targetPortType;
         
         // Validate that port types can connect
-        if (!HandleType::canConnect(sourcePortType, targetPortType)) {
+        if (!PortType::canConnect(sourcePortType, targetPortType)) {
             qDebug() << "Cannot create edge: port types don't match -"
                      << "source:" << sourcePortType 
                      << "target:" << targetPortType;
@@ -579,17 +579,11 @@ QString CanvasController::createNodeFromJson(const QString &jsonData)
     QString name = nodeObj.value("name").toString("Node");
     qreal x = nodeObj.value("x").toDouble(0);
     qreal y = nodeObj.value("y").toDouble(0);
-    QString color = nodeObj.value("color").toString("");
-    
     // Create the node
     Node *node = new Node(nodeId);
     node->setX(x);
     node->setY(y);
     node->setNodeTitle(name);
-    
-    if (!color.isEmpty()) {
-        node->setNodeColor(color);
-    }
     
     // Parse targets (input ports)
     QJsonArray targets = nodeObj.value("targets").toArray();
@@ -599,7 +593,8 @@ QString CanvasController::createNodeFromJson(const QString &jsonData)
     for (int i = 0; i < targets.size(); ++i) {
         QJsonObject target = targets[i].toObject();
         QString targetId = target.value("id").toString();
-        QString targetType = target.value("type").toString("Variable");
+        QString rawType = target.value("type").toString("Variable");
+        QString targetType = PortType::migrateVariableType(rawType);
         QString targetLabel = target.value("label").toString(targetId);
         
         if (!targetId.isEmpty()) {
@@ -624,7 +619,8 @@ QString CanvasController::createNodeFromJson(const QString &jsonData)
     for (int i = 0; i < sources.size(); ++i) {
         QJsonObject source = sources[i].toObject();
         QString sourceId = source.value("id").toString();
-        QString sourceType = source.value("type").toString("Variable");
+        QString rawType = source.value("type").toString("Variable");
+        QString sourceType = PortType::migrateVariableType(rawType);
         QString sourceLabel = source.value("label").toString(sourceId);
         
         if (!sourceId.isEmpty()) {

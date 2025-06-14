@@ -154,11 +154,14 @@ Rectangle {
 
                                 // Determine target port based on source type
                                 var targetPortIndex = 0;
-                                if (root.dragSourcePortType === "Variable") {
-                                    // Find first variable input port
+                                // Check if source is a data type (not Flow)
+                                if (root.dragSourcePortType !== "Flow") {
+                                    // Find first matching data type input port
                                     var targets = nodeType.targets || [];
                                     for (var i = 0; i < targets.length; i++) {
-                                        if (targets[i].type === "Variable") {
+                                        // Match exact type or find first non-Flow port
+                                        if (targets[i].type === root.dragSourcePortType || 
+                                            (targets[i].type !== "Flow" && root.dragSourcePortType !== "Flow")) {
                                             targetPortIndex = i;
                                             break;
                                         }
