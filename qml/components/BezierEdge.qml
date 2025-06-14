@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Shapes
 import Cubit 1.0
+import ".."
 
 Shape {
     id: root
@@ -8,6 +9,7 @@ Shape {
     property var edge: null
     property real canvasMinX: 0
     property real canvasMinY: 0
+    property bool isPreview: false  // For edge drag preview
     
     // Convert edge points to local coordinates
     property point sourcePoint: edge ? Qt.point(edge.sourcePoint.x - canvasMinX, 
@@ -19,10 +21,41 @@ Shape {
     property point controlPoint2: edge ? Qt.point(edge.controlPoint2.x - canvasMinX, 
                                                  edge.controlPoint2.y - canvasMinY) : Qt.point(0, 0)
     
+    // Determine edge type and styling
+    property string edgeType: {
+        if (!edge) return "Flow"
+        // Check source port type (both should be the same type)
+        return edge.sourcePortType || "Flow"
+    }
+    
+    property string strokeColor: {
+        if (!edge) return Config.edgeFlowColor
+        
+        if (edgeType === "Flow") {
+            return edge.selected ? Config.edgeFlowSelectedColor : Config.edgeFlowColor
+        } else {
+            return edge.selected ? Config.edgeVariableSelectedColor : Config.edgeVariableColor
+        }
+    }
+    
+    property int strokeWidth: {
+        if (!edge) return Config.edgeFlowWidth
+        
+        if (edgeType === "Flow") {
+            return edge.selected ? Config.edgeFlowSelectedWidth : Config.edgeFlowWidth
+        } else {
+            return edge.selected ? Config.edgeVariableSelectedWidth : Config.edgeVariableWidth
+        }
+    }
+    
     ShapePath {
-        strokeColor: edge && edge.selected ? "#2196F3" : "#666666"
-        strokeWidth: edge && edge.selected ? 3 : 2
+        strokeColor: root.strokeColor
+        strokeWidth: root.strokeWidth
         fillColor: "transparent"
+        
+        // Add dashed style for variable edges
+        strokeStyle: root.edgeType === "Variable" ? ShapePath.DashLine : ShapePath.SolidLine
+        dashPattern: root.edgeType === "Variable" ? [5, 3] : []
         
         // Start at source point
         startX: sourcePoint.x
