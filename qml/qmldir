@@ -1,3 +1,4 @@
 module Cubit.UI
 singleton Config 1.0 Config.qml
 singleton CanvasUtils 1.0 CanvasUtils.qml
+singleton PortTypeConfig 1.0 components/PortTypeConfig.qml
