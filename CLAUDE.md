@@ -191,17 +191,60 @@ The controls system is implemented as a separate Controls.qml component that man
 
 ### Canvas Element Architecture
 
-The Canvas renders multiple types of elements:
+The element system has been refactored to properly separate visual and non-visual elements:
 
-1. **Frames**: Visual frame elements (QFrame-based widgets) that serve as containers
+#### Element Class Hierarchy:
+
+```
+Element (base class)
+├── Properties: elementId, name, selected, parentId
+├── No geometric properties
+├── isVisual() method returns false by default
+│
+├── Variable (data element)
+│   └── Properties: value
+│   └── Non-visual: exists in the model but not displayed on canvas
+│
+└── CanvasElement (visual element base)
+    ├── Properties: x, y, width, height
+    ├── isVisual() returns true
+    ├── containsPoint() method for hit testing
+    │
+    ├── Frame
+    │   └── Properties: backgroundColor, borderColor, borderWidth, borderRadius, clipContent
+    │
+    ├── Text
+    │   └── Properties: text, font, color
+    │
+    ├── Html
+    │   └── Properties: html, url
+    │
+    ├── Node (for ScriptCanvas)
+    │   └── Properties: nodeTitle, nodeColor, inputPorts, outputPorts, etc.
+    │
+    └── Edge (for ScriptCanvas)
+        └── Properties: sourceNodeId, targetNodeId, sourcePoint, targetPoint, etc.
+```
+
+#### Key Design Principles:
+
+1. **Element** is the base class containing only properties common to ALL elements
+2. **CanvasElement** extends Element with geometric properties for visual elements
+3. **Variable** inherits directly from Element since it has no visual representation
+4. **All visual elements** (Frame, Text, Html, Node, Edge) inherit from CanvasElement
+
+#### Element Creation and Management:
+
+1. **Frames**: Visual frame elements that serve as containers
 2. **Text**: Text display elements that are always contained within Frames
 3. **Variables**: Non-visual elements that store data (created but not displayed on canvas)
 
-#### Element Hierarchy:
+#### Element Relationships:
 
 - **Text elements are ALWAYS created within Frame containers**
 - A Frame can contain multiple Text elements
 - Text elements cannot exist independently on the Canvas
+- Variables exist in the ElementModel but have no visual representation
 
 #### Text Element Creation and Behavior:
 
@@ -339,25 +382,40 @@ ApplicationWindow {
 
 ### C++ Backend Strategy
 
-**Core C++ Classes to Retain:**
+**Core C++ Classes:**
 
-- `Element` hierarchy (as Q_OBJECT with Q_PROPERTY)
-- Business logic and data management
-- Performance-critical algorithms
+- `Element` - Base class for all elements (properties: id, name, selected, parentId)
+- `CanvasElement` - Base class for visual elements (adds: x, y, width, height)
+- `Variable` - Non-visual data element
+- `Frame`, `Text`, `Html`, `Node`, `Edge` - Visual elements inheriting from CanvasElement
 
-**New C++ Classes:**
+**Controller Classes:**
 
 - `ElementModel` - QAbstractListModel for QML ListView
-- `CanvasController` - Handles interaction logic
+- `CanvasController` - Handles interaction logic and element creation
 - `SelectionManager` - Selection state management
-- `ElementFactory` - Creates QML components dynamically
+- `ViewportCache` - Optimizes viewport calculations
 
-**QML Exposure:**
+**QML Registration:**
 
 ```cpp
-qmlRegisterType<Element>("Cubit", 1, 0, "Element");
+// Base classes (uncreatable)
+qmlRegisterUncreatableType<Element>("Cubit", 1, 0, "Element", "Element is an abstract base class");
+qmlRegisterUncreatableType<CanvasElement>("Cubit", 1, 0, "CanvasElement", "CanvasElement is an abstract base class");
+
+// Concrete element types
 qmlRegisterType<Frame>("Cubit", 1, 0, "Frame");
+qmlRegisterType<Text>("Cubit", 1, 0, "TextElement");
+qmlRegisterType<Html>("Cubit", 1, 0, "Html");
+qmlRegisterType<Variable>("Cubit", 1, 0, "Variable");
+qmlRegisterType<Node>("Cubit", 1, 0, "Node");
+qmlRegisterType<Edge>("Cubit", 1, 0, "Edge");
+
+// Controllers
 qmlRegisterType<CanvasController>("Cubit", 1, 0, "CanvasController");
+qmlRegisterType<ElementModel>("Cubit", 1, 0, "ElementModel");
+qmlRegisterType<SelectionManager>("Cubit", 1, 0, "SelectionManager");
+qmlRegisterType<ViewportCache>("Cubit", 1, 0, "ViewportCache");
 ```
 
 ### Other Notes

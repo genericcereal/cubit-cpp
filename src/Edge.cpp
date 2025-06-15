@@ -3,7 +3,7 @@
 #include <QtMath>
 
 Edge::Edge(const QString &id, QObject *parent)
-    : Element(Element::EdgeType, id, parent)
+    : CanvasElement(Element::EdgeType, id, parent)
     , m_sourcePortIndex(-1)
     , m_targetPortIndex(-1)
     , m_edgeColor("#94A3B8")  // Default slate color

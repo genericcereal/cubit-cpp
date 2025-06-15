@@ -3,7 +3,7 @@
 #include <QDebug>
 
 Node::Node(const QString &id, QObject *parent)
-    : Element(Element::NodeType, id, parent)
+    : CanvasElement(Element::NodeType, id, parent)
     , m_nodeTitle("Node")
     , m_nodeColor(Config::NODE_DEFAULT_COLOR)
     , m_isExecuting(false)

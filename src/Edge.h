@@ -1,9 +1,9 @@
 #pragma once
-#include "Element.h"
+#include "CanvasElement.h"
 #include <QColor>
 #include <QPointF>
 
-class Edge : public Element {
+class Edge : public CanvasElement {
     Q_OBJECT
     Q_PROPERTY(QString sourceNodeId READ sourceNodeId WRITE setSourceNodeId NOTIFY sourceNodeIdChanged)
     Q_PROPERTY(QString targetNodeId READ targetNodeId WRITE setTargetNodeId NOTIFY targetNodeIdChanged)

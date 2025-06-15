@@ -1,9 +1,9 @@
 #pragma once
-#include "Element.h"
+#include "CanvasElement.h"
 #include <QFont>
 #include <QColor>
 
-class Text : public Element {
+class Text : public CanvasElement {
     Q_OBJECT
     Q_PROPERTY(QString text READ text WRITE setText NOTIFY textChanged)
     Q_PROPERTY(QFont font READ font WRITE setFont NOTIFY fontChanged)
