@@ -32,20 +32,20 @@ Rectangle {
     }
     x: {
         // Convert canvas position to viewport position
-        var viewportX = (root.position.x - canvas.canvasMinX) * canvas.zoomLevel - canvas.flickable.contentX;
+        var viewportX = (root.position.x - canvas.canvasMinX) * canvas.zoom - canvas.flickable.contentX;
         return viewportX;
     }
     y: {
         // Convert canvas position to viewport position
-        var viewportY = (root.position.y - canvas.canvasMinY) * canvas.zoomLevel - canvas.flickable.contentY;
+        var viewportY = (root.position.y - canvas.canvasMinY) * canvas.zoom - canvas.flickable.contentY;
         return viewportY;
     }
-    width: 250 * canvas.zoomLevel
-    height: 400 * canvas.zoomLevel
+    width: 250 * canvas.zoom
+    height: 400 * canvas.zoom
     color: "white"
     border.color: "#cccccc"
-    border.width: 1 * canvas.zoomLevel
-    radius: 8 * canvas.zoomLevel
+    border.width: 1 * canvas.zoom
+    radius: 8 * canvas.zoom
     z: 1000  // Ensure it's on top
     transformOrigin: Item.TopLeft
 
@@ -75,17 +75,17 @@ Rectangle {
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.margins: 8 * canvas.zoomLevel
-        height: 32 * canvas.zoomLevel
-        font.pixelSize: 13 * canvas.zoomLevel
+        anchors.margins: 8 * canvas.zoom
+        height: 32 * canvas.zoom
+        font.pixelSize: 13 * canvas.zoom
         placeholderText: "Search nodes..."
         selectByMouse: true
         
         background: Rectangle {
             color: "#f5f5f5"
             border.color: searchField.activeFocus ? "#2196F3" : "#cccccc"
-            border.width: 1 * canvas.zoomLevel
-            radius: 4 * canvas.zoomLevel
+            border.width: 1 * canvas.zoom
+            radius: 4 * canvas.zoom
         }
         
         // Removed auto-focus behavior
@@ -98,8 +98,8 @@ Rectangle {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        anchors.margins: 8 * canvas.zoomLevel
-        anchors.topMargin: 4 * canvas.zoomLevel
+        anchors.margins: 8 * canvas.zoom
+        anchors.topMargin: 4 * canvas.zoom
         clip: true
         
 
@@ -108,7 +108,12 @@ Rectangle {
             model: filteredModel
             
             property var filteredModel: {
-                var allTypes = Object.keys(nodeCatalog.catalog)
+                if (!root.nodeCatalog || !root.nodeCatalog.catalog) {
+                    console.log("Warning: nodeCatalog or catalog is not available")
+                    return []
+                }
+                
+                var allTypes = Object.keys(root.nodeCatalog.catalog)
                 var searchText = searchField.text
                 
                 if (!searchText || searchText === "") {
@@ -118,19 +123,25 @@ Rectangle {
                 // Filter based on search text (case insensitive)
                 var searchLower = searchText.toLowerCase()
                 return allTypes.filter(function(type) {
-                    var nodeType = nodeCatalog.catalog[type]
+                    var nodeType = root.nodeCatalog.catalog[type]
                     return nodeType.name.toLowerCase().indexOf(searchLower) !== -1
                 })
             }
-            spacing: 4 * canvas.zoomLevel
+            spacing: 4 * canvas.zoom
 
             delegate: Rectangle {
                 width: nodeListView.width
-                height: 36 * canvas.zoomLevel
+                height: 36 * canvas.zoom
                 color: mouseArea.containsMouse ? "#f0f0f0" : "transparent"
-                radius: 4 * canvas.zoomLevel
+                radius: 4 * canvas.zoom
 
-                property var nodeType: nodeCatalog.catalog[modelData]
+                property var nodeType: root.nodeCatalog.catalog[modelData]
+                
+                Component.onCompleted: {
+                    if (!nodeType) {
+                        console.log("Warning: nodeType is undefined for", modelData)
+                    }
+                }
 
                 MouseArea {
                     id: mouseArea
@@ -141,12 +152,12 @@ Rectangle {
                         console.log("Selected node type:", modelData);
 
                         // Create the node at the catalog position
-                        var nodeData = nodeCatalog.createNodeData(modelData, root.position.x, root.position.y);
+                        var nodeData = root.nodeCatalog.createNodeData(modelData, root.position.x, root.position.y);
 
                         if (nodeData) {
                             // Create node from JSON
                             var jsonData = JSON.stringify(nodeData);
-                            var newNodeId = canvas.controller.createNodeFromJson(jsonData);
+                            var newNodeId = root.canvas.controller.createNodeFromJson(jsonData);
 
                             if (newNodeId && root.dragSourceNode) {
                                 // Create edge from source to new node
@@ -168,7 +179,7 @@ Rectangle {
                                     }
                                 }
 
-                                canvas.controller.createEdge(root.dragSourceNode.elementId, newNodeId, root.dragSourceHandleType, "left", root.dragSourcePortIndex, targetPortIndex);
+                                root.canvas.controller.createEdge(root.dragSourceNode.elementId, newNodeId, root.dragSourceHandleType, "left", root.dragSourcePortIndex, targetPortIndex);
                             }
                         }
 
@@ -181,9 +192,9 @@ Rectangle {
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
                     anchors.left: parent.left
-                    anchors.leftMargin: 12 * canvas.zoomLevel
+                    anchors.leftMargin: 12 * canvas.zoom
                     text: nodeType.name
-                    font.pixelSize: 13 * canvas.zoomLevel
+                    font.pixelSize: 13 * canvas.zoom
                     color: "#333333"
                 }
             }
