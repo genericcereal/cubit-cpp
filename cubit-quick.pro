@@ -24,7 +24,9 @@ SOURCES += \
     src/ElementModel.cpp \
     src/SelectionManager.cpp \
     src/ViewportCache.cpp \
-    src/ConsoleMessageRepository.cpp
+    src/ConsoleMessageRepository.cpp \
+    src/Application.cpp \
+    src/Panels.cpp
 
 HEADERS += \
     src/Element.h \
@@ -44,7 +46,9 @@ HEADERS += \
     src/UniqueIdGenerator.h \
     src/HandleType.h \
     src/ViewportCache.h \
-    src/ConsoleMessageRepository.h
+    src/ConsoleMessageRepository.h \
+    src/Application.h \
+    src/Panels.h
 
 RESOURCES += qml.qrc
 

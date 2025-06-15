@@ -2,6 +2,275 @@
     {
         "classes": [
             {
+                "className": "Application",
+                "lineNumber": 22,
+                "methods": [
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "name",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 8,
+                        "name": "createCanvas",
+                        "returnType": "QString"
+                    },
+                    {
+                        "access": "public",
+                        "index": 9,
+                        "isCloned": true,
+                        "name": "createCanvas",
+                        "returnType": "QString"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "canvasId",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 10,
+                        "name": "removeCanvas",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "canvasId",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 11,
+                        "name": "switchToCanvas",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "canvasId",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 12,
+                        "isConst": true,
+                        "name": "getCanvasName",
+                        "returnType": "QString"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "canvasId",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "newName",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 13,
+                        "name": "renameCanvas",
+                        "returnType": "void"
+                    }
+                ],
+                "object": true,
+                "properties": [
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 0,
+                        "name": "activeCanvasId",
+                        "notify": "activeCanvasIdChanged",
+                        "read": "activeCanvasId",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "QString",
+                        "user": false,
+                        "write": "setActiveCanvasId"
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 1,
+                        "name": "activeController",
+                        "notify": "activeControllerChanged",
+                        "read": "activeController",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "CanvasController*",
+                        "user": false
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 2,
+                        "name": "activeSelectionManager",
+                        "notify": "activeSelectionManagerChanged",
+                        "read": "activeSelectionManager",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "SelectionManager*",
+                        "user": false
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 3,
+                        "name": "activeElementModel",
+                        "notify": "activeElementModelChanged",
+                        "read": "activeElementModel",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "ElementModel*",
+                        "user": false
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 4,
+                        "name": "activeCanvasViewMode",
+                        "notify": "activeCanvasViewModeChanged",
+                        "read": "activeCanvasViewMode",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "QString",
+                        "user": false,
+                        "write": "setActiveCanvasViewMode"
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 5,
+                        "name": "canvasIds",
+                        "notify": "canvasListChanged",
+                        "read": "canvasIds",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "QStringList",
+                        "user": false
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 6,
+                        "name": "canvasNames",
+                        "notify": "canvasListChanged",
+                        "read": "canvasNames",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "QStringList",
+                        "user": false
+                    },
+                    {
+                        "constant": true,
+                        "designable": true,
+                        "final": false,
+                        "index": 7,
+                        "name": "panels",
+                        "read": "panels",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "Panels*",
+                        "user": false
+                    }
+                ],
+                "qualifiedClassName": "Application",
+                "signals": [
+                    {
+                        "access": "public",
+                        "index": 0,
+                        "name": "activeCanvasIdChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 1,
+                        "name": "activeControllerChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 2,
+                        "name": "activeSelectionManagerChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 3,
+                        "name": "activeElementModelChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 4,
+                        "name": "activeCanvasViewModeChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 5,
+                        "name": "canvasListChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "canvasId",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 6,
+                        "name": "canvasCreated",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "canvasId",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 7,
+                        "name": "canvasRemoved",
+                        "returnType": "void"
+                    }
+                ],
+                "superClasses": [
+                    {
+                        "access": "public",
+                        "name": "QObject"
+                    }
+                ]
+            }
+        ],
+        "inputFile": "Application.h",
+        "outputRevision": 69
+    },
+    {
+        "classes": [
+            {
                 "className": "CanvasController",
                 "lineNumber": 8,
                 "methods": [
@@ -1760,6 +2029,123 @@
             }
         ],
         "inputFile": "Node.h",
+        "outputRevision": 69
+    },
+    {
+        "classes": [
+            {
+                "className": "Panels",
+                "lineNumber": 7,
+                "methods": [
+                    {
+                        "access": "public",
+                        "index": 3,
+                        "name": "toggleDetailPanel",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 4,
+                        "name": "toggleActionsPanel",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 5,
+                        "name": "toggleFpsMonitor",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 6,
+                        "name": "showAllPanels",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 7,
+                        "name": "hideAllPanels",
+                        "returnType": "void"
+                    }
+                ],
+                "object": true,
+                "properties": [
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 0,
+                        "name": "detailPanelVisible",
+                        "notify": "detailPanelVisibleChanged",
+                        "read": "isDetailPanelVisible",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "bool",
+                        "user": false,
+                        "write": "setDetailPanelVisible"
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 1,
+                        "name": "actionsPanelVisible",
+                        "notify": "actionsPanelVisibleChanged",
+                        "read": "isActionsPanelVisible",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "bool",
+                        "user": false,
+                        "write": "setActionsPanelVisible"
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 2,
+                        "name": "fpsMonitorVisible",
+                        "notify": "fpsMonitorVisibleChanged",
+                        "read": "isFpsMonitorVisible",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "bool",
+                        "user": false,
+                        "write": "setFpsMonitorVisible"
+                    }
+                ],
+                "qualifiedClassName": "Panels",
+                "signals": [
+                    {
+                        "access": "public",
+                        "index": 0,
+                        "name": "detailPanelVisibleChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 1,
+                        "name": "actionsPanelVisibleChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 2,
+                        "name": "fpsMonitorVisibleChanged",
+                        "returnType": "void"
+                    }
+                ],
+                "superClasses": [
+                    {
+                        "access": "public",
+                        "name": "QObject"
+                    }
+                ]
+            }
+        ],
+        "inputFile": "Panels.h",
         "outputRevision": 69
     },
     {

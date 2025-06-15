@@ -2,6 +2,37 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Application Architecture
+
+The application follows a hierarchical architecture with the Application class as the central manager:
+
+### Application Class
+- Central singleton that manages the entire application state
+- Maintains an array of Canvas instances (each with its own CanvasController, SelectionManager, and ElementModel)
+- Tracks the active canvas and provides access to its components
+- Manages canvas view modes (design/script) - script canvas is a different view of the same data, not a separate canvas type
+- Contains a Panels instance for UI panel management
+
+### Canvas Structure
+Each canvas instance contains:
+- **CanvasController**: Handles canvas interactions and element creation
+- **SelectionManager**: Manages element selection state
+- **ElementModel**: QAbstractListModel providing element data to QML views
+- **View Mode**: Either "design" or "script" - determines how elements are displayed
+
+### Panels Management
+- **Panels Class**: Manages visibility of UI panels (DetailPanel, ActionsPanel, FPSMonitor)
+- Accessible via `Application.panels` in QML
+- Provides toggle methods and visibility properties for each panel
+- Panel states can be controlled programmatically from anywhere in the application
+
+### QML Integration
+- Application is registered as a singleton: `Application`
+- Access active canvas components: `Application.activeController`, `Application.activeSelectionManager`, `Application.activeElementModel`
+- Control panels: `Application.panels.detailPanelVisible`, `Application.panels.toggleDetailPanel()`, etc.
+- Switch canvases: `Application.switchToCanvas(canvasId)`
+- Change view modes: `Application.activeCanvasViewMode = "script"`
+
 ## Terminology
 
 - **Selection Box/Rectangle**: The blue rectangle that appears when dragging to select multiple elements
@@ -410,6 +441,19 @@ ApplicationWindow {
 - `SelectionManager` - Selection state management
 - `ViewportCache` - Optimizes viewport calculations
 
+**Application Architecture:**
+
+- `Application` - Central singleton managing multiple canvases and application state
+  - Manages array of Canvas instances
+  - Tracks active canvas ID
+  - Provides access to active canvas components (controller, selection manager, element model)
+  - Manages canvas view modes (design/script)
+  - Contains Panels instance for panel management
+- `Panels` - Manages UI panel visibility states
+  - Controls DetailPanel, ActionsPanel, and FPSMonitor visibility
+  - Provides toggle methods for each panel
+  - Accessible via Application.panels in QML
+
 **QML Registration:**
 
 ```cpp
@@ -432,6 +476,16 @@ qmlRegisterType<CanvasController>("Cubit", 1, 0, "CanvasController");
 qmlRegisterType<ElementModel>("Cubit", 1, 0, "ElementModel");
 qmlRegisterType<SelectionManager>("Cubit", 1, 0, "SelectionManager");
 qmlRegisterType<ViewportCache>("Cubit", 1, 0, "ViewportCache");
+qmlRegisterType<Panels>("Cubit", 1, 0, "Panels");
+
+// Application singleton
+Application* appInstance = new Application(&app);
+qmlRegisterSingletonType<Application>("Cubit", 1, 0, "Application",
+    [appInstance](QQmlEngine *engine, QJSEngine *scriptEngine) -> QObject * {
+        Q_UNUSED(engine)
+        Q_UNUSED(scriptEngine)
+        return appInstance;
+    });
 ```
 
 ### Other Notes
