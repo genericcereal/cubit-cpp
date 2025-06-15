@@ -21,10 +21,9 @@ Item {
     
     // Center the view at canvas origin (0,0)
     function centerViewAtOrigin() {
-        // Calculate the position to center (0,0) in the viewport
-        var centerPos = CanvasUtils.calculateContentPositionForCenter(0, 0, flickable.width, flickable.height, zoomLevel)
-        flickable.contentX = centerPos.x
-        flickable.contentY = centerPos.y
+        var centerPos = viewportCache.calculateContentPositionForCenter(0, 0)
+        flickable.contentX = centerPos.x + viewportCache.viewportWidth / 2
+        flickable.contentY = centerPos.y + viewportCache.viewportHeight / 2
     }
     
     // Canvas properties
@@ -37,15 +36,17 @@ Item {
     property alias flickable: flickable
     property alias canvasArea: canvasArea
     property alias selectionBoxHandler: selectionBoxHandler
-    property var hoveredElement: null
+    property alias hoveredElement: inputController.hoveredElement
     
-    // Canvas configuration - use centralized bounds from CanvasUtils
-    property real canvasMinX: CanvasUtils.canvasMinX
-    property real canvasMinY: CanvasUtils.canvasMinY
-    property real canvasMaxX: CanvasUtils.canvasMaxX
-    property real canvasMaxY: CanvasUtils.canvasMaxY
-    
-    // With fixed bounds, we don't need dynamic updates
+    // Viewport cache for efficient coordinate transformations and visibility
+    ViewportCache {
+        id: viewportCache
+        contentX: flickable.contentX
+        contentY: flickable.contentY
+        viewportWidth: flickable.width
+        viewportHeight: flickable.height
+        zoomLevel: root.zoomLevel
+    }
     
     // Background
     Rectangle {
@@ -62,12 +63,13 @@ Item {
         contentHeight: canvasContent.height * root.zoomLevel
         clip: true
         boundsBehavior: Flickable.StopAtBounds
+        interactive: !pinchHandler.active // Disable flickable dragging during pinch
         
         // Canvas content container
         Item {
             id: canvasContent
-            width: CanvasUtils.canvasWidth
-            height: CanvasUtils.canvasHeight
+            width: ViewportCache.CANVAS_WIDTH
+            height: ViewportCache.CANVAS_HEIGHT
             
             // Transform origin for zooming
             transformOrigin: Item.TopLeft
@@ -78,92 +80,29 @@ Item {
                 id: canvasArea
                 x: 0
                 y: 0
-                width: CanvasUtils.canvasWidth
-                height: CanvasUtils.canvasHeight
+                width: ViewportCache.CANVAS_WIDTH
+                height: ViewportCache.CANVAS_HEIGHT
                 
                 
                 // Elements layer
-                Item {
+                ElementLayer {
                     id: elementsLayer
                     anchors.fill: parent
-                    
-                    Repeater {
-                        model: elementModel
-                        
-                        delegate: Loader {
-                            id: elementLoader
-                            property var element: model.element
-                            property string elementType: model.elementType
-                            
-                            // Position elements relative to canvas origin
-                            x: element ? CanvasUtils.canvasXToRelative(element.x) : 0
-                            y: element ? CanvasUtils.canvasYToRelative(element.y) : 0
-                            width: element ? element.width : 0
-                            height: element ? element.height : 0
-                            
-                            // Visibility detection properties
-                            property var elementBounds: {
-                                "left": element ? element.x : 0,
-                                "top": element ? element.y : 0,
-                                "right": element ? element.x + element.width : 0,
-                                "bottom": element ? element.y + element.height : 0
-                            }
-                            
-                            property var viewportBounds: CanvasUtils.getViewportBounds(
-                                flickable.contentX, 
-                                flickable.contentY, 
-                                flickable.width, 
-                                flickable.height, 
-                                root.zoomLevel
-                            )
-                            
-                            // Check if element is visible in viewport with margin
-                            property bool isInViewport: CanvasUtils.isElementInViewport(elementBounds, viewportBounds, 100)
-                            
-                            // Only load when visible or recently visible
-                            active: isInViewport
-                            asynchronous: true
-                            
-                            sourceComponent: {
-                                if (!active) return null
-                                switch(elementType) {
-                                    case "Frame": return frameComponent
-                                    case "Text": return textComponent
-                                    default: return null
-                                }
-                            }
-                            
-                            onLoaded: {
-                                if (item) {
-                                    item.element = element
-                                    item.elementModel = root.elementModel
-                                }
-                            }
-                        }
-                    }
+                    elementModel: root.elementModel
+                    viewportCache: viewportCache
+                    zoomLevel: root.zoomLevel
+                    frameComponent: frameComponent
+                    textComponent: textComponent
                 }
                 
-                // Creation preview layer
-                Item {
-                    id: creationLayer
+                // Overlay layers (creation preview, etc.)
+                OverlayLayers {
+                    id: overlayLayers
                     anchors.fill: parent
                     z: 100
-                    
-                    // Element creation preview
-                    Rectangle {
-                        id: creationPreview
-                        visible: creationDragHandler.active && controller.mode !== "select"
-                        color: Config.elementCreationPreviewColor
-                        border.color: Config.elementCreationPreviewBorderColor
-                        border.width: Config.elementCreationPreviewBorderWidth
-                        
-                        property var creationRect: creationDragHandler.active ? creationDragHandler.getCreationRect() : Qt.rect(0, 0, 0, 0)
-                        
-                        x: CanvasUtils.canvasXToRelative(creationRect.x)
-                        y: CanvasUtils.canvasYToRelative(creationRect.y)
-                        width: creationRect.width
-                        height: creationRect.height
-                    }
+                    creationDragHandler: creationDragHandler
+                    controller: root.controller
+                    viewportCache: viewportCache
                 }
             }
         }
@@ -173,134 +112,105 @@ Item {
         ScrollIndicator.horizontal: ScrollIndicator { active: true }
     }
     
-    // Mouse/touch interaction area
-    MouseArea {
-        id: mouseArea
-        anchors.fill: parent
-        acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
-        hoverEnabled: true
+    // Touch pinch gesture handler
+    PinchHandler {
+        id: pinchHandler
+        target: null // We'll handle the transformation manually
         
-        // Cached canvas coordinates to avoid recomputation
-        property point lastCanvasPoint: Qt.point(0, 0)
+        property point pinchCenterStart
+        property real initialZoom
         
-        // Convert mouse position to canvas coordinates
-        function toCanvasCoords(mouseX, mouseY) {
-            return CanvasUtils.viewportToCanvas(mouseX, mouseY, flickable.contentX, flickable.contentY, root.zoomLevel)
+        onActiveChanged: {
+            if (active) {
+                // Store initial state when pinch starts
+                pinchCenterStart = centroid.position
+                initialZoom = root.zoomLevel
+            }
         }
         
-        // Update cached canvas point
-        function updateCanvasPoint(mouse) {
-            lastCanvasPoint = CanvasUtils.viewportToCanvas(mouse.x, mouse.y, flickable.contentX, flickable.contentY, root.zoomLevel)
-            return lastCanvasPoint
-        }
-        
-        // Middle mouse button panning
-        property bool isPanning: false
-        property point lastPanPoint
-        
-        onPressed: (mouse) => {
-            // Update cached canvas point
-            updateCanvasPoint(mouse)
+        onScaleChanged: {
+            // Calculate new zoom level
+            var newZoom = Math.max(root.minZoom, Math.min(root.maxZoom, initialZoom * activeScale))
             
-            if (mouse.button === Qt.MiddleButton) {
-                isPanning = true
-                lastPanPoint = Qt.point(mouse.x, mouse.y)
-                cursorShape = Qt.ClosedHandCursor
-            } else if (mouse.button === Qt.LeftButton) {
-                if (controller.mode === "select") {
-                    // Check if we hit an element
-                    var element = controller.hitTest(lastCanvasPoint.x, lastCanvasPoint.y)
-                    if (element) {
-                        // Start dragging element
-                        controller.handleMousePress(lastCanvasPoint.x, lastCanvasPoint.y)
-                    } else {
-                        // Start selection box
-                        selectionBoxHandler.startSelection(lastCanvasPoint)
-                    }
-                } else {
-                    // Start element creation
-                    creationDragHandler.startCreation(lastCanvasPoint)
-                    controller.handleMousePress(lastCanvasPoint.x, lastCanvasPoint.y)
+            if (viewportCache && newZoom !== root.zoomLevel) {
+                // Get pinch center in canvas coordinates
+                var canvasPoint = viewportCache.viewportToCanvas(pinchCenterStart.x, pinchCenterStart.y)
+                
+                // Apply zoom
+                root.zoomLevel = newZoom
+                
+                // Adjust content position to keep pinch center stable
+                var newContentPos = viewportCache.calculateContentPositionForCenter(canvasPoint.x, canvasPoint.y)
+                flickable.contentX = newContentPos.x + viewportCache.viewportWidth / 2 - pinchCenterStart.x
+                flickable.contentY = newContentPos.y + viewportCache.viewportHeight / 2 - pinchCenterStart.y
+            }
+        }
+    }
+    
+    // Mouse wheel handler for zooming
+    WheelHandler {
+        id: wheelHandler
+        acceptedModifiers: Qt.ControlModifier
+        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+        target: null // We'll handle the transformation manually
+        
+        property real wheelThrottleDelay: 16 // 60fps
+        property point pendingWheelPoint
+        property real pendingRotation: 0
+        property bool hasPendingWheel: false
+        
+        Timer {
+            id: wheelTimer
+            interval: wheelHandler.wheelThrottleDelay
+            repeat: false
+            onTriggered: {
+                if (wheelHandler.hasPendingWheel) {
+                    processWheel(wheelHandler.pendingWheelPoint, wheelHandler.pendingRotation)
+                    wheelHandler.hasPendingWheel = false
+                    wheelHandler.pendingRotation = 0
                 }
             }
         }
         
-        onPositionChanged: (mouse) => {
-            if (isPanning) {
-                // Pan the view - no need to update canvas coords during pan
-                flickable.contentX -= mouse.x - lastPanPoint.x
-                flickable.contentY -= mouse.y - lastPanPoint.y
-                lastPanPoint = Qt.point(mouse.x, mouse.y)
-            } else {
-                // Update canvas point for non-panning operations
-                updateCanvasPoint(mouse)
-                
-                // Track hover when not dragging
-                if (!pressed && controller.mode === "select") {
-                    root.hoveredElement = controller.hitTest(lastCanvasPoint.x, lastCanvasPoint.y)
-                }
-                
-                if (selectionBoxHandler.active) {
-                    selectionBoxHandler.updateSelection(lastCanvasPoint)
-                } else if (creationDragHandler.active) {
-                    creationDragHandler.updateCreation(lastCanvasPoint)
-                } else if (pressed) {
-                    // Dragging elements or updating creation
-                    controller.handleMouseMove(lastCanvasPoint.x, lastCanvasPoint.y)
-                }
-            }
-        }
-        
-        onReleased: (mouse) => {
-            console.log("MouseArea onReleased - button:", mouse.button, "mode:", controller.mode)
-            console.log("  isPanning:", isPanning, "selectionBoxHandler.active:", selectionBoxHandler.active, "creationDragHandler.active:", creationDragHandler.active)
+        onWheel: (event) => {
+            // Accumulate wheel events for throttling
+            pendingWheelPoint = event.point.position
+            pendingRotation += event.angleDelta.y
+            hasPendingWheel = true
             
-            if (isPanning) {
-                isPanning = false
-                cursorShape = Qt.ArrowCursor
-            } else if (selectionBoxHandler.active) {
-                selectionBoxHandler.endSelection()
-            } else if (creationDragHandler.active) {
-                creationDragHandler.endCreation()
-            } else if (mouse.button === Qt.LeftButton) {
-                // Update canvas point one final time for release
-                updateCanvasPoint(mouse)
-                console.log("  Calling controller.handleMouseRelease at:", lastCanvasPoint.x, lastCanvasPoint.y)
-                controller.handleMouseRelease(lastCanvasPoint.x, lastCanvasPoint.y)
+            if (!wheelTimer.running) {
+                wheelTimer.start()
             }
         }
         
-        onExited: {
-            root.hoveredElement = null
-        }
-        
-        onWheel: (wheel) => {
-            // Zoom with Ctrl+Wheel
-            if (wheel.modifiers & Qt.ControlModifier) {
-                var zoomDelta = wheel.angleDelta.y > 0 ? 1.1 : 0.9
-                var newZoom = Math.max(root.minZoom, Math.min(root.maxZoom, root.zoomLevel * zoomDelta))
-                
+        function processWheel(wheelPoint, angleDelta) {
+            var zoomDelta = angleDelta > 0 ? 1.1 : 0.9
+            var newZoom = Math.max(root.minZoom, Math.min(root.maxZoom, root.zoomLevel * zoomDelta))
+            
+            if (viewportCache && newZoom !== root.zoomLevel) {
                 // Get mouse position in canvas coordinates before zoom
-                var canvasPoint = toCanvasCoords(wheel.x, wheel.y)
+                var canvasPoint = viewportCache.viewportToCanvas(wheelPoint.x, wheelPoint.y)
                 
                 // Apply zoom
                 root.zoomLevel = newZoom
                 
                 // Adjust content position to keep mouse point stable
-                var newContentPos = CanvasUtils.calculateContentPositionForCenter(
-                    canvasPoint.x, canvasPoint.y, 
-                    wheel.x * 2, wheel.y * 2,  // Use mouse position as "viewport size" to keep it centered
-                    root.zoomLevel
-                )
-                flickable.contentX = newContentPos.x - wheel.x
-                flickable.contentY = newContentPos.y - wheel.y
-                
-                wheel.accepted = true
-            } else {
-                // Regular scrolling
-                wheel.accepted = false
+                var newContentPos = viewportCache.calculateContentPositionForCenter(canvasPoint.x, canvasPoint.y)
+                flickable.contentX = newContentPos.x + viewportCache.viewportWidth / 2 - wheelPoint.x
+                flickable.contentY = newContentPos.y + viewportCache.viewportHeight / 2 - wheelPoint.y
             }
         }
+    }
+    
+    // Input controller for mouse/touch interactions
+    InputController {
+        id: inputController
+        controller: root.controller
+        selectionManager: root.selectionManager
+        flickable: flickable
+        selectionBoxHandler: selectionBoxHandler
+        creationDragHandler: creationDragHandler
+        viewportCache: viewportCache
     }
     
     // Selection box handler

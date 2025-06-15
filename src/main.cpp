@@ -13,6 +13,7 @@
 #include "CanvasController.h"
 #include "ElementModel.h"
 #include "SelectionManager.h"
+#include "ViewportCache.h"
 
 int main(int argc, char *argv[])
 {
@@ -42,6 +43,7 @@ int main(int argc, char *argv[])
     qmlRegisterType<CanvasController>("Cubit", 1, 0, "CanvasController");
     qmlRegisterType<ElementModel>("Cubit", 1, 0, "ElementModel");
     qmlRegisterType<SelectionManager>("Cubit", 1, 0, "SelectionManager");
+    qmlRegisterType<ViewportCache>("Cubit", 1, 0, "ViewportCache");
 
     // Register QML singleton
     qmlRegisterSingletonType(QUrl("qrc:/qml/Config.qml"), "Cubit.UI", 1, 0, "Config");

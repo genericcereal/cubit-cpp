@@ -19,7 +19,8 @@ SOURCES += \
     src/Edge.cpp \
     src/CanvasController.cpp \
     src/ElementModel.cpp \
-    src/SelectionManager.cpp
+    src/SelectionManager.cpp \
+    src/ViewportCache.cpp
 
 HEADERS += \
     src/Element.h \
@@ -34,7 +35,8 @@ HEADERS += \
     src/SelectionManager.h \
     src/Config.h \
     src/UniqueIdGenerator.h \
-    src/HandleType.h
+    src/HandleType.h \
+    src/ViewportCache.h
 
 RESOURCES += qml.qrc
 
