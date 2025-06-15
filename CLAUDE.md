@@ -24,21 +24,22 @@ qmake6 -o Makefile cubit-quick.pro
 # Build the project
 make -j8
 
-# Run the application
+# Run the application on Mac
 ./cubit-quick.app/Contents/MacOS/cubit-quick
 # or simply
 open cubit-quick.app
+
+
+# Run the application on WSL
+./cubit-quick
 ```
 
 #### Resource Files
 
 All QML files must be added to `qml.qrc` to be included in the build. When adding new QML components:
+
 1. Add the file path to `qml.qrc`
 2. Run `make` to rebuild with the updated resources
-
-### Legacy Qt Widgets Application
-
-The original Qt Widgets implementation is preserved in the `/src` directory with its own Makefile.
 
 ### CONTROLS
 
@@ -49,18 +50,21 @@ The controls system is designed to move, resize, and rotate the current selectio
 The controls system consists of:
 
 **Visual Components:**
+
 - **Surface**: Transparent yellow (0.05 opacity) bounding box for move operations
 - **Bars**: 4 edge handles, 10px wide/tall, transparent red (0.2 opacity), overlap surface by 5px
 - **Resize Joints**: 4 corner handles, 10x10px yellow squares (0.2 opacity)
 - **Rotation Joints**: 4 corner handles, 30x30px blue squares (0.2 opacity), positioned behind resize joints
 
 **Key Behaviors:**
+
 - **Move**: Drag surface to move selection
 - **Resize**: Drag bars/joints with dynamic transform origin (opposite edge becomes anchor)
 - **Rotate**: Drag rotation joints to rotate around center
 - **Click-to-select**: Click surface with multiple selections to select single element beneath cursor
 
 **Technical Implementation:**
+
 - Uses rotation-aware coordinate transformation (viewport → local control space)
 - Index-based elements (0-3) instead of hardcoded positions
 - Handles edge flipping for both single and multiple selections
@@ -126,18 +130,21 @@ The controls system is implemented as a separate Controls.qml component that man
 ### Component Structure
 
 1. **ControlsContainer** (in ViewportOverlay.qml)
+
    - Main container that holds all control elements
    - Manages control state (position, size, rotation)
    - Handles coordinate transformations between viewport and canvas space
    - Implements pause/resume for position bindings during drag operations
 
 2. **Control Surface**
+
    - Rectangle with transparent yellow (0.05 opacity) fill
    - Handles move operations when dragged
    - Implements click-to-select behavior for multiple selections
    - MouseArea covers entire surface area
 
 3. **Control Bars** (4 instances)
+
    - Rectangles positioned at edges of control surface
    - 10px wide/tall with transparent red (0.2 opacity) fill
    - Overlap control surface by 5px on each side
@@ -151,52 +158,22 @@ The controls system is implemented as a separate Controls.qml component that man
    - Resize joints handle proportional scaling
    - Rotation joints handle rotation around center
 
-### Implementation Steps
-
-1. **Phase 1: Basic Structure**
-   - Create control surface with move functionality
-   - Implement coordinate transformation helpers
-   - Add visual feedback (colors, opacity)
-   - Ensure controls only appear when selection exists
-
-2. **Phase 2: Resize Bars**
-   - Implement individual bar components
-   - Add drag handlers for each edge
-   - Calculate new dimensions based on drag distance
-   - Update selected elements proportionally
-   - Handle edge flipping behavior
-
-3. **Phase 3: Resize Joints**
-   - Add corner resize joints
-   - Implement proportional corner resizing
-   - Maintain aspect ratio for single selection
-   - Scale all elements proportionally for multiple selection
-
-4. **Phase 4: Rotation Joints**
-   - Add rotation joints behind resize joints
-   - Calculate rotation angle from drag position
-   - Apply rotation to controls container
-   - Update element rotations accordingly
-
-5. **Phase 5: Advanced Behaviors**
-   - Implement click-to-select on surface
-   - Add proper state management for drag operations
-   - Ensure minimum size constraints
-   - Handle edge cases (zero size, negative dimensions)
-
 ### Key Technical Considerations
 
 1. **Coordinate Systems**
+
    - All mouse positions must be converted from viewport to canvas coordinates
    - Use viewportToCanvas() helper function consistently
    - Account for zoom level and scroll position
 
 2. **State Management**
+
    - Use dragging flag to pause position bindings during operations
    - Maintain separate states for move, resize, and rotate operations
    - Ensure controls follow selection changes smoothly
 
 3. **Performance**
+
    - Minimize property binding recalculations during drag
    - Use Item transformations instead of manual calculations where possible
    - Batch element updates to avoid multiple redraws
@@ -383,93 +360,6 @@ qmlRegisterType<Frame>("Cubit", 1, 0, "Frame");
 qmlRegisterType<CanvasController>("Cubit", 1, 0, "CanvasController");
 ```
 
-#### Phase 1: Foundation (2-3 weeks) - COMPLETED
-
-- [x] Set up Qt Quick project structure
-- [x] Create basic QML window with SplitView
-- [x] Implement C++ backend classes with Q_PROPERTY
-- [x] Register C++ types with QML
-- [x] Create basic Element QML components
-
-**Phase 1 Summary:**
-
-- Created parallel Qt Quick project in `/qtquick` directory
-- Implemented base Element class with Q_PROPERTY bindings
-- Created Frame, Text, Html, and Variable element classes
-- Built CanvasController, ElementModel, and SelectionManager
-- Set up main QML window with SplitView layout
-- Created basic QML components for all UI elements
-- Project structure allows side-by-side development with original Qt Widgets version
-
-#### Phase 2: Canvas Implementation (3-4 weeks) - COMPLETED
-
-- [x] Implement custom QQuickItem for canvas
-- [x] Port mouse/touch interaction handling
-- [x] Implement pan/zoom with PinchHandler and WheelHandler
-- [x] Create selection system with MultiPointTouchArea
-- [x] Port coordinate system management
-
-**Phase 2 Summary:**
-
-- Implemented complete canvas interaction system in QML
-- Added zoom with Ctrl+mouse wheel (maintains point under cursor)
-- Middle mouse button panning
-- Selection box with real-time element selection
-- Element creation preview when dragging in creation modes
-- Coordinate system properly converts between view and canvas space
-- Keyboard shortcuts (Delete, Ctrl+A, Escape)
-- Grid overlay that appears when zoomed in
-- Scroll indicators for better navigation
-
-#### Phase 3: Element System (2-3 weeks) - IN PROGRESS
-
-- [x] Create QML components for each element type
-- [x] Implement element rendering in QML
-- [ ] Port parent-child relationships
-- [x] Implement clipping with `clip` property
-- [ ] Create element manipulation controls
-
-**Phase 3 Progress:**
-
-- Created base ElementItem component with common element functionality
-- Implemented FrameElement, TextElement, and HtmlElement inheriting from ElementItem
-- Added consistent selection visual feedback across all element types
-- Fixed Qt 6 compatibility issues with imports and signal handlers
-- Implemented proper property bindings between QML and C++ objects
-- Added clipping support for Frame elements
-- Attempted hierarchical rendering for parent-child relationships (needs more work)
-
-**Known Issues:**
-
-- Element dragging in select mode not working (mouse handler integration needed)
-- Visual feedback during element creation needs to be restored
-- Parent-child element relationships need proper implementation
-- Resize handles not yet implemented
-
-#### Phase 4: UI Panels (2 weeks) - COMPLETED
-
-- [x] Port DetailPanel to QML
-- [x] Create ElementList with ListView
-- [x] Implement Properties panel with dynamic forms
-- [x] Port ActionsPanel with ToolBar
-- [x] Create FPS monitor component
-
-All UI panels were already implemented in the qtquick directory. Updated all panel QML files to use Qt6 unversioned imports.
-
-#### Phase 5: Advanced Features (2-3 weeks) - NOT STARTED
-
-- [ ] Implement "foreground" (i.e. viewport based) implementation for controls, selection boxes, hover indicators, etc. These should not scale when the canvas zooms.
-- [ ] Optimize performance with batching
-- [ ] Implement undo/redo system
-
-#### Phase 6: Testing & Polish (2 weeks) - NOT STARTED
-
-- [ ] Performance testing and optimization
-- [ ] Memory leak detection
-- [ ] Cross-platform testing
-- [ ] UI/UX refinements
-- [ ] Documentation
-
 ### Other Notes
 
 - Only use the legacy folder when the user tells you to reference a previous implementation. Do not make edits to anything in the legacy folder.
@@ -490,12 +380,14 @@ To reduce JavaScript calculations in QML, we've implemented a `ViewportCache` cl
 **CanvasView.qml has been split into smaller, focused components:**
 
 1. **ElementLayer.qml**: Handles element rendering
+
    - Uses `Instantiator` instead of `Repeater + Loader` for better performance
    - Direct object creation without Loader overhead
    - Implements efficient visibility culling using ViewportCache
    - Tracks element lifecycle with `onObjectAdded`/`onObjectRemoved`
 
 2. **InputController.qml**: Centralizes all mouse/keyboard interactions
+
    - Single MouseArea for all canvas interactions
    - Uses cached coordinate transformations from ViewportCache
    - Handles panning, zooming, selection, and element manipulation
@@ -511,18 +403,21 @@ To reduce JavaScript calculations in QML, we've implemented a `ViewportCache` cl
 We've implemented native touch gesture handling using Qt's built-in handlers:
 
 **PinchHandler:**
+
 - Provides smooth pinch-to-zoom functionality for touch devices
 - Maintains the pinch center point during zooming
 - Integrates with ViewportCache for efficient coordinate transformations
 - Automatically disables Flickable interaction during pinch gestures
 
 **WheelHandler:**
+
 - Replaces manual wheel event handling with Qt's native handler
 - Supports both mouse wheels and touchpad gestures
 - Throttled to 60fps for smooth performance
 - Ctrl+Wheel for zooming with stable zoom point
 
 **Native Panning:**
+
 - Removed custom middle-mouse button panning code
 - Flickable now handles both touch and mouse panning natively
 - Better integration with touch devices and smoother performance
@@ -532,10 +427,12 @@ We've implemented native touch gesture handling using Qt's built-in handlers:
 To improve performance during interactions, we've implemented event throttling:
 
 **Throttled Events:**
+
 - **Mouse Position Changed**: Limited to 60fps (16ms intervals) in InputController
 - **Wheel Events**: Throttled to 60fps in WheelHandler to prevent excessive zoom calculations
 
 **Implementation Details:**
+
 - Uses QML Timer components with 16ms intervals
 - Batches pending events and processes them at the next timer tick
 - Reduces calls to `ViewportCache.viewportToCanvas()` from potentially hundreds per second to maximum 60fps
@@ -545,6 +442,7 @@ To improve performance during interactions, we've implemented event throttling:
 We've replaced the `Repeater + Loader` pattern with `Instantiator` in ElementLayer.qml:
 
 **Benefits:**
+
 - No asynchronous loading delays
 - Direct component instantiation
 - Better memory management with explicit cleanup
@@ -552,6 +450,7 @@ We've replaced the `Repeater + Loader` pattern with `Instantiator` in ElementLay
 - Reduced overhead for large numbers of elements
 
 **Implementation:**
+
 - Uses `onObjectAdded`/`onObjectRemoved` for model-to-view wiring
 - Maintains an `elementItems` map for quick element lookup by ID
 - Proper cleanup in `Component.onDestruction`
@@ -586,6 +485,7 @@ function canvasToViewport(pt, minX, minY, zoom) {
 A dedicated input handling component (`CanvasInputHandler.qml`) provides a clean signal-based interface for all canvas interactions:
 
 **Signals:**
+
 - `clicked(point canvasPoint)` - Single click with no drag
 - `dragStarted(point canvasPoint)` - Drag operation started
 - `dragMoved(point canvasPoint)` - Mouse moved during drag
@@ -595,6 +495,7 @@ A dedicated input handling component (`CanvasInputHandler.qml`) provides a clean
 - `zoomed(point canvasPoint, real scaleFactor)` - Ctrl+wheel zoom
 
 **Features:**
+
 - Automatic coordinate transformation from viewport to canvas space
 - Built-in distinction between clicks and drags
 - Separate handling for panning vs selection operations
@@ -610,12 +511,12 @@ BaseCanvas {
     controller: /* canvas controller */
     selectionManager: /* selection manager */
     elementModel: /* element model */
-    
+
     // Add content via default property
     contentData: [
         // Your canvas elements here
     ]
-    
+
     // Override these handler functions
     function handleClick(pt) { }
     function handleDragStart(pt) { }
@@ -627,6 +528,7 @@ BaseCanvas {
 ```
 
 **Key Improvements:**
+
 - No need to handle raw mouse events
 - Automatic coordinate transformation
 - Built-in selection box handling
