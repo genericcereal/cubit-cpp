@@ -10,7 +10,7 @@ Rectangle {
     
     property var elementModel
     property var selectionManager
-    property string currentCanvasType: "design"
+    property string currentCanvasType: Application.activeCanvasViewMode
     
     signal canvasTypeChanged(string canvasType)
     

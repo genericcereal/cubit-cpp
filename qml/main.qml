@@ -13,28 +13,6 @@ Window {
     height: 720
     title: qsTr("Cubit")
 
-    // Controllers
-    CanvasController {
-        id: canvasController
-        onModeChanged: {
-            console.log("Main.qml: CanvasController mode changed to:", mode)
-        }
-        
-        Component.onCompleted: {
-            setElementModel(elementModel)
-            setSelectionManager(selectionManager)
-            setCanvasType("design")  // Default to design canvas
-        }
-    }
-
-    SelectionManager {
-        id: selectionManager
-    }
-
-    ElementModel {
-        id: elementModel
-    }
-
     SplitView {
         anchors.fill: parent
         orientation: Qt.Horizontal
@@ -48,15 +26,15 @@ Window {
             Loader {
                 id: canvasLoader
                 anchors.fill: parent
-                sourceComponent: detailPanel.currentCanvasType === "design" ? designCanvasComponent : scriptCanvasComponent
+                sourceComponent: Application.activeCanvasViewMode === "design" ? designCanvasComponent : scriptCanvasComponent
                 
                 property alias canvasView: canvasLoader.item
                 
                 onLoaded: {
                     if (item) {
-                        item.controller = canvasController
-                        item.selectionManager = selectionManager
-                        item.elementModel = elementModel
+                        item.controller = Application.activeController
+                        item.selectionManager = Application.activeSelectionManager
+                        item.elementModel = Application.activeElementModel
                     }
                 }
             }
@@ -85,23 +63,31 @@ Window {
             // Overlay panels
             ActionsPanel {
                 id: actionsPanel
+                visible: Application.panels.actionsPanelVisible
                 anchors.bottom: parent.bottom
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.bottomMargin: 20
-                currentMode: canvasController.mode
-                onModeChanged: (mode) => canvasController.setMode(mode)
+                currentMode: Application.activeController ? Application.activeController.mode : "select"
+                onModeChanged: (mode) => {
+                    if (Application.activeController) {
+                        Application.activeController.setMode(mode)
+                    }
+                }
                 
                 Connections {
-                    target: canvasController
+                    target: Application.activeController
                     function onModeChanged() {
-                        console.log("ActionsPanel Connections: mode changed to", canvasController.mode)
-                        actionsPanel.currentMode = canvasController.mode
+                        if (Application.activeController) {
+                            console.log("ActionsPanel Connections: mode changed to", Application.activeController.mode)
+                            actionsPanel.currentMode = Application.activeController.mode
+                        }
                     }
                 }
             }
 
             FPSMonitor {
                 id: fpsMonitor
+                visible: Application.panels.fpsMonitorVisible
                 anchors.top: parent.top
                 anchors.right: parent.right
                 anchors.margins: 10
@@ -111,17 +97,15 @@ Window {
         // Right Panel - Detail Panel
         DetailPanel {
             id: detailPanel
+            visible: Application.panels.detailPanelVisible
             SplitView.preferredWidth: parent.width * 0.3
             SplitView.minimumWidth: 250
-            elementModel: elementModel
-            selectionManager: selectionManager
+            elementModel: Application.activeElementModel
+            selectionManager: Application.activeSelectionManager
             
             onCanvasTypeChanged: (canvasType) => {
-                canvasController.setCanvasType(canvasType)
-                // Clear selection when switching canvas types
-                selectionManager.clearSelection()
-                // Reset to select mode
-                canvasController.setMode("select")
+                // Update the view mode instead of canvas type
+                Application.activeCanvasViewMode = canvasType
             }
         }
     }
