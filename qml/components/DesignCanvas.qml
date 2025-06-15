@@ -12,8 +12,6 @@ BaseCanvas {
     property var hoveredElement: null
     property alias creationDragHandler: creationDragHandler
     
-    
-    
     // Clear hover when selection changes
     Connections {
         target: selectionManager
@@ -33,94 +31,38 @@ BaseCanvas {
         }
     }
     
-    // Override content layer with design elements
-    Component.onCompleted: {
-        // Call base implementation
-        centerViewAtOrigin()
-        
-        // Add design-specific initialization
-        var contentLayer = getContentLayer()
-        if (contentLayer) {
-            elementsLoader.parent = contentLayer
-        }
-        
-        // Activate the loader after setup
-        activationTimer.start()
-    }
-    
-    // Clean up on destruction
-    Component.onDestruction: {
-        elementsLoader.active = false
-    }
-    
-    // Elements layer loader
-    Loader {
-        id: elementsLoader
-        active: false
-        asynchronous: false
-        
-        sourceComponent: Component {
-            Item {
-                id: elementsLayer
-                anchors.fill: parent
+    // Add elements into the default contentData
+    contentData: [
+        Repeater {
+            id: elementRepeater
+            model: root.elementModel
+            
+            delegate: Loader {
+                property var element: model.element
+                property string elementType: model.elementType
                 
-                Repeater {
-                    id: elementRepeater
-                    model: root.elementModel
-                    
-                    delegate: Loader {
-                        property var element: model.element
-                        property string elementType: model.elementType
-                        
-                        // Position elements relative to canvas origin
-                        x: element ? element.x - root.canvasMinX : 0
-                        y: element ? element.y - root.canvasMinY : 0
-                        
-                        sourceComponent: {
-                            if (!element || !elementType) return null
-                            switch(elementType) {
-                                case "Frame": return frameComponent
-                                case "Text": return textComponent
-                                default: return null
-                            }
-                        }
-                        
-                        onLoaded: {
-                            if (item && element) {
-                                item.element = element
-                                item.elementModel = root.elementModel
-                            }
-                        }
+                // Position elements relative to canvas origin
+                x: element ? element.x - root.canvasMinX : 0
+                y: element ? element.y - root.canvasMinY : 0
+                
+                sourceComponent: {
+                    if (!element || !elementType) return null
+                    switch(elementType) {
+                        case "Frame": return frameComponent
+                        case "Text": return textComponent
+                        default: return null
+                    }
+                }
+                
+                onLoaded: {
+                    if (item && element) {
+                        item.element = element
+                        item.elementModel = root.elementModel
                     }
                 }
             }
         }
-        
-        onLoaded: {
-            if (item && parent) {
-                item.anchors.fill = parent
-            }
-        }
-    }
-    
-    // Activation timer to prevent race conditions
-    Timer {
-        id: activationTimer
-        interval: 50  // Shorter delay for design canvas
-        onTriggered: {
-            elementsLoader.active = true
-        }
-    }
-    
-    onVisibleChanged: {
-        if (visible) {
-            activationTimer.start()
-        } else {
-            elementsLoader.active = false
-        }
-    }
-    
-    // Creation preview layer (removed - no longer needed)
+    ]
     
     // Creation drag handler
     QtObject {
@@ -129,63 +71,67 @@ BaseCanvas {
         property point startPoint: Qt.point(0, 0)
         property point currentPoint: Qt.point(0, 0)
         
-        function startCreation(point) {
+        function start(point) {
             active = true
             startPoint = point
             currentPoint = point
         }
         
-        function updateCreation(point) {
+        function update(point) {
             currentPoint = point
         }
         
-        function endCreation() {
+        function end() {
             // The C++ controller already handles element creation
             // We just need to reset our state
             active = false
         }
     }
     
-    // Override virtual functions for design canvas behavior
-    function handleLeftButtonPress(canvasPoint) {
+    // Implement behavior by overriding handler functions
+    function handleDragStart(pt) {
         if (controller.mode === "select") {
-            // Always pass the press to the controller
-            // It will handle both element clicks and empty space clicks
-            controller.handleMousePress(canvasPoint.x, canvasPoint.y)
+            controller.handleMousePress(pt.x, pt.y)
         } else {
-            // Start element creation - let C++ controller handle it
-            creationDragHandler.startCreation(canvasPoint)
-            controller.handleMousePress(canvasPoint.x, canvasPoint.y)
+            creationDragHandler.start(pt)
+            controller.handleMousePress(pt.x, pt.y)
         }
     }
     
-    function handleMouseDrag(canvasPoint) {
+    function handleDragMove(pt) {
         if (creationDragHandler.active) {
-            creationDragHandler.updateCreation(canvasPoint)
+            creationDragHandler.update(pt)
         }
-        // Always pass mouse move to controller
-        controller.handleMouseMove(canvasPoint.x, canvasPoint.y)
+        controller.handleMouseMove(pt.x, pt.y)
     }
     
-    function handleMouseHover(canvasPoint) {
+    function handleDragEnd(pt) {
+        if (creationDragHandler.active) {
+            creationDragHandler.end()
+        }
+        controller.handleMouseRelease(pt.x, pt.y)
+    }
+    
+    function handleClick(pt) {
+        // Click is already handled in handleDragStart/End
+        // This is called only for quick clicks without drag
+        if (controller.mode === "select") {
+            controller.handleMousePress(pt.x, pt.y)
+            controller.handleMouseRelease(pt.x, pt.y)
+        }
+    }
+    
+    function handleHover(pt) {
         // Track hover for design elements
         if (controller.mode === "select") {
-            root.hoveredElement = controller.hitTest(canvasPoint.x, canvasPoint.y)
+            hoveredElement = controller.hitTest(pt.x, pt.y)
         } else {
-            root.hoveredElement = null
+            hoveredElement = null
         }
     }
     
-    function handleLeftButtonRelease(canvasPoint) {
-        if (creationDragHandler.active) {
-            creationDragHandler.endCreation()
-        }
-        // Always call controller.handleMouseRelease to finalize creation
-        controller.handleMouseRelease(canvasPoint.x, canvasPoint.y)
-    }
-    
-    function handleMouseExit() {
-        root.hoveredElement = null
+    function handleExit() {
+        hoveredElement = null
     }
     
     function handleSelectionRect(rect) {
