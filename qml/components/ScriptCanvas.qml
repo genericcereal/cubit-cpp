@@ -8,7 +8,7 @@ BaseCanvas {
     
     canvasType: "script"
     
-    // Node and edge management will be added later
+    // Node and edge management
     property var nodes: []
     property var edges: []
     
@@ -53,164 +53,180 @@ BaseCanvas {
     property bool showNodeCatalog: false
     property point nodeCatalogPosition: Qt.point(0, 0)
     
-    // Override content layer with script elements
-    Component.onCompleted: {
-        // Call base implementation
-        centerViewAtOrigin()
-        
-        // Add script-specific initialization
-        var contentLayer = getContentLayer()
-        if (contentLayer) {
-            nodesLoader.parent = contentLayer
-        }
-        
-        // Activate the loaders after setup
-        activationTimer.start()
-    }
-    
-    // Clean up on destruction
-    Component.onDestruction: {
-        nodesLoader.active = false
-    }
-    
-    // Simple edge test - draw circles at handle positions
-    Item {
-        id: edgesLayer
-        parent: getContentLayer()
-        anchors.fill: parent
-        z: 10  // Very high z-order
-        
-        Repeater {
-            model: root.elementModel
+    // Add content into the default contentData
+    contentData: [
+        // Edges layer
+        Item {
+            id: edgesLayer
+            anchors.fill: parent
+            z: 10  // Very high z-order
             
-            delegate: Item {
-                visible: model.elementType === "Edge"
-                property var edge: model.element
-                property var edgeObj: edge as Edge
+            Repeater {
+                model: root.elementModel
                 
-                // Get source and target nodes
-                property var sourceNode: edgeObj && root.elementModel ? root.elementModel.getElementById(edgeObj.sourceNodeId) : null
-                property var targetNode: edgeObj && root.elementModel ? root.elementModel.getElementById(edgeObj.targetNodeId) : null
-                
-                // Update edge positions when nodes move
-                Connections {
-                    target: sourceNode
-                    enabled: sourceNode !== null
-                    function onXChanged() { updateEdgePositions() }
-                    function onYChanged() { updateEdgePositions() }
-                    function onWidthChanged() { updateEdgePositions() }
-                }
-                
-                Connections {
-                    target: targetNode
-                    enabled: targetNode !== null
-                    function onXChanged() { updateEdgePositions() }
-                    function onYChanged() { updateEdgePositions() }
-                    function onHeightChanged() { updateEdgePositions() }
-                }
-                
-                function updateEdgePositions() {
-                    if (!edgeObj || !sourceNode || !targetNode) return
+                delegate: Item {
+                    visible: model.elementType === "Edge"
+                    property var edge: model.element
+                    property var edgeObj: edge as Edge
                     
-                    var titleAndMargins = 30 + 15  // Title height + margins
-                    var columnsMargin = 10  // Left/right margin of columns container
-                    var columnSpacing = 20  // Spacing between columns
+                    // Get source and target nodes
+                    property var sourceNode: edgeObj && root.elementModel ? root.elementModel.getElementById(edgeObj.sourceNodeId) : null
+                    property var targetNode: edgeObj && root.elementModel ? root.elementModel.getElementById(edgeObj.targetNodeId) : null
                     
-                    // Find the source port index in the sources column
-                    var sourceIndex = 0
-                    var foundSource = false
-                    for (var i = 0; i < sourceNode.rowConfigurations.length; i++) {
-                        var config = sourceNode.rowConfigurations[i]
-                        if (config.hasSource) {
-                            if (config.sourcePortIndex === edgeObj.sourcePortIndex) {
-                                foundSource = true
-                                break
+                    // Update edge positions when nodes move
+                    Connections {
+                        target: sourceNode
+                        enabled: sourceNode !== null
+                        function onXChanged() { updateEdgePositions() }
+                        function onYChanged() { updateEdgePositions() }
+                        function onWidthChanged() { updateEdgePositions() }
+                    }
+                    
+                    Connections {
+                        target: targetNode
+                        enabled: targetNode !== null
+                        function onXChanged() { updateEdgePositions() }
+                        function onYChanged() { updateEdgePositions() }
+                        function onHeightChanged() { updateEdgePositions() }
+                    }
+                    
+                    function updateEdgePositions() {
+                        if (!edgeObj || !sourceNode || !targetNode) return
+                        
+                        var titleAndMargins = 30 + 15  // Title height + margins
+                        var columnsMargin = 10  // Left/right margin of columns container
+                        var columnSpacing = 20  // Spacing between columns
+                        
+                        // Find the source port index in the sources column
+                        var sourceIndex = 0
+                        var foundSource = false
+                        for (var i = 0; i < sourceNode.rowConfigurations.length; i++) {
+                            var config = sourceNode.rowConfigurations[i]
+                            if (config.hasSource) {
+                                if (config.sourcePortIndex === edgeObj.sourcePortIndex) {
+                                    foundSource = true
+                                    break
+                                }
+                                sourceIndex++
                             }
-                            sourceIndex++
                         }
-                    }
-                    
-                    if (!foundSource) {
-                        console.log("Warning: Could not find source port", edgeObj.sourcePortIndex)
-                        return
-                    }
-                    
-                    // Calculate source point (right column, right side)
-                    var columnWidth = (sourceNode.width - 2 * columnsMargin - columnSpacing) / 2
-                    var rightColumnX = sourceNode.x + columnsMargin + columnWidth + columnSpacing
-                    var sourceX = rightColumnX + columnWidth - 10  // 10px from right edge to center
-                    var sourceY = sourceNode.y + titleAndMargins + sourceIndex * 40 + 15  // center of 30px item
-                    
-                    // Find the target port index in the targets column
-                    var targetIndex = 0
-                    var foundTarget = false
-                    for (var j = 0; j < targetNode.rowConfigurations.length; j++) {
-                        var targetConfig = targetNode.rowConfigurations[j]
-                        if (targetConfig.hasTarget) {
-                            if (targetConfig.targetPortIndex === edgeObj.targetPortIndex) {
-                                foundTarget = true
-                                break
+                        
+                        if (!foundSource) {
+                            console.log("Warning: Could not find source port", edgeObj.sourcePortIndex)
+                            return
+                        }
+                        
+                        // Calculate source point (right column, right side)
+                        var columnWidth = (sourceNode.width - 2 * columnsMargin - columnSpacing) / 2
+                        var rightColumnX = sourceNode.x + columnsMargin + columnWidth + columnSpacing
+                        var sourceX = rightColumnX + columnWidth - 10  // 10px from right edge to center
+                        var sourceY = sourceNode.y + titleAndMargins + sourceIndex * 40 + 15  // center of 30px item
+                        
+                        // Find the target port index in the targets column
+                        var targetIndex = 0
+                        var foundTarget = false
+                        for (var j = 0; j < targetNode.rowConfigurations.length; j++) {
+                            var targetConfig = targetNode.rowConfigurations[j]
+                            if (targetConfig.hasTarget) {
+                                if (targetConfig.targetPortIndex === edgeObj.targetPortIndex) {
+                                    foundTarget = true
+                                    break
+                                }
+                                targetIndex++
                             }
-                            targetIndex++
                         }
+                        
+                        if (!foundTarget) {
+                            console.log("Warning: Could not find target port", edgeObj.targetPortIndex)
+                            return
+                        }
+                        
+                        // Calculate target point (left column, left side)
+                        var targetX = targetNode.x + columnsMargin + 10  // 10px to center of 20px handle
+                        var targetY = targetNode.y + titleAndMargins + targetIndex * 40 + 15
+                        
+                        // Update the edge points
+                        edgeObj.sourcePoint = Qt.point(sourceX, sourceY)
+                        edgeObj.targetPoint = Qt.point(targetX, targetY)
                     }
                     
-                    if (!foundTarget) {
-                        console.log("Warning: Could not find target port", edgeObj.targetPortIndex)
-                        return
+                    Component.onCompleted: {
+                        updateEdgePositions()
                     }
                     
-                    // Calculate target point (left column, left side)
-                    var targetX = targetNode.x + columnsMargin + 10  // 10px to center of 20px handle
-                    var targetY = targetNode.y + titleAndMargins + targetIndex * 40 + 15
+                    // Bezier curve using Shape and PathSVG
+                    BezierEdge {
+                        anchors.fill: parent
+                        edge: edgeObj
+                        canvasMinX: root.canvasMinX
+                        canvasMinY: root.canvasMinY
+                        z: -1
+                    }
                     
-                    // Update the edge points
-                    edgeObj.sourcePoint = Qt.point(sourceX, sourceY)
-                    edgeObj.targetPoint = Qt.point(targetX, targetY)
-                }
-                
-                Component.onCompleted: {
-                    updateEdgePositions()
-                }
-                
-                // Bezier curve using Shape and PathSVG
-                BezierEdge {
-                    anchors.fill: parent
-                    edge: edgeObj
-                    canvasMinX: root.canvasMinX
-                    canvasMinY: root.canvasMinY
-                    z: -1
-                }
-                
-                // Source handle circle
-                Rectangle {
-                    x: edgeObj && edgeObj.sourcePoint ? edgeObj.sourcePoint.x - root.canvasMinX - 10 : 0
-                    y: edgeObj && edgeObj.sourcePoint ? edgeObj.sourcePoint.y - root.canvasMinY - 10 : 0
-                    width: 20
-                    height: 20
-                    radius: 10
-                    color: "red"
-                    opacity: 0.8
-                }
-                
-                // Target handle circle
-                Rectangle {
-                    x: edgeObj && edgeObj.targetPoint ? edgeObj.targetPoint.x - root.canvasMinX - 10 : 0
-                    y: edgeObj && edgeObj.targetPoint ? edgeObj.targetPoint.y - root.canvasMinY - 10 : 0
-                    width: 20
-                    height: 20
-                    radius: 10
-                    color: "blue"
-                    opacity: 0.8
+                    // Source handle circle
+                    Rectangle {
+                        x: edgeObj && edgeObj.sourcePoint ? edgeObj.sourcePoint.x - root.canvasMinX - 10 : 0
+                        y: edgeObj && edgeObj.sourcePoint ? edgeObj.sourcePoint.y - root.canvasMinY - 10 : 0
+                        width: 20
+                        height: 20
+                        radius: 10
+                        color: "red"
+                        opacity: 0.8
+                    }
+                    
+                    // Target handle circle
+                    Rectangle {
+                        x: edgeObj && edgeObj.targetPoint ? edgeObj.targetPoint.x - root.canvasMinX - 10 : 0
+                        y: edgeObj && edgeObj.targetPoint ? edgeObj.targetPoint.y - root.canvasMinY - 10 : 0
+                        width: 20
+                        height: 20
+                        radius: 10
+                        color: "blue"
+                        opacity: 0.8
+                    }
                 }
             }
-        }
+        },
+        
+        // Nodes layer
+        Repeater {
+            id: nodeRepeater
+            model: root.elementModel
+            
+            delegate: Loader {
+                property var element: model.element
+                property string elementType: model.elementType
+                
+                // Position elements relative to canvas origin
+                x: element ? element.x - root.canvasMinX : 0
+                y: element ? element.y - root.canvasMinY : 0
+                z: 1
+                
+                sourceComponent: {
+                    if (!element || !elementType) return null
+                    switch(elementType) {
+                        case "Node": return nodeComponent
+                        case "Edge": return null  // Edges are handled separately
+                        default: return null
+                    }
+                }
+                
+                onLoaded: {
+                    if (item && element) {
+                        item.element = element
+                        item.elementModel = root.elementModel
+                        item.canvas = root  // Pass canvas reference
+                    }
+                }
+            }
+        },
         
         // Temporary edge preview during handle drag
         Item {
             id: tempEdgeContainer
             visible: (root.isDraggingHandle || root.showNodeCatalog) && root.dragSourceNode
             anchors.fill: parent
+            z: 11  // Above edges layer
             
             property point sourcePoint: {
                 if (!root.dragSourceNode) return Qt.point(0, 0)
@@ -318,7 +334,7 @@ BaseCanvas {
                 opacity: 0.8
             }
         }
-    }
+    ]
     
     // Fullscreen mouse area to catch clicks outside the catalog
     MouseArea {
@@ -369,87 +385,30 @@ BaseCanvas {
         }
     }
     
-    // Nodes layer loader
-    Loader {
-        id: nodesLoader
-        active: false
-        asynchronous: false
-        z: 1
+    Component.onCompleted: {
+        // Call base implementation
+        centerViewAtOrigin()
         
-        sourceComponent: Component {
-            Item {
-                id: nodesLayer
-                anchors.fill: parent
-                
-                Repeater {
-                    id: nodeRepeater
-                    model: root.elementModel
-                    
-                    delegate: Loader {
-                        property var element: model.element
-                        property string elementType: model.elementType
-                        
-                        // Position elements relative to canvas origin
-                        x: element ? element.x - root.canvasMinX : 0
-                        y: element ? element.y - root.canvasMinY : 0
-                        
-                        sourceComponent: {
-                            if (!element || !elementType) return null
-                            switch(elementType) {
-                                case "Node": return nodeComponent
-                                case "Edge": return null  // Edges will be handled separately
-                                default: return null
-                            }
-                        }
-                        
-                        onLoaded: {
-                            if (item && element) {
-                                item.element = element
-                                item.elementModel = root.elementModel
-                                item.canvas = root  // Pass canvas reference
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        
-        onLoaded: {
-            if (item && parent) {
-                item.anchors.fill = parent
-            }
-        }
+        // Create default nodes after a delay
+        delayTimer.start()
     }
     
-    // Activation timer to prevent race conditions
     Timer {
-        id: activationTimer
+        id: delayTimer
         interval: 100
-        onTriggered: {
-            nodesLoader.active = true
-            
-            // Create default nodes after loaders are active
-            createDefaultNodes()
-        }
+        repeat: false
+        onTriggered: createDefaultNodes()
     }
     
-    onVisibleChanged: {
-        if (visible) {
-            activationTimer.start()
-        } else {
-            nodesLoader.active = false
-        }
-    }
-    
-    // Override virtual functions for script canvas behavior
-    function handleLeftButtonPress(canvasPoint) {
+    // Implement behavior by overriding handler functions
+    function handleDragStart(pt) {
         // Set click state but don't emit signal yet - wait for release to confirm it's a click
         clickedThisFrame = true
-        clickPoint = canvasPoint
+        clickPoint = pt
         
         if (controller.mode === "select") {
             // Check if we're over a handle first
-            var handleInfo = getHandleAtPoint(canvasPoint)
+            var handleInfo = getHandleAtPoint(pt)
             if (handleInfo) {
                 // Start handle drag immediately
                 isDraggingHandle = true
@@ -457,19 +416,19 @@ BaseCanvas {
                 dragSourceHandleType = handleInfo.handleType
                 dragSourcePortIndex = handleInfo.portIndex
                 dragSourcePortType = handleInfo.portType
-                dragCurrentPoint = canvasPoint
-                dragStartPoint = canvasPoint
+                dragCurrentPoint = pt
+                dragStartPoint = pt
                 console.log("Started dragging handle:", handleInfo.handleType, "port:", handleInfo.portIndex, "type:", handleInfo.portType, "from node:", handleInfo.node.nodeTitle)
             } else {
                 // Store the start point and let the controller handle the press
-                dragStartPoint = canvasPoint
-                controller.handleMousePress(canvasPoint.x, canvasPoint.y)
+                dragStartPoint = pt
+                controller.handleMousePress(pt.x, pt.y)
             }
         }
         // Other modes will be handled when node creation is implemented
     }
     
-    function handleMouseDrag(canvasPoint) {
+    function handleDragMove(pt) {
         // Emit drag started signal on first drag movement
         if (!isDraggingHandle) {
             canvasDragStarted()
@@ -477,41 +436,25 @@ BaseCanvas {
         
         if (isDraggingHandle) {
             // Update drag position for edge preview
-            dragCurrentPoint = canvasPoint
+            dragCurrentPoint = pt
         } else {
             // Let the controller handle drag
-            controller.handleMouseMove(canvasPoint.x, canvasPoint.y)
+            controller.handleMouseMove(pt.x, pt.y)
         }
     }
     
-    function handleMouseHover(canvasPoint) {
-        // Check if hovering over a node
-        if (controller) {
-            var element = controller.hitTest(canvasPoint.x, canvasPoint.y)
-            hoveredPoint = canvasPoint
-            if (element !== hoveredElement) {
-                hoveredElement = element
-                if (element && element.objectName === "Node") {
-                    console.log("Started hovering over node:", element.nodeTitle)
-                } else if (!element && hoveredElement) {
-                    console.log("Stopped hovering")
-                }
-            }
-        }
-    }
-    
-    function handleLeftButtonRelease(canvasPoint) {
+    function handleDragEnd(pt) {
         // Check if this was a click (not a drag)
         var wasClick = !isDraggingHandle && !selectionBoxHandler.active && 
-                      Math.abs(canvasPoint.x - clickPoint.x) < 5 && 
-                      Math.abs(canvasPoint.y - clickPoint.y) < 5
+                      Math.abs(pt.x - clickPoint.x) < 5 && 
+                      Math.abs(pt.y - clickPoint.y) < 5
         
         if (wasClick) {
             // Check if clicking on a node or empty space
-            var element = controller.hitTest(canvasPoint.x, canvasPoint.y)
+            var element = controller.hitTest(pt.x, pt.y)
             if (element && element.objectName === "Node") {
                 // Clicked on a node - emit click signal for input handling
-                canvasClicked(canvasPoint)
+                canvasClicked(pt)
             } else {
                 // Clicked outside any node - emit outside click signal
                 canvasClickedOutside()
@@ -520,7 +463,7 @@ BaseCanvas {
         
         if (isDraggingHandle) {
             // End handle drag
-            var targetHandleInfo = getHandleAtPoint(canvasPoint)
+            var targetHandleInfo = getHandleAtPoint(pt)
             if (targetHandleInfo && targetHandleInfo.node !== dragSourceNode) {
                 // Create edge between source and target
                 console.log("Creating edge from", dragSourceNode.nodeTitle, "to", targetHandleInfo.node.nodeTitle)
@@ -542,28 +485,48 @@ BaseCanvas {
             } else {
                 // Show node catalog at release position
                 showNodeCatalog = true
-                nodeCatalogPosition = canvasPoint
+                nodeCatalogPosition = pt
                 isDraggingHandle = false
-                console.log("Showing node catalog at", canvasPoint.x, canvasPoint.y)
+                console.log("Showing node catalog at", pt.x, pt.y)
             }
         } else {
             // Check if this was a click on empty canvas (no selection box was drawn)
-            var element = controller.hitTest(canvasPoint.x, canvasPoint.y)
+            var element = controller.hitTest(pt.x, pt.y)
             if (!element && !selectionBoxHandler.active && selectionManager && selectionManager.hasSelection) {
                 // Clear selection when clicking on empty canvas
                 selectionManager.clearSelection()
             }
             
             // Let the controller handle release
-            controller.handleMouseRelease(canvasPoint.x, canvasPoint.y)
+            controller.handleMouseRelease(pt.x, pt.y)
             
             // Reset drag start point
             dragStartPoint = Qt.point(0, 0)
         }
     }
     
-    function handleMouseExit() {
-        // Will clear hover state when implemented
+    function handleClick(pt) {
+        // Already handled in handleDragEnd for consistency
+    }
+    
+    function handleHover(pt) {
+        // Check if hovering over a node
+        if (controller) {
+            var element = controller.hitTest(pt.x, pt.y)
+            hoveredPoint = pt
+            if (element !== hoveredElement) {
+                hoveredElement = element
+                if (element && element.objectName === "Node") {
+                    console.log("Started hovering over node:", element.nodeTitle)
+                } else if (!element && hoveredElement) {
+                    console.log("Stopped hovering")
+                }
+            }
+        }
+    }
+    
+    function handleExit() {
+        hoveredElement = null
     }
     
     function handleSelectionRect(rect) {
@@ -572,10 +535,7 @@ BaseCanvas {
         
         // Select all nodes that intersect with the selection rectangle
         if (!controller || !elementModel || !selectionManager) {
-            console.log("ERROR: Missing required components:")
-            console.log("  controller:", !!controller)
-            console.log("  elementModel:", !!elementModel)
-            console.log("  selectionManager:", !!selectionManager)
+            console.log("ERROR: Missing required components")
             return
         }
         
@@ -586,34 +546,20 @@ BaseCanvas {
         
         for (var i = 0; i < elements.length; i++) {
             var element = elements[i]
-            console.log("Element", i, ":")
-            console.log("  type:", element ? element.objectName : "null")
-            console.log("  element exists:", !!element)
             
             // Only consider Node elements
             if (element && element.objectName === "Node") {
                 // Check if element intersects with selection rect
                 var elementRect = Qt.rect(element.x, element.y, element.width, element.height)
-                console.log("  Node position:", JSON.stringify({x: element.x, y: element.y}))
-                console.log("  Node size:", JSON.stringify({width: element.width, height: element.height}))
-                console.log("  Node rect:", JSON.stringify({x: elementRect.x, y: elementRect.y, width: elementRect.width, height: elementRect.height}))
                 
                 // Check for intersection
                 var intersects = rect.x < elementRect.x + elementRect.width &&
                     rect.x + rect.width > elementRect.x &&
                     rect.y < elementRect.y + elementRect.height &&
                     rect.y + rect.height > elementRect.y
-                    
-                console.log("  Intersection test:")
-                console.log("    rect.x (" + rect.x + ") < elementRect.x + width (" + (elementRect.x + elementRect.width) + "):", rect.x < elementRect.x + elementRect.width)
-                console.log("    rect.x + width (" + (rect.x + rect.width) + ") > elementRect.x (" + elementRect.x + "):", rect.x + rect.width > elementRect.x)
-                console.log("    rect.y (" + rect.y + ") < elementRect.y + height (" + (elementRect.y + elementRect.height) + "):", rect.y < elementRect.y + elementRect.height)
-                console.log("    rect.y + height (" + (rect.y + rect.height) + ") > elementRect.y (" + elementRect.y + "):", rect.y + rect.height > elementRect.y)
-                console.log("  Intersects:", intersects)
                 
                 if (intersects) {
                     selectedNodes.push(element)
-                    console.log("  -> Node added to selection")
                 }
             }
         }
@@ -622,17 +568,11 @@ BaseCanvas {
         
         // Update selection
         if (selectedNodes.length > 0) {
-            console.log("Updating selection with", selectedNodes.length, "nodes")
             selectionManager.clearSelection()
             for (var j = 0; j < selectedNodes.length; j++) {
-                console.log("Selecting node", j, ":", selectedNodes[j])
                 selectionManager.selectElement(selectedNodes[j])
             }
-        } else {
-            console.log("No nodes selected - not updating selection")
         }
-        
-        console.log("=== handleSelectionRect complete ===")
     }
     
     // Create default nodes

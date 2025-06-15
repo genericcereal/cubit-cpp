@@ -8,24 +8,37 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Building and Running
 
-### Build Commands
+### Qt Quick Application (cubit-quick)
+
+The main application is now built using Qt Quick/QML. The project file is `cubit-quick.pro`.
+
+#### Build Commands
 
 ```bash
 # Clean the project
 make clean
 
+# Generate Makefile from project file
+qmake6 -o Makefile cubit-quick.pro
+
 # Build the project
-make
+make -j8
 
 # Run the application
-./qt-hello
+./cubit-quick.app/Contents/MacOS/cubit-quick
+# or simply
+open cubit-quick.app
 ```
 
-### Regenerating Makefile from Qt Project
+#### Resource Files
 
-```bash
-qmake6 -o Makefile qt-hello.pro
-```
+All QML files must be added to `qml.qrc` to be included in the build. When adding new QML components:
+1. Add the file path to `qml.qrc`
+2. Run `make` to rebuild with the updated resources
+
+### Legacy Qt Widgets Application
+
+The original Qt Widgets implementation is preserved in the `/src` directory with its own Makefile.
 
 ### CONTROLS
 
@@ -543,3 +556,90 @@ We've replaced the `Repeater + Loader` pattern with `Instantiator` in ElementLay
 - Maintains an `elementItems` map for quick element lookup by ID
 - Proper cleanup in `Component.onDestruction`
 - Dynamic property bindings for position, size, and visibility updates
+
+## Canvas Architecture Improvements
+
+### Coordinate Transformation Utilities
+
+All coordinate math has been centralized in `CanvasUtils.js` as a JavaScript library:
+
+```javascript
+.pragma library
+
+function viewportToCanvas(pt, contentX, contentY, zoom, minX, minY) {
+    return Qt.point(
+        (contentX + pt.x) / zoom + minX,
+        (contentY + pt.y) / zoom + minY
+    );
+}
+
+function canvasToViewport(pt, minX, minY, zoom) {
+    return Qt.point(
+        (pt.x - minX) * zoom,
+        (pt.y - minY) * zoom
+    );
+}
+```
+
+### CanvasInputHandler Component
+
+A dedicated input handling component (`CanvasInputHandler.qml`) provides a clean signal-based interface for all canvas interactions:
+
+**Signals:**
+- `clicked(point canvasPoint)` - Single click with no drag
+- `dragStarted(point canvasPoint)` - Drag operation started
+- `dragMoved(point canvasPoint)` - Mouse moved during drag
+- `dragEnded(point canvasPoint)` - Drag operation ended
+- `hovered(point canvasPoint)` - Mouse hover over canvas
+- `panned(real dx, real dy)` - Middle mouse button pan
+- `zoomed(point canvasPoint, real scaleFactor)` - Ctrl+wheel zoom
+
+**Features:**
+- Automatic coordinate transformation from viewport to canvas space
+- Built-in distinction between clicks and drags
+- Separate handling for panning vs selection operations
+- Clean separation of concerns
+
+### Simplified BaseCanvas API
+
+`BaseCanvas.qml` now provides a simplified API that subclasses can easily override:
+
+```qml
+BaseCanvas {
+    // Properties
+    controller: /* canvas controller */
+    selectionManager: /* selection manager */
+    elementModel: /* element model */
+    
+    // Add content via default property
+    contentData: [
+        // Your canvas elements here
+    ]
+    
+    // Override these handler functions
+    function handleClick(pt) { }
+    function handleDragStart(pt) { }
+    function handleDragMove(pt) { }
+    function handleDragEnd(pt) { }
+    function handleHover(pt) { }
+    function handleSelectionRect(rect) { }
+}
+```
+
+**Key Improvements:**
+- No need to handle raw mouse events
+- Automatic coordinate transformation
+- Built-in selection box handling
+- Clean separation between base functionality and specific implementations
+- Support for both DesignCanvas and ScriptCanvas with minimal code
+
+### Implementation Pattern
+
+Both `DesignCanvas.qml` and `ScriptCanvas.qml` follow this pattern:
+
+1. Use `contentData` property to add canvas elements
+2. Override handler functions for specific behavior
+3. Let BaseCanvas handle all the complex input management
+4. Focus on business logic rather than input handling
+
+This architecture significantly reduces code duplication and makes the canvas implementations much more maintainable.
