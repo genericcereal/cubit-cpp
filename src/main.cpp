@@ -17,6 +17,7 @@
 #include "ElementModel.h"
 #include "SelectionManager.h"
 #include "ViewportCache.h"
+#include "ConsoleMessageRepository.h"
 
 int main(int argc, char *argv[])
 {
@@ -50,6 +51,14 @@ int main(int argc, char *argv[])
     qmlRegisterType<ElementModel>("Cubit", 1, 0, "ElementModel");
     qmlRegisterType<SelectionManager>("Cubit", 1, 0, "SelectionManager");
     qmlRegisterType<ViewportCache>("Cubit", 1, 0, "ViewportCache");
+    
+    // Register singleton ConsoleMessageRepository
+    qmlRegisterSingletonType<ConsoleMessageRepository>("Cubit", 1, 0, "ConsoleMessageRepository",
+        [](QQmlEngine *engine, QJSEngine *scriptEngine) -> QObject * {
+            Q_UNUSED(engine)
+            Q_UNUSED(scriptEngine)
+            return ConsoleMessageRepository::instance();
+        });
 
     // Register QML singleton
     qmlRegisterSingletonType(QUrl("qrc:/qml/Config.qml"), "Cubit.UI", 1, 0, "Config");

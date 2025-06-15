@@ -42,5 +42,6 @@
         <file>qml/panels/PropertiesPanel.qml</file>
         <file>qml/panels/ActionsPanel.qml</file>
         <file>qml/panels/FPSMonitor.qml</file>
+        <file>qml/panels/Console.qml</file>
     </qresource>
 </RCC>

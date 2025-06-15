@@ -23,7 +23,8 @@ SOURCES += \
     src/CanvasController.cpp \
     src/ElementModel.cpp \
     src/SelectionManager.cpp \
-    src/ViewportCache.cpp
+    src/ViewportCache.cpp \
+    src/ConsoleMessageRepository.cpp
 
 HEADERS += \
     src/Element.h \
@@ -42,7 +43,8 @@ HEADERS += \
     src/Config.h \
     src/UniqueIdGenerator.h \
     src/HandleType.h \
-    src/ViewportCache.h
+    src/ViewportCache.h \
+    src/ConsoleMessageRepository.h
 
 RESOURCES += qml.qrc
 
