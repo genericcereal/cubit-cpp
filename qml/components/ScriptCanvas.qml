@@ -336,22 +336,6 @@ BaseCanvas {
         }
     ]
     
-    // Fullscreen mouse area to catch clicks outside the catalog
-    MouseArea {
-        anchors.fill: parent
-        visible: root.showNodeCatalog
-        z: 999  // Just below the catalog popup
-        
-        onClicked: {
-            console.log("Clicked outside catalog - dismissing")
-            root.showNodeCatalog = false
-            root.dragSourceNode = null
-            root.dragSourceHandleType = ""
-            root.dragSourcePortIndex = -1
-            root.dragSourcePortType = "Flow"
-        }
-    }
-    
     // Node catalog popup - Must be outside content layer to receive mouse events
     NodeCatalogPopup {
         id: nodeCatalogPopup
@@ -450,6 +434,17 @@ BaseCanvas {
                       Math.abs(pt.y - clickPoint.y) < 5
         
         if (wasClick) {
+            // If node catalog is showing, dismiss it
+            if (root.showNodeCatalog) {
+                console.log("Click detected in handleDragEnd - dismissing node catalog")
+                root.showNodeCatalog = false
+                root.dragSourceNode = null
+                root.dragSourceHandleType = ""
+                root.dragSourcePortIndex = -1
+                root.dragSourcePortType = "Flow"
+                return
+            }
+            
             // Check if clicking on a node or empty space
             var element = controller.hitTest(pt.x, pt.y)
             if (element && element.objectName === "Node") {
@@ -506,7 +501,15 @@ BaseCanvas {
     }
     
     function handleClick(pt) {
-        // Already handled in handleDragEnd for consistency
+        // Dismiss node catalog if it's showing
+        if (root.showNodeCatalog) {
+            console.log("Click detected - dismissing node catalog")
+            root.showNodeCatalog = false
+            root.dragSourceNode = null
+            root.dragSourceHandleType = ""
+            root.dragSourcePortIndex = -1
+            root.dragSourcePortType = "Flow"
+        }
     }
     
     function handleHover(pt) {
