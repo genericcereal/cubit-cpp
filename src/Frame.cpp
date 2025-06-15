@@ -1,7 +1,7 @@
 #include "Frame.h"
 
 Frame::Frame(const QString &id, QObject *parent)
-    : Element(FrameType, id, parent)
+    : CanvasElement(FrameType, id, parent)
     , m_backgroundColor(Qt::white)
     , m_borderColor(Qt::black)
     , m_borderWidth(1)

@@ -1,5 +1,6 @@
 #include "CanvasController.h"
 #include "Element.h"
+#include "CanvasElement.h"
 #include "Frame.h"
 #include "Text.h"
 #include "Html.h"
@@ -92,10 +93,15 @@ void CanvasController::handleMouseMove(qreal x, qreal y)
             qreal left = qMin(x, m_dragStartPos.x());
             qreal top = qMin(y, m_dragStartPos.y());
             
-            m_dragElement->setX(left);
-            m_dragElement->setY(top);
-            m_dragElement->setWidth(qMax(width, 1.0));
-            m_dragElement->setHeight(qMax(height, 1.0));
+            if (m_dragElement->isVisual()) {
+                CanvasElement* canvasElement = qobject_cast<CanvasElement*>(m_dragElement);
+                if (canvasElement) {
+                    canvasElement->setX(left);
+                    canvasElement->setY(top);
+                    canvasElement->setWidth(qMax(width, 1.0));
+                    canvasElement->setHeight(qMax(height, 1.0));
+                }
+            }
             
             qDebug() << "Frame resize:" << left << top << width << height;
         }
@@ -126,8 +132,13 @@ void CanvasController::handleMouseRelease(qreal x, qreal y)
         // Finalize frame creation
         if (m_dragElement) {
             // Ensure minimum size
-            if (m_dragElement->width() < 10) m_dragElement->setWidth(Config::DEFAULT_ELEMENT_WIDTH);
-            if (m_dragElement->height() < 10) m_dragElement->setHeight(Config::DEFAULT_ELEMENT_HEIGHT);
+            if (m_dragElement->isVisual()) {
+                CanvasElement* canvasElement = qobject_cast<CanvasElement*>(m_dragElement);
+                if (canvasElement) {
+                    if (canvasElement->width() < 10) canvasElement->setWidth(Config::DEFAULT_ELEMENT_WIDTH);
+                    if (canvasElement->height() < 10) canvasElement->setHeight(Config::DEFAULT_ELEMENT_HEIGHT);
+                }
+            }
             
             // Select the newly created frame
             if (m_selectionManager) {
@@ -181,7 +192,13 @@ void CanvasController::createElement(const QString &type, qreal x, qreal y, qrea
     }
     
     if (element) {
-        element->setRect(QRectF(x, y, width, height));
+        // Set position and size for visual elements
+        if (element->isVisual()) {
+            CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+            if (canvasElement) {
+                canvasElement->setRect(QRectF(x, y, width, height));
+            }
+        }
         m_elementModel->addElement(element);
         emit elementCreated(element);
         
@@ -214,8 +231,12 @@ Element* CanvasController::hitTest(qreal x, qreal y)
             }
         }
         
-        if (element->containsPoint(QPointF(x, y))) {
-            return element;
+        // Only visual elements can be hit tested
+        if (element->isVisual()) {
+            CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+            if (canvasElement && canvasElement->containsPoint(QPointF(x, y))) {
+                return element;
+            }
         }
     }
     
@@ -227,6 +248,7 @@ void CanvasController::startDrag(qreal x, qreal y)
     m_dragElement = hitTest(x, y);
     if (m_dragElement) {
         m_isDragging = true;
+        emit isDraggingChanged();
         m_dragStartPos = QPointF(x, y);
         m_hasDraggedMinDistance = false;
         
@@ -241,17 +263,28 @@ void CanvasController::startDrag(qreal x, qreal y)
         if (m_dragElement->isSelected()) {
             // Store initial positions of all selected elements
             for (Element *element : selectedElements) {
-                ElementDragState state;
-                state.element = element;
-                state.originalPosition = QPointF(element->x(), element->y());
-                m_draggedElements.append(state);
+                // Only visual elements can be dragged
+                if (element->isVisual()) {
+                    CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+                    if (canvasElement) {
+                        ElementDragState state;
+                        state.element = element;
+                        state.originalPosition = QPointF(canvasElement->x(), canvasElement->y());
+                        m_draggedElements.append(state);
+                    }
+                }
             }
         } else {
             // Only drag the clicked element (it's not selected)
-            ElementDragState state;
-            state.element = m_dragElement;
-            state.originalPosition = QPointF(m_dragElement->x(), m_dragElement->y());
-            m_draggedElements.append(state);
+            if (m_dragElement->isVisual()) {
+                CanvasElement* canvasElement = qobject_cast<CanvasElement*>(m_dragElement);
+                if (canvasElement) {
+                    ElementDragState state;
+                    state.element = m_dragElement;
+                    state.originalPosition = QPointF(canvasElement->x(), canvasElement->y());
+                    m_draggedElements.append(state);
+                }
+            }
         }
     }
 }
@@ -275,8 +308,13 @@ void CanvasController::updateDrag(qreal x, qreal y)
         if (m_hasDraggedMinDistance) {
             // Move all selected elements by the same delta
             for (const ElementDragState &state : m_draggedElements) {
-                state.element->setX(state.originalPosition.x() + deltaX);
-                state.element->setY(state.originalPosition.y() + deltaY);
+                if (state.element->isVisual()) {
+                    CanvasElement* canvasElement = qobject_cast<CanvasElement*>(state.element);
+                    if (canvasElement) {
+                        canvasElement->setX(state.originalPosition.x() + deltaX);
+                        canvasElement->setY(state.originalPosition.y() + deltaY);
+                    }
+                }
             }
         }
     }
@@ -285,6 +323,7 @@ void CanvasController::updateDrag(qreal x, qreal y)
 void CanvasController::endDrag()
 {
     m_isDragging = false;
+    emit isDraggingChanged();
     m_dragElement = nullptr;
     m_draggedElements.clear();
     m_hasDraggedMinDistance = false;
@@ -311,8 +350,12 @@ void CanvasController::selectElementsInRect(const QRectF &rect)
             }
         }
         
-        if (rect.intersects(element->rect())) {
-            elementsToSelect.append(element);
+        // Only visual elements can be selected by rectangle
+        if (element->isVisual()) {
+            CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+            if (canvasElement && rect.intersects(canvasElement->rect())) {
+                elementsToSelect.append(element);
+            }
         }
     }
     
@@ -515,25 +558,31 @@ void CanvasController::createEdge(const QString &sourceNodeId, const QString &ta
         }
         
         // Calculate connection points based on port indices
-        qreal sourceX, sourceY, targetX, targetY;
+        qreal sourceX = 0, sourceY = 0, targetX = 0, targetY = 0;
         
-        // Source point calculation
-        if (sourceHandleType == "right") {
-            sourceX = sourceNode->x() + sourceNode->width();
-        } else {
-            sourceX = sourceNode->x();
-        }
-        // Calculate Y based on port index (title height + row offset)
-        sourceY = sourceNode->y() + 60 + 15 + (sourcePortIndex * 40);
+        // Cast to CanvasElement to access position
+        CanvasElement* sourceCanvas = qobject_cast<CanvasElement*>(sourceNode);
+        CanvasElement* targetCanvas = qobject_cast<CanvasElement*>(targetNode);
         
-        // Target point calculation  
-        if (targetHandleType == "left") {
-            targetX = targetNode->x();
-        } else {
-            targetX = targetNode->x() + targetNode->width();
+        if (sourceCanvas && targetCanvas) {
+            // Source point calculation
+            if (sourceHandleType == "right") {
+                sourceX = sourceCanvas->x() + sourceCanvas->width();
+            } else {
+                sourceX = sourceCanvas->x();
+            }
+            // Calculate Y based on port index (title height + row offset)
+            sourceY = sourceCanvas->y() + 60 + 15 + (sourcePortIndex * 40);
+            
+            // Target point calculation  
+            if (targetHandleType == "left") {
+                targetX = targetCanvas->x();
+            } else {
+                targetX = targetCanvas->x() + targetCanvas->width();
+            }
+            // Calculate Y based on port index
+            targetY = targetCanvas->y() + 60 + 15 + (targetPortIndex * 40);
         }
-        // Calculate Y based on port index
-        targetY = targetNode->y() + 60 + 15 + (targetPortIndex * 40);
         
         edge->setSourcePoint(QPointF(sourceX, sourceY));
         edge->setTargetPoint(QPointF(targetX, targetY));

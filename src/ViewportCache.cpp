@@ -1,5 +1,6 @@
 #include "ViewportCache.h"
 #include "Element.h"
+#include "CanvasElement.h"
 #include <QDebug>
 
 ViewportCache::ViewportCache(QObject *parent)
@@ -97,15 +98,30 @@ void ViewportCache::updateElementVisibility(const QVector<Element*> &elements) {
     for (Element *element : elements) {
         if (!element) continue;
         
-        QRectF elementBounds(element->x(), element->y(), element->width(), element->height());
-        bool isVisible = elementBounds.intersects(expandedViewport);
-        
-        ElementVisibility vis;
-        vis.elementId = element->getId();
-        vis.isVisible = isVisible;
-        vis.clippedBounds = isVisible ? elementBounds.intersected(m_viewportBounds) : QRectF();
-        
-        m_elementVisibility[element->getId()] = vis;
+        // Only calculate visibility for visual elements
+        if (element->isVisual()) {
+            CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+            if (canvasElement) {
+                QRectF elementBounds(canvasElement->x(), canvasElement->y(), 
+                                     canvasElement->width(), canvasElement->height());
+                bool isVisible = elementBounds.intersects(expandedViewport);
+                
+                ElementVisibility vis;
+                vis.elementId = element->getId();
+                vis.isVisible = isVisible;
+                vis.clippedBounds = isVisible ? elementBounds.intersected(m_viewportBounds) : QRectF();
+                
+                m_elementVisibility[element->getId()] = vis;
+            }
+        } else {
+            // Non-visual elements are never visible
+            ElementVisibility vis;
+            vis.elementId = element->getId();
+            vis.isVisible = false;
+            vis.clippedBounds = QRectF();
+            
+            m_elementVisibility[element->getId()] = vis;
+        }
     }
     
     emit visibilityChanged();

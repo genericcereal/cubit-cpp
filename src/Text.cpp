@@ -1,7 +1,7 @@
 #include "Text.h"
 
 Text::Text(const QString &id, QObject *parent)
-    : Element(TextType, id, parent)
+    : CanvasElement(TextType, id, parent)
     , m_text("Text")
     , m_color(Qt::black)
 {

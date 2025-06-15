@@ -11,6 +11,7 @@ CONFIG += debug_and_release
 SOURCES += \
     src/main.cpp \
     src/Element.cpp \
+    src/CanvasElement.cpp \
     src/Frame.cpp \
     src/Text.cpp \
     src/Html.cpp \
@@ -24,6 +25,7 @@ SOURCES += \
 
 HEADERS += \
     src/Element.h \
+    src/CanvasElement.h \
     src/Frame.h \
     src/Text.h \
     src/Html.h \

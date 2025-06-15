@@ -9,6 +9,7 @@ class CanvasController : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString mode READ mode WRITE setMode NOTIFY modeChanged)
     Q_PROPERTY(QString canvasType READ canvasType WRITE setCanvasType NOTIFY canvasTypeChanged)
+    Q_PROPERTY(bool isDragging READ isDragging NOTIFY isDraggingChanged)
     
 public:
     explicit CanvasController(QObject *parent = nullptr);
@@ -20,6 +21,9 @@ public:
     // Canvas type management
     QString canvasType() const { return m_canvasType; }
     Q_INVOKABLE void setCanvasType(const QString &type);
+    
+    // Drag state
+    bool isDragging() const { return m_isDragging; }
     
     // Element model and selection manager
     Q_INVOKABLE void setElementModel(ElementModel *model) { m_elementModel = model; }
@@ -56,6 +60,7 @@ public slots:
 signals:
     void modeChanged();
     void canvasTypeChanged();
+    void isDraggingChanged();
     void elementCreated(Element *element);
     
 private:

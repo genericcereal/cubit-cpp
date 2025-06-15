@@ -127,8 +127,8 @@ Item {
         }
         
         onDragMoved: (pt) => {
-            // Start selection box if in select mode and not over an element
-            if (controller && controller.mode === "select" && !selectionBoxHandler.active && inputHandler.isDragging()) {
+            // Start selection box if in select mode and not already dragging an element
+            if (controller && controller.mode === "select" && !selectionBoxHandler.active && inputHandler.isDragging() && !controller.isDragging) {
                 var element = controller.hitTest(dragStartPoint.x, dragStartPoint.y)
                 if (!element) {
                     selectionBoxHandler.startSelection(dragStartPoint)

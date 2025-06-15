@@ -1,5 +1,6 @@
 #include "ElementModel.h"
 #include "Element.h"
+#include "CanvasElement.h"
 #include "UniqueIdGenerator.h"
 
 ElementModel::ElementModel(QObject *parent)
@@ -35,13 +36,29 @@ QVariant ElementModel::data(const QModelIndex &index, int role) const
     case NameRole:
         return element->getName();
     case XRole:
-        return element->x();
+        if (element->isVisual()) {
+            CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+            return canvasElement ? canvasElement->x() : 0.0;
+        }
+        return 0.0;
     case YRole:
-        return element->y();
+        if (element->isVisual()) {
+            CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+            return canvasElement ? canvasElement->y() : 0.0;
+        }
+        return 0.0;
     case WidthRole:
-        return element->width();
+        if (element->isVisual()) {
+            CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+            return canvasElement ? canvasElement->width() : 0.0;
+        }
+        return 0.0;
     case HeightRole:
-        return element->height();
+        if (element->isVisual()) {
+            CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+            return canvasElement ? canvasElement->height() : 0.0;
+        }
+        return 0.0;
     case ParentIdRole:
         return element->getParentElementId();
     case SelectedRole:

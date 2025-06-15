@@ -4,6 +4,7 @@
 #include <QtWebEngineQuick>
 
 #include "Element.h"
+#include "CanvasElement.h"
 #include "Frame.h"
 #include "Text.h"
 #include "Html.h"
@@ -32,6 +33,7 @@ int main(int argc, char *argv[])
 
     // Register C++ types with QML
     qmlRegisterUncreatableType<Element>("Cubit", 1, 0, "Element", "Element is an abstract base class");
+    qmlRegisterUncreatableType<CanvasElement>("Cubit", 1, 0, "CanvasElement", "CanvasElement is an abstract base class");
     qmlRegisterType<Frame>("Cubit", 1, 0, "Frame");
     qmlRegisterType<Text>("Cubit", 1, 0, "TextElement");  // Rename to avoid conflict with QML Text
     qmlRegisterType<Html>("Cubit", 1, 0, "Html");

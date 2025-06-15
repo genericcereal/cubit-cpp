@@ -13,7 +13,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 20,
+                        "index": 21,
                         "name": "setMode",
                         "returnType": "void"
                     },
@@ -25,7 +25,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 21,
+                        "index": 22,
                         "name": "setCanvasType",
                         "returnType": "void"
                     },
@@ -37,7 +37,7 @@
                                 "type": "ElementModel*"
                             }
                         ],
-                        "index": 22,
+                        "index": 23,
                         "name": "setElementModel",
                         "returnType": "void"
                     },
@@ -49,7 +49,7 @@
                                 "type": "SelectionManager*"
                             }
                         ],
-                        "index": 23,
+                        "index": 24,
                         "name": "setSelectionManager",
                         "returnType": "void"
                     },
@@ -65,7 +65,7 @@
                                 "type": "qreal"
                             }
                         ],
-                        "index": 24,
+                        "index": 25,
                         "name": "hitTest",
                         "returnType": "Element*"
                     }
@@ -101,6 +101,20 @@
                         "type": "QString",
                         "user": false,
                         "write": "setCanvasType"
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 2,
+                        "name": "isDragging",
+                        "notify": "isDraggingChanged",
+                        "read": "isDragging",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "bool",
+                        "user": false
                     }
                 ],
                 "qualifiedClassName": "CanvasController",
@@ -119,13 +133,19 @@
                     },
                     {
                         "access": "public",
+                        "index": 2,
+                        "name": "isDraggingChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
                         "arguments": [
                             {
                                 "name": "element",
                                 "type": "Element*"
                             }
                         ],
-                        "index": 2,
+                        "index": 3,
                         "name": "elementCreated",
                         "returnType": "void"
                     }
@@ -143,7 +163,7 @@
                                 "type": "qreal"
                             }
                         ],
-                        "index": 3,
+                        "index": 4,
                         "name": "handleMousePress",
                         "returnType": "void"
                     },
@@ -159,7 +179,7 @@
                                 "type": "qreal"
                             }
                         ],
-                        "index": 4,
+                        "index": 5,
                         "name": "handleMouseMove",
                         "returnType": "void"
                     },
@@ -175,7 +195,7 @@
                                 "type": "qreal"
                             }
                         ],
-                        "index": 5,
+                        "index": 6,
                         "name": "handleMouseRelease",
                         "returnType": "void"
                     },
@@ -203,7 +223,7 @@
                                 "type": "qreal"
                             }
                         ],
-                        "index": 6,
+                        "index": 7,
                         "name": "createElement",
                         "returnType": "void"
                     },
@@ -227,7 +247,7 @@
                                 "type": "qreal"
                             }
                         ],
-                        "index": 7,
+                        "index": 8,
                         "isCloned": true,
                         "name": "createElement",
                         "returnType": "void"
@@ -248,7 +268,7 @@
                                 "type": "qreal"
                             }
                         ],
-                        "index": 8,
+                        "index": 9,
                         "isCloned": true,
                         "name": "createElement",
                         "returnType": "void"
@@ -273,7 +293,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 9,
+                        "index": 10,
                         "name": "createNode",
                         "returnType": "void"
                     },
@@ -293,7 +313,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 10,
+                        "index": 11,
                         "isCloned": true,
                         "name": "createNode",
                         "returnType": "void"
@@ -310,7 +330,7 @@
                                 "type": "qreal"
                             }
                         ],
-                        "index": 11,
+                        "index": 12,
                         "isCloned": true,
                         "name": "createNode",
                         "returnType": "void"
@@ -343,7 +363,7 @@
                                 "type": "int"
                             }
                         ],
-                        "index": 12,
+                        "index": 13,
                         "name": "createEdge",
                         "returnType": "void"
                     },
@@ -367,7 +387,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 13,
+                        "index": 14,
                         "name": "createEdgeByPortId",
                         "returnType": "void"
                     },
@@ -379,7 +399,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 14,
+                        "index": 15,
                         "name": "createNodeFromJson",
                         "returnType": "QString"
                     },
@@ -391,7 +411,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 15,
+                        "index": 16,
                         "name": "createNodesFromJson",
                         "returnType": "void"
                     },
@@ -403,7 +423,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 16,
+                        "index": 17,
                         "name": "createGraphFromJson",
                         "returnType": "void"
                     },
@@ -415,19 +435,19 @@
                                 "type": "QRectF"
                             }
                         ],
-                        "index": 17,
+                        "index": 18,
                         "name": "selectElementsInRect",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 18,
+                        "index": 19,
                         "name": "selectAll",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 19,
+                        "index": 20,
                         "name": "deleteSelectedElements",
                         "returnType": "void"
                     }
@@ -441,6 +461,118 @@
             }
         ],
         "inputFile": "CanvasController.h",
+        "outputRevision": 69
+    },
+    {
+        "classes": [
+            {
+                "className": "CanvasElement",
+                "lineNumber": 7,
+                "object": true,
+                "properties": [
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 0,
+                        "name": "x",
+                        "notify": "xChanged",
+                        "read": "x",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "qreal",
+                        "user": false,
+                        "write": "setX"
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 1,
+                        "name": "y",
+                        "notify": "yChanged",
+                        "read": "y",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "qreal",
+                        "user": false,
+                        "write": "setY"
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 2,
+                        "name": "width",
+                        "notify": "widthChanged",
+                        "read": "width",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "qreal",
+                        "user": false,
+                        "write": "setWidth"
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 3,
+                        "name": "height",
+                        "notify": "heightChanged",
+                        "read": "height",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "qreal",
+                        "user": false,
+                        "write": "setHeight"
+                    }
+                ],
+                "qualifiedClassName": "CanvasElement",
+                "signals": [
+                    {
+                        "access": "public",
+                        "index": 0,
+                        "name": "xChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 1,
+                        "name": "yChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 2,
+                        "name": "widthChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 3,
+                        "name": "heightChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 4,
+                        "name": "geometryChanged",
+                        "returnType": "void"
+                    }
+                ],
+                "superClasses": [
+                    {
+                        "access": "public",
+                        "name": "Element"
+                    }
+                ]
+            }
+        ],
+        "inputFile": "CanvasElement.h",
         "outputRevision": 69
     },
     {
@@ -770,7 +902,7 @@
                 "superClasses": [
                     {
                         "access": "public",
-                        "name": "Element"
+                        "name": "CanvasElement"
                     }
                 ]
             }
@@ -797,7 +929,7 @@
                         ]
                     }
                 ],
-                "lineNumber": 8,
+                "lineNumber": 5,
                 "object": true,
                 "properties": [
                     {
@@ -846,66 +978,6 @@
                         "designable": true,
                         "final": false,
                         "index": 3,
-                        "name": "x",
-                        "notify": "xChanged",
-                        "read": "x",
-                        "required": false,
-                        "scriptable": true,
-                        "stored": true,
-                        "type": "qreal",
-                        "user": false,
-                        "write": "setX"
-                    },
-                    {
-                        "constant": false,
-                        "designable": true,
-                        "final": false,
-                        "index": 4,
-                        "name": "y",
-                        "notify": "yChanged",
-                        "read": "y",
-                        "required": false,
-                        "scriptable": true,
-                        "stored": true,
-                        "type": "qreal",
-                        "user": false,
-                        "write": "setY"
-                    },
-                    {
-                        "constant": false,
-                        "designable": true,
-                        "final": false,
-                        "index": 5,
-                        "name": "width",
-                        "notify": "widthChanged",
-                        "read": "width",
-                        "required": false,
-                        "scriptable": true,
-                        "stored": true,
-                        "type": "qreal",
-                        "user": false,
-                        "write": "setWidth"
-                    },
-                    {
-                        "constant": false,
-                        "designable": true,
-                        "final": false,
-                        "index": 6,
-                        "name": "height",
-                        "notify": "heightChanged",
-                        "read": "height",
-                        "required": false,
-                        "scriptable": true,
-                        "stored": true,
-                        "type": "qreal",
-                        "user": false,
-                        "write": "setHeight"
-                    },
-                    {
-                        "constant": false,
-                        "designable": true,
-                        "final": false,
-                        "index": 7,
                         "name": "parentId",
                         "notify": "parentIdChanged",
                         "read": "getParentElementId",
@@ -920,7 +992,7 @@
                         "constant": false,
                         "designable": true,
                         "final": false,
-                        "index": 8,
+                        "index": 4,
                         "name": "selected",
                         "notify": "selectedChanged",
                         "read": "isSelected",
@@ -943,49 +1015,19 @@
                     {
                         "access": "public",
                         "index": 1,
-                        "name": "xChanged",
-                        "returnType": "void"
-                    },
-                    {
-                        "access": "public",
-                        "index": 2,
-                        "name": "yChanged",
-                        "returnType": "void"
-                    },
-                    {
-                        "access": "public",
-                        "index": 3,
-                        "name": "widthChanged",
-                        "returnType": "void"
-                    },
-                    {
-                        "access": "public",
-                        "index": 4,
-                        "name": "heightChanged",
-                        "returnType": "void"
-                    },
-                    {
-                        "access": "public",
-                        "index": 5,
                         "name": "parentIdChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 6,
+                        "index": 2,
                         "name": "selectedChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 7,
+                        "index": 3,
                         "name": "elementChanged",
-                        "returnType": "void"
-                    },
-                    {
-                        "access": "public",
-                        "index": 8,
-                        "name": "geometryChanged",
                         "returnType": "void"
                     }
                 ],
@@ -1260,7 +1302,7 @@
                 "superClasses": [
                     {
                         "access": "public",
-                        "name": "Element"
+                        "name": "CanvasElement"
                     }
                 ]
             }
@@ -1324,7 +1366,7 @@
                 "superClasses": [
                     {
                         "access": "public",
-                        "name": "Element"
+                        "name": "CanvasElement"
                     }
                 ]
             }
@@ -1499,7 +1541,7 @@
                 "superClasses": [
                     {
                         "access": "public",
-                        "name": "Element"
+                        "name": "CanvasElement"
                     }
                 ]
             }
@@ -1823,7 +1865,7 @@
                 "superClasses": [
                     {
                         "access": "public",
-                        "name": "Element"
+                        "name": "CanvasElement"
                     }
                 ]
             }

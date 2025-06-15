@@ -1,5 +1,6 @@
 #include "SelectionManager.h"
 #include "Element.h"
+#include "CanvasElement.h"
 #include <limits>
 #include <QDebug>
 
@@ -67,10 +68,21 @@ void SelectionManager::selectOnly(Element *element)
     updateElementSelection(element, true);
     
     // Reset bounding box to this single element
-    m_boundingX = element->x();
-    m_boundingY = element->y();
-    m_boundingWidth = element->width();
-    m_boundingHeight = element->height();
+    if (element->isVisual()) {
+        CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+        if (canvasElement) {
+            m_boundingX = canvasElement->x();
+            m_boundingY = canvasElement->y();
+            m_boundingWidth = canvasElement->width();
+            m_boundingHeight = canvasElement->height();
+        }
+    } else {
+        // Non-visual elements don't affect bounding box
+        m_boundingX = 0;
+        m_boundingY = 0;
+        m_boundingWidth = 0;
+        m_boundingHeight = 0;
+    }
     
     emit elementSelected(element);
     emit selectionChanged();
@@ -90,16 +102,21 @@ void SelectionManager::selectAll(const QList<Element*> &elements)
             m_selectedElements.insert(element);  // O(1) with QSet
             updateElementSelection(element, true);
             
-            if (firstElement) {
-                // Initialize bounding box
-                m_boundingX = element->x();
-                m_boundingY = element->y();
-                m_boundingWidth = element->width();
-                m_boundingHeight = element->height();
-                firstElement = false;
-            } else {
-                // Expand bounding box incrementally
-                expandBoundingBox(element);
+            if (element->isVisual()) {
+                if (firstElement) {
+                    // Initialize bounding box
+                    CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+                    if (canvasElement) {
+                        m_boundingX = canvasElement->x();
+                        m_boundingY = canvasElement->y();
+                        m_boundingWidth = canvasElement->width();
+                        m_boundingHeight = canvasElement->height();
+                        firstElement = false;
+                    }
+                } else {
+                    // Expand bounding box incrementally
+                    expandBoundingBox(element);
+                }
             }
             
             emit elementSelected(element);
@@ -138,36 +155,49 @@ void SelectionManager::updateElementSelection(Element *element, bool selected)
         
         if (selected) {
             // Connect to geometry changes when selected - single connection with UniqueConnection flag
-            connect(element, &Element::geometryChanged, 
-                    this, &SelectionManager::onElementGeometryChanged,
-                    Qt::UniqueConnection);
+            if (element->isVisual()) {
+                CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+                if (canvasElement) {
+                    connect(canvasElement, &CanvasElement::geometryChanged, 
+                            this, &SelectionManager::onElementGeometryChanged,
+                            Qt::UniqueConnection);
+                }
+            }
         } else {
             // Disconnect when deselected
-            disconnect(element, &Element::geometryChanged, 
-                       this, &SelectionManager::onElementGeometryChanged);
+            if (element->isVisual()) {
+                CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+                if (canvasElement) {
+                    disconnect(canvasElement, &CanvasElement::geometryChanged, 
+                               this, &SelectionManager::onElementGeometryChanged);
+                }
+            }
         }
     }
 }
 
 void SelectionManager::expandBoundingBox(Element *element)
 {
-    if (!element) return;
+    if (!element || !element->isVisual()) return;
+    
+    CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+    if (!canvasElement) return;
     
     if (m_selectedElements.size() == 1) {
         // First element, initialize bounding box
-        m_boundingX = element->x();
-        m_boundingY = element->y();
-        m_boundingWidth = element->width();
-        m_boundingHeight = element->height();
+        m_boundingX = canvasElement->x();
+        m_boundingY = canvasElement->y();
+        m_boundingWidth = canvasElement->width();
+        m_boundingHeight = canvasElement->height();
     } else {
         // Expand existing bounding box
-        qreal elementRight = element->x() + element->width();
-        qreal elementBottom = element->y() + element->height();
+        qreal elementRight = canvasElement->x() + canvasElement->width();
+        qreal elementBottom = canvasElement->y() + canvasElement->height();
         qreal currentRight = m_boundingX + m_boundingWidth;
         qreal currentBottom = m_boundingY + m_boundingHeight;
         
-        qreal newLeft = qMin(m_boundingX, element->x());
-        qreal newTop = qMin(m_boundingY, element->y());
+        qreal newLeft = qMin(m_boundingX, canvasElement->x());
+        qreal newTop = qMin(m_boundingY, canvasElement->y());
         qreal newRight = qMax(currentRight, elementRight);
         qreal newBottom = qMax(currentBottom, elementBottom);
         
@@ -208,12 +238,15 @@ void SelectionManager::recalculateBoundingBox()
     qreal maxY = std::numeric_limits<qreal>::lowest();
     
     for (Element *element : m_selectedElements) {
-        if (!element) continue;
+        if (!element || !element->isVisual()) continue;
         
-        minX = qMin(minX, element->x());
-        minY = qMin(minY, element->y());
-        maxX = qMax(maxX, element->x() + element->width());
-        maxY = qMax(maxY, element->y() + element->height());
+        CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+        if (canvasElement) {
+            minX = qMin(minX, canvasElement->x());
+            minY = qMin(minY, canvasElement->y());
+            maxX = qMax(maxX, canvasElement->x() + canvasElement->width());
+            maxY = qMax(maxY, canvasElement->y() + canvasElement->height());
+        }
     }
     
     m_boundingX = minX;

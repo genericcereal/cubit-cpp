@@ -1,7 +1,7 @@
 #include "Html.h"
 
 Html::Html(const QString &id, QObject *parent)
-    : Element(HtmlType, id, parent)
+    : CanvasElement(HtmlType, id, parent)
 {
     setName(QString("Html %1").arg(id.right(4)));  // Use last 4 digits for display
 }
