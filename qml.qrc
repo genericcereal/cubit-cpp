@@ -31,6 +31,9 @@
         <file>qml/components/SelectionBoxHandler.qml</file>
         <file>qml/components/CreationDragHandler.qml</file>
         <file>qml/components/GridOverlay.qml</file>
+        <file>qml/components/ElementLayer.qml</file>
+        <file>qml/components/OverlayLayers.qml</file>
+        <file>qml/components/InputController.qml</file>
         <file>qml/panels/DetailPanel.qml</file>
         <file>qml/panels/ElementList.qml</file>
         <file>qml/panels/PropertiesPanel.qml</file>

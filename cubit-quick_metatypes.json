@@ -1873,5 +1873,271 @@
         ],
         "inputFile": "Variable.h",
         "outputRevision": 69
+    },
+    {
+        "classes": [
+            {
+                "className": "ViewportCache",
+                "lineNumber": 25,
+                "methods": [
+                    {
+                        "access": "public",
+                        "index": 2,
+                        "isConst": true,
+                        "name": "viewportBounds",
+                        "returnType": "QRectF"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "viewportX",
+                                "type": "qreal"
+                            },
+                            {
+                                "name": "viewportY",
+                                "type": "qreal"
+                            }
+                        ],
+                        "index": 3,
+                        "isConst": true,
+                        "name": "viewportToCanvas",
+                        "returnType": "QPointF"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "canvasX",
+                                "type": "qreal"
+                            },
+                            {
+                                "name": "canvasY",
+                                "type": "qreal"
+                            }
+                        ],
+                        "index": 4,
+                        "isConst": true,
+                        "name": "canvasToViewport",
+                        "returnType": "QPointF"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "canvasX",
+                                "type": "qreal"
+                            }
+                        ],
+                        "index": 5,
+                        "isConst": true,
+                        "name": "canvasXToRelative",
+                        "returnType": "qreal"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "canvasY",
+                                "type": "qreal"
+                            }
+                        ],
+                        "index": 6,
+                        "isConst": true,
+                        "name": "canvasYToRelative",
+                        "returnType": "qreal"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "elementId",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "x",
+                                "type": "qreal"
+                            },
+                            {
+                                "name": "y",
+                                "type": "qreal"
+                            },
+                            {
+                                "name": "width",
+                                "type": "qreal"
+                            },
+                            {
+                                "name": "height",
+                                "type": "qreal"
+                            }
+                        ],
+                        "index": 7,
+                        "isConst": true,
+                        "name": "isElementVisible",
+                        "returnType": "bool"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "elementId",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "x",
+                                "type": "qreal"
+                            },
+                            {
+                                "name": "y",
+                                "type": "qreal"
+                            },
+                            {
+                                "name": "width",
+                                "type": "qreal"
+                            },
+                            {
+                                "name": "height",
+                                "type": "qreal"
+                            }
+                        ],
+                        "index": 8,
+                        "isConst": true,
+                        "name": "getElementClippedBounds",
+                        "returnType": "QRectF"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "elementId",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 9,
+                        "isConst": true,
+                        "name": "getElementVisibility",
+                        "returnType": "bool"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "canvasX",
+                                "type": "qreal"
+                            },
+                            {
+                                "name": "canvasY",
+                                "type": "qreal"
+                            }
+                        ],
+                        "index": 10,
+                        "isConst": true,
+                        "name": "calculateContentPositionForCenter",
+                        "returnType": "QPointF"
+                    }
+                ],
+                "object": true,
+                "properties": [
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 0,
+                        "name": "contentX",
+                        "notify": "viewportChanged",
+                        "read": "contentX",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "qreal",
+                        "user": false,
+                        "write": "setContentX"
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 1,
+                        "name": "contentY",
+                        "notify": "viewportChanged",
+                        "read": "contentY",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "qreal",
+                        "user": false,
+                        "write": "setContentY"
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 2,
+                        "name": "viewportWidth",
+                        "notify": "viewportChanged",
+                        "read": "viewportWidth",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "qreal",
+                        "user": false,
+                        "write": "setViewportWidth"
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 3,
+                        "name": "viewportHeight",
+                        "notify": "viewportChanged",
+                        "read": "viewportHeight",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "qreal",
+                        "user": false,
+                        "write": "setViewportHeight"
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 4,
+                        "name": "zoomLevel",
+                        "notify": "viewportChanged",
+                        "read": "zoomLevel",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "qreal",
+                        "user": false,
+                        "write": "setZoomLevel"
+                    }
+                ],
+                "qualifiedClassName": "ViewportCache",
+                "signals": [
+                    {
+                        "access": "public",
+                        "index": 0,
+                        "name": "viewportChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 1,
+                        "name": "visibilityChanged",
+                        "returnType": "void"
+                    }
+                ],
+                "superClasses": [
+                    {
+                        "access": "public",
+                        "name": "QObject"
+                    }
+                ]
+            }
+        ],
+        "inputFile": "ViewportCache.h",
+        "outputRevision": 69
     }
 ]

@@ -460,3 +460,86 @@ All UI panels were already implemented in the qtquick directory. Updated all pan
 ### Other Notes
 
 - Only use the legacy folder when the user tells you to reference a previous implementation. Do not make edits to anything in the legacy folder.
+
+## Performance Optimizations
+
+### ViewportCache C++ Class
+
+To reduce JavaScript calculations in QML, we've implemented a `ViewportCache` class that handles expensive viewport calculations in C++:
+
+- **Cached viewport bounds**: Calculates viewport bounds once per frame update instead of per-element
+- **Efficient coordinate transformations**: Provides optimized methods for converting between viewport and canvas coordinates
+- **Element visibility management**: Determines which elements are visible in the viewport with a single calculation per frame
+- **Reduced property bindings**: QML components simply use cached values instead of recalculating
+
+### Component Architecture Refactoring
+
+**CanvasView.qml has been split into smaller, focused components:**
+
+1. **ElementLayer.qml**: Handles element rendering
+   - Uses `Instantiator` instead of `Repeater + Loader` for better performance
+   - Direct object creation without Loader overhead
+   - Implements efficient visibility culling using ViewportCache
+   - Tracks element lifecycle with `onObjectAdded`/`onObjectRemoved`
+
+2. **InputController.qml**: Centralizes all mouse/keyboard interactions
+   - Single MouseArea for all canvas interactions
+   - Uses cached coordinate transformations from ViewportCache
+   - Handles panning, zooming, selection, and element manipulation
+   - **Throttled event handling**: Mouse move and wheel events are throttled to 60fps (16ms intervals) to reduce excessive calculations
+   - Panning is not throttled to maintain smooth user experience
+
+3. **OverlayLayers.qml**: Manages overlay elements
+   - Creation preview rectangles
+   - Other viewport-based overlays
+
+### Touch Gesture Support
+
+We've implemented native touch gesture handling using Qt's built-in handlers:
+
+**PinchHandler:**
+- Provides smooth pinch-to-zoom functionality for touch devices
+- Maintains the pinch center point during zooming
+- Integrates with ViewportCache for efficient coordinate transformations
+- Automatically disables Flickable interaction during pinch gestures
+
+**WheelHandler:**
+- Replaces manual wheel event handling with Qt's native handler
+- Supports both mouse wheels and touchpad gestures
+- Throttled to 60fps for smooth performance
+- Ctrl+Wheel for zooming with stable zoom point
+
+**Native Panning:**
+- Removed custom middle-mouse button panning code
+- Flickable now handles both touch and mouse panning natively
+- Better integration with touch devices and smoother performance
+
+### Event Throttling
+
+To improve performance during interactions, we've implemented event throttling:
+
+**Throttled Events:**
+- **Mouse Position Changed**: Limited to 60fps (16ms intervals) in InputController
+- **Wheel Events**: Throttled to 60fps in WheelHandler to prevent excessive zoom calculations
+
+**Implementation Details:**
+- Uses QML Timer components with 16ms intervals
+- Batches pending events and processes them at the next timer tick
+- Reduces calls to `ViewportCache.viewportToCanvas()` from potentially hundreds per second to maximum 60fps
+
+### Instantiator vs Repeater + Loader
+
+We've replaced the `Repeater + Loader` pattern with `Instantiator` in ElementLayer.qml:
+
+**Benefits:**
+- No asynchronous loading delays
+- Direct component instantiation
+- Better memory management with explicit cleanup
+- More control over object lifecycle
+- Reduced overhead for large numbers of elements
+
+**Implementation:**
+- Uses `onObjectAdded`/`onObjectRemoved` for model-to-view wiring
+- Maintains an `elementItems` map for quick element lookup by ID
+- Proper cleanup in `Component.onDestruction`
+- Dynamic property bindings for position, size, and visibility updates
