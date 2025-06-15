@@ -17,6 +17,9 @@ Edge::Edge(const QString &id, QObject *parent)
     // Set element type
     elementType = Element::EdgeType;
     
+    // Set default name using last 4 digits of ID
+    setName(QString("Edge %1").arg(id.right(4)));
+    
     // Set object name for type identification
     setObjectName("Edge");
     

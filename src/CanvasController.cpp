@@ -622,7 +622,7 @@ QString CanvasController::createNodeFromJson(const QString &jsonData)
     // Extract required fields
     QString nodeId = nodeObj.value("id").toString();
     if (nodeId.isEmpty()) {
-        nodeId = UniqueIdGenerator::generateUuid();
+        nodeId = m_elementModel->generateId();
     }
     
     QString name = nodeObj.value("name").toString("Node");

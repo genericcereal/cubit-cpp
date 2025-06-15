@@ -57,65 +57,98 @@ Rectangle {
             }
         }
         
-        // Separator
-        Rectangle {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 1
-            color: "#e0e0e0"
-            antialiasing: true
-        }
         
-        // Header
-        Rectangle {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 40
-            color: "#f0f0f0"
-            antialiasing: true
-            
-            Label {
-                anchors.centerIn: parent
-                text: "Elements"
-                font.pixelSize: 16
-                font.weight: Font.Medium
-            }
-        }
-        
-        // Separator
-        Rectangle {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 1
-            color: "#e0e0e0"
-            antialiasing: true
-        }
-        
-        // Content area with tabs
-        TabBar {
-            id: tabBar
-            Layout.fillWidth: true
-            
-            TabButton {
-                text: "Elements"
-            }
-            
-            TabButton {
-                text: "Properties"
-            }
-        }
-        
-        StackLayout {
+        // Content area with splitter
+        SplitView {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            currentIndex: tabBar.currentIndex
+            orientation: Qt.Vertical
             
-            // Elements tab
-            ElementList {
-                elementModel: root.elementModel
-                selectionManager: root.selectionManager
+            // Elements section
+            Rectangle {
+                SplitView.fillWidth: true
+                SplitView.preferredHeight: parent.height * 0.5
+                SplitView.minimumHeight: 100
+                color: "#ffffff"
+                
+                ColumnLayout {
+                    anchors.fill: parent
+                    spacing: 0
+                    
+                    // Elements header
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 30
+                        color: "#f8f8f8"
+                        
+                        Label {
+                            anchors.left: parent.left
+                            anchors.leftMargin: 10
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "Elements"
+                            font.pixelSize: 14
+                            font.weight: Font.Medium
+                        }
+                    }
+                    
+                    // Separator
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 1
+                        color: "#e0e0e0"
+                    }
+                    
+                    // Elements list
+                    ElementList {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        elementModel: root.elementModel
+                        selectionManager: root.selectionManager
+                    }
+                }
             }
             
-            // Properties tab
-            PropertiesPanel {
-                selectionManager: root.selectionManager
+            // Properties section
+            Rectangle {
+                SplitView.fillWidth: true
+                SplitView.fillHeight: true
+                SplitView.minimumHeight: 100
+                color: "#ffffff"
+                
+                ColumnLayout {
+                    anchors.fill: parent
+                    spacing: 0
+                    
+                    // Properties header
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 30
+                        color: "#f8f8f8"
+                        
+                        Label {
+                            anchors.left: parent.left
+                            anchors.leftMargin: 10
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "Properties"
+                            font.pixelSize: 14
+                            font.weight: Font.Medium
+                        }
+                    }
+                    
+                    // Separator
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 1
+                        color: "#e0e0e0"
+                    }
+                    
+                    // Properties panel
+                    PropertiesPanel {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        selectionManager: root.selectionManager
+                    }
+                }
             }
         }
     }

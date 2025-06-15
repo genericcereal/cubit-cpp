@@ -15,7 +15,8 @@ ScrollView {
         
         delegate: Rectangle {
             width: listView.width
-            height: 40
+            height: visible ? 40 : 0
+            visible: model.elementType !== "Node" && model.elementType !== "Edge"
             color: model.selected ? "#e3f2fd" : (mouseArea.containsMouse ? "#f5f5f5" : "#ffffff")
             antialiasing: true
             

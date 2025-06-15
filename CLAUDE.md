@@ -619,3 +619,39 @@ Both `DesignCanvas.qml` and `ScriptCanvas.qml` follow this pattern:
 4. Focus on business logic rather than input handling
 
 This architecture significantly reduces code duplication and makes the canvas implementations much more maintainable.
+
+## Node System
+
+### Node Types
+
+The script canvas supports three types of nodes, each with distinct visual and functional characteristics:
+
+1. **Event Nodes** (Red header)
+   - Trigger actions in response to events
+   - Examples: User Input, On Load
+   - Typically have output flow ports to initiate execution chains
+
+2. **Operation Nodes** (Blue header)
+   - Perform actions or transformations
+   - Examples: HTTP Request, Math Operation, Function, Display Output
+   - Usually have both input and output ports for data flow
+
+3. **Param Nodes** (Black header)
+   - Control flow or store/manage data
+   - Examples: Variable, Condition, Loop
+   - May have special behavior like conditional branching or iteration
+
+### Node Header Component
+
+All nodes display a colored header (`NodeHeader.qml`) that:
+- Shows the node name with left-aligned text
+- Uses a background color based on node type (red/blue/black)
+- Has a fixed height of 30px with 12px text
+- White text color for contrast on all header types
+
+### Node Type Property
+
+- The `nodeType` property is read-only and set during node creation
+- Node types cannot be changed after creation
+- The type is specified in the NodeCatalog and passed through the creation pipeline
+- Default type is "Operation" if not specified

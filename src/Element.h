@@ -28,10 +28,10 @@ public:
     QString getId() const { return elementId; }
     ElementType getType() const { return elementType; }
     QString getTypeName() const;
-    virtual QString getName() const { return name; }
+    QString getName() const { return name; }
     
     // Property setters
-    virtual void setName(const QString &newName);
+    void setName(const QString &newName);
     
     // Parent management
     void setParentElementId(const QString &parentId);
@@ -54,7 +54,7 @@ signals:
 protected:
     ElementType elementType;
     QString elementId;
-    QString parentElementId;
     QString name;
+    QString parentElementId;
     bool selected;
 };
