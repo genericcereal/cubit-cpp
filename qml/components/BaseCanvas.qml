@@ -107,6 +107,7 @@ Item {
         anchors.fill: parent
         acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
         hoverEnabled: true
+        propagateComposedEvents: true
         
         // Convert mouse position to canvas coordinates
         function toCanvasCoords(mouseX, mouseY) {

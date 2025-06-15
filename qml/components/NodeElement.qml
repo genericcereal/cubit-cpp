@@ -56,8 +56,8 @@ Item {
     // Hover state - check if this element is hovered in the canvas
     property bool elementHovered: canvas && canvas.hoveredElement === element
     
-    // Track the currently active ComboBox
-    property var activeComboBox: null
+    // Track the currently active ComboBox (no longer needed with PortInput)
+    // property var activeComboBox: null
     
     // Force re-evaluation of bindings when model changes
     property int modelUpdateCount: 0
@@ -84,21 +84,27 @@ Item {
                 clickPoint.y >= element.y && clickPoint.y <= element.y + element.height) {
                 // Node was clicked, check if it's on a text input
                 root.handleClick(clickPoint)
-            } else if (root.activeComboBox) {
-                // Click outside of node, close active ComboBox
-                root.activeComboBox.popup.close()
-                root.activeComboBox = null
-                console.log("Closed active ComboBox due to click outside node")
+            } else {
+                // Click outside of node - clear focus from any active inputs
+                root.forceActiveFocus()  // This will take focus away from any child components
+                
+                // Also close any open ComboBox popups in PortInput components
+                for (var i = 0; i < targetsColumn.children.length; i++) {
+                    var targetItem = targetsColumn.children[i]
+                    if (targetItem && targetItem.children.length > 1) {
+                        var portInput = targetItem.children[1]
+                        if (portInput && typeof portInput.blur === 'function') {
+                            portInput.blur()
+                        }
+                    }
+                }
+                
+                console.log("Click outside node - cleared focus")
             }
         }
         
         function onCanvasDragStarted() {
-            // Close active ComboBox when dragging starts
-            if (root.activeComboBox) {
-                root.activeComboBox.popup.close()
-                root.activeComboBox = null
-                console.log("Closed active ComboBox due to drag start")
-            }
+            // PortInput components will handle their own state
         }
     }
     
@@ -120,7 +126,7 @@ Item {
         var localX = clickPoint.x - element.x
         var localY = clickPoint.y - element.y
         
-        var clickedOnComboBox = false
+        console.log("Node clicked at local position:", localX, localY)
         
         // Check targets column
         var titleAndMargins = titleText.height + titleText.anchors.topMargin + columnsContainer.anchors.topMargin
@@ -138,34 +144,21 @@ Item {
                 if (targetIndex >= 0 && targetIndex < targetsColumn.children.length) {
                     var targetItem = targetsColumn.children[targetIndex]
                     if (targetItem && targetItem.children.length > 1) {
-                        var comboBox = targetItem.children[1] // ComboBox is the second child
-                        if (comboBox && comboBox.visible) {
-                            // Check if click is on the combo box
-                            var comboX = 25 // handle width + margin
-                            var comboWidth = 80
+                        var portInput = targetItem.children[1] // PortInput is the second child
+                        if (portInput && portInput.visible) {
+                            // Check if click is on the port input
+                            var inputX = 25 // handle width + margin
+                            var inputWidth = 80
                             
-                            if (columnsLocalX >= comboX && columnsLocalX <= comboX + comboWidth) {
-                                // Close any previously active combo box
-                                if (activeComboBox && activeComboBox !== comboBox) {
-                                    activeComboBox.popup.close()
-                                }
-                                
-                                comboBox.popup.open()
-                                activeComboBox = comboBox
-                                clickedOnComboBox = true
-                                console.log("Opened ComboBox for target port:", targetItem.targetPortIndex)
+                            if (columnsLocalX >= inputX && columnsLocalX <= inputX + inputWidth) {
+                                // Call the handleClick method on the PortInput
+                                portInput.handleClick()
+                                console.log("Clicked on port input for target port:", targetItem.targetPortIndex)
                             }
                         }
                     }
                 }
             }
-        }
-        
-        // If we didn't click on a combo box, close the active one
-        if (!clickedOnComboBox && activeComboBox) {
-            activeComboBox.popup.close()
-            activeComboBox = null
-            console.log("Closed active ComboBox")
         }
     }
     
@@ -304,62 +297,23 @@ Item {
                             }
                         }
                         
-                        // Variable input or label
-                        ComboBox {
-                            id: targetComboBox
+                        // Port input using PortInput component
+                        PortInput {
+                            id: targetInput
                             visible: hasTarget && targetType !== "Flow" && !hasIncomingEdge
                             anchors.left: targetHandle.right
                             anchors.leftMargin: 5
                             anchors.verticalCenter: parent.verticalCenter
-                            width: 80
-                            height: 24
-                            font.pixelSize: 11
-                            currentIndex: 0
-                            model: ["Option 1", "Option 2", "Option 3", "Option 4", "Option 5"]
                             
+                            portType: targetType
+                            portIndex: targetPortIndex
+                            hasIncomingEdge: hasIncomingEdge
+                            isHovered: comboBoxHovered
+                            canvas: root.canvas
                             
-                            background: Rectangle {
-                                color: comboBoxHovered ? "#E8F4FD" : "#F5F5F5"
-                                border.color: targetComboBox.activeFocus ? "#2196F3" : (comboBoxHovered ? "#90CAF9" : "#CCCCCC")
-                                border.width: comboBoxHovered ? 2 : 1
-                                radius: 3
-                                
-                                Behavior on color {
-                                    ColorAnimation { duration: 150 }
-                                }
-                                Behavior on border.color {
-                                    ColorAnimation { duration: 150 }
-                                }
-                            }
-                            
-                            // Custom popup that also scales
-                            popup: Popup {
-                                y: targetComboBox.height
-                                width: targetComboBox.width
-                                implicitHeight: contentItem.implicitHeight
-                                padding: 1
-                                
-                                // Apply zoom scale to match the canvas (not inverse)
-                                scale: root.canvas ? root.canvas.zoomLevel : 1.0
-                                transformOrigin: Item.TopLeft
-                                
-                                contentItem: ListView {
-                                    clip: true
-                                    implicitHeight: contentHeight
-                                    model: targetComboBox.popup.visible ? targetComboBox.delegateModel : null
-                                    currentIndex: targetComboBox.highlightedIndex
-                                    
-                                    ScrollIndicator.vertical: ScrollIndicator { }
-                                }
-                                
-                                background: Rectangle {
-                                    border.color: "#CCCCCC"
-                                    radius: 2
-                                }
-                            }
-                            
-                            onCurrentTextChanged: {
-                                console.log("Target input changed to:", currentText, "for port:", targetPortIndex)
+                            onPortValueChanged: function(newValue) {
+                                console.log("Target port", targetPortIndex, "value changed to:", newValue)
+                                // TODO: Connect this to the node's data model
                             }
                         }
                         
