@@ -3,7 +3,7 @@
 #include <QtMath>
 
 Edge::Edge(const QString &id, QObject *parent)
-    : CanvasElement(Element::EdgeType, id, parent)
+    : ScriptElement(id, parent)
     , m_sourcePortIndex(-1)
     , m_targetPortIndex(-1)
     , m_edgeColor("#94A3B8")  // Default slate color
@@ -14,6 +14,9 @@ Edge::Edge(const QString &id, QObject *parent)
     , m_sourcePortType("Flow")
     , m_targetPortType("Flow")
 {
+    // Set element type
+    elementType = Element::EdgeType;
+    
     // Set object name for type identification
     setObjectName("Edge");
     

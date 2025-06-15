@@ -1,12 +1,12 @@
 #pragma once
-#include "CanvasElement.h"
+#include "ScriptElement.h"
 #include <QColor>
 #include <QStringList>
 #include <QMap>
 #include <QVariantList>
 #include <QVariantMap>
 
-class Node : public CanvasElement {
+class Node : public ScriptElement {
     Q_OBJECT
     Q_PROPERTY(QString nodeTitle READ nodeTitle WRITE setNodeTitle NOTIFY nodeTitleChanged)
     Q_PROPERTY(QColor nodeColor READ nodeColor WRITE setNodeColor NOTIFY nodeColorChanged)

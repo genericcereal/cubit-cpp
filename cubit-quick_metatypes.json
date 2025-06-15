@@ -578,6 +578,24 @@
     {
         "classes": [
             {
+                "className": "DesignElement",
+                "lineNumber": 6,
+                "object": true,
+                "qualifiedClassName": "DesignElement",
+                "superClasses": [
+                    {
+                        "access": "public",
+                        "name": "CanvasElement"
+                    }
+                ]
+            }
+        ],
+        "inputFile": "DesignElement.h",
+        "outputRevision": 69
+    },
+    {
+        "classes": [
+            {
                 "className": "Edge",
                 "lineNumber": 6,
                 "object": true,
@@ -902,7 +920,7 @@
                 "superClasses": [
                     {
                         "access": "public",
-                        "name": "CanvasElement"
+                        "name": "ScriptElement"
                     }
                 ]
             }
@@ -1302,7 +1320,7 @@
                 "superClasses": [
                     {
                         "access": "public",
-                        "name": "CanvasElement"
+                        "name": "DesignElement"
                     }
                 ]
             }
@@ -1366,7 +1384,7 @@
                 "superClasses": [
                     {
                         "access": "public",
-                        "name": "CanvasElement"
+                        "name": "DesignElement"
                     }
                 ]
             }
@@ -1541,12 +1559,30 @@
                 "superClasses": [
                     {
                         "access": "public",
-                        "name": "CanvasElement"
+                        "name": "ScriptElement"
                     }
                 ]
             }
         ],
         "inputFile": "Node.h",
+        "outputRevision": 69
+    },
+    {
+        "classes": [
+            {
+                "className": "ScriptElement",
+                "lineNumber": 6,
+                "object": true,
+                "qualifiedClassName": "ScriptElement",
+                "superClasses": [
+                    {
+                        "access": "public",
+                        "name": "CanvasElement"
+                    }
+                ]
+            }
+        ],
+        "inputFile": "ScriptElement.h",
         "outputRevision": 69
     },
     {
@@ -1865,7 +1901,7 @@
                 "superClasses": [
                     {
                         "access": "public",
-                        "name": "CanvasElement"
+                        "name": "DesignElement"
                     }
                 ]
             }

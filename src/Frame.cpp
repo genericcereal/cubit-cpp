@@ -1,13 +1,16 @@
 #include "Frame.h"
 
 Frame::Frame(const QString &id, QObject *parent)
-    : CanvasElement(FrameType, id, parent)
+    : DesignElement(id, parent)
     , m_backgroundColor(Qt::white)
     , m_borderColor(Qt::black)
     , m_borderWidth(1)
     , m_borderRadius(0)
     , m_clipContent(true)
 {
+    // Set element type
+    elementType = Element::FrameType;
+    
     setName(QString("Frame %1").arg(id.right(4)));  // Use last 4 digits for display
 }
 

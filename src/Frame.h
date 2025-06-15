@@ -1,8 +1,8 @@
 #pragma once
-#include "CanvasElement.h"
+#include "DesignElement.h"
 #include <QColor>
 
-class Frame : public CanvasElement {
+class Frame : public DesignElement {
     Q_OBJECT
     Q_PROPERTY(QColor backgroundColor READ backgroundColor WRITE setBackgroundColor NOTIFY backgroundColorChanged)
     Q_PROPERTY(QColor borderColor READ borderColor WRITE setBorderColor NOTIFY borderColorChanged)

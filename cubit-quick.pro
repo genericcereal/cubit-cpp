@@ -12,6 +12,8 @@ SOURCES += \
     src/main.cpp \
     src/Element.cpp \
     src/CanvasElement.cpp \
+    src/DesignElement.cpp \
+    src/ScriptElement.cpp \
     src/Frame.cpp \
     src/Text.cpp \
     src/Html.cpp \
@@ -26,6 +28,8 @@ SOURCES += \
 HEADERS += \
     src/Element.h \
     src/CanvasElement.h \
+    src/DesignElement.h \
+    src/ScriptElement.h \
     src/Frame.h \
     src/Text.h \
     src/Html.h \

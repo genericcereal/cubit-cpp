@@ -577,10 +577,15 @@ BaseCanvas {
     
     // Create default nodes
     function createDefaultNodes() {
-        // Check if nodes already exist
-        if (elementModel && elementModel.rowCount() > 0) {
-            console.log("ScriptCanvas.createDefaultNodes: Nodes already exist, skipping creation")
-            return
+        // Check if nodes already exist (not just any elements)
+        if (elementModel) {
+            var elements = elementModel.getAllElements()
+            for (var i = 0; i < elements.length; i++) {
+                if (elements[i] && elements[i].objectName === "Node") {
+                    console.log("ScriptCanvas.createDefaultNodes: Nodes already exist, skipping creation")
+                    return
+                }
+            }
         }
         
         defaultNodesCreator.createDefaultNodes()
