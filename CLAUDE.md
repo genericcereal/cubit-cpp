@@ -655,3 +655,50 @@ All nodes display a colored header (`NodeHeader.qml`) that:
 - Node types cannot be changed after creation
 - The type is specified in the NodeCatalog and passed through the creation pipeline
 - Default type is "Operation" if not specified
+
+## Console Messages
+
+### ConsoleMessageRepository
+
+All console messages must be added to the centralized `ConsoleMessageRepository` singleton instead of being created inline. This ensures consistent message handling and logging across the application.
+
+**Usage in C++:**
+```cpp
+#include "ConsoleMessageRepository.h"
+
+// Add different types of messages
+ConsoleMessageRepository::instance()->addOutput("Operation completed");
+ConsoleMessageRepository::instance()->addError("Failed to load file");
+ConsoleMessageRepository::instance()->addWarning("Configuration not found");
+ConsoleMessageRepository::instance()->addInfo("Application started");
+ConsoleMessageRepository::instance()->addInput("user command");
+```
+
+**Usage in QML:**
+```qml
+import Cubit
+
+// Access the singleton
+ConsoleMessageRepository.addOutput("Message from QML")
+ConsoleMessageRepository.addError("Error from QML")
+```
+
+**Message Types:**
+- `Input`: User commands entered in the console
+- `Output`: General output messages
+- `Error`: Error messages (also logged to qCritical)
+- `Warning`: Warning messages (also logged to qWarning)
+- `Info`: Informational messages
+
+## Other instructions
+
+- Never create "mock" implementations. Don't create files for testing purposes with the intention of throwing them away later.
+- Eliminate all unused/stale methods, variables, etc. when you come across them. Don't leave unused code in the code base.
+- Always look for Qts helpers before implementing something bespoke. For example, use QWidget::mouseDoubleClickEvent instead of creating double clicks with timers.
+- DRY (Don't Repeat Yourself) code is incredibly important to this project. Where possible, modularize and re-use code. Point out redundancy and duplication when you come across it.
+- Always use Qt::UniqueConnection when connecting signals to prevent duplicate connections. Example:
+  ```cpp
+  connect(element, &Element::geometryChanged,
+          this, &SelectionManager::onElementGeometryChanged,
+          Qt::UniqueConnection);
+  ```
