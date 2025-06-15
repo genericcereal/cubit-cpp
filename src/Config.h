@@ -16,6 +16,12 @@ namespace Config {
     constexpr const char* NODE_START_COLOR = "#E6F3FF";         // Light blue for start node
     constexpr const char* NODE_PROCESS_COLOR = "#E6F3FF";       // Light blue for process node
     
+    // Node header colors by type
+    constexpr const char* NODE_HEADER_EVENT_COLOR = "#FF0000";      // Red for Event nodes
+    constexpr const char* NODE_HEADER_OPERATION_COLOR = "#0066FF";  // Blue for Operation nodes
+    constexpr const char* NODE_HEADER_PARAM_COLOR = "#000000";      // Black for Param nodes
+    constexpr const char* NODE_HEADER_TEXT_COLOR = "#FFFFFF";       // White text on headers
+    
     // Edge colors
     constexpr const char* EDGE_FLOW_COLOR = "#666666";          // Dark gray for flow edges
     constexpr const char* EDGE_FLOW_SELECTED_COLOR = "#2196F3"; // Blue for selected flow edges
@@ -46,6 +52,9 @@ namespace Config {
     // Node sizes
     constexpr int NODE_MIN_HEIGHT = 100;
     constexpr int NODE_BOTTOM_MARGIN = 10;
+    constexpr int NODE_HEADER_HEIGHT = 30;           // Height of node header
+    constexpr int NODE_HEADER_TEXT_SIZE = 12;        // Font size for node header text
+    constexpr int NODE_HEADER_PADDING = 8;           // Padding inside node header
     
     // Edge sizes
     constexpr int EDGE_FLOW_WIDTH = 3;              // Width for flow edges

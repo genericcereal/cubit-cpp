@@ -626,10 +626,12 @@ QString CanvasController::createNodeFromJson(const QString &jsonData)
     }
     
     QString name = nodeObj.value("name").toString("Node");
+    QString nodeType = nodeObj.value("type").toString("Operation");
     qreal x = nodeObj.value("x").toDouble(0);
     qreal y = nodeObj.value("y").toDouble(0);
     // Create the node
     Node *node = new Node(nodeId);
+    node->setNodeType(nodeType);
     node->setX(x);
     node->setY(y);
     node->setNodeTitle(name);

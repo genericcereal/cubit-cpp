@@ -16,6 +16,12 @@ QtObject {
     readonly property string nodeStartColor: "#E6F3FF"         // Light blue for start node
     readonly property string nodeProcessColor: "#E6F3FF"       // Light blue for process node
     
+    // Node header colors by type
+    readonly property string nodeHeaderEventColor: "#FF0000"      // Red for Event nodes
+    readonly property string nodeHeaderOperationColor: "#0066FF"  // Blue for Operation nodes
+    readonly property string nodeHeaderParamColor: "#000000"      // Black for Param nodes
+    readonly property string nodeHeaderTextColor: "#FFFFFF"       // White text on headers
+    
     // Edge colors
     readonly property string edgeFlowColor: "#666666"          // Dark gray for flow edges
     readonly property string edgeFlowSelectedColor: "#2196F3"  // Blue for selected flow edges
@@ -51,6 +57,9 @@ QtObject {
     // Node sizes
     readonly property int nodeMinHeight: 100
     readonly property int nodeBottomMargin: 10
+    readonly property int nodeHeaderHeight: 30           // Height of node header
+    readonly property int nodeHeaderTextSize: 12        // Font size for node header text
+    readonly property int nodeHeaderPadding: 8           // Padding inside node header
     
     // Edge sizes
     readonly property int edgeFlowWidth: 3              // Width for flow edges

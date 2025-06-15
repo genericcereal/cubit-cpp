@@ -27,7 +27,7 @@ Item {
         
         if (!nodeElement || !nodeElement.rowConfigurations) return 180
         
-        var titleHeight = 30  // Title text height estimate
+        var titleHeight = Config.nodeHeaderHeight  // Node header height from Config
         var topMargin = 10    // Title top margin
         var titleBottomMargin = 15  // Space between title and columns
         var containerBottomMargin = Config.nodeBottomMargin   // Bottom margin from Config
@@ -136,7 +136,7 @@ Item {
         console.log("  Click point:", clickPoint.x, clickPoint.y)
         
         // Check targets column
-        var titleAndMargins = titleText.height + titleText.anchors.topMargin + columnsContainer.anchors.topMargin
+        var titleAndMargins = nodeHeader.height + columnsContainer.anchors.topMargin
         
         // Check if click is within the columns area
         if (localY > titleAndMargins) {
@@ -177,8 +177,8 @@ Item {
         // Node-specific properties
         color: "#E6F3FF"  // Hardcoded light blue
         border.width: 2
-        border.color: "red"  // Red border for visibility
-        radius: 8
+        border.color: "#CCCCCC"  // Light gray border
+        radius: 0  // No radius for sharp corners to match header
         
         Component.onCompleted: {
             console.log("NodeElement Rectangle - color:", color)
@@ -187,22 +187,21 @@ Item {
             console.log("NodeElement Rectangle - opacity:", opacity)
         }
         
-        // Title header
-        Text {
-            id: titleText
+        // Node header
+        NodeHeader {
+            id: nodeHeader
             anchors.top: parent.top
-            anchors.horizontalCenter: parent.horizontalCenter
-            anchors.topMargin: 10
-            text: nodeElement ? nodeElement.nodeTitle : "Node"
-            color: "black"
-            font.pixelSize: 16
-            font.bold: true
+            anchors.left: parent.left
+            anchors.right: parent.right
+            nodeName: nodeElement ? nodeElement.nodeTitle : "Node"
+            nodeType: nodeElement && nodeElement.nodeType ? nodeElement.nodeType : "Operation"
+            z: 1  // Ensure header is above the node body
         }
         
         // Two column layout for targets and sources
         Row {
             id: columnsContainer
-            anchors.top: titleText.bottom
+            anchors.top: nodeHeader.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.margins: 10
@@ -255,7 +254,7 @@ Item {
                             if (!hasTarget || !root.elementHovered || !root.canvas) return false
                             
                             var localX = root.canvas.hoveredPoint.x - root.element.x - columnsContainer.anchors.leftMargin
-                            var localY = root.canvas.hoveredPoint.y - root.element.y - titleText.height - titleText.anchors.topMargin - columnsContainer.anchors.topMargin - y
+                            var localY = root.canvas.hoveredPoint.y - root.element.y - nodeHeader.height - columnsContainer.anchors.topMargin - y
                             
                             return localX >= 0 && localX <= 20 && 
                                    localY >= 5 && localY <= 25
@@ -267,7 +266,7 @@ Item {
                             if (!root.elementHovered || !root.canvas) return false
                             
                             var localX = root.canvas.hoveredPoint.x - root.element.x - columnsContainer.anchors.leftMargin
-                            var localY = root.canvas.hoveredPoint.y - root.element.y - titleText.height - titleText.anchors.topMargin - columnsContainer.anchors.topMargin - y
+                            var localY = root.canvas.hoveredPoint.y - root.element.y - nodeHeader.height - columnsContainer.anchors.topMargin - y
                             
                             var inputX = 25
                             var inputWidth = 80
@@ -365,7 +364,7 @@ Item {
                             if (!hasSource || !root.elementHovered || !root.canvas) return false
                             
                             var localX = root.canvas.hoveredPoint.x - root.element.x - columnsContainer.anchors.leftMargin - sourcesColumn.x
-                            var localY = root.canvas.hoveredPoint.y - root.element.y - titleText.height - titleText.anchors.topMargin - columnsContainer.anchors.topMargin - y
+                            var localY = root.canvas.hoveredPoint.y - root.element.y - nodeHeader.height - columnsContainer.anchors.topMargin - y
                             
                             var handleX = parent.width - 20
                             return localX >= handleX && localX <= parent.width && 
