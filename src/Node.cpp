@@ -14,6 +14,9 @@ Node::Node(const QString &id, QObject *parent)
     // Set object name for type identification
     setObjectName("Node");
     
+    // Set default name using last 4 digits of ID
+    setName(QString("Node %1").arg(id.right(4)));
+    
     // Set default size for nodes
     setWidth(200);
     setHeight(180);
