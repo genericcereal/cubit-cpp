@@ -36,6 +36,10 @@ public:
     // Override from Element
     bool isVisual() const override { return true; }
     
+    // Virtual methods to identify element category
+    virtual bool isDesignElement() const { return false; }
+    virtual bool isScriptElement() const { return false; }
+    
 signals:
     void xChanged();
     void yChanged();

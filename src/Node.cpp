@@ -3,11 +3,14 @@
 #include <QDebug>
 
 Node::Node(const QString &id, QObject *parent)
-    : CanvasElement(Element::NodeType, id, parent)
+    : ScriptElement(id, parent)
     , m_nodeTitle("Node")
     , m_nodeColor(Config::NODE_DEFAULT_COLOR)
     , m_isExecuting(false)
 {
+    // Set element type
+    elementType = Element::NodeType;
+    
     // Set object name for type identification
     setObjectName("Node");
     

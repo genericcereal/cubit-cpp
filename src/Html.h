@@ -1,7 +1,7 @@
 #pragma once
-#include "CanvasElement.h"
+#include "DesignElement.h"
 
-class Html : public CanvasElement {
+class Html : public DesignElement {
     Q_OBJECT
     Q_PROPERTY(QString html READ html WRITE setHtml NOTIFY htmlChanged)
     Q_PROPERTY(QString url READ url WRITE setUrl NOTIFY urlChanged)

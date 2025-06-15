@@ -1,10 +1,13 @@
 #include "Text.h"
 
 Text::Text(const QString &id, QObject *parent)
-    : CanvasElement(TextType, id, parent)
+    : DesignElement(id, parent)
     , m_text("Text")
     , m_color(Qt::black)
 {
+    // Set element type
+    elementType = Element::TextType;
+    
     setName(QString("Text %1").arg(id.right(4)));  // Use last 4 digits for display
 }
 

@@ -209,29 +209,40 @@ Element (base class)
     ├── Properties: x, y, width, height
     ├── isVisual() returns true
     ├── containsPoint() method for hit testing
+    ├── isDesignElement() returns false by default
+    ├── isScriptElement() returns false by default
     │
-    ├── Frame
-    │   └── Properties: backgroundColor, borderColor, borderWidth, borderRadius, clipContent
+    ├── DesignElement (design canvas elements)
+    │   ├── isDesignElement() returns true
+    │   │
+    │   ├── Frame
+    │   │   └── Properties: backgroundColor, borderColor, borderWidth, borderRadius, clipContent
+    │   │
+    │   ├── Text
+    │   │   └── Properties: text, font, color
+    │   │
+    │   └── Html
+    │       └── Properties: html, url
     │
-    ├── Text
-    │   └── Properties: text, font, color
-    │
-    ├── Html
-    │   └── Properties: html, url
-    │
-    ├── Node (for ScriptCanvas)
-    │   └── Properties: nodeTitle, nodeColor, inputPorts, outputPorts, etc.
-    │
-    └── Edge (for ScriptCanvas)
-        └── Properties: sourceNodeId, targetNodeId, sourcePoint, targetPoint, etc.
+    └── ScriptElement (script canvas elements)
+        ├── isScriptElement() returns true
+        │
+        ├── Node
+        │   └── Properties: nodeTitle, nodeColor, inputPorts, outputPorts, etc.
+        │
+        └── Edge
+            └── Properties: sourceNodeId, targetNodeId, sourcePoint, targetPoint, etc.
 ```
 
 #### Key Design Principles:
 
 1. **Element** is the base class containing only properties common to ALL elements
 2. **CanvasElement** extends Element with geometric properties for visual elements
-3. **Variable** inherits directly from Element since it has no visual representation
-4. **All visual elements** (Frame, Text, Html, Node, Edge) inherit from CanvasElement
+3. **DesignElement** extends CanvasElement for elements that belong on the design canvas (Frame, Text, Html)
+4. **ScriptElement** extends CanvasElement for elements that belong on the script canvas (Node, Edge)
+5. **Variable** inherits directly from Element since it has no visual representation
+6. **Design elements** (Frame, Text, Html) inherit from DesignElement
+7. **Script elements** (Node, Edge) inherit from ScriptElement
 
 #### Element Creation and Management:
 
@@ -386,8 +397,11 @@ ApplicationWindow {
 
 - `Element` - Base class for all elements (properties: id, name, selected, parentId)
 - `CanvasElement` - Base class for visual elements (adds: x, y, width, height)
+- `DesignElement` - Base class for design canvas elements (inherits from CanvasElement)
+- `ScriptElement` - Base class for script canvas elements (inherits from CanvasElement)
 - `Variable` - Non-visual data element
-- `Frame`, `Text`, `Html`, `Node`, `Edge` - Visual elements inheriting from CanvasElement
+- `Frame`, `Text`, `Html` - Visual design elements inheriting from DesignElement
+- `Node`, `Edge` - Visual script elements inheriting from ScriptElement
 
 **Controller Classes:**
 
@@ -402,6 +416,8 @@ ApplicationWindow {
 // Base classes (uncreatable)
 qmlRegisterUncreatableType<Element>("Cubit", 1, 0, "Element", "Element is an abstract base class");
 qmlRegisterUncreatableType<CanvasElement>("Cubit", 1, 0, "CanvasElement", "CanvasElement is an abstract base class");
+qmlRegisterUncreatableType<DesignElement>("Cubit", 1, 0, "DesignElement", "DesignElement is an abstract base class");
+qmlRegisterUncreatableType<ScriptElement>("Cubit", 1, 0, "ScriptElement", "ScriptElement is an abstract base class");
 
 // Concrete element types
 qmlRegisterType<Frame>("Cubit", 1, 0, "Frame");
