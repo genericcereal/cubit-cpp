@@ -26,6 +26,9 @@ BaseCanvas {
     // Signal to notify when dragging starts
     signal canvasDragStarted()
     
+    // Signal to notify when clicked outside any node
+    signal canvasClickedOutside()
+    
     // Node catalog instance
     NodeCatalog {
         id: nodeCatalog
@@ -440,11 +443,9 @@ BaseCanvas {
     
     // Override virtual functions for script canvas behavior
     function handleLeftButtonPress(canvasPoint) {
-        // Set click state and emit signal for text input focus
+        // Set click state but don't emit signal yet - wait for release to confirm it's a click
         clickedThisFrame = true
         clickPoint = canvasPoint
-        canvasClicked(canvasPoint)
-        
         
         if (controller.mode === "select") {
             // Check if we're over a handle first
@@ -500,6 +501,23 @@ BaseCanvas {
     }
     
     function handleLeftButtonRelease(canvasPoint) {
+        // Check if this was a click (not a drag)
+        var wasClick = !isDraggingHandle && !selectionBoxHandler.active && 
+                      Math.abs(canvasPoint.x - clickPoint.x) < 5 && 
+                      Math.abs(canvasPoint.y - clickPoint.y) < 5
+        
+        if (wasClick) {
+            // Check if clicking on a node or empty space
+            var element = controller.hitTest(canvasPoint.x, canvasPoint.y)
+            if (element && element.objectName === "Node") {
+                // Clicked on a node - emit click signal for input handling
+                canvasClicked(canvasPoint)
+            } else {
+                // Clicked outside any node - emit outside click signal
+                canvasClickedOutside()
+            }
+        }
+        
         if (isDraggingHandle) {
             // End handle drag
             var targetHandleInfo = getHandleAtPoint(canvasPoint)

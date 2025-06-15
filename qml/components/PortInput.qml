@@ -26,11 +26,24 @@ Item {
     
     // Function to handle clicks from parent
     function handleClick() {
+        console.log("PortInput.handleClick called for port:", portIndex, "type:", portType)
+        console.log("  inputConfig:", JSON.stringify(inputConfig))
+        console.log("  textField.visible:", textField.visible)
+        console.log("  numberField.visible:", numberField.visible)
+        console.log("  comboBox.visible:", comboBox.visible)
+        console.log("  Component visibility:", visible)
+        console.log("  Parent visibility:", parent ? parent.visible : "no parent")
+        
         if (inputConfig.inputType === "textInput" && textField.visible) {
+            console.log("  Focusing text field")
             textField.forceActiveFocus()
+            console.log("  TextField now has focus:", textField.activeFocus)
         } else if (inputConfig.inputType === "numberInput" && numberField.visible) {
+            console.log("  Focusing number field")
             numberField.forceActiveFocus()
+            console.log("  NumberField now has focus:", numberField.activeFocus)
         } else if (inputConfig.inputType === "selectInput" && comboBox.visible) {
+            console.log("  Opening combo box")
             comboBox.popup.open()
         }
     }
@@ -45,6 +58,11 @@ Item {
     
     // Get the input configuration
     property var inputConfig: PortTypeConfig.getInputConfig(portType)
+    
+    // Track if any input has focus
+    property bool hasInputFocus: (textField.visible && textField.activeFocus) || 
+                                 (numberField.visible && numberField.activeFocus) ||
+                                 (comboBox.visible && comboBox.popup.opened)
     
     // Direct component based on type instead of using Loader
     TextField {
@@ -75,6 +93,10 @@ Item {
                 root.value = text
                 root.portValueChanged(text)
             }
+        }
+        
+        onActiveFocusChanged: {
+            console.log("TextField activeFocus changed to:", activeFocus, "for port:", root.portIndex)
         }
     }
     

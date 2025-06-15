@@ -79,27 +79,32 @@ Item {
     Connections {
         target: canvas
         function onCanvasClicked(clickPoint) {
+            console.log("Canvas clicked at:", clickPoint.x, clickPoint.y)
+            console.log("Node bounds:", element.x, element.y, "to", element.x + element.width, element.y + element.height)
+            
             // Check if click is within this node
             if (clickPoint.x >= element.x && clickPoint.x <= element.x + element.width &&
                 clickPoint.y >= element.y && clickPoint.y <= element.y + element.height) {
                 // Node was clicked, check if it's on a text input
+                console.log("Click is within node bounds")
                 root.handleClick(clickPoint)
-            } else {
-                // Click outside of node - clear focus from any active inputs
-                root.forceActiveFocus()  // This will take focus away from any child components
-                
-                // Also close any open ComboBox popups in PortInput components
-                for (var i = 0; i < targetsColumn.children.length; i++) {
-                    var targetItem = targetsColumn.children[i]
-                    if (targetItem && targetItem.children.length > 1) {
-                        var portInput = targetItem.children[1]
-                        if (portInput && typeof portInput.blur === 'function') {
-                            portInput.blur()
-                        }
+            }
+        }
+        
+        function onCanvasClickedOutside() {
+            console.log("Canvas clicked outside - clearing focus if any input has focus")
+            // Simply clear focus - the focus system will handle it properly
+            root.forceActiveFocus()
+            
+            // Also close any open ComboBox popups
+            for (var i = 0; i < targetsColumn.children.length; i++) {
+                var targetItem = targetsColumn.children[i]
+                if (targetItem && targetItem.children.length > 1) {
+                    var portInput = targetItem.children[1]
+                    if (portInput && typeof portInput.blur === 'function') {
+                        portInput.blur()
                     }
                 }
-                
-                console.log("Click outside node - cleared focus")
             }
         }
         
@@ -127,6 +132,8 @@ Item {
         var localY = clickPoint.y - element.y
         
         console.log("Node clicked at local position:", localX, localY)
+        console.log("  Node position:", element.x, element.y)
+        console.log("  Click point:", clickPoint.x, clickPoint.y)
         
         // Check targets column
         var titleAndMargins = titleText.height + titleText.anchors.topMargin + columnsContainer.anchors.topMargin
