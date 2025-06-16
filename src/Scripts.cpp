@@ -240,33 +240,33 @@ void Scripts::clearEdges(QQmlListProperty<Edge>* list) {
 }
 
 void Scripts::loadInitialNodes() {
-    // Create the onLoad node
+    // Create the onEditorLoad node
     QString nodeId = UniqueIdGenerator::generate16DigitId();
-    Node* onLoadNode = new Node(nodeId, this);
+    Node* onEditorLoadNode = new Node(nodeId, this);
     
-    // Configure the onLoad node based on NodeCatalog.qml
-    onLoadNode->setNodeTitle("On Load");
-    onLoadNode->setNodeType("Event");
+    // Configure the onEditorLoad node based on NodeCatalog.qml
+    onEditorLoadNode->setNodeTitle("On Editor Load");
+    onEditorLoadNode->setNodeType("Event");
     
     // Set position (centered in a reasonable default location)
-    onLoadNode->setX(400);
-    onLoadNode->setY(200);
-    onLoadNode->setWidth(150);
-    onLoadNode->setHeight(80);
+    onEditorLoadNode->setX(400);
+    onEditorLoadNode->setY(200);
+    onEditorLoadNode->setWidth(150);
+    onEditorLoadNode->setHeight(80);
     
     // Configure the node's ports based on the catalog
-    // onLoad has one source port: "done" (Flow type)
+    // onEditorLoad has one source port: "done" (Flow type)
     Node::RowConfig rowConfig;
     rowConfig.hasSource = true;
     rowConfig.sourceLabel = "Done";
     rowConfig.sourceType = "Flow";
     rowConfig.sourcePortIndex = 0;
-    onLoadNode->addRow(rowConfig);
+    onEditorLoadNode->addRow(rowConfig);
     
     // Add output port
-    onLoadNode->addOutputPort("done");
-    onLoadNode->setOutputPortType(0, "Flow");
+    onEditorLoadNode->addOutputPort("done");
+    onEditorLoadNode->setOutputPortType(0, "Flow");
     
     // Add the node to the scripts
-    addNode(onLoadNode);
+    addNode(onEditorLoadNode);
 }
