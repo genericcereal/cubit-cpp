@@ -8,6 +8,7 @@
 #include "SelectionManager.h"
 #include "ElementModel.h"
 #include "Scripts.h"
+#include "DesignElement.h"
 
 class Canvas : public QObject {
     Q_OBJECT
@@ -18,6 +19,8 @@ class Canvas : public QObject {
     Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
     Q_PROPERTY(QString id READ id CONSTANT)
     Q_PROPERTY(QString viewMode READ viewMode WRITE setViewMode NOTIFY viewModeChanged)
+    Q_PROPERTY(DesignElement* editingElement READ editingElement NOTIFY editingElementChanged)
+    Q_PROPERTY(Scripts* activeScripts READ activeScripts NOTIFY activeScriptsChanged)
 
 public:
     explicit Canvas(const QString& id, const QString& name = QString(), QObject *parent = nullptr);
@@ -31,10 +34,13 @@ public:
     QString name() const;
     QString id() const;
     QString viewMode() const;
+    DesignElement* editingElement() const;
+    Scripts* activeScripts() const;
 
     // Property setters
     void setName(const QString& name);
     void setViewMode(const QString& viewMode);
+    void setEditingElement(DesignElement* element);
 
     // Initialize the canvas components
     void initialize();
@@ -42,6 +48,8 @@ public:
 signals:
     void nameChanged();
     void viewModeChanged();
+    void editingElementChanged();
+    void activeScriptsChanged();
 
 private:
     std::unique_ptr<CanvasController> m_controller;
@@ -51,6 +59,12 @@ private:
     QString m_name;
     QString m_id;
     QString m_viewMode;
+    DesignElement* m_editingElement = nullptr;
+    
+    void updateActiveScripts();
+    void loadScriptsIntoElementModel();
+    void saveElementModelToScripts();
+    void clearScriptElementsFromModel();
 };
 
 #endif // CANVAS_H
