@@ -40,7 +40,8 @@ SOURCES += \
     src/commands/DeleteElementsCommand.cpp \
     src/commands/MoveElementsCommand.cpp \
     src/commands/ResizeElementCommand.cpp \
-    src/commands/SetPropertyCommand.cpp
+    src/commands/SetPropertyCommand.cpp \
+    src/ScriptCompiler.cpp
 
 HEADERS += \
     src/Element.h \
@@ -76,7 +77,8 @@ HEADERS += \
     src/commands/DeleteElementsCommand.h \
     src/commands/MoveElementsCommand.h \
     src/commands/ResizeElementCommand.h \
-    src/commands/SetPropertyCommand.h
+    src/commands/SetPropertyCommand.h \
+    src/ScriptCompiler.h
 
 RESOURCES += qml.qrc
 

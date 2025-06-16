@@ -43,6 +43,9 @@ public:
     
     // Clear all scripts
     Q_INVOKABLE void clear();
+    
+    // Compile the script graph to JSON
+    Q_INVOKABLE QString compile();
 
     // Property getters
     QQmlListProperty<Node> nodes();

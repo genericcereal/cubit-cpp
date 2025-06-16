@@ -11,7 +11,8 @@ SOURCES += \
     test_main.cpp \
     tst_FrameOperations.cpp \
     tst_SelectionManager.cpp \
-    tst_ElementModel.cpp
+    tst_ElementModel.cpp \
+    tst_ScriptCompiler.cpp
 
 # Include the main project's source files directly
 SOURCES += \
@@ -33,7 +34,8 @@ SOURCES += \
     ../src/QuadTree.cpp \
     ../src/ElementModel.cpp \
     ../src/SelectionManager.cpp \
-    ../src/Scripts.cpp
+    ../src/Scripts.cpp \
+    ../src/ScriptCompiler.cpp
 
 # Headers
 HEADERS += \
@@ -58,6 +60,7 @@ HEADERS += \
     ../src/SelectionManager.h \
     ../src/Config.h \
     ../src/Scripts.h \
+    ../src/ScriptCompiler.h \
     ../src/UniqueIdGenerator.h \
     ../src/HandleType.h
 

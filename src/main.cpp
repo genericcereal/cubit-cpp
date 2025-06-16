@@ -22,6 +22,7 @@
 #include "Canvas.h"
 #include "Panels.h"
 #include "Scripts.h"
+#include "ScriptCompiler.h"
 
 int main(int argc, char *argv[])
 {
@@ -58,6 +59,7 @@ int main(int argc, char *argv[])
     qmlRegisterType<Canvas>("Cubit", 1, 0, "CanvasData");
     qmlRegisterType<Panels>("Cubit", 1, 0, "Panels");
     qmlRegisterType<Scripts>("Cubit", 1, 0, "Scripts");
+    qmlRegisterType<ScriptCompiler>("Cubit", 1, 0, "ScriptCompiler");
     
     // Register singleton ConsoleMessageRepository
     qmlRegisterSingletonType<ConsoleMessageRepository>("Cubit", 1, 0, "ConsoleMessageRepository",
