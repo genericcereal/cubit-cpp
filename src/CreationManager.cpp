@@ -18,7 +18,7 @@ CreationManager::CreationManager(QObject *parent)
 {
 }
 
-Element* CreationManager::createElement(const QString &type, qreal x, qreal y, qreal width, qreal height)
+Element* CreationManager::createElement(const QString& type, qreal x, qreal y, qreal width, qreal height)
 {
     if (!m_elementModel) return nullptr;
     
@@ -63,7 +63,7 @@ Element* CreationManager::createElement(const QString &type, qreal x, qreal y, q
     return element;
 }
 
-Node* CreationManager::createNode(qreal x, qreal y, const QString &title, const QString &color)
+Node* CreationManager::createNode(qreal x, qreal y, const QString& title, const QString& color)
 {
     if (!m_elementModel) return nullptr;
     
@@ -96,8 +96,8 @@ Node* CreationManager::createNode(qreal x, qreal y, const QString &title, const 
     return node;
 }
 
-Edge* CreationManager::createEdge(const QString &sourceNodeId, const QString &targetNodeId, 
-                                  const QString &sourceHandleType, const QString &targetHandleType,
+Edge* CreationManager::createEdge(const QString& sourceNodeId, const QString& targetNodeId, 
+                                  const QString& sourceHandleType, const QString& targetHandleType,
                                   int sourcePortIndex, int targetPortIndex)
 {
     if (!m_elementModel) return nullptr;
@@ -175,8 +175,8 @@ Edge* CreationManager::createEdge(const QString &sourceNodeId, const QString &ta
     return edge;
 }
 
-Edge* CreationManager::createEdgeByPortId(const QString &sourceNodeId, const QString &targetNodeId,
-                                         const QString &sourcePortId, const QString &targetPortId)
+Edge* CreationManager::createEdgeByPortId(const QString& sourceNodeId, const QString& targetNodeId,
+                                         const QString& sourcePortId, const QString& targetPortId)
 {
     if (!m_elementModel) return nullptr;
     
@@ -254,7 +254,7 @@ void CreationManager::setupDefaultNodePorts(Node* node)
 
 void CreationManager::calculateEdgePoints(Edge* edge, Element* sourceNode, Element* targetNode,
                                         const QString& sourceHandleType, const QString& targetHandleType,
-                                        int sourcePortIndex, int targetPortIndex)
+                                        int sourcePortIndex, int targetPortIndex) const
 {
     qreal sourceX = 0, sourceY = 0, targetX = 0, targetY = 0;
     

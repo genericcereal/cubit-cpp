@@ -26,15 +26,15 @@ public:
     void setCanvasType(CanvasType type) { m_canvasType = type; }
     
     // Design element creation
-    Element* createElement(const QString &type, qreal x, qreal y, qreal width, qreal height);
+    Element* createElement(const QString& type, qreal x, qreal y, qreal width, qreal height);
     
     // Script element creation
-    Node* createNode(qreal x, qreal y, const QString &title = "Node", const QString &color = QString());
-    Edge* createEdge(const QString &sourceNodeId, const QString &targetNodeId, 
-                     const QString &sourceHandleType, const QString &targetHandleType,
+    Node* createNode(qreal x, qreal y, const QString& title = "Node", const QString& color = QString());
+    Edge* createEdge(const QString& sourceNodeId, const QString& targetNodeId, 
+                     const QString& sourceHandleType, const QString& targetHandleType,
                      int sourcePortIndex, int targetPortIndex);
-    Edge* createEdgeByPortId(const QString &sourceNodeId, const QString &targetNodeId,
-                            const QString &sourcePortId, const QString &targetPortId);
+    Edge* createEdgeByPortId(const QString& sourceNodeId, const QString& targetNodeId,
+                            const QString& sourcePortId, const QString& targetPortId);
     
 signals:
     void elementCreated(Element* element);
@@ -52,5 +52,5 @@ private:
     // Helper to calculate edge connection points
     void calculateEdgePoints(Edge* edge, Element* sourceNode, Element* targetNode,
                            const QString& sourceHandleType, const QString& targetHandleType,
-                           int sourcePortIndex, int targetPortIndex);
+                           int sourcePortIndex, int targetPortIndex) const;
 };

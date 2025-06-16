@@ -14,7 +14,7 @@ JsonImporter::JsonImporter(QObject *parent)
 {
 }
 
-QString JsonImporter::createNodeFromJson(const QString &jsonData)
+QString JsonImporter::createNodeFromJson(const QString& jsonData)
 {
     if (!m_creationManager || !m_elementModel) {
         emit importError("JsonImporter not properly initialized");
@@ -124,7 +124,7 @@ QString JsonImporter::createNodeFromJson(const QString &jsonData)
     return nodeId;
 }
 
-QStringList JsonImporter::createNodesFromJson(const QString &jsonData)
+QStringList JsonImporter::createNodesFromJson(const QString& jsonData)
 {
     QStringList createdNodeIds;
     
@@ -156,7 +156,7 @@ QStringList JsonImporter::createNodesFromJson(const QString &jsonData)
     return createdNodeIds;
 }
 
-void JsonImporter::createGraphFromJson(const QString &jsonData)
+void JsonImporter::createGraphFromJson(const QString& jsonData)
 {
     if (!m_creationManager || !m_elementModel) {
         emit importError("JsonImporter not properly initialized");

@@ -33,7 +33,14 @@ SOURCES += \
     src/CreationManager.cpp \
     src/HitTestService.cpp \
     src/JsonImporter.cpp \
-    src/QuadTree.cpp
+    src/QuadTree.cpp \
+    src/Command.cpp \
+    src/CommandHistory.cpp \
+    src/commands/CreateFrameCommand.cpp \
+    src/commands/DeleteElementsCommand.cpp \
+    src/commands/MoveElementsCommand.cpp \
+    src/commands/ResizeElementCommand.cpp \
+    src/commands/SetPropertyCommand.cpp
 
 HEADERS += \
     src/Element.h \
@@ -62,7 +69,14 @@ HEADERS += \
     src/CreationManager.h \
     src/HitTestService.h \
     src/JsonImporter.h \
-    src/QuadTree.h
+    src/QuadTree.h \
+    src/Command.h \
+    src/CommandHistory.h \
+    src/commands/CreateFrameCommand.h \
+    src/commands/DeleteElementsCommand.h \
+    src/commands/MoveElementsCommand.h \
+    src/commands/ResizeElementCommand.h \
+    src/commands/SetPropertyCommand.h
 
 RESOURCES += qml.qrc
 
