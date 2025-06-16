@@ -57,11 +57,24 @@ QString ScriptCompiler::compile(Scripts* scripts) {
         // Build function definitions
         buildFunctionDefinitions(context);
         
+        // Convert node IDs to invoke IDs in all next arrays
+        convertNodeIdsToInvokeIds(context);
+        
+        // Get the nodes directly connected to this event node and convert to invoke IDs
+        QStringList nextNodeIds = getNextNodeIds(eventNode, scripts);
+        QJsonArray nextArray;
+        for (const QString& nodeId : nextNodeIds) {
+            if (context.nodeToInvokeMap.contains(nodeId)) {
+                nextArray.append(context.nodeToInvokeMap[nodeId]);
+            }
+        }
+        
         // Create the event object
         QJsonObject eventObj;
         eventObj["functions"] = context.functions;
         eventObj["outputs"] = context.outputs;
         eventObj["invoke"] = context.invokes;
+        eventObj["next"] = nextArray;
         
         result[eventName] = eventObj;
     }
@@ -84,7 +97,9 @@ void ScriptCompiler::processNode(Node* node, CompilationContext& context, Script
     if (node->nodeType() != "Event") {
         QJsonObject invokeObj = createInvokeObject(node, context, scripts);
         if (!invokeObj.isEmpty()) {
-            context.invokes.append(invokeObj);
+            QString invokeId = "invoke_" + QString::number(context.invokeCounter++);
+            context.invokes[invokeId] = invokeObj;
+            context.nodeToInvokeMap[node->getId()] = invokeId;
         }
     }
     
@@ -101,7 +116,7 @@ void ScriptCompiler::processNode(Node* node, CompilationContext& context, Script
 QJsonObject ScriptCompiler::createInvokeObject(Node* node, CompilationContext& context, Scripts* scripts) {
     QJsonObject invoke;
     
-    invoke["id"] = node->getId();
+    invoke["nodeId"] = node->getId();
     
     // Determine the function type based on node name
     QString nodeName = node->nodeTitle();
@@ -149,14 +164,14 @@ QJsonObject ScriptCompiler::createInvokeObject(Node* node, CompilationContext& c
         // Create an output for the node's value
         QString outputKey = node->getId() + "_value";
         if (!context.outputMap.contains(outputKey)) {
-            context.outputMap[outputKey] = context.outputCounter;
+            QString outputId = "output_" + QString::number(context.outputCounter++);
+            context.outputMap[outputKey] = outputId;
             
             QJsonObject outputObj;
-            outputObj["id"] = context.outputCounter++;
             outputObj["nodeId"] = node->getId();
             outputObj["type"] = "literal";
             outputObj["value"] = node->value();
-            context.outputs.append(outputObj);
+            context.outputs[outputId] = outputObj;
         }
         
         // If this is a node that uses its value as input (like console log)
@@ -185,14 +200,14 @@ QJsonObject ScriptCompiler::createInvokeObject(Node* node, CompilationContext& c
             if (sourceNode && !sourceNode->value().isEmpty()) {
                 QString valueKey = sourceNodeId + "_value";
                 if (!context.outputMap.contains(valueKey)) {
-                    context.outputMap[valueKey] = context.outputCounter;
+                    QString outputId = "output_" + QString::number(context.outputCounter++);
+                    context.outputMap[valueKey] = outputId;
                     
                     QJsonObject outputObj;
-                    outputObj["id"] = context.outputCounter++;
                     outputObj["nodeId"] = sourceNodeId;
                     outputObj["type"] = "literal";
                     outputObj["value"] = sourceNode->value();
-                    context.outputs.append(outputObj);
+                    context.outputs[outputId] = outputObj;
                 }
                 params.append(QJsonObject{{"output", context.outputMap[valueKey]}});
             } else {
@@ -213,23 +228,25 @@ QJsonObject ScriptCompiler::createInvokeObject(Node* node, CompilationContext& c
     if (node->nodeType() == "Operation" && 
         (functionType.startsWith("math_") || functionType.contains("variable"))) {
         QString outputKey = node->getId() + "_output";
-        context.outputMap[outputKey] = context.outputCounter;
-        invoke["output"] = context.outputCounter++;
+        QString outputId = "output_" + QString::number(context.outputCounter++);
+        context.outputMap[outputKey] = outputId;
+        invoke["output"] = outputId;
         
-        // Add to outputs array
+        // Add to outputs object
         QJsonObject outputObj;
-        outputObj["id"] = context.outputs.size();
         outputObj["nodeId"] = node->getId();
         outputObj["type"] = "value";
-        context.outputs.append(outputObj);
+        context.outputs[outputId] = outputObj;
     }
     
-    // Get next nodes
-    QStringList nextIds = getNextNodeIds(node, scripts);
-    if (!nextIds.isEmpty()) {
+    // Get next nodes and convert to invoke IDs
+    QStringList nextNodeIds = getNextNodeIds(node, scripts);
+    if (!nextNodeIds.isEmpty()) {
         QJsonArray nextArray;
-        for (const QString& nextId : nextIds) {
-            nextArray.append(nextId);
+        for (const QString& nodeId : nextNodeIds) {
+            // Note: The invoke for this node might not exist yet if we haven't processed it
+            // We'll need to handle this in a second pass
+            nextArray.append(nodeId);  // Temporarily store node IDs
         }
         invoke["next"] = nextArray;
     }
@@ -331,6 +348,27 @@ QString ScriptCompiler::buildVariableFunction(const QString& operation) {
 
 QString ScriptCompiler::buildDisplayFunction() {
     return "(params) => updateDisplay(params[0].value || params[0].output)";
+}
+
+void ScriptCompiler::convertNodeIdsToInvokeIds(CompilationContext& context) {
+    // Convert all node IDs in "next" arrays to invoke IDs
+    for (auto it = context.invokes.begin(); it != context.invokes.end(); ++it) {
+        QJsonObject invoke = it.value().toObject();
+        if (invoke.contains("next")) {
+            QJsonArray nextArray = invoke["next"].toArray();
+            QJsonArray newNextArray;
+            
+            for (const QJsonValue& val : nextArray) {
+                QString nodeId = val.toString();
+                if (context.nodeToInvokeMap.contains(nodeId)) {
+                    newNextArray.append(context.nodeToInvokeMap[nodeId]);
+                }
+            }
+            
+            invoke["next"] = newNextArray;
+            context.invokes[it.key()] = invoke;
+        }
+    }
 }
 
 QJsonObject ScriptCompiler::getCompiledJson() const {
