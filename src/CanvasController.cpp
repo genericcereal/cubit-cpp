@@ -135,7 +135,10 @@ void CanvasController::handleMousePress(qreal x, qreal y)
             if (element) {
                 // Don't change selection on press - wait to see if it's a click or drag
                 // Just prepare for potential drag
-                m_dragManager->startDrag(element, QPointF(x, y));
+                bool started = m_dragManager->startDrag(element, QPointF(x, y));
+                if (!started) {
+                    qDebug() << "WARNING: DragManager::startDrag returned false for" << element->getName();
+                }
             } else {
                 m_selectionManager->clearSelection();
             }

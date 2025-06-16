@@ -40,6 +40,9 @@ public:
     };
     Stats getStats() const;
     
+    // Get the bounds of the quadtree
+    QRectF getBounds() const;
+    
 private:
     struct Node {
         QRectF bounds;

@@ -151,11 +151,18 @@ void ElementModel::clear()
     if (m_elements.isEmpty()) return;
     
     beginResetModel();
-    for (Element *element : m_elements) {
-        disconnectElement(element);
-        element->deleteLater();
-    }
+    
+    // Make a copy to avoid issues if elements are deleted during iteration
+    QList<Element*> elementsToDelete = m_elements;
     m_elements.clear();
+    
+    for (Element *element : elementsToDelete) {
+        if (element) {
+            disconnectElement(element);
+            element->deleteLater();
+        }
+    }
+    
     endResetModel();
 }
 
@@ -186,8 +193,11 @@ void ElementModel::connectElement(Element *element)
 
 void ElementModel::disconnectElement(Element *element)
 {
-    disconnect(element, &Element::elementChanged, this, &ElementModel::onElementChanged);
-    disconnect(element, &Element::selectedChanged, this, &ElementModel::onElementChanged);
+    if (!element) return;
+    
+    // Use QObject::disconnect which is safer during destruction
+    QObject::disconnect(element, &Element::elementChanged, this, &ElementModel::onElementChanged);
+    QObject::disconnect(element, &Element::selectedChanged, this, &ElementModel::onElementChanged);
 }
 
 int ElementModel::findElementIndex(const QString &elementId) const
