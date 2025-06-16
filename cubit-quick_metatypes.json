@@ -3,7 +3,7 @@
         "classes": [
             {
                 "className": "Application",
-                "lineNumber": 22,
+                "lineNumber": 24,
                 "methods": [
                     {
                         "access": "public",
@@ -13,13 +13,13 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 8,
+                        "index": 9,
                         "name": "createCanvas",
                         "returnType": "QString"
                     },
                     {
                         "access": "public",
-                        "index": 9,
+                        "index": 10,
                         "isCloned": true,
                         "name": "createCanvas",
                         "returnType": "QString"
@@ -32,7 +32,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 10,
+                        "index": 11,
                         "name": "removeCanvas",
                         "returnType": "void"
                     },
@@ -44,7 +44,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 11,
+                        "index": 12,
                         "name": "switchToCanvas",
                         "returnType": "void"
                     },
@@ -56,7 +56,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 12,
+                        "index": 13,
                         "isConst": true,
                         "name": "getCanvasName",
                         "returnType": "QString"
@@ -73,7 +73,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 13,
+                        "index": 14,
                         "name": "renameCanvas",
                         "returnType": "void"
                     }
@@ -142,6 +142,20 @@
                         "designable": true,
                         "final": false,
                         "index": 4,
+                        "name": "activeScripts",
+                        "notify": "activeScriptsChanged",
+                        "read": "activeScripts",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "Scripts*",
+                        "user": false
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 5,
                         "name": "activeCanvasViewMode",
                         "notify": "activeCanvasViewModeChanged",
                         "read": "activeCanvasViewMode",
@@ -156,7 +170,7 @@
                         "constant": false,
                         "designable": true,
                         "final": false,
-                        "index": 5,
+                        "index": 6,
                         "name": "canvasIds",
                         "notify": "canvasListChanged",
                         "read": "canvasIds",
@@ -170,7 +184,7 @@
                         "constant": false,
                         "designable": true,
                         "final": false,
-                        "index": 6,
+                        "index": 7,
                         "name": "canvasNames",
                         "notify": "canvasListChanged",
                         "read": "canvasNames",
@@ -184,7 +198,7 @@
                         "constant": true,
                         "designable": true,
                         "final": false,
-                        "index": 7,
+                        "index": 8,
                         "name": "panels",
                         "read": "panels",
                         "required": false,
@@ -223,12 +237,18 @@
                     {
                         "access": "public",
                         "index": 4,
-                        "name": "activeCanvasViewModeChanged",
+                        "name": "activeScriptsChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
                         "index": 5,
+                        "name": "activeCanvasViewModeChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 6,
                         "name": "canvasListChanged",
                         "returnType": "void"
                     },
@@ -240,7 +260,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 6,
+                        "index": 7,
                         "name": "canvasCreated",
                         "returnType": "void"
                     },
@@ -252,7 +272,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 7,
+                        "index": 8,
                         "name": "canvasRemoved",
                         "returnType": "void"
                     }
@@ -1030,9 +1050,33 @@
         "classes": [
             {
                 "className": "DesignElement",
-                "lineNumber": 6,
+                "lineNumber": 10,
                 "object": true,
+                "properties": [
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 0,
+                        "name": "scripts",
+                        "notify": "scriptsChanged",
+                        "read": "scripts",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "Scripts*",
+                        "user": false
+                    }
+                ],
                 "qualifiedClassName": "DesignElement",
+                "signals": [
+                    {
+                        "access": "public",
+                        "index": 0,
+                        "name": "scriptsChanged",
+                        "returnType": "void"
+                    }
+                ],
                 "superClasses": [
                     {
                         "access": "public",
@@ -2164,6 +2208,291 @@
             }
         ],
         "inputFile": "ScriptElement.h",
+        "outputRevision": 69
+    },
+    {
+        "classes": [
+            {
+                "className": "Scripts",
+                "lineNumber": 13,
+                "methods": [
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "node",
+                                "type": "Node*"
+                            }
+                        ],
+                        "index": 6,
+                        "name": "addNode",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "node",
+                                "type": "Node*"
+                            }
+                        ],
+                        "index": 7,
+                        "name": "removeNode",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 8,
+                        "name": "clearNodes",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "nodeId",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 9,
+                        "isConst": true,
+                        "name": "getNode",
+                        "returnType": "Node*"
+                    },
+                    {
+                        "access": "public",
+                        "index": 10,
+                        "isConst": true,
+                        "name": "getAllNodes",
+                        "returnType": "QList<Node*>"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "edge",
+                                "type": "Edge*"
+                            }
+                        ],
+                        "index": 11,
+                        "name": "addEdge",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "edge",
+                                "type": "Edge*"
+                            }
+                        ],
+                        "index": 12,
+                        "name": "removeEdge",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 13,
+                        "name": "clearEdges",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "edgeId",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 14,
+                        "isConst": true,
+                        "name": "getEdge",
+                        "returnType": "Edge*"
+                    },
+                    {
+                        "access": "public",
+                        "index": 15,
+                        "isConst": true,
+                        "name": "getAllEdges",
+                        "returnType": "QList<Edge*>"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "nodeId",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 16,
+                        "isConst": true,
+                        "name": "getEdgesForNode",
+                        "returnType": "QList<Edge*>"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "nodeId",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 17,
+                        "isConst": true,
+                        "name": "getIncomingEdges",
+                        "returnType": "QList<Edge*>"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "nodeId",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 18,
+                        "isConst": true,
+                        "name": "getOutgoingEdges",
+                        "returnType": "QList<Edge*>"
+                    },
+                    {
+                        "access": "public",
+                        "index": 19,
+                        "name": "clear",
+                        "returnType": "void"
+                    }
+                ],
+                "object": true,
+                "properties": [
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 0,
+                        "name": "nodes",
+                        "notify": "nodesChanged",
+                        "read": "nodes",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "QQmlListProperty<Node>",
+                        "user": false
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 1,
+                        "name": "edges",
+                        "notify": "edgesChanged",
+                        "read": "edges",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "QQmlListProperty<Edge>",
+                        "user": false
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 2,
+                        "name": "nodeCount",
+                        "notify": "nodesChanged",
+                        "read": "nodeCount",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "int",
+                        "user": false
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 3,
+                        "name": "edgeCount",
+                        "notify": "edgesChanged",
+                        "read": "edgeCount",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "int",
+                        "user": false
+                    }
+                ],
+                "qualifiedClassName": "Scripts",
+                "signals": [
+                    {
+                        "access": "public",
+                        "index": 0,
+                        "name": "nodesChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 1,
+                        "name": "edgesChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "node",
+                                "type": "Node*"
+                            }
+                        ],
+                        "index": 2,
+                        "name": "nodeAdded",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "node",
+                                "type": "Node*"
+                            }
+                        ],
+                        "index": 3,
+                        "name": "nodeRemoved",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "edge",
+                                "type": "Edge*"
+                            }
+                        ],
+                        "index": 4,
+                        "name": "edgeAdded",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "edge",
+                                "type": "Edge*"
+                            }
+                        ],
+                        "index": 5,
+                        "name": "edgeRemoved",
+                        "returnType": "void"
+                    }
+                ],
+                "superClasses": [
+                    {
+                        "access": "public",
+                        "name": "QObject"
+                    }
+                ]
+            }
+        ],
+        "inputFile": "Scripts.h",
         "outputRevision": 69
     },
     {

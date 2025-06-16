@@ -710,6 +710,46 @@ All nodes display a colored header (`NodeHeader.qml`) that:
 - The type is specified in the NodeCatalog and passed through the creation pipeline
 - Default type is "Operation" if not specified
 
+## Scripts Class
+
+### Overview
+
+The `Scripts` class manages collections of nodes and edges for visual programming functionality. It's used as a property in both Canvas instances and DesignElement objects.
+
+### Features
+
+- **Node Management**: Add, remove, clear, and query nodes
+- **Edge Management**: Add, remove, clear, and query edges
+- **Relationship Queries**: Find edges connected to specific nodes (incoming, outgoing, or both)
+- **QML Integration**: Exposed as QML list properties for easy binding
+- **Automatic Cleanup**: Removes connected edges when nodes are deleted
+
+### Default Initialization
+
+The Scripts class automatically initializes with default nodes when created:
+- **onLoad Node**: An event node positioned at (400, 200) with a single "Done" output port
+- Additional default nodes can be added in the `loadInitialNodes()` method
+
+### Usage
+
+**In C++:**
+```cpp
+Scripts* scripts = new Scripts(parent);
+Node* node = new Node(id, scripts);
+scripts->addNode(node);
+```
+
+**In QML:**
+```qml
+// Access scripts from a Canvas
+Application.activeCanvas.scripts.nodes
+Application.activeCanvas.scripts.edges
+
+// Access scripts from a DesignElement
+frameElement.scripts.nodes
+frameElement.scripts.edges
+```
+
 ## Console Messages
 
 ### ConsoleMessageRepository

@@ -26,7 +26,8 @@ SOURCES += \
     src/ViewportCache.cpp \
     src/ConsoleMessageRepository.cpp \
     src/Application.cpp \
-    src/Panels.cpp
+    src/Panels.cpp \
+    src/Scripts.cpp
 
 HEADERS += \
     src/Element.h \
@@ -48,7 +49,8 @@ HEADERS += \
     src/ViewportCache.h \
     src/ConsoleMessageRepository.h \
     src/Application.h \
-    src/Panels.h
+    src/Panels.h \
+    src/Scripts.h
 
 RESOURCES += qml.qrc
 

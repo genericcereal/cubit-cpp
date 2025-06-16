@@ -29,6 +29,18 @@ QtObject {
                 }
             ]
         },
+        "onLoad": {
+            "id": "onLoad",
+            "name": "On Load",
+            "type": "Event",
+            "sources": [
+                {
+                    "id": "done",
+                    "type": "Flow",
+                    "label": "Done"
+                }
+            ]
+        },
         "displayOutput": {
             "id": "displayOutput",
             "name": "Display Output",

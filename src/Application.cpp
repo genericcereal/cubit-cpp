@@ -37,6 +37,7 @@ QString Application::createCanvas(const QString& name) {
     canvas->controller = std::make_unique<CanvasController>();
     canvas->selectionManager = std::make_unique<SelectionManager>();
     canvas->elementModel = std::make_unique<ElementModel>();
+    canvas->scripts = std::make_unique<Scripts>();
     
     initializeCanvas(canvas.get());
     
@@ -76,6 +77,7 @@ void Application::removeCanvas(const QString& canvasId) {
                 emit activeControllerChanged();
                 emit activeSelectionManagerChanged();
                 emit activeElementModelChanged();
+                emit activeScriptsChanged();
             }
         }
     }
@@ -117,6 +119,11 @@ ElementModel* Application::activeElementModel() const {
     return canvas ? canvas->elementModel.get() : nullptr;
 }
 
+Scripts* Application::activeScripts() const {
+    const Canvas* canvas = findCanvas(m_activeCanvasId);
+    return canvas ? canvas->scripts.get() : nullptr;
+}
+
 QString Application::activeCanvasViewMode() const {
     const Canvas* canvas = findCanvas(m_activeCanvasId);
     return canvas ? canvas->currentViewMode : QString("design");
@@ -151,6 +158,7 @@ void Application::setActiveCanvasId(const QString& canvasId) {
         emit activeControllerChanged();
         emit activeSelectionManagerChanged();
         emit activeElementModelChanged();
+        emit activeScriptsChanged();
         emit activeCanvasViewModeChanged();
     }
 }

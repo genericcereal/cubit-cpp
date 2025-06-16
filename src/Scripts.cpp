@@ -1,0 +1,272 @@
+#include "Scripts.h"
+#include "Node.h"
+#include "Edge.h"
+#include "UniqueIdGenerator.h"
+#include <algorithm>
+
+Scripts::Scripts(QObject *parent)
+    : QObject(parent)
+{
+    // Initialize with default nodes
+    loadInitialNodes();
+}
+
+Scripts::~Scripts() {
+    // Destructor defined here so Node and Edge are complete types
+}
+
+// Node management
+void Scripts::addNode(Node* node) {
+    if (!node) return;
+    
+    // Check if node already exists
+    auto it = std::find_if(m_nodes.begin(), m_nodes.end(),
+        [node](const std::unique_ptr<Node>& n) { return n.get() == node; });
+    
+    if (it == m_nodes.end()) {
+        m_nodes.push_back(std::unique_ptr<Node>(node));
+        emit nodeAdded(node);
+        emit nodesChanged();
+    }
+}
+
+void Scripts::removeNode(Node* node) {
+    if (!node) return;
+    
+    auto it = std::find_if(m_nodes.begin(), m_nodes.end(),
+        [node](const std::unique_ptr<Node>& n) { return n.get() == node; });
+    
+    if (it != m_nodes.end()) {
+        // Remove any edges connected to this node
+        QString nodeId = node->getId();
+        auto connectedEdges = getEdgesForNode(nodeId);
+        for (Edge* edge : connectedEdges) {
+            removeEdge(edge);
+        }
+        
+        m_nodes.erase(it);
+        emit nodeRemoved(node);
+        emit nodesChanged();
+    }
+}
+
+void Scripts::clearNodes() {
+    if (!m_nodes.empty()) {
+        m_nodes.clear();
+        emit nodesChanged();
+    }
+}
+
+Node* Scripts::getNode(const QString& nodeId) const {
+    auto it = std::find_if(m_nodes.begin(), m_nodes.end(),
+        [&nodeId](const std::unique_ptr<Node>& n) { return n->getId() == nodeId; });
+    
+    return (it != m_nodes.end()) ? it->get() : nullptr;
+}
+
+QList<Node*> Scripts::getAllNodes() const {
+    QList<Node*> result;
+    for (const auto& node : m_nodes) {
+        result.append(node.get());
+    }
+    return result;
+}
+
+// Edge management
+void Scripts::addEdge(Edge* edge) {
+    if (!edge) return;
+    
+    // Check if edge already exists
+    auto it = std::find_if(m_edges.begin(), m_edges.end(),
+        [edge](const std::unique_ptr<Edge>& e) { return e.get() == edge; });
+    
+    if (it == m_edges.end()) {
+        m_edges.push_back(std::unique_ptr<Edge>(edge));
+        emit edgeAdded(edge);
+        emit edgesChanged();
+    }
+}
+
+void Scripts::removeEdge(Edge* edge) {
+    if (!edge) return;
+    
+    auto it = std::find_if(m_edges.begin(), m_edges.end(),
+        [edge](const std::unique_ptr<Edge>& e) { return e.get() == edge; });
+    
+    if (it != m_edges.end()) {
+        m_edges.erase(it);
+        emit edgeRemoved(edge);
+        emit edgesChanged();
+    }
+}
+
+void Scripts::clearEdges() {
+    if (!m_edges.empty()) {
+        m_edges.clear();
+        emit edgesChanged();
+    }
+}
+
+Edge* Scripts::getEdge(const QString& edgeId) const {
+    auto it = std::find_if(m_edges.begin(), m_edges.end(),
+        [&edgeId](const std::unique_ptr<Edge>& e) { return e->getId() == edgeId; });
+    
+    return (it != m_edges.end()) ? it->get() : nullptr;
+}
+
+QList<Edge*> Scripts::getAllEdges() const {
+    QList<Edge*> result;
+    for (const auto& edge : m_edges) {
+        result.append(edge.get());
+    }
+    return result;
+}
+
+// Find edges connected to a node
+QList<Edge*> Scripts::getEdgesForNode(const QString& nodeId) const {
+    QList<Edge*> result;
+    for (const auto& edge : m_edges) {
+        if (edge->sourceNodeId() == nodeId || edge->targetNodeId() == nodeId) {
+            result.append(edge.get());
+        }
+    }
+    return result;
+}
+
+QList<Edge*> Scripts::getIncomingEdges(const QString& nodeId) const {
+    QList<Edge*> result;
+    for (const auto& edge : m_edges) {
+        if (edge->targetNodeId() == nodeId) {
+            result.append(edge.get());
+        }
+    }
+    return result;
+}
+
+QList<Edge*> Scripts::getOutgoingEdges(const QString& nodeId) const {
+    QList<Edge*> result;
+    for (const auto& edge : m_edges) {
+        if (edge->sourceNodeId() == nodeId) {
+            result.append(edge.get());
+        }
+    }
+    return result;
+}
+
+// Clear all scripts
+void Scripts::clear() {
+    clearEdges();
+    clearNodes();
+}
+
+// Property getters
+QQmlListProperty<Node> Scripts::nodes() {
+    return QQmlListProperty<Node>(this, nullptr,
+        &Scripts::appendNode,
+        &Scripts::nodeCount,
+        &Scripts::nodeAt,
+        &Scripts::clearNodes);
+}
+
+QQmlListProperty<Edge> Scripts::edges() {
+    return QQmlListProperty<Edge>(this, nullptr,
+        &Scripts::appendEdge,
+        &Scripts::edgeCount,
+        &Scripts::edgeAt,
+        &Scripts::clearEdges);
+}
+
+int Scripts::nodeCount() const {
+    return static_cast<int>(m_nodes.size());
+}
+
+int Scripts::edgeCount() const {
+    return static_cast<int>(m_edges.size());
+}
+
+// QML list property helpers
+void Scripts::appendNode(QQmlListProperty<Node>* list, Node* node) {
+    Scripts* scripts = qobject_cast<Scripts*>(list->object);
+    if (scripts) {
+        scripts->addNode(node);
+    }
+}
+
+qsizetype Scripts::nodeCount(QQmlListProperty<Node>* list) {
+    Scripts* scripts = qobject_cast<Scripts*>(list->object);
+    return scripts ? scripts->nodeCount() : 0;
+}
+
+Node* Scripts::nodeAt(QQmlListProperty<Node>* list, qsizetype index) {
+    Scripts* scripts = qobject_cast<Scripts*>(list->object);
+    if (scripts && index >= 0 && index < static_cast<qsizetype>(scripts->m_nodes.size())) {
+        return scripts->m_nodes[index].get();
+    }
+    return nullptr;
+}
+
+void Scripts::clearNodes(QQmlListProperty<Node>* list) {
+    Scripts* scripts = qobject_cast<Scripts*>(list->object);
+    if (scripts) {
+        scripts->clearNodes();
+    }
+}
+
+void Scripts::appendEdge(QQmlListProperty<Edge>* list, Edge* edge) {
+    Scripts* scripts = qobject_cast<Scripts*>(list->object);
+    if (scripts) {
+        scripts->addEdge(edge);
+    }
+}
+
+qsizetype Scripts::edgeCount(QQmlListProperty<Edge>* list) {
+    Scripts* scripts = qobject_cast<Scripts*>(list->object);
+    return scripts ? scripts->edgeCount() : 0;
+}
+
+Edge* Scripts::edgeAt(QQmlListProperty<Edge>* list, qsizetype index) {
+    Scripts* scripts = qobject_cast<Scripts*>(list->object);
+    if (scripts && index >= 0 && index < static_cast<qsizetype>(scripts->m_edges.size())) {
+        return scripts->m_edges[index].get();
+    }
+    return nullptr;
+}
+
+void Scripts::clearEdges(QQmlListProperty<Edge>* list) {
+    Scripts* scripts = qobject_cast<Scripts*>(list->object);
+    if (scripts) {
+        scripts->clearEdges();
+    }
+}
+
+void Scripts::loadInitialNodes() {
+    // Create the onLoad node
+    QString nodeId = UniqueIdGenerator::generate16DigitId();
+    Node* onLoadNode = new Node(nodeId, this);
+    
+    // Configure the onLoad node based on NodeCatalog.qml
+    onLoadNode->setNodeTitle("On Load");
+    onLoadNode->setNodeType("Event");
+    
+    // Set position (centered in a reasonable default location)
+    onLoadNode->setX(400);
+    onLoadNode->setY(200);
+    onLoadNode->setWidth(150);
+    onLoadNode->setHeight(80);
+    
+    // Configure the node's ports based on the catalog
+    // onLoad has one source port: "done" (Flow type)
+    Node::RowConfig rowConfig;
+    rowConfig.hasSource = true;
+    rowConfig.sourceLabel = "Done";
+    rowConfig.sourceType = "Flow";
+    rowConfig.sourcePortIndex = 0;
+    onLoadNode->addRow(rowConfig);
+    
+    // Add output port
+    onLoadNode->addOutputPort("done");
+    onLoadNode->setOutputPortType(0, "Flow");
+    
+    // Add the node to the scripts
+    addNode(onLoadNode);
+}
