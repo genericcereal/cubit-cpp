@@ -39,6 +39,9 @@ ui_*.h
 .qmake.stash
 Makefile*
 *-build-*
+*_metatypes.json
+*_qmltyperegistrations.cpp
+*.qmltypes
 
 # Qt Creator
 *.autosave

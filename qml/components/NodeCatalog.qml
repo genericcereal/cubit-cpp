@@ -5,33 +5,9 @@ QtObject {
 
     // Node type definitions
     readonly property var catalog: {
-        "userInput": {
-            "id": "userInput",
-            "name": "User Input",
-            "type": "Event",
-            "targets": [
-                {
-                    "id": "trigger",
-                    "type": "Flow",
-                    "label": "Trigger"
-                }
-            ],
-            "sources": [
-                {
-                    "id": "flow",
-                    "type": "Flow",
-                    "label": "Start"
-                },
-                {
-                    "id": "value",
-                    "type": "String",
-                    "label": "Input"
-                }
-            ]
-        },
-        "onLoad": {
-            "id": "onLoad",
-            "name": "On Load",
+        "onEditorLoad": {
+            "id": "onEditorLoad",
+            "name": "On Editor Load",
             "type": "Event",
             "sources": [
                 {
@@ -41,20 +17,21 @@ QtObject {
                 }
             ]
         },
-        "displayOutput": {
-            "id": "displayOutput",
-            "name": "Display Output",
+        "consoleLog": {
+            "id": "consoleLog",
+            "name": "Console Log",
             "type": "Operation",
+            "script": "(param) => console.log(param)",
             "targets": [
                 {
-                    "id": "flow",
+                    "id": "exec",
                     "type": "Flow",
-                    "label": "Execute"
+                    "label": "Exec"
                 },
                 {
-                    "id": "value",
-                    "type": "String",
-                    "label": "Value"
+                    "id": "message",
+                    "type": "Data",
+                    "label": "Message"
                 }
             ],
             "sources": [
@@ -62,222 +39,6 @@ QtObject {
                     "id": "done",
                     "type": "Flow",
                     "label": "Done"
-                }
-            ]
-        },
-        "mathOperation": {
-            "id": "mathOperation",
-            "name": "Math Operation",
-            "type": "Operation",
-            "targets": [
-                {
-                    "id": "flow",
-                    "type": "Flow",
-                    "label": "Execute"
-                },
-                {
-                    "id": "a",
-                    "type": "Number",
-                    "label": "A"
-                },
-                {
-                    "id": "b",
-                    "type": "Number",
-                    "label": "B"
-                }
-            ],
-            "sources": [
-                {
-                    "id": "flow",
-                    "type": "Flow",
-                    "label": "Next"
-                },
-                {
-                    "id": "result",
-                    "type": "Number",
-                    "label": "Result"
-                }
-            ]
-        },
-        "condition": {
-            "id": "condition",
-            "name": "Condition",
-            "type": "Param",
-            "targets": [
-                {
-                    "id": "flow",
-                    "type": "Flow",
-                    "label": "Execute"
-                },
-                {
-                    "id": "value",
-                    "type": "Boolean",
-                    "label": "Test"
-                }
-            ],
-            "sources": [
-                {
-                    "id": "true",
-                    "type": "Flow",
-                    "label": "True"
-                },
-                {
-                    "id": "false",
-                    "type": "Flow",
-                    "label": "False"
-                }
-            ]
-        },
-        "variable": {
-            "id": "variable",
-            "name": "Variable",
-            "type": "Param",
-            "targets": [
-                {
-                    "id": "set",
-                    "type": "String",
-                    "label": "Set"
-                }
-            ],
-            "sources": [
-                {
-                    "id": "get",
-                    "type": "String",
-                    "label": "Get"
-                }
-            ]
-        },
-        "loop": {
-            "id": "loop",
-            "name": "For Loop",
-            "type": "Param",
-            "targets": [
-                {
-                    "id": "flow",
-                    "type": "Flow",
-                    "label": "Execute"
-                },
-                {
-                    "id": "start",
-                    "type": "Number",
-                    "label": "Start"
-                },
-                {
-                    "id": "end",
-                    "type": "Number",
-                    "label": "End"
-                }
-            ],
-            "sources": [
-                {
-                    "id": "loop",
-                    "type": "Flow",
-                    "label": "Loop Body"
-                },
-                {
-                    "id": "done",
-                    "type": "Flow",
-                    "label": "Done"
-                },
-                {
-                    "id": "index",
-                    "type": "Number",
-                    "label": "Index"
-                }
-            ]
-        },
-        "function": {
-            "id": "function",
-            "name": "Function",
-            "type": "Operation",
-            "targets": [
-                {
-                    "id": "flow",
-                    "type": "Flow",
-                    "label": "Call"
-                },
-                {
-                    "id": "param1",
-                    "type": "String",
-                    "label": "Param 1"
-                },
-                {
-                    "id": "param2",
-                    "type": "String",
-                    "label": "Param 2"
-                }
-            ],
-            "sources": [
-                {
-                    "id": "flow",
-                    "type": "Flow",
-                    "label": "Return"
-                },
-                {
-                    "id": "result",
-                    "type": "String",
-                    "label": "Result"
-                }
-            ]
-        },
-        "onLoad": {
-            "id": "onLoad",
-            "name": "On Load",
-            "type": "Event",
-            "sources": [
-                {
-                    "id": "done",
-                    "type": "Flow",
-                    "label": "Done"
-                }
-            ]
-        },
-        "httpRequest": {
-            "id": "httpRequest",
-            "name": "HTTP Request",
-            "type": "Operation",
-            "targets": [
-                {
-                    "id": "flow",
-                    "type": "Flow",
-                    "label": "Execute"
-                },
-                {
-                    "id": "url",
-                    "type": "String",
-                    "label": "URL"
-                },
-                {
-                    "id": "method",
-                    "type": "String",
-                    "label": "Method"
-                },
-                {
-                    "id": "body",
-                    "type": "String",
-                    "label": "Body"
-                }
-            ],
-            "sources": [
-                {
-                    "id": "success",
-                    "type": "Flow",
-                    "label": "Success"
-                },
-                {
-                    "id": "error",
-                    "type": "Flow",
-                    "label": "Error"
-                },
-                {
-                    "id": "response",
-                    "type": "String",
-                    "label": "Response"
-                },
-                {
-                    "id": "status",
-                    "type": "Number",
-                    "label": "Status"
                 }
             ]
         }
@@ -302,7 +63,7 @@ QtObject {
         }
 
         // Create a copy with position
-        return {
+        var nodeData = {
             "name": nodeType.name,
             "type": nodeType.type || "Operation",
             "x": x,
@@ -310,5 +71,12 @@ QtObject {
             "targets": nodeType.targets || [],
             "sources": nodeType.sources || []
         };
+        
+        // Include script if present
+        if (nodeType.script) {
+            nodeData.script = nodeType.script;
+        }
+        
+        return nodeData;
     }
 }

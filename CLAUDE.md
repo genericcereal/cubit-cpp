@@ -72,6 +72,17 @@ All QML files must be added to `qml.qrc` to be included in the build. When addin
 1. Add the file path to `qml.qrc`
 2. Run `make` to rebuild with the updated resources
 
+#### Build Artifacts and Generated Files
+
+**Important:** Qt's build system generates several files automatically. Do not manually duplicate or rename these files:
+
+- `cubit-quick_metatypes.json` - Qt metatype information (auto-generated)
+- `cubit-quick_qmltyperegistrations.cpp` - QML type registration code (auto-generated)
+- `moc_*.cpp` and `moc_*.o` files - Qt's Meta-Object Compiler output
+- `.o` object files in release/ and debug/ directories
+
+If you see duplicate files with numbers appended (e.g., "file 2.o", "file 3.o"), these are build system artifacts that should not be committed to version control. Clean the build directory with `make clean` to remove them.
+
 ### CONTROLS
 
 The controls system is designed to move, resize, and rotate the current selection. It should be implemented in the viewport overlay - the controls surface should scale with canvas zooms, but the individual control elements (bars, joints) should always stay a fixed size.
