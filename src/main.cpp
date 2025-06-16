@@ -20,6 +20,7 @@
 #include "ConsoleMessageRepository.h"
 #include "Application.h"
 #include "Panels.h"
+#include "Scripts.h"
 
 int main(int argc, char *argv[])
 {
@@ -54,6 +55,7 @@ int main(int argc, char *argv[])
     qmlRegisterType<SelectionManager>("Cubit", 1, 0, "SelectionManager");
     qmlRegisterType<ViewportCache>("Cubit", 1, 0, "ViewportCache");
     qmlRegisterType<Panels>("Cubit", 1, 0, "Panels");
+    qmlRegisterType<Scripts>("Cubit", 1, 0, "Scripts");
     
     // Register singleton ConsoleMessageRepository
     qmlRegisterSingletonType<ConsoleMessageRepository>("Cubit", 1, 0, "ConsoleMessageRepository",
