@@ -9,6 +9,7 @@
 #include "ElementModel.h"
 #include "Scripts.h"
 #include "DesignElement.h"
+#include "ScriptExecutor.h"
 
 class Canvas : public QObject {
     Q_OBJECT
@@ -44,6 +45,9 @@ public:
 
     // Initialize the canvas components
     void initialize();
+    
+    // Execute a script event
+    Q_INVOKABLE void executeScriptEvent(const QString& eventName);
 
 signals:
     void nameChanged();
@@ -56,6 +60,7 @@ private:
     std::unique_ptr<SelectionManager> m_selectionManager;
     std::unique_ptr<ElementModel> m_elementModel;
     std::unique_ptr<Scripts> m_scripts;
+    std::unique_ptr<ScriptExecutor> m_scriptExecutor;
     QString m_name;
     QString m_id;
     QString m_viewMode;

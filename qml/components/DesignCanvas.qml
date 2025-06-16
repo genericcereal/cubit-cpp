@@ -8,6 +8,25 @@ BaseCanvas {
     
     canvasType: "design"
     
+    // Trigger onEditorLoad event when the canvas loads
+    Component.onCompleted: {
+        // Execute onEditorLoad for canvas scripts
+        if (Application.activeCanvas) {
+            Application.activeCanvas.executeScriptEvent("onEditorLoad")
+        }
+        
+        // Also execute onEditorLoad for all design elements
+        if (elementModel) {
+            var elements = elementModel.getAllElements()
+            for (var i = 0; i < elements.length; i++) {
+                var element = elements[i]
+                if (element && element.executeScriptEvent) {
+                    element.executeScriptEvent("onEditorLoad")
+                }
+            }
+        }
+    }
+    
     // Additional properties for design canvas
     property var hoveredElement: null
     property alias creationDragHandler: creationDragHandler

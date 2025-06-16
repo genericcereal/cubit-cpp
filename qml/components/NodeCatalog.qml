@@ -21,7 +21,7 @@ QtObject {
             "id": "consoleLog",
             "name": "Console Log",
             "type": "Operation",
-            "script": "(param) => console.log(param)",
+            "script": "(params) => { console.log(params.message || ''); }",
             "targets": [
                 {
                     "id": "exec",

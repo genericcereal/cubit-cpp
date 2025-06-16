@@ -193,8 +193,15 @@ QString Scripts::compile() {
     if (result.isEmpty()) {
         QString error = compiler.getLastError();
         ConsoleMessageRepository::instance()->addError("Compilation failed: " + error);
+        m_compiledScript.clear();
+        setIsCompiled(false);
         return QString();
     }
+    
+    // Store the compiled script
+    m_compiledScript = result;
+    setIsCompiled(true);
+    emit compiledScriptChanged();
     
     ConsoleMessageRepository::instance()->addOutput("Scripts compiled successfully");
     ConsoleMessageRepository::instance()->addOutput(result);
@@ -231,10 +238,21 @@ bool Scripts::isCompiled() const {
     return m_isCompiled;
 }
 
+QString Scripts::compiledScript() const {
+    return m_compiledScript;
+}
+
 // Property setters
 void Scripts::setIsCompiled(bool compiled) {
     if (m_isCompiled != compiled) {
         m_isCompiled = compiled;
+        
+        // Clear compiled script when marking as not compiled
+        if (!compiled) {
+            m_compiledScript.clear();
+            emit compiledScriptChanged();
+        }
+        
         emit isCompiledChanged();
     }
 }

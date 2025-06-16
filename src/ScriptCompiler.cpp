@@ -322,7 +322,7 @@ bool ScriptCompiler::validateGraph(Scripts* scripts) {
 }
 
 QString ScriptCompiler::buildConsoleLogFunction() {
-    return "(params) => console.log(params[0].value || params[0].output)";
+    return "(params) => console.log(params[0].value)";
 }
 
 QString ScriptCompiler::buildMathFunction(const QString& operation) {
