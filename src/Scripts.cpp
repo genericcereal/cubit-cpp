@@ -25,6 +25,12 @@ void Scripts::addNode(Node* node) {
     
     if (it == m_nodes.end()) {
         m_nodes.push_back(std::unique_ptr<Node>(node));
+        
+        // Reset compiled state when graph changes
+        if (m_isCompiled) {
+            setIsCompiled(false);
+        }
+        
         emit nodeAdded(node);
         emit nodesChanged();
     }
@@ -45,6 +51,12 @@ void Scripts::removeNode(Node* node) {
         }
         
         m_nodes.erase(it);
+        
+        // Reset compiled state when graph changes
+        if (m_isCompiled) {
+            setIsCompiled(false);
+        }
+        
         emit nodeRemoved(node);
         emit nodesChanged();
     }
@@ -82,6 +94,12 @@ void Scripts::addEdge(Edge* edge) {
     
     if (it == m_edges.end()) {
         m_edges.push_back(std::unique_ptr<Edge>(edge));
+        
+        // Reset compiled state when graph changes
+        if (m_isCompiled) {
+            setIsCompiled(false);
+        }
+        
         emit edgeAdded(edge);
         emit edgesChanged();
     }
@@ -95,6 +113,12 @@ void Scripts::removeEdge(Edge* edge) {
     
     if (it != m_edges.end()) {
         m_edges.erase(it);
+        
+        // Reset compiled state when graph changes
+        if (m_isCompiled) {
+            setIsCompiled(false);
+        }
+        
         emit edgeRemoved(edge);
         emit edgesChanged();
     }
@@ -182,6 +206,18 @@ int Scripts::nodeCount() const {
 
 int Scripts::edgeCount() const {
     return static_cast<int>(m_edges.size());
+}
+
+bool Scripts::isCompiled() const {
+    return m_isCompiled;
+}
+
+// Property setters
+void Scripts::setIsCompiled(bool compiled) {
+    if (m_isCompiled != compiled) {
+        m_isCompiled = compiled;
+        emit isCompiledChanged();
+    }
 }
 
 // QML list property helpers

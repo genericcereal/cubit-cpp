@@ -75,6 +75,12 @@ Window {
                         Application.activeCanvas.controller.setMode(mode)
                     }
                 }
+                onCompileClicked: {
+                    if (Application.activeCanvas && Application.activeCanvas.activeScripts) {
+                        Application.activeCanvas.activeScripts.isCompiled = true
+                        console.log("Scripts compiled")
+                    }
+                }
                 
                 Connections {
                     target: Application.activeCanvas ? Application.activeCanvas.controller : null

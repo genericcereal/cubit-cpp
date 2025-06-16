@@ -2847,7 +2847,7 @@
                                 "type": "Node*"
                             }
                         ],
-                        "index": 6,
+                        "index": 7,
                         "name": "addNode",
                         "returnType": "void"
                     },
@@ -2859,13 +2859,13 @@
                                 "type": "Node*"
                             }
                         ],
-                        "index": 7,
+                        "index": 8,
                         "name": "removeNode",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 8,
+                        "index": 9,
                         "name": "clearNodes",
                         "returnType": "void"
                     },
@@ -2877,14 +2877,14 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 9,
+                        "index": 10,
                         "isConst": true,
                         "name": "getNode",
                         "returnType": "Node*"
                     },
                     {
                         "access": "public",
-                        "index": 10,
+                        "index": 11,
                         "isConst": true,
                         "name": "getAllNodes",
                         "returnType": "QList<Node*>"
@@ -2897,7 +2897,7 @@
                                 "type": "Edge*"
                             }
                         ],
-                        "index": 11,
+                        "index": 12,
                         "name": "addEdge",
                         "returnType": "void"
                     },
@@ -2909,13 +2909,13 @@
                                 "type": "Edge*"
                             }
                         ],
-                        "index": 12,
+                        "index": 13,
                         "name": "removeEdge",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 13,
+                        "index": 14,
                         "name": "clearEdges",
                         "returnType": "void"
                     },
@@ -2927,14 +2927,14 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 14,
+                        "index": 15,
                         "isConst": true,
                         "name": "getEdge",
                         "returnType": "Edge*"
                     },
                     {
                         "access": "public",
-                        "index": 15,
+                        "index": 16,
                         "isConst": true,
                         "name": "getAllEdges",
                         "returnType": "QList<Edge*>"
@@ -2947,7 +2947,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 16,
+                        "index": 17,
                         "isConst": true,
                         "name": "getEdgesForNode",
                         "returnType": "QList<Edge*>"
@@ -2960,7 +2960,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 17,
+                        "index": 18,
                         "isConst": true,
                         "name": "getIncomingEdges",
                         "returnType": "QList<Edge*>"
@@ -2973,14 +2973,14 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 18,
+                        "index": 19,
                         "isConst": true,
                         "name": "getOutgoingEdges",
                         "returnType": "QList<Edge*>"
                     },
                     {
                         "access": "public",
-                        "index": 19,
+                        "index": 20,
                         "name": "clear",
                         "returnType": "void"
                     }
@@ -3042,6 +3042,21 @@
                         "stored": true,
                         "type": "int",
                         "user": false
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 4,
+                        "name": "isCompiled",
+                        "notify": "isCompiledChanged",
+                        "read": "isCompiled",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "bool",
+                        "user": false,
+                        "write": "setIsCompiled"
                     }
                 ],
                 "qualifiedClassName": "Scripts",
@@ -3104,6 +3119,12 @@
                         ],
                         "index": 5,
                         "name": "edgeRemoved",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 6,
+                        "name": "isCompiledChanged",
                         "returnType": "void"
                     }
                 ],
