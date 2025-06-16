@@ -1,6 +1,6 @@
-#!/bin/sh
-LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
-export LD_LIBRARY_PATH
-QT_PLUGIN_PATH=/usr/lib/x86_64-linux-gnu/qt6/plugins${QT_PLUGIN_PATH:+:$QT_PLUGIN_PATH}
+#!/bin/bash
+DYLD_FRAMEWORK_PATH=/opt/homebrew/lib${DYLD_FRAMEWORK_PATH:+:$DYLD_FRAMEWORK_PATH}
+export DYLD_FRAMEWORK_PATH
+QT_PLUGIN_PATH=/opt/homebrew/share/qt/plugins${QT_PLUGIN_PATH:+:$QT_PLUGIN_PATH}
 export QT_PLUGIN_PATH
 exec "$@"

@@ -1,5 +1,5 @@
 TEMPLATE = app
-TARGET = cubit-tests
+TARGET = test_hittest_performance
 QT += quick qml testlib webenginecore webenginequick
 CONFIG += c++17 qt warn_on testcase
 
@@ -8,10 +8,7 @@ INCLUDEPATH += ../src
 
 # Test sources
 SOURCES += \
-    test_main.cpp \
-    tst_FrameOperations.cpp \
-    tst_SelectionManager.cpp \
-    tst_ElementModel.cpp
+    tst_HitTestPerformance.cpp
 
 # Include the main project's source files directly
 SOURCES += \
@@ -66,3 +63,6 @@ QML_IMPORT_PATH = ../qml
 
 # Additional import path for finding our custom QML types
 QML_IMPORT_PATH += ..
+
+# Force clean rebuild
+CONFIG += incremental

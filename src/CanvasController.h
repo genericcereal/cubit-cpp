@@ -1,9 +1,15 @@
 #pragma once
 #include <QObject>
 #include <QPointF>
+#include <memory>
 #include "Element.h"
+
 class ElementModel;
 class SelectionManager;
+class DragManager;
+class CreationManager;
+class HitTestService;
+class JsonImporter;
 
 class CanvasController : public QObject {
     Q_OBJECT
@@ -12,25 +18,45 @@ class CanvasController : public QObject {
     Q_PROPERTY(bool isDragging READ isDragging NOTIFY isDraggingChanged)
     
 public:
+    // Enum for canvas interaction modes
+    enum class Mode {
+        Select,
+        Frame,
+        Text,
+        Html,
+        Variable
+    };
+    Q_ENUM(Mode)
+    
+    // Enum for canvas types
+    enum class CanvasType {
+        Design,
+        Script
+    };
+    Q_ENUM(CanvasType)
+    
+public:
     explicit CanvasController(QObject *parent = nullptr);
+    ~CanvasController();
     
     // Mode management
-    QString mode() const { return m_mode; }
+    QString mode() const { return modeToString(m_mode); }
     Q_INVOKABLE void setMode(const QString &mode);
     
     // Canvas type management
-    QString canvasType() const { return m_canvasType; }
+    QString canvasType() const { return canvasTypeToString(m_canvasType); }
     Q_INVOKABLE void setCanvasType(const QString &type);
     
-    // Drag state
-    bool isDragging() const { return m_isDragging; }
+    // Drag state (delegated to DragManager)
+    bool isDragging() const;
     
     // Element model and selection manager
-    Q_INVOKABLE void setElementModel(ElementModel *model) { m_elementModel = model; }
-    Q_INVOKABLE void setSelectionManager(SelectionManager *manager) { m_selectionManager = manager; }
+    Q_INVOKABLE void setElementModel(ElementModel *model);
+    Q_INVOKABLE void setSelectionManager(SelectionManager *manager);
     
-    // Helper methods
+    // Helper methods (delegated to HitTestService)
     Q_INVOKABLE Element* hitTest(qreal x, qreal y);
+    
     
 public slots:
     // Mouse handling
@@ -38,7 +64,7 @@ public slots:
     void handleMouseMove(qreal x, qreal y);
     void handleMouseRelease(qreal x, qreal y);
     
-    // Element creation
+    // Element creation (delegated to CreationManager)
     void createElement(const QString &type, qreal x, qreal y, qreal width = 200, qreal height = 150);
     Q_INVOKABLE void createNode(qreal x, qreal y, const QString &title = "Node", const QString &color = "");
     Q_INVOKABLE void createEdge(const QString &sourceNodeId, const QString &targetNodeId, 
@@ -47,7 +73,7 @@ public slots:
     Q_INVOKABLE void createEdgeByPortId(const QString &sourceNodeId, const QString &targetNodeId,
                                         const QString &sourcePortId, const QString &targetPortId);
     
-    // JSON-based creation
+    // JSON-based creation (delegated to JsonImporter)
     Q_INVOKABLE QString createNodeFromJson(const QString &jsonData);
     Q_INVOKABLE void createNodesFromJson(const QString &jsonData);
     Q_INVOKABLE void createGraphFromJson(const QString &jsonData);
@@ -64,27 +90,28 @@ signals:
     void elementCreated(Element *element);
     
 private:
-    QString m_mode;
-    QString m_canvasType;
+    Mode m_mode;
+    CanvasType m_canvasType;
     ElementModel *m_elementModel;
     SelectionManager *m_selectionManager;
     
-    // Drag state
-    bool m_isDragging;
-    QPointF m_dragStartPos;
-    QPointF m_dragCurrentPos;
-    Element *m_dragElement;
-    bool m_hasDraggedMinDistance;  // Track if we've moved enough to be considered a drag
+    // Subcontrollers
+    std::unique_ptr<DragManager> m_dragManager;
+    std::unique_ptr<CreationManager> m_creationManager;
+    std::unique_ptr<HitTestService> m_hitTestService;
+    std::unique_ptr<JsonImporter> m_jsonImporter;
     
-    // Multi-selection drag state
-    struct ElementDragState {
-        Element *element;
-        QPointF originalPosition;
-    };
-    QList<ElementDragState> m_draggedElements;
+    // Helper methods for enum conversion
+    static Mode modeFromString(const QString &str);
+    static QString modeToString(Mode mode);
+    static CanvasType canvasTypeFromString(const QString &str);
+    static QString canvasTypeToString(CanvasType type);
     
-    // Helper methods
-    void startDrag(qreal x, qreal y);
-    void updateDrag(qreal x, qreal y);
-    void endDrag();
+    // Creation state for drag-to-create
+    QPointF m_creationStartPos;
+    Element* m_creationElement = nullptr;
+    
+    // Initialize subcontrollers
+    void initializeSubcontrollers();
+    void updateSubcontrollersCanvasType();
 };
