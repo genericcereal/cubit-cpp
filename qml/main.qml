@@ -26,15 +26,17 @@ Window {
             Loader {
                 id: canvasLoader
                 anchors.fill: parent
-                sourceComponent: Application.activeCanvasViewMode === "design" ? designCanvasComponent : scriptCanvasComponent
+                sourceComponent: Application.activeCanvas && Application.activeCanvas.viewMode === "design" ? designCanvasComponent : scriptCanvasComponent
                 
                 property alias canvasView: canvasLoader.item
                 
                 onLoaded: {
                     if (item) {
-                        item.controller = Application.activeController
-                        item.selectionManager = Application.activeSelectionManager
-                        item.elementModel = Application.activeElementModel
+                        if (Application.activeCanvas) {
+                            item.controller = Application.activeCanvas.controller
+                            item.selectionManager = Application.activeCanvas.selectionManager
+                            item.elementModel = Application.activeCanvas.elementModel
+                        }
                     }
                 }
             }
@@ -67,19 +69,19 @@ Window {
                 anchors.bottom: parent.bottom
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.bottomMargin: 20
-                currentMode: Application.activeController ? Application.activeController.mode : "select"
+                currentMode: Application.activeCanvas && Application.activeCanvas.controller ? Application.activeCanvas.controller.mode : "select"
                 onModeChanged: (mode) => {
-                    if (Application.activeController) {
-                        Application.activeController.setMode(mode)
+                    if (Application.activeCanvas && Application.activeCanvas.controller) {
+                        Application.activeCanvas.controller.setMode(mode)
                     }
                 }
                 
                 Connections {
-                    target: Application.activeController
+                    target: Application.activeCanvas ? Application.activeCanvas.controller : null
                     function onModeChanged() {
-                        if (Application.activeController) {
-                            console.log("ActionsPanel Connections: mode changed to", Application.activeController.mode)
-                            actionsPanel.currentMode = Application.activeController.mode
+                        if (Application.activeCanvas && Application.activeCanvas.controller) {
+                            console.log("ActionsPanel Connections: mode changed to", Application.activeCanvas.controller.mode)
+                            actionsPanel.currentMode = Application.activeCanvas.controller.mode
                         }
                     }
                 }
@@ -100,12 +102,14 @@ Window {
             visible: Application.panels.detailPanelVisible
             SplitView.preferredWidth: parent.width * 0.3
             SplitView.minimumWidth: 250
-            elementModel: Application.activeElementModel
-            selectionManager: Application.activeSelectionManager
+            elementModel: Application.activeCanvas ? Application.activeCanvas.elementModel : null
+            selectionManager: Application.activeCanvas ? Application.activeCanvas.selectionManager : null
             
             onCanvasTypeChanged: (canvasType) => {
                 // Update the view mode instead of canvas type
-                Application.activeCanvasViewMode = canvasType
+                if (Application.activeCanvas) {
+                    Application.activeCanvas.viewMode = canvasType
+                }
             }
         }
     }

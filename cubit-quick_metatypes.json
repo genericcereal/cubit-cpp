@@ -3,7 +3,7 @@
         "classes": [
             {
                 "className": "Application",
-                "lineNumber": 24,
+                "lineNumber": 11,
                 "methods": [
                     {
                         "access": "public",
@@ -13,13 +13,13 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 9,
+                        "index": 5,
                         "name": "createCanvas",
                         "returnType": "QString"
                     },
                     {
                         "access": "public",
-                        "index": 10,
+                        "index": 6,
                         "isCloned": true,
                         "name": "createCanvas",
                         "returnType": "QString"
@@ -32,7 +32,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 11,
+                        "index": 7,
                         "name": "removeCanvas",
                         "returnType": "void"
                     },
@@ -44,7 +44,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 12,
+                        "index": 8,
                         "name": "switchToCanvas",
                         "returnType": "void"
                     },
@@ -56,7 +56,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 13,
+                        "index": 9,
                         "isConst": true,
                         "name": "getCanvasName",
                         "returnType": "QString"
@@ -73,7 +73,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 14,
+                        "index": 10,
                         "name": "renameCanvas",
                         "returnType": "void"
                     }
@@ -100,13 +100,13 @@
                         "designable": true,
                         "final": false,
                         "index": 1,
-                        "name": "activeController",
-                        "notify": "activeControllerChanged",
-                        "read": "activeController",
+                        "name": "activeCanvas",
+                        "notify": "activeCanvasChanged",
+                        "read": "activeCanvas",
                         "required": false,
                         "scriptable": true,
                         "stored": true,
-                        "type": "CanvasController*",
+                        "type": "Canvas*",
                         "user": false
                     },
                     {
@@ -114,63 +114,6 @@
                         "designable": true,
                         "final": false,
                         "index": 2,
-                        "name": "activeSelectionManager",
-                        "notify": "activeSelectionManagerChanged",
-                        "read": "activeSelectionManager",
-                        "required": false,
-                        "scriptable": true,
-                        "stored": true,
-                        "type": "SelectionManager*",
-                        "user": false
-                    },
-                    {
-                        "constant": false,
-                        "designable": true,
-                        "final": false,
-                        "index": 3,
-                        "name": "activeElementModel",
-                        "notify": "activeElementModelChanged",
-                        "read": "activeElementModel",
-                        "required": false,
-                        "scriptable": true,
-                        "stored": true,
-                        "type": "ElementModel*",
-                        "user": false
-                    },
-                    {
-                        "constant": false,
-                        "designable": true,
-                        "final": false,
-                        "index": 4,
-                        "name": "activeScripts",
-                        "notify": "activeScriptsChanged",
-                        "read": "activeScripts",
-                        "required": false,
-                        "scriptable": true,
-                        "stored": true,
-                        "type": "Scripts*",
-                        "user": false
-                    },
-                    {
-                        "constant": false,
-                        "designable": true,
-                        "final": false,
-                        "index": 5,
-                        "name": "activeCanvasViewMode",
-                        "notify": "activeCanvasViewModeChanged",
-                        "read": "activeCanvasViewMode",
-                        "required": false,
-                        "scriptable": true,
-                        "stored": true,
-                        "type": "QString",
-                        "user": false,
-                        "write": "setActiveCanvasViewMode"
-                    },
-                    {
-                        "constant": false,
-                        "designable": true,
-                        "final": false,
-                        "index": 6,
                         "name": "canvasIds",
                         "notify": "canvasListChanged",
                         "read": "canvasIds",
@@ -184,7 +127,7 @@
                         "constant": false,
                         "designable": true,
                         "final": false,
-                        "index": 7,
+                        "index": 3,
                         "name": "canvasNames",
                         "notify": "canvasListChanged",
                         "read": "canvasNames",
@@ -198,7 +141,7 @@
                         "constant": true,
                         "designable": true,
                         "final": false,
-                        "index": 8,
+                        "index": 4,
                         "name": "panels",
                         "read": "panels",
                         "required": false,
@@ -219,36 +162,12 @@
                     {
                         "access": "public",
                         "index": 1,
-                        "name": "activeControllerChanged",
+                        "name": "activeCanvasChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
                         "index": 2,
-                        "name": "activeSelectionManagerChanged",
-                        "returnType": "void"
-                    },
-                    {
-                        "access": "public",
-                        "index": 3,
-                        "name": "activeElementModelChanged",
-                        "returnType": "void"
-                    },
-                    {
-                        "access": "public",
-                        "index": 4,
-                        "name": "activeScriptsChanged",
-                        "returnType": "void"
-                    },
-                    {
-                        "access": "public",
-                        "index": 5,
-                        "name": "activeCanvasViewModeChanged",
-                        "returnType": "void"
-                    },
-                    {
-                        "access": "public",
-                        "index": 6,
                         "name": "canvasListChanged",
                         "returnType": "void"
                     },
@@ -260,7 +179,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 7,
+                        "index": 3,
                         "name": "canvasCreated",
                         "returnType": "void"
                     },
@@ -272,7 +191,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 8,
+                        "index": 4,
                         "name": "canvasRemoved",
                         "returnType": "void"
                     }
@@ -286,6 +205,135 @@
             }
         ],
         "inputFile": "Application.h",
+        "outputRevision": 69
+    },
+    {
+        "classes": [
+            {
+                "className": "Canvas",
+                "lineNumber": 12,
+                "object": true,
+                "properties": [
+                    {
+                        "constant": true,
+                        "designable": true,
+                        "final": false,
+                        "index": 0,
+                        "name": "controller",
+                        "read": "controller",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "CanvasController*",
+                        "user": false
+                    },
+                    {
+                        "constant": true,
+                        "designable": true,
+                        "final": false,
+                        "index": 1,
+                        "name": "selectionManager",
+                        "read": "selectionManager",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "SelectionManager*",
+                        "user": false
+                    },
+                    {
+                        "constant": true,
+                        "designable": true,
+                        "final": false,
+                        "index": 2,
+                        "name": "elementModel",
+                        "read": "elementModel",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "ElementModel*",
+                        "user": false
+                    },
+                    {
+                        "constant": true,
+                        "designable": true,
+                        "final": false,
+                        "index": 3,
+                        "name": "scripts",
+                        "read": "scripts",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "Scripts*",
+                        "user": false
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 4,
+                        "name": "name",
+                        "notify": "nameChanged",
+                        "read": "name",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "QString",
+                        "user": false,
+                        "write": "setName"
+                    },
+                    {
+                        "constant": true,
+                        "designable": true,
+                        "final": false,
+                        "index": 5,
+                        "name": "id",
+                        "read": "id",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "QString",
+                        "user": false
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 6,
+                        "name": "viewMode",
+                        "notify": "viewModeChanged",
+                        "read": "viewMode",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "QString",
+                        "user": false,
+                        "write": "setViewMode"
+                    }
+                ],
+                "qualifiedClassName": "Canvas",
+                "signals": [
+                    {
+                        "access": "public",
+                        "index": 0,
+                        "name": "nameChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 1,
+                        "name": "viewModeChanged",
+                        "returnType": "void"
+                    }
+                ],
+                "superClasses": [
+                    {
+                        "access": "public",
+                        "name": "QObject"
+                    }
+                ]
+            }
+        ],
+        "inputFile": "Canvas.h",
         "outputRevision": 69
     },
     {
