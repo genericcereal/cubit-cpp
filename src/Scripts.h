@@ -16,6 +16,7 @@ class Scripts : public QObject {
     Q_PROPERTY(QQmlListProperty<Edge> edges READ edges NOTIFY edgesChanged)
     Q_PROPERTY(int nodeCount READ nodeCount NOTIFY nodesChanged)
     Q_PROPERTY(int edgeCount READ edgeCount NOTIFY edgesChanged)
+    Q_PROPERTY(bool isCompiled READ isCompiled WRITE setIsCompiled NOTIFY isCompiledChanged)
 
 public:
     explicit Scripts(QObject *parent = nullptr);
@@ -48,6 +49,10 @@ public:
     QQmlListProperty<Edge> edges();
     int nodeCount() const;
     int edgeCount() const;
+    bool isCompiled() const;
+    
+    // Property setters
+    void setIsCompiled(bool compiled);
 
 signals:
     void nodesChanged();
@@ -56,10 +61,12 @@ signals:
     void nodeRemoved(Node* node);
     void edgeAdded(Edge* edge);
     void edgeRemoved(Edge* edge);
+    void isCompiledChanged();
 
 private:
     std::vector<std::unique_ptr<Node>> m_nodes;
     std::vector<std::unique_ptr<Edge>> m_edges;
+    bool m_isCompiled = false;
     
     // Initialize default nodes
     void loadInitialNodes();

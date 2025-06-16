@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import Cubit
 
 Rectangle {
     id: root
@@ -11,11 +12,21 @@ Rectangle {
     antialiasing: true
     
     signal modeChanged(string mode)
+    signal compileClicked()
     
     property string currentMode: "select"
+    property bool isScriptMode: Application.activeCanvas && Application.activeCanvas.viewMode === "script"
+    property bool needsCompilation: {
+        if (!Application.activeCanvas) return false
+        if (!Application.activeCanvas.activeScripts) return false
+        return !Application.activeCanvas.activeScripts.isCompiled
+    }
     
     onCurrentModeChanged: {
-        console.log("ActionsPanel currentMode changed to:", currentMode)
+        // Only log mode changes in design mode
+        if (!isScriptMode) {
+            console.log("ActionsPanel currentMode changed to:", currentMode)
+        }
     }
     
     RowLayout {
@@ -23,8 +34,51 @@ Rectangle {
         anchors.margins: 8
         spacing: 4
         
+        // Script mode: Show action buttons (no active state)
+        ToolButton {
+            id: compileButton
+            visible: isScriptMode
+            Layout.fillHeight: true
+            Layout.preferredWidth: height
+            
+            contentItem: Text {
+                text: "C"
+                color: {
+                    if (needsCompilation) {
+                        return parent.hovered ? "#ffffff" : "#00ff00"  // Green when needs compilation
+                    } else {
+                        return parent.hovered ? "#ffffff" : "#aaaaaa"  // Gray when compiled
+                    }
+                }
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                font.pixelSize: 16
+            }
+            
+            background: Rectangle {
+                color: {
+                    if (parent.hovered) {
+                        return needsCompilation ? Qt.rgba(0.0, 0.5, 0.0, 0.3) : Qt.rgba(0.4, 0.4, 0.4, 0.3)
+                    } else {
+                        return "transparent"
+                    }
+                }
+                radius: 4
+                antialiasing: true
+            }
+            
+            onClicked: {
+                root.compileClicked()
+            }
+            
+            ToolTip.visible: hovered
+            ToolTip.text: "Compile"
+        }
+        
+        // Design mode buttons
         ToolButton {
             id: selectButton
+            visible: !isScriptMode
             Layout.fillHeight: true
             Layout.preferredWidth: height
             checkable: true
@@ -45,8 +99,10 @@ Rectangle {
             }
             
             onClicked: {
-                currentMode = "select"
-                root.modeChanged("select")
+                if (!isScriptMode) {
+                    currentMode = "select"
+                    root.modeChanged("select")
+                }
             }
             
             ToolTip.visible: hovered
@@ -55,6 +111,7 @@ Rectangle {
         
         ToolButton {
             id: frameButton
+            visible: !isScriptMode
             Layout.fillHeight: true
             Layout.preferredWidth: height
             checkable: true
@@ -75,8 +132,10 @@ Rectangle {
             }
             
             onClicked: {
-                currentMode = "frame"
-                root.modeChanged("frame")
+                if (!isScriptMode) {
+                    currentMode = "frame"
+                    root.modeChanged("frame")
+                }
             }
             
             ToolTip.visible: hovered
@@ -85,6 +144,7 @@ Rectangle {
         
         ToolButton {
             id: textButton
+            visible: !isScriptMode
             Layout.fillHeight: true
             Layout.preferredWidth: height
             checkable: true
@@ -105,8 +165,10 @@ Rectangle {
             }
             
             onClicked: {
-                currentMode = "text"
-                root.modeChanged("text")
+                if (!isScriptMode) {
+                    currentMode = "text"
+                    root.modeChanged("text")
+                }
             }
             
             ToolTip.visible: hovered
@@ -115,6 +177,7 @@ Rectangle {
         
         ToolButton {
             id: htmlButton
+            visible: !isScriptMode
             Layout.fillHeight: true
             Layout.preferredWidth: height
             checkable: true
@@ -135,8 +198,10 @@ Rectangle {
             }
             
             onClicked: {
-                currentMode = "html"
-                root.modeChanged("html")
+                if (!isScriptMode) {
+                    currentMode = "html"
+                    root.modeChanged("html")
+                }
             }
             
             ToolTip.visible: hovered
@@ -145,6 +210,7 @@ Rectangle {
         
         ToolButton {
             id: variableButton
+            visible: !isScriptMode
             Layout.fillHeight: true
             Layout.preferredWidth: height
             checkable: true
@@ -165,8 +231,10 @@ Rectangle {
             }
             
             onClicked: {
-                currentMode = "variable"
-                root.modeChanged("variable")
+                if (!isScriptMode) {
+                    currentMode = "variable"
+                    root.modeChanged("variable")
+                }
             }
             
             ToolTip.visible: hovered
