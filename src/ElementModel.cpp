@@ -112,6 +112,23 @@ void ElementModel::removeElement(const QString &elementId)
     element->deleteLater();
 }
 
+void ElementModel::removeElementWithoutDelete(Element *element)
+{
+    if (!element) return;
+    
+    int index = m_elements.indexOf(element);
+    if (index < 0) return;
+    
+    beginRemoveRows(QModelIndex(), index, index);
+    m_elements.removeAt(index);
+    disconnectElement(element);
+    endRemoveRows();
+    
+    emit elementRemoved(element->getId());
+    emit elementChanged();
+    // Note: We do NOT call deleteLater() here - element is owned elsewhere
+}
+
 Element* ElementModel::getElementById(const QString &elementId) const
 {
     for (Element *element : m_elements) {

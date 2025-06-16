@@ -211,7 +211,7 @@
         "classes": [
             {
                 "className": "Canvas",
-                "lineNumber": 12,
+                "lineNumber": 13,
                 "object": true,
                 "properties": [
                     {
@@ -308,6 +308,34 @@
                         "type": "QString",
                         "user": false,
                         "write": "setViewMode"
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 7,
+                        "name": "editingElement",
+                        "notify": "editingElementChanged",
+                        "read": "editingElement",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "DesignElement*",
+                        "user": false
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 8,
+                        "name": "activeScripts",
+                        "notify": "activeScriptsChanged",
+                        "read": "activeScripts",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "Scripts*",
+                        "user": false
                     }
                 ],
                 "qualifiedClassName": "Canvas",
@@ -322,6 +350,18 @@
                         "access": "public",
                         "index": 1,
                         "name": "viewModeChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 2,
+                        "name": "editingElementChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 3,
+                        "name": "activeScriptsChanged",
                         "returnType": "void"
                     }
                 ],
@@ -1637,11 +1677,23 @@
                         "access": "public",
                         "arguments": [
                             {
+                                "name": "element",
+                                "type": "Element*"
+                            }
+                        ],
+                        "index": 7,
+                        "name": "removeElementWithoutDelete",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
                                 "name": "elementId",
                                 "type": "QString"
                             }
                         ],
-                        "index": 7,
+                        "index": 8,
                         "isConst": true,
                         "name": "getElementById",
                         "returnType": "Element*"
@@ -1654,27 +1706,27 @@
                                 "type": "int"
                             }
                         ],
-                        "index": 8,
+                        "index": 9,
                         "isConst": true,
                         "name": "elementAt",
                         "returnType": "Element*"
                     },
                     {
                         "access": "public",
-                        "index": 9,
+                        "index": 10,
                         "isConst": true,
                         "name": "getAllElements",
                         "returnType": "QList<Element*>"
                     },
                     {
                         "access": "public",
-                        "index": 10,
+                        "index": 11,
                         "name": "clear",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 11,
+                        "index": 12,
                         "name": "generateId",
                         "returnType": "QString"
                     }

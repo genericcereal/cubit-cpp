@@ -373,6 +373,14 @@ BaseCanvas {
         // Call base implementation
         centerViewAtOrigin()
         
+        // Check if we're editing a design element
+        if (Application.activeCanvas && Application.activeCanvas.editingElement) {
+            console.log("ScriptCanvas: Editing element", Application.activeCanvas.editingElement.name, 
+                       "ID:", Application.activeCanvas.editingElement.elementId)
+        } else {
+            console.log("ScriptCanvas: No element being edited")
+        }
+        
         // Create default nodes after a delay
         delayTimer.start()
     }
