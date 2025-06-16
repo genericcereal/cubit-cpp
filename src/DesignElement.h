@@ -3,6 +3,7 @@
 
 #include "CanvasElement.h"
 #include <memory>
+#include <QString>
 
 class Scripts;
 Q_DECLARE_OPAQUE_POINTER(Scripts*)
@@ -22,6 +23,9 @@ public:
     
     // Scripts management
     Scripts* scripts() const;
+    
+    // Execute a script event
+    Q_INVOKABLE void executeScriptEvent(const QString& eventName);
     
 signals:
     void scriptsChanged();

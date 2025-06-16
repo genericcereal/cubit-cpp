@@ -17,6 +17,7 @@ class Scripts : public QObject {
     Q_PROPERTY(int nodeCount READ nodeCount NOTIFY nodesChanged)
     Q_PROPERTY(int edgeCount READ edgeCount NOTIFY edgesChanged)
     Q_PROPERTY(bool isCompiled READ isCompiled WRITE setIsCompiled NOTIFY isCompiledChanged)
+    Q_PROPERTY(QString compiledScript READ compiledScript NOTIFY compiledScriptChanged)
 
 public:
     explicit Scripts(QObject *parent = nullptr);
@@ -53,6 +54,7 @@ public:
     int nodeCount() const;
     int edgeCount() const;
     bool isCompiled() const;
+    QString compiledScript() const;
     
     // Property setters
     void setIsCompiled(bool compiled);
@@ -65,11 +67,13 @@ signals:
     void edgeAdded(Edge* edge);
     void edgeRemoved(Edge* edge);
     void isCompiledChanged();
+    void compiledScriptChanged();
 
 private:
     std::vector<std::unique_ptr<Node>> m_nodes;
     std::vector<std::unique_ptr<Edge>> m_edges;
     bool m_isCompiled = false;
+    QString m_compiledScript;
     
     // Initialize default nodes
     void loadInitialNodes();

@@ -41,7 +41,8 @@ SOURCES += \
     src/commands/MoveElementsCommand.cpp \
     src/commands/ResizeElementCommand.cpp \
     src/commands/SetPropertyCommand.cpp \
-    src/ScriptCompiler.cpp
+    src/ScriptCompiler.cpp \
+    src/ScriptExecutor.cpp
 
 HEADERS += \
     src/Element.h \
@@ -78,7 +79,8 @@ HEADERS += \
     src/commands/MoveElementsCommand.h \
     src/commands/ResizeElementCommand.h \
     src/commands/SetPropertyCommand.h \
-    src/ScriptCompiler.h
+    src/ScriptCompiler.h \
+    src/ScriptExecutor.h
 
 RESOURCES += qml.qrc
 

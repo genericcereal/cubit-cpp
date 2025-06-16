@@ -3,6 +3,7 @@
 #include "SelectionManager.h"
 #include "ElementModel.h"
 #include "Scripts.h"
+#include "ScriptExecutor.h"
 #include "Node.h"
 #include "Edge.h"
 
@@ -119,10 +120,16 @@ void Canvas::initialize() {
     m_selectionManager = std::make_unique<SelectionManager>(this);
     m_controller = std::make_unique<CanvasController>(this);
     m_scripts = std::make_unique<Scripts>(this);
+    m_scriptExecutor = std::make_unique<ScriptExecutor>(this);
     
     // Set up the connections
     m_controller->setElementModel(m_elementModel.get());
     m_controller->setSelectionManager(m_selectionManager.get());
+    
+    // Set up script executor
+    m_scriptExecutor->setScripts(m_scripts.get());
+    m_scriptExecutor->setElementModel(m_elementModel.get());
+    m_scriptExecutor->setCanvasController(m_controller.get());
     
     // Connect to element model changes to track when nodes/edges are added in script mode
     // We need to ensure they're properly added to the appropriate scripts (either design element's or canvas's)
@@ -284,4 +291,15 @@ void Canvas::clearScriptElementsFromModel() {
             m_elementModel->removeElementWithoutDelete(element);
         }
     }
+}
+
+void Canvas::executeScriptEvent(const QString& eventName) {
+    if (!m_scriptExecutor) {
+        qWarning() << "Canvas: ScriptExecutor not initialized";
+        return;
+    }
+    
+    // Execute event on canvas scripts
+    m_scriptExecutor->setScripts(m_scripts.get());
+    m_scriptExecutor->executeEvent(eventName);
 }
