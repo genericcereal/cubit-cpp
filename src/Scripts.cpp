@@ -2,6 +2,8 @@
 #include "Node.h"
 #include "Edge.h"
 #include "UniqueIdGenerator.h"
+#include "ScriptCompiler.h"
+#include "ConsoleMessageRepository.h"
 #include <algorithm>
 
 Scripts::Scripts(QObject *parent)
@@ -181,6 +183,23 @@ QList<Edge*> Scripts::getOutgoingEdges(const QString& nodeId) const {
 void Scripts::clear() {
     clearEdges();
     clearNodes();
+}
+
+// Compile the script graph to JSON
+QString Scripts::compile() {
+    ScriptCompiler compiler;
+    QString result = compiler.compile(this);
+    
+    if (result.isEmpty()) {
+        QString error = compiler.getLastError();
+        ConsoleMessageRepository::instance()->addError("Compilation failed: " + error);
+        return QString();
+    }
+    
+    ConsoleMessageRepository::instance()->addOutput("Scripts compiled successfully");
+    ConsoleMessageRepository::instance()->addOutput(result);
+    
+    return result;
 }
 
 // Property getters

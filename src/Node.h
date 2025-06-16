@@ -15,6 +15,7 @@ class Node : public ScriptElement {
     Q_PROPERTY(QStringList outputPorts READ outputPorts WRITE setOutputPorts NOTIFY outputPortsChanged)
     Q_PROPERTY(bool isExecuting READ isExecuting WRITE setIsExecuting NOTIFY isExecutingChanged)
     Q_PROPERTY(QVariantList rowConfigurations READ rowConfigurations NOTIFY rowConfigurationsChanged)
+    Q_PROPERTY(QString value READ value WRITE setValue NOTIFY valueChanged)
     
 public:
     explicit Node(const QString &id, QObject *parent = nullptr);
@@ -26,6 +27,7 @@ public:
     QStringList inputPorts() const { return m_inputPorts; }
     QStringList outputPorts() const { return m_outputPorts; }
     bool isExecuting() const { return m_isExecuting; }
+    QString value() const { return m_value; }
     
     // Property setters
     void setNodeTitle(const QString &title);
@@ -33,6 +35,7 @@ public:
     void setInputPorts(const QStringList &ports);
     void setOutputPorts(const QStringList &ports);
     void setIsExecuting(bool executing);
+    void setValue(const QString &value);
     
     // Port management
     void addInputPort(const QString &portName);
@@ -83,6 +86,7 @@ signals:
     void outputPortsChanged();
     void isExecutingChanged();
     void rowConfigurationsChanged();
+    void valueChanged();
     
 private:
     QString m_nodeTitle;
@@ -94,4 +98,5 @@ private:
     QMap<int, QString> m_outputPortTypes;
     bool m_isExecuting;
     QList<RowConfig> m_rowConfigs;
+    QString m_value;  // Stores input value for non-Flow type inputs
 };

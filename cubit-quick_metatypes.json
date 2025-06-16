@@ -2506,7 +2506,7 @@
                                 "type": "int"
                             }
                         ],
-                        "index": 6,
+                        "index": 7,
                         "isConst": true,
                         "name": "getRowForInputPort",
                         "returnType": "int"
@@ -2519,7 +2519,7 @@
                                 "type": "int"
                             }
                         ],
-                        "index": 7,
+                        "index": 8,
                         "isConst": true,
                         "name": "getRowForOutputPort",
                         "returnType": "int"
@@ -2628,6 +2628,21 @@
                         "stored": true,
                         "type": "QVariantList",
                         "user": false
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 7,
+                        "name": "value",
+                        "notify": "valueChanged",
+                        "read": "value",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "QString",
+                        "user": false,
+                        "write": "setValue"
                     }
                 ],
                 "qualifiedClassName": "Node",
@@ -2666,6 +2681,12 @@
                         "access": "public",
                         "index": 5,
                         "name": "rowConfigurationsChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 6,
+                        "name": "valueChanged",
                         "returnType": "void"
                     }
                 ],
@@ -2813,6 +2834,38 @@
             }
         ],
         "inputFile": "ResizeElementCommand.h",
+        "outputRevision": 69
+    },
+    {
+        "classes": [
+            {
+                "className": "ScriptCompiler",
+                "lineNumber": 17,
+                "methods": [
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "scripts",
+                                "type": "Scripts*"
+                            }
+                        ],
+                        "index": 0,
+                        "name": "compile",
+                        "returnType": "QString"
+                    }
+                ],
+                "object": true,
+                "qualifiedClassName": "ScriptCompiler",
+                "superClasses": [
+                    {
+                        "access": "public",
+                        "name": "QObject"
+                    }
+                ]
+            }
+        ],
+        "inputFile": "ScriptCompiler.h",
         "outputRevision": 69
     },
     {
@@ -2983,6 +3036,12 @@
                         "index": 20,
                         "name": "clear",
                         "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 21,
+                        "name": "compile",
+                        "returnType": "QString"
                     }
                 ],
                 "object": true,

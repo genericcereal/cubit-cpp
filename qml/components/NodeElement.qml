@@ -316,10 +316,14 @@ Item {
                             hasIncomingEdge: hasIncomingEdge
                             isHovered: comboBoxHovered
                             canvas: root.canvas
+                            value: nodeElement ? nodeElement.value : ""
                             
                             onPortValueChanged: function(newValue) {
                                 console.log("Target port", targetPortIndex, "value changed to:", newValue)
-                                // TODO: Connect this to the node's data model
+                                // Update the node's value property
+                                if (nodeElement) {
+                                    nodeElement.value = String(newValue)
+                                }
                             }
                         }
                         

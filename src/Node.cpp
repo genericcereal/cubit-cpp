@@ -66,6 +66,15 @@ void Node::setIsExecuting(bool executing)
     }
 }
 
+void Node::setValue(const QString &value)
+{
+    if (m_value != value) {
+        m_value = value;
+        emit valueChanged();
+        emit elementChanged();
+    }
+}
+
 void Node::addInputPort(const QString &portName)
 {
     if (!m_inputPorts.contains(portName)) {

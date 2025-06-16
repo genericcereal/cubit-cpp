@@ -77,8 +77,14 @@ Window {
                 }
                 onCompileClicked: {
                     if (Application.activeCanvas && Application.activeCanvas.activeScripts) {
-                        Application.activeCanvas.activeScripts.isCompiled = true
-                        console.log("Scripts compiled")
+                        // Compile the scripts
+                        var compiledJson = Application.activeCanvas.activeScripts.compile()
+                        
+                        if (compiledJson) {
+                            // Mark as compiled
+                            Application.activeCanvas.activeScripts.isCompiled = true
+                            console.log("Scripts compiled successfully")
+                        }
                     }
                 }
                 
