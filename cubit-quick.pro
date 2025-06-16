@@ -26,6 +26,7 @@ SOURCES += \
     src/ViewportCache.cpp \
     src/ConsoleMessageRepository.cpp \
     src/Application.cpp \
+    src/Canvas.cpp \
     src/Panels.cpp \
     src/Scripts.cpp
 
@@ -49,6 +50,7 @@ HEADERS += \
     src/ViewportCache.h \
     src/ConsoleMessageRepository.h \
     src/Application.h \
+    src/Canvas.h \
     src/Panels.h \
     src/Scripts.h
 
