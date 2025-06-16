@@ -63,23 +63,34 @@ Element* HitTestService::hitTest(const QPointF& point) const
         candidates = m_elementModel->getAllElements();
     }
     
+    qDebug() << "HitTestService::hitTest at" << point << "- found" << candidates.size() << "candidates";
+    
     // Test in reverse order (top to bottom) for proper z-ordering
     for (int i = candidates.size() - 1; i >= 0; --i) {
         Element *element = candidates[i];
         
         if (!shouldTestElement(element)) {
+            qDebug() << "  Skipping element" << element->getName() << "- shouldTestElement returned false";
             continue;
         }
         
         // Only visual elements can be hit tested
         if (element->isVisual()) {
             CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
-            if (canvasElement && canvasElement->containsPoint(point)) {
-                return element;
+            if (canvasElement) {
+                QRectF elementRect = canvasElement->rect();
+                bool contains = canvasElement->containsPoint(point);
+                qDebug() << "  Testing element" << element->getName() 
+                         << "at" << elementRect 
+                         << "- contains:" << contains;
+                if (contains) {
+                    return element;
+                }
             }
         }
     }
     
+    qDebug() << "  No element found at point";
     return nullptr;
 }
 
@@ -207,11 +218,36 @@ void HitTestService::updateElement(Element* element)
 {
     if (!element || !shouldTestElement(element)) return;
     
-    // For now, remove and re-insert
-    // TODO: Optimize this by only updating if bounds changed
     if (m_quadTree) {
-        m_quadTree->remove(element);
-        m_quadTree->insert(element);
+        bool needsRebuild = false;
+        
+        if (element->isVisual()) {
+            CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+            if (canvasElement) {
+                QRectF elementRect = canvasElement->rect();
+                qDebug() << "HitTestService::updateElement -" << element->getName() 
+                         << "at" << elementRect;
+                
+                // Check if element is outside current quadtree bounds
+                if (!m_quadTree->getBounds().contains(elementRect)) {
+                    qDebug() << "Element" << element->getName() << "is outside QuadTree bounds - rebuilding spatial index";
+                    needsRebuild = true;
+                }
+            }
+        }
+        
+        if (needsRebuild) {
+            // Element is outside bounds, need to rebuild the entire spatial index
+            rebuildSpatialIndex();
+        } else {
+            // Normal update - remove and re-insert
+            m_quadTree->remove(element);
+            bool inserted = m_quadTree->insert(element);
+            if (!inserted) {
+                qDebug() << "Failed to insert element" << element->getName() << "into QuadTree - rebuilding";
+                rebuildSpatialIndex();
+            }
+        }
     }
 }
 
@@ -263,10 +299,18 @@ QRectF HitTestService::calculateBounds() const
         }
     }
     
-    // Add some padding
+    // Add generous padding to accommodate future movement
     if (!bounds.isEmpty()) {
-        bounds.adjust(-100, -100, 100, 100);
+        bounds.adjust(-500, -500, 500, 500);
+    } else {
+        // Default bounds if no elements
+        bounds = QRectF(-1000, -1000, 2000, 2000);
     }
+    
+    // Ensure bounds include the origin
+    bounds = bounds.united(QRectF(-100, -100, 200, 200));
+    
+    qDebug() << "HitTestService::calculateBounds - computed bounds:" << bounds;
     
     return bounds;
 }

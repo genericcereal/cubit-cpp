@@ -78,6 +78,14 @@ QuadTree::Stats QuadTree::getStats() const
     return stats;
 }
 
+QRectF QuadTree::getBounds() const
+{
+    if (m_root) {
+        return m_root->bounds;
+    }
+    return QRectF();
+}
+
 void QuadTree::subdivide(Node* node)
 {
     if (!node->isLeaf()) {

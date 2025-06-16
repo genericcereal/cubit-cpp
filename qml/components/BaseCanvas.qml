@@ -109,6 +109,7 @@ Item {
         canvasMinY: root.canvasMinY
         
         property point dragStartPoint
+        property bool dragStartedOnElement: false
         
         onPanned: (dx, dy) => {
             flick.contentX -= dx
@@ -123,16 +124,21 @@ Item {
         
         onDragStarted: (pt) => {
             dragStartPoint = pt
+            // Check if we're starting a drag on an element
+            if (controller && controller.mode === "select") {
+                var element = controller.hitTest(pt.x, pt.y)
+                dragStartedOnElement = (element !== null)
+            } else {
+                dragStartedOnElement = false
+            }
             root.handleDragStart(pt)
         }
         
         onDragMoved: (pt) => {
-            // Start selection box if in select mode and not already dragging an element
-            if (controller && controller.mode === "select" && !selectionBoxHandler.active && inputHandler.isDragging() && !controller.isDragging) {
-                var element = controller.hitTest(dragStartPoint.x, dragStartPoint.y)
-                if (!element) {
-                    selectionBoxHandler.startSelection(dragStartPoint)
-                }
+            // Start selection box if in select mode and not dragging an element
+            if (controller && controller.mode === "select" && !selectionBoxHandler.active && 
+                inputHandler.isDragging() && !dragStartedOnElement) {
+                selectionBoxHandler.startSelection(dragStartPoint)
             }
             
             if (selectionBoxHandler.active) {
@@ -148,6 +154,7 @@ Item {
             } else {
                 root.handleDragEnd(pt)
             }
+            dragStartedOnElement = false
         }
         
         onHovered: (pt) => {

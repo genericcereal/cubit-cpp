@@ -47,7 +47,6 @@ BaseCanvas {
     property int dragSourcePortIndex: -1
     property string dragSourcePortType: "Flow"  // "Flow", "Boolean", "String", or "Number"
     property point dragCurrentPoint: Qt.point(0, 0)
-    property point dragStartPoint: Qt.point(0, 0)
     
     // Node catalog state
     property bool showNodeCatalog: false
@@ -77,21 +76,37 @@ BaseCanvas {
                     Connections {
                         target: sourceNode
                         enabled: sourceNode !== null
-                        function onXChanged() { updateEdgePositions() }
-                        function onYChanged() { updateEdgePositions() }
+                        function onXChanged() { 
+                            console.log("Edge source node X changed:", sourceNode.x)
+                            updateEdgePositions() 
+                        }
+                        function onYChanged() { 
+                            console.log("Edge source node Y changed:", sourceNode.y)
+                            updateEdgePositions() 
+                        }
                         function onWidthChanged() { updateEdgePositions() }
                     }
                     
                     Connections {
                         target: targetNode
                         enabled: targetNode !== null
-                        function onXChanged() { updateEdgePositions() }
-                        function onYChanged() { updateEdgePositions() }
+                        function onXChanged() { 
+                            console.log("Edge target node X changed:", targetNode.x)
+                            updateEdgePositions() 
+                        }
+                        function onYChanged() { 
+                            console.log("Edge target node Y changed:", targetNode.y)
+                            updateEdgePositions() 
+                        }
                         function onHeightChanged() { updateEdgePositions() }
                     }
                     
                     function updateEdgePositions() {
-                        if (!edgeObj || !sourceNode || !targetNode) return
+                        if (!edgeObj || !sourceNode || !targetNode) {
+                            console.log("updateEdgePositions early return - edgeObj:", !!edgeObj, "sourceNode:", !!sourceNode, "targetNode:", !!targetNode)
+                            return
+                        }
+                        console.log("updateEdgePositions called for edge", edgeObj.elementId)
                         
                         var titleAndMargins = 30 + 15  // Title height + margins
                         var columnsMargin = 10  // Left/right margin of columns container
@@ -398,9 +413,12 @@ BaseCanvas {
         clickedThisFrame = true
         clickPoint = pt
         
+        console.log("ScriptCanvas.handleDragStart called at", pt.x, pt.y)
+        
         if (controller.mode === "select") {
             // Check if we're over a handle first
             var handleInfo = getHandleAtPoint(pt)
+            console.log("getHandleAtPoint returned:", handleInfo ? "handle found" : "no handle")
             if (handleInfo) {
                 // Start handle drag immediately
                 isDraggingHandle = true
@@ -409,11 +427,10 @@ BaseCanvas {
                 dragSourcePortIndex = handleInfo.portIndex
                 dragSourcePortType = handleInfo.portType
                 dragCurrentPoint = pt
-                dragStartPoint = pt
                 console.log("Started dragging handle:", handleInfo.handleType, "port:", handleInfo.portIndex, "type:", handleInfo.portType, "from node:", handleInfo.node.nodeTitle)
             } else {
-                // Store the start point and let the controller handle the press
-                dragStartPoint = pt
+                // Let the controller handle the press
+                console.log("No handle found, calling controller.handleMousePress")
                 controller.handleMousePress(pt.x, pt.y)
             }
         }
@@ -484,7 +501,6 @@ BaseCanvas {
                 dragSourceHandleType = ""
                 dragSourcePortIndex = -1
                 dragSourcePortType = "Flow"
-                dragStartPoint = Qt.point(0, 0)
             } else {
                 // Show node catalog at release position
                 showNodeCatalog = true
@@ -502,9 +518,6 @@ BaseCanvas {
             
             // Let the controller handle release
             controller.handleMouseRelease(pt.x, pt.y)
-            
-            // Reset drag start point
-            dragStartPoint = Qt.point(0, 0)
         }
     }
     
