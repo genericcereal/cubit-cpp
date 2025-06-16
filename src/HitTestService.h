@@ -27,12 +27,12 @@ public:
     void setCanvasType(CanvasType type);
     
     // Hit testing
-    Element* hitTest(const QPointF& point);
-    Element* hitTest(qreal x, qreal y) { return hitTest(QPointF(x, y)); }
+    Element* hitTest(const QPointF& point) const;
+    Element* hitTest(qreal x, qreal y) const { return hitTest(QPointF(x, y)); }
     
     // Spatial queries
-    QList<Element*> elementsInRect(const QRectF& rect);
-    QList<Element*> elementsAt(const QPointF& point);
+    QList<Element*> elementsInRect(const QRectF& rect) const;
+    QList<Element*> elementsAt(const QPointF& point) const;
     
     // Spatial index management
     void rebuildSpatialIndex();
@@ -56,7 +56,7 @@ private slots:
 private:
     ElementModel* m_elementModel = nullptr;
     CanvasType m_canvasType = CanvasType::Design;
-    std::unique_ptr<QuadTree> m_quadTree;
+    mutable std::unique_ptr<QuadTree> m_quadTree;
     bool m_useQuadTree = true;
     bool m_needsRebuild = false;
     
@@ -67,5 +67,5 @@ private:
     QRectF calculateBounds() const;
     
     // Track elements for removal
-    QHash<QString, Element*> m_elementMap;
+    mutable QHash<QString, Element*> m_elementMap;
 };

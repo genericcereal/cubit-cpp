@@ -403,7 +403,7 @@
                         ]
                     }
                 ],
-                "lineNumber": 14,
+                "lineNumber": 15,
                 "methods": [
                     {
                         "access": "public",
@@ -413,7 +413,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 21,
+                        "index": 23,
                         "name": "setMode",
                         "returnType": "void"
                     },
@@ -425,7 +425,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 22,
+                        "index": 24,
                         "name": "setCanvasType",
                         "returnType": "void"
                     },
@@ -437,7 +437,7 @@
                                 "type": "ElementModel*"
                             }
                         ],
-                        "index": 23,
+                        "index": 25,
                         "name": "setElementModel",
                         "returnType": "void"
                     },
@@ -449,7 +449,7 @@
                                 "type": "SelectionManager*"
                             }
                         ],
-                        "index": 24,
+                        "index": 26,
                         "name": "setSelectionManager",
                         "returnType": "void"
                     },
@@ -465,9 +465,21 @@
                                 "type": "qreal"
                             }
                         ],
-                        "index": 25,
+                        "index": 27,
                         "name": "hitTest",
                         "returnType": "Element*"
+                    },
+                    {
+                        "access": "public",
+                        "index": 28,
+                        "name": "undo",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 29,
+                        "name": "redo",
+                        "returnType": "void"
                     }
                 ],
                 "object": true,
@@ -515,6 +527,34 @@
                         "stored": true,
                         "type": "bool",
                         "user": false
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 3,
+                        "name": "canUndo",
+                        "notify": "canUndoChanged",
+                        "read": "canUndo",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "bool",
+                        "user": false
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 4,
+                        "name": "canRedo",
+                        "notify": "canRedoChanged",
+                        "read": "canRedo",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "bool",
+                        "user": false
                     }
                 ],
                 "qualifiedClassName": "CanvasController",
@@ -548,6 +588,18 @@
                         "index": 3,
                         "name": "elementCreated",
                         "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 4,
+                        "name": "canUndoChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 5,
+                        "name": "canRedoChanged",
+                        "returnType": "void"
                     }
                 ],
                 "slots": [
@@ -563,7 +615,7 @@
                                 "type": "qreal"
                             }
                         ],
-                        "index": 4,
+                        "index": 6,
                         "name": "handleMousePress",
                         "returnType": "void"
                     },
@@ -579,7 +631,7 @@
                                 "type": "qreal"
                             }
                         ],
-                        "index": 5,
+                        "index": 7,
                         "name": "handleMouseMove",
                         "returnType": "void"
                     },
@@ -595,7 +647,7 @@
                                 "type": "qreal"
                             }
                         ],
-                        "index": 6,
+                        "index": 8,
                         "name": "handleMouseRelease",
                         "returnType": "void"
                     },
@@ -623,7 +675,7 @@
                                 "type": "qreal"
                             }
                         ],
-                        "index": 7,
+                        "index": 9,
                         "name": "createElement",
                         "returnType": "void"
                     },
@@ -647,7 +699,7 @@
                                 "type": "qreal"
                             }
                         ],
-                        "index": 8,
+                        "index": 10,
                         "isCloned": true,
                         "name": "createElement",
                         "returnType": "void"
@@ -668,7 +720,7 @@
                                 "type": "qreal"
                             }
                         ],
-                        "index": 9,
+                        "index": 11,
                         "isCloned": true,
                         "name": "createElement",
                         "returnType": "void"
@@ -693,7 +745,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 10,
+                        "index": 12,
                         "name": "createNode",
                         "returnType": "void"
                     },
@@ -713,7 +765,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 11,
+                        "index": 13,
                         "isCloned": true,
                         "name": "createNode",
                         "returnType": "void"
@@ -730,7 +782,7 @@
                                 "type": "qreal"
                             }
                         ],
-                        "index": 12,
+                        "index": 14,
                         "isCloned": true,
                         "name": "createNode",
                         "returnType": "void"
@@ -763,7 +815,7 @@
                                 "type": "int"
                             }
                         ],
-                        "index": 13,
+                        "index": 15,
                         "name": "createEdge",
                         "returnType": "void"
                     },
@@ -787,7 +839,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 14,
+                        "index": 16,
                         "name": "createEdgeByPortId",
                         "returnType": "void"
                     },
@@ -799,7 +851,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 15,
+                        "index": 17,
                         "name": "createNodeFromJson",
                         "returnType": "QString"
                     },
@@ -811,7 +863,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 16,
+                        "index": 18,
                         "name": "createNodesFromJson",
                         "returnType": "void"
                     },
@@ -823,7 +875,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 17,
+                        "index": 19,
                         "name": "createGraphFromJson",
                         "returnType": "void"
                     },
@@ -835,19 +887,19 @@
                                 "type": "QRectF"
                             }
                         ],
-                        "index": 18,
+                        "index": 20,
                         "name": "selectElementsInRect",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 19,
+                        "index": 21,
                         "name": "selectAll",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 20,
+                        "index": 22,
                         "name": "deleteSelectedElements",
                         "returnType": "void"
                     }
@@ -973,6 +1025,80 @@
             }
         ],
         "inputFile": "CanvasElement.h",
+        "outputRevision": 69
+    },
+    {
+        "classes": [
+            {
+                "className": "Command",
+                "lineNumber": 7,
+                "object": true,
+                "qualifiedClassName": "Command",
+                "superClasses": [
+                    {
+                        "access": "public",
+                        "name": "QObject"
+                    }
+                ]
+            }
+        ],
+        "inputFile": "Command.h",
+        "outputRevision": 69
+    },
+    {
+        "classes": [
+            {
+                "className": "CommandHistory",
+                "lineNumber": 10,
+                "object": true,
+                "qualifiedClassName": "CommandHistory",
+                "signals": [
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "canUndo",
+                                "type": "bool"
+                            }
+                        ],
+                        "index": 0,
+                        "name": "canUndoChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "canRedo",
+                                "type": "bool"
+                            }
+                        ],
+                        "index": 1,
+                        "name": "canRedoChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "description",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 2,
+                        "name": "commandExecuted",
+                        "returnType": "void"
+                    }
+                ],
+                "superClasses": [
+                    {
+                        "access": "public",
+                        "name": "QObject"
+                    }
+                ]
+            }
+        ],
+        "inputFile": "CommandHistory.h",
         "outputRevision": 69
     },
     {
@@ -1160,6 +1286,24 @@
     {
         "classes": [
             {
+                "className": "CreateFrameCommand",
+                "lineNumber": 12,
+                "object": true,
+                "qualifiedClassName": "CreateFrameCommand",
+                "superClasses": [
+                    {
+                        "access": "public",
+                        "name": "Command"
+                    }
+                ]
+            }
+        ],
+        "inputFile": "CreateFrameCommand.h",
+        "outputRevision": 69
+    },
+    {
+        "classes": [
+            {
                 "className": "CreationManager",
                 "enums": [
                     {
@@ -1222,6 +1366,24 @@
             }
         ],
         "inputFile": "CreationManager.h",
+        "outputRevision": 69
+    },
+    {
+        "classes": [
+            {
+                "className": "DeleteElementsCommand",
+                "lineNumber": 13,
+                "object": true,
+                "qualifiedClassName": "DeleteElementsCommand",
+                "superClasses": [
+                    {
+                        "access": "public",
+                        "name": "Command"
+                    }
+                ]
+            }
+        ],
+        "inputFile": "DeleteElementsCommand.h",
         "outputRevision": 69
     },
     {
@@ -1312,6 +1474,22 @@
                         "access": "public",
                         "index": 3,
                         "name": "dragEnded",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "elements",
+                                "type": "QList<Element*>"
+                            },
+                            {
+                                "name": "totalDelta",
+                                "type": "QPointF"
+                            }
+                        ],
+                        "index": 4,
+                        "name": "dragCompleted",
                         "returnType": "void"
                     }
                 ],
@@ -2299,6 +2477,24 @@
     {
         "classes": [
             {
+                "className": "MoveElementsCommand",
+                "lineNumber": 12,
+                "object": true,
+                "qualifiedClassName": "MoveElementsCommand",
+                "superClasses": [
+                    {
+                        "access": "public",
+                        "name": "Command"
+                    }
+                ]
+            }
+        ],
+        "inputFile": "MoveElementsCommand.h",
+        "outputRevision": 69
+    },
+    {
+        "classes": [
+            {
                 "className": "Node",
                 "lineNumber": 9,
                 "methods": [
@@ -2599,6 +2795,24 @@
             }
         ],
         "inputFile": "Panels.h",
+        "outputRevision": 69
+    },
+    {
+        "classes": [
+            {
+                "className": "ResizeElementCommand",
+                "lineNumber": 9,
+                "object": true,
+                "qualifiedClassName": "ResizeElementCommand",
+                "superClasses": [
+                    {
+                        "access": "public",
+                        "name": "Command"
+                    }
+                ]
+            }
+        ],
+        "inputFile": "ResizeElementCommand.h",
         "outputRevision": 69
     },
     {
@@ -3141,6 +3355,24 @@
             }
         ],
         "inputFile": "SelectionManager.h",
+        "outputRevision": 69
+    },
+    {
+        "classes": [
+            {
+                "className": "SetPropertyCommand",
+                "lineNumber": 10,
+                "object": true,
+                "qualifiedClassName": "SetPropertyCommand",
+                "superClasses": [
+                    {
+                        "access": "public",
+                        "name": "Command"
+                    }
+                ]
+            }
+        ],
+        "inputFile": "SetPropertyCommand.h",
         "outputRevision": 69
     },
     {

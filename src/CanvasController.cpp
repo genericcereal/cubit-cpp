@@ -7,6 +7,12 @@
 #include "SelectionManager.h"
 #include "CanvasElement.h"
 #include "Config.h"
+#include "CommandHistory.h"
+#include "commands/CreateFrameCommand.h"
+#include "commands/DeleteElementsCommand.h"
+#include "commands/MoveElementsCommand.h"
+#include "commands/ResizeElementCommand.h"
+#include "commands/SetPropertyCommand.h"
 #include <QDebug>
 
 CanvasController::CanvasController(QObject *parent)
@@ -28,14 +34,31 @@ void CanvasController::initializeSubcontrollers()
     m_creationManager = std::make_unique<CreationManager>(this);
     m_hitTestService = std::make_unique<HitTestService>(this);
     m_jsonImporter = std::make_unique<JsonImporter>(this);
+    m_commandHistory = std::make_unique<CommandHistory>(this);
     
     // Connect drag manager signals
     connect(m_dragManager.get(), &DragManager::isDraggingChanged,
             this, &CanvasController::isDraggingChanged);
+    connect(m_dragManager.get(), &DragManager::dragEnded,
+            this, [this]() {
+                // Create move command if elements were actually moved
+                if (m_dragManager->hasDraggedMinDistance() && !m_dragManager->draggedElements().isEmpty()) {
+                    auto command = std::make_unique<MoveElementsCommand>(
+                        m_dragManager->draggedElements(), 
+                        m_dragManager->totalDelta());
+                    m_commandHistory->execute(std::move(command));
+                }
+            });
     
     // Connect creation manager signals
     connect(m_creationManager.get(), &CreationManager::elementCreated,
             this, &CanvasController::elementCreated);
+    
+    // Connect command history signals
+    connect(m_commandHistory.get(), &CommandHistory::canUndoChanged,
+            this, &CanvasController::canUndoChanged);
+    connect(m_commandHistory.get(), &CommandHistory::canRedoChanged,
+            this, &CanvasController::canRedoChanged);
     
     // Set up canvas type
     updateSubcontrollersCanvasType();
@@ -188,21 +211,33 @@ void CanvasController::handleMouseRelease(qreal x, qreal y)
         case Mode::Frame:
         case Mode::Text:
         case Mode::Html: {
-            // Finalize element creation
-            if (m_creationElement) {
-                // Ensure minimum size
-                if (m_creationElement->isVisual()) {
-                    CanvasElement* canvasElement = qobject_cast<CanvasElement*>(m_creationElement);
-                    if (canvasElement) {
-                        if (canvasElement->width() < 10) canvasElement->setWidth(Config::DEFAULT_ELEMENT_WIDTH);
-                        if (canvasElement->height() < 10) canvasElement->setHeight(Config::DEFAULT_ELEMENT_HEIGHT);
-                    }
-                }
-                
-                // Switch back to select mode
-                setMode("select");
+            // Calculate final dimensions
+            qreal width = qAbs(x - m_creationStartPos.x());
+            qreal height = qAbs(y - m_creationStartPos.y());
+            qreal left = qMin(x, m_creationStartPos.x());
+            qreal top = qMin(y, m_creationStartPos.y());
+            
+            // Ensure minimum size
+            if (width < 10) width = Config::DEFAULT_ELEMENT_WIDTH;
+            if (height < 10) height = Config::DEFAULT_ELEMENT_HEIGHT;
+            
+            // Remove the temporary creation element
+            if (m_creationElement && m_elementModel) {
+                m_elementModel->removeElement(m_creationElement->getId());
+                m_creationElement = nullptr;
             }
-            m_creationElement = nullptr;
+            
+            // Create frame using command
+            if (m_mode == Mode::Frame) {
+                QRectF rect(left, top, width, height);
+                auto command = std::make_unique<CreateFrameCommand>(
+                    m_elementModel, m_selectionManager, rect);
+                m_commandHistory->execute(std::move(command));
+            }
+            // TODO: Handle Text and Html creation with commands
+            
+            // Switch back to select mode
+            setMode("select");
             break;
         }
         
@@ -290,13 +325,35 @@ void CanvasController::deleteSelectedElements()
     if (!m_elementModel || !m_selectionManager) return;
     
     QList<Element*> selectedElements = m_selectionManager->selectedElements();
+    if (selectedElements.isEmpty()) return;
     
-    // Clear selection first
-    m_selectionManager->clearSelection();
-    
-    // Delete elements
-    for (Element *element : selectedElements) {
-        m_elementModel->removeElement(element->getId());
+    // Create and execute delete command
+    auto command = std::make_unique<DeleteElementsCommand>(
+        m_elementModel, m_selectionManager, selectedElements);
+    m_commandHistory->execute(std::move(command));
+}
+
+bool CanvasController::canUndo() const
+{
+    return m_commandHistory && m_commandHistory->canUndo();
+}
+
+bool CanvasController::canRedo() const
+{
+    return m_commandHistory && m_commandHistory->canRedo();
+}
+
+void CanvasController::undo()
+{
+    if (m_commandHistory) {
+        m_commandHistory->undo();
+    }
+}
+
+void CanvasController::redo()
+{
+    if (m_commandHistory) {
+        m_commandHistory->redo();
     }
 }
 

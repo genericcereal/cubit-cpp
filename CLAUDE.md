@@ -784,6 +784,113 @@ ConsoleMessageRepository.addError("Error from QML")
 - `Warning`: Warning messages (also logged to qWarning)
 - `Info`: Informational messages
 
+## Command System (Undo/Redo)
+
+### Overview
+
+The application implements the Command Pattern for comprehensive undo/redo support. Every user action that modifies the canvas state (create, delete, move, resize, etc.) is wrapped in a command object that knows how to execute and undo itself.
+
+### Architecture
+
+**Base Classes:**
+
+- `Command` - Abstract base class for all commands
+  - `execute()` - Performs the action
+  - `undo()` - Reverses the action
+  - `redo()` - Re-executes the action (default implementation calls execute())
+  - `description()` - Returns a human-readable description of the action
+
+- `CommandHistory` - Manages undo/redo stacks
+  - Maintains undo and redo stacks using `std::stack<std::unique_ptr<Command>>`
+  - Tracks command execution state
+  - Provides `canUndo()`/`canRedo()` state for UI
+  - Emits signals for UI updates
+  - Configurable maximum undo count (default: 100)
+
+### Implemented Commands
+
+1. **CreateFrameCommand**
+   - Creates a new Frame element
+   - Stores the frame for undo/redo operations
+   - Manages selection state
+
+2. **DeleteElementsCommand**
+   - Deletes one or more elements
+   - Preserves element data for restoration
+   - Handles parent-child relationships (future support)
+   - Restores selection on undo
+
+3. **MoveElementsCommand**
+   - Moves selected elements by a delta
+   - Supports merging consecutive moves (drag operations)
+   - Efficient handling of multi-element moves
+
+4. **ResizeElementCommand**
+   - Resizes a single element
+   - Supports merging consecutive resizes
+   - Preserves original dimensions
+
+5. **SetPropertyCommand**
+   - Generic property changes using Qt's property system
+   - Supports merging consecutive property changes
+   - Works with any QObject property
+
+### Integration
+
+**CanvasController:**
+- Exposes `undo()` and `redo()` methods
+- Provides `canUndo` and `canRedo` properties for QML binding
+- Creates and executes commands for all canvas operations
+- Example: `m_commandHistory->execute(std::make_unique<DeleteElementsCommand>(...));`
+
+**DragManager:**
+- Tracks total delta during drag operations
+- Emits `dragEnded` signal with movement information
+- CanvasController creates MoveElementsCommand on drag completion
+
+**QML Integration:**
+- Keyboard shortcuts in `InputController.qml`:
+  - Cmd/Ctrl+Z for Undo
+  - Cmd/Ctrl+Shift+Z for Redo
+- Properties exposed for UI state: `controller.canUndo`, `controller.canRedo`
+
+### Usage Example
+
+```cpp
+// Creating a frame
+auto command = std::make_unique<CreateFrameCommand>(
+    m_elementModel, m_selectionManager, QRectF(x, y, width, height));
+m_commandHistory->execute(std::move(command));
+
+// Moving elements
+auto command = std::make_unique<MoveElementsCommand>(
+    selectedElements, QPointF(deltaX, deltaY));
+m_commandHistory->execute(std::move(command));
+
+// Undo/Redo
+m_commandHistory->undo();
+m_commandHistory->redo();
+```
+
+### Command Implementation Guidelines
+
+When creating new commands:
+
+1. Inherit from `Command` base class
+2. Store all necessary state for undo/redo
+3. Implement `execute()` and `undo()` (redo() has default implementation)
+4. Consider implementing merge functionality for consecutive operations
+5. Set a descriptive string using `setDescription()`
+6. Handle edge cases (null pointers, invalid states)
+7. Manage object ownership carefully (who owns elements during undo/redo)
+
+### Technical Notes
+
+- Commands use move semantics (`std::unique_ptr`) for efficient memory management
+- The `setExecuted()` method is private and only accessible to `CommandHistory`
+- Commands should be stateless regarding their execution - they should work correctly whether called via execute() or redo()
+- MoveElementsCommand handles the first execution specially since elements are already moved during drag
+
 ## Other instructions
 
 - Never create "mock" implementations. Don't create files for testing purposes with the intention of throwing them away later.

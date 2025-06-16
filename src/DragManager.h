@@ -35,6 +35,7 @@ signals:
     void dragStarted();
     void dragUpdated();
     void dragEnded();
+    void dragCompleted(const QList<Element*>& elements, const QPointF& totalDelta);
     
 private:
     struct ElementDragState {
@@ -48,8 +49,13 @@ private:
     bool m_isDragging = false;
     Element* m_dragElement = nullptr;
     QPointF m_dragStartPos;
+    QPointF m_totalDelta;
     bool m_hasDraggedMinDistance = false;
     QList<ElementDragState> m_draggedElements;
     
     static constexpr qreal DRAG_THRESHOLD = 3.0; // pixels
+    
+public:
+    QPointF totalDelta() const { return m_totalDelta; }
+    QList<Element*> draggedElements() const;
 };

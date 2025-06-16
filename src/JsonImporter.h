@@ -18,9 +18,9 @@ public:
     void setElementModel(ElementModel* elementModel) { m_elementModel = elementModel; }
     
     // Import operations
-    QString createNodeFromJson(const QString &jsonData);
-    QStringList createNodesFromJson(const QString &jsonData);
-    void createGraphFromJson(const QString &jsonData);
+    QString createNodeFromJson(const QString& jsonData);
+    QStringList createNodesFromJson(const QString& jsonData);
+    void createGraphFromJson(const QString& jsonData);
     
 signals:
     void nodeImported(const QString& nodeId);
@@ -31,7 +31,4 @@ signals:
 private:
     CreationManager* m_creationManager = nullptr;
     ElementModel* m_elementModel = nullptr;
-    
-    // Helper to migrate old port type names
-    QString migratePortType(const QString& oldType);
 };

@@ -49,7 +49,7 @@ void HitTestService::setCanvasType(CanvasType type)
     }
 }
 
-Element* HitTestService::hitTest(const QPointF& point)
+Element* HitTestService::hitTest(const QPointF& point) const
 {
     if (!m_elementModel) return nullptr;
     
@@ -75,7 +75,6 @@ Element* HitTestService::hitTest(const QPointF& point)
         if (element->isVisual()) {
             CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
             if (canvasElement && canvasElement->containsPoint(point)) {
-                emit elementHit(element);
                 return element;
             }
         }
@@ -84,7 +83,7 @@ Element* HitTestService::hitTest(const QPointF& point)
     return nullptr;
 }
 
-QList<Element*> HitTestService::elementsInRect(const QRectF& rect)
+QList<Element*> HitTestService::elementsInRect(const QRectF& rect) const
 {
     QList<Element*> result;
     
@@ -117,7 +116,7 @@ QList<Element*> HitTestService::elementsInRect(const QRectF& rect)
     return result;
 }
 
-QList<Element*> HitTestService::elementsAt(const QPointF& point)
+QList<Element*> HitTestService::elementsAt(const QPointF& point) const
 {
     QList<Element*> result;
     

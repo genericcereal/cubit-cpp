@@ -107,4 +107,17 @@ MouseArea {
     onExited: {
         hoveredElement = null
     }
+    
+    // Keyboard shortcuts
+    Shortcut {
+        sequence: StandardKey.Undo
+        enabled: controller && controller.canUndo
+        onActivated: controller.undo()
+    }
+    
+    Shortcut {
+        sequence: StandardKey.Redo
+        enabled: controller && controller.canRedo
+        onActivated: controller.redo()
+    }
 }

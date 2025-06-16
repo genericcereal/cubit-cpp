@@ -10,12 +10,15 @@ class DragManager;
 class CreationManager;
 class HitTestService;
 class JsonImporter;
+class CommandHistory;
 
 class CanvasController : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString mode READ mode WRITE setMode NOTIFY modeChanged)
     Q_PROPERTY(QString canvasType READ canvasType WRITE setCanvasType NOTIFY canvasTypeChanged)
     Q_PROPERTY(bool isDragging READ isDragging NOTIFY isDraggingChanged)
+    Q_PROPERTY(bool canUndo READ canUndo NOTIFY canUndoChanged)
+    Q_PROPERTY(bool canRedo READ canRedo NOTIFY canRedoChanged)
     
 public:
     // Enum for canvas interaction modes
@@ -57,6 +60,12 @@ public:
     // Helper methods (delegated to HitTestService)
     Q_INVOKABLE Element* hitTest(qreal x, qreal y);
     
+    // Undo/Redo support
+    bool canUndo() const;
+    bool canRedo() const;
+    Q_INVOKABLE void undo();
+    Q_INVOKABLE void redo();
+    
     
 public slots:
     // Mouse handling
@@ -88,6 +97,8 @@ signals:
     void canvasTypeChanged();
     void isDraggingChanged();
     void elementCreated(Element *element);
+    void canUndoChanged();
+    void canRedoChanged();
     
 private:
     Mode m_mode;
@@ -100,6 +111,7 @@ private:
     std::unique_ptr<CreationManager> m_creationManager;
     std::unique_ptr<HitTestService> m_hitTestService;
     std::unique_ptr<JsonImporter> m_jsonImporter;
+    std::unique_ptr<CommandHistory> m_commandHistory;
     
     // Helper methods for enum conversion
     static Mode modeFromString(const QString &str);

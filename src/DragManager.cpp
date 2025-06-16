@@ -18,6 +18,7 @@ bool DragManager::startDrag(Element* element, const QPointF& startPos)
     m_dragElement = element;
     m_isDragging = true;
     m_dragStartPos = startPos;
+    m_totalDelta = QPointF(0, 0);
     m_hasDraggedMinDistance = false;
     
     // Clear previous drag states
@@ -67,6 +68,7 @@ void DragManager::updateDrag(const QPointF& currentPos)
     // Calculate the delta from the drag start position
     qreal deltaX = currentPos.x() - m_dragStartPos.x();
     qreal deltaY = currentPos.y() - m_dragStartPos.y();
+    m_totalDelta = QPointF(deltaX, deltaY);
     
     // Check if we've moved enough to consider this a drag
     if (!m_hasDraggedMinDistance) {
@@ -101,4 +103,13 @@ void DragManager::endDrag()
     
     emit isDraggingChanged();
     emit dragEnded();
+}
+
+QList<Element*> DragManager::draggedElements() const
+{
+    QList<Element*> elements;
+    for (const ElementDragState& state : m_draggedElements) {
+        elements.append(state.element);
+    }
+    return elements;
 }
