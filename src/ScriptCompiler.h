@@ -33,13 +33,15 @@ public:
 private:
     struct CompilationContext {
         QHash<QString, QString> functionMap;  // Maps function types to function IDs
-        QHash<QString, int> outputMap;    // Maps node output IDs to indices in outputs array
+        QHash<QString, QString> outputMap;    // Maps node output IDs to output keys in outputs object
+        QHash<QString, QString> nodeToInvokeMap;  // Maps node IDs to invoke IDs
         QJsonObject functions;  // Object with functionId as key, arrow function as value
-        QJsonArray outputs;
-        QJsonArray invokes;
+        QJsonObject outputs;    // Object with outputId as key, output definition as value
+        QJsonObject invokes;    // Object with invokeId as key, invoke object as value
         QSet<QString> processedNodes;
         int functionCounter = 0;
         int outputCounter = 0;
+        int invokeCounter = 0;
     };
     
     QJsonObject m_lastCompiled;
@@ -50,6 +52,7 @@ private:
     QJsonObject createInvokeObject(Node* node, CompilationContext& context, Scripts* scripts);
     QString getOrCreateFunction(const QString& functionType, CompilationContext& context);
     void buildFunctionDefinitions(CompilationContext& context);
+    void convertNodeIdsToInvokeIds(CompilationContext& context);
     QStringList getNextNodeIds(Node* node, Scripts* scripts);
     bool validateGraph(Scripts* scripts);
     

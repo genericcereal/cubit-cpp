@@ -89,6 +89,11 @@ void tst_ScriptCompiler::testSingleEventNode()
     QVERIFY(event.contains("functions"));
     QVERIFY(event.contains("outputs"));
     QVERIFY(event.contains("invoke"));
+    QVERIFY(event.contains("next"));
+    
+    // Since this is a single event node with no connections, next should be empty
+    QJsonArray next = event["next"].toArray();
+    QCOMPARE(next.size(), 0);
 }
 
 void tst_ScriptCompiler::testConsoleLogWithValue()
@@ -139,13 +144,19 @@ void tst_ScriptCompiler::testConsoleLogWithValue()
     QJsonObject root = doc.object();
     QJsonObject event = root["oneditorload"].toObject();
     
-    // Check outputs array contains the node value
-    QJsonArray outputs = event["outputs"].toArray();
+    // Check that next array contains the invoke ID for console node
+    QVERIFY(event.contains("next"));
+    QJsonArray next = event["next"].toArray();
+    QCOMPARE(next.size(), 1);
+    QCOMPARE(next[0].toString(), "invoke_0");  // First invoke should be invoke_0
+    
+    // Check outputs object contains the node value
+    QJsonObject outputs = event["outputs"].toObject();
     QVERIFY(outputs.size() > 0);
     
     bool foundValue = false;
-    for (const QJsonValue& val : outputs) {
-        QJsonObject output = val.toObject();
+    for (auto it = outputs.begin(); it != outputs.end(); ++it) {
+        QJsonObject output = it.value().toObject();
         if (output["type"].toString() == "literal" && 
             output["value"].toString() == "Hello from test!") {
             foundValue = true;
@@ -154,12 +165,13 @@ void tst_ScriptCompiler::testConsoleLogWithValue()
     }
     QVERIFY2(foundValue, "Node value not found in outputs");
     
-    // Check invoke array references the output
-    QJsonArray invokes = event["invoke"].toArray();
+    // Check invoke object references the output
+    QJsonObject invokes = event["invoke"].toObject();
     QCOMPARE(invokes.size(), 1);
     
-    QJsonObject invoke = invokes[0].toObject();
-    QCOMPARE(invoke["id"].toString(), consoleNode->getId());
+    QString invokeKey = invokes.keys().first();
+    QJsonObject invoke = invokes[invokeKey].toObject();
+    QCOMPARE(invoke["nodeId"].toString(), consoleNode->getId());
     
     // Check params array has the output reference
     QJsonArray params = invoke["params"].toArray();
@@ -217,10 +229,10 @@ void tst_ScriptCompiler::testConsoleLogWithEdgeConnection()
     QJsonObject event = root["oneditorload"].toObject();
     
     // Verify the data node's value appears in outputs
-    QJsonArray outputs = event["outputs"].toArray();
+    QJsonObject outputs = event["outputs"].toObject();
     bool foundDataValue = false;
-    for (const QJsonValue& val : outputs) {
-        QJsonObject output = val.toObject();
+    for (auto it = outputs.begin(); it != outputs.end(); ++it) {
+        QJsonObject output = it.value().toObject();
         if (output["value"].toString() == "Data from variable") {
             foundDataValue = true;
             break;
@@ -271,15 +283,40 @@ void tst_ScriptCompiler::testMultipleNodes()
     QJsonObject root = doc.object();
     QJsonObject event = root["oneditorload"].toObject();
     
-    // Check both consoles are in invoke array
-    QJsonArray invokes = event["invoke"].toArray();
+    // Check both consoles are in invoke object
+    QJsonObject invokes = event["invoke"].toObject();
     QCOMPARE(invokes.size(), 2);
     
+    // Find the invokes for each console
+    QJsonObject firstInvoke, secondInvoke;
+    for (auto it = invokes.begin(); it != invokes.end(); ++it) {
+        QJsonObject invoke = it.value().toObject();
+        if (invoke["nodeId"].toString() == console1->getId()) {
+            firstInvoke = invoke;
+        } else if (invoke["nodeId"].toString() == console2->getId()) {
+            secondInvoke = invoke;
+        }
+    }
+    
+    // Check first invoke has next pointing to second console's invoke ID
+    QVERIFY(!firstInvoke.isEmpty());
+    QVERIFY(firstInvoke.contains("next"));
+    QJsonArray firstNext = firstInvoke["next"].toArray();
+    QCOMPARE(firstNext.size(), 1);
+    QCOMPARE(firstNext[0].toString(), "invoke_1");  // Second invoke should be invoke_1
+    
+    // Check second invoke has no next (end of chain)
+    QVERIFY(!secondInvoke.isEmpty());
+    if (secondInvoke.contains("next")) {
+        QJsonArray secondNext = secondInvoke["next"].toArray();
+        QCOMPARE(secondNext.size(), 0);
+    }
+    
     // Check both values are in outputs
-    QJsonArray outputs = event["outputs"].toArray();
+    QJsonObject outputs = event["outputs"].toObject();
     bool foundFirst = false, foundSecond = false;
-    for (const QJsonValue& val : outputs) {
-        QJsonObject output = val.toObject();
+    for (auto it = outputs.begin(); it != outputs.end(); ++it) {
+        QJsonObject output = it.value().toObject();
         if (output["value"].toString() == "First message") foundFirst = true;
         if (output["value"].toString() == "Second message") foundSecond = true;
     }
