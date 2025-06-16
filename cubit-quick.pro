@@ -28,7 +28,12 @@ SOURCES += \
     src/Application.cpp \
     src/Canvas.cpp \
     src/Panels.cpp \
-    src/Scripts.cpp
+    src/Scripts.cpp \
+    src/DragManager.cpp \
+    src/CreationManager.cpp \
+    src/HitTestService.cpp \
+    src/JsonImporter.cpp \
+    src/QuadTree.cpp
 
 HEADERS += \
     src/Element.h \
@@ -52,7 +57,12 @@ HEADERS += \
     src/Application.h \
     src/Canvas.h \
     src/Panels.h \
-    src/Scripts.h
+    src/Scripts.h \
+    src/DragManager.h \
+    src/CreationManager.h \
+    src/HitTestService.h \
+    src/JsonImporter.h \
+    src/QuadTree.h
 
 RESOURCES += qml.qrc
 

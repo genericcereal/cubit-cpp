@@ -380,7 +380,30 @@
         "classes": [
             {
                 "className": "CanvasController",
-                "lineNumber": 8,
+                "enums": [
+                    {
+                        "isClass": true,
+                        "isFlag": false,
+                        "name": "Mode",
+                        "values": [
+                            "Select",
+                            "Frame",
+                            "Text",
+                            "Html",
+                            "Variable"
+                        ]
+                    },
+                    {
+                        "isClass": true,
+                        "isFlag": false,
+                        "name": "CanvasType",
+                        "values": [
+                            "Design",
+                            "Script"
+                        ]
+                    }
+                ],
+                "lineNumber": 14,
                 "methods": [
                     {
                         "access": "public",
@@ -1137,6 +1160,73 @@
     {
         "classes": [
             {
+                "className": "CreationManager",
+                "enums": [
+                    {
+                        "isClass": true,
+                        "isFlag": false,
+                        "name": "CanvasType",
+                        "values": [
+                            "Design",
+                            "Script"
+                        ]
+                    }
+                ],
+                "lineNumber": 11,
+                "object": true,
+                "qualifiedClassName": "CreationManager",
+                "signals": [
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "element",
+                                "type": "Element*"
+                            }
+                        ],
+                        "index": 0,
+                        "name": "elementCreated",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "node",
+                                "type": "Node*"
+                            }
+                        ],
+                        "index": 1,
+                        "name": "nodeCreated",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "edge",
+                                "type": "Edge*"
+                            }
+                        ],
+                        "index": 2,
+                        "name": "edgeCreated",
+                        "returnType": "void"
+                    }
+                ],
+                "superClasses": [
+                    {
+                        "access": "public",
+                        "name": "QObject"
+                    }
+                ]
+            }
+        ],
+        "inputFile": "CreationManager.h",
+        "outputRevision": 69
+    },
+    {
+        "classes": [
+            {
                 "className": "DesignElement",
                 "lineNumber": 10,
                 "object": true,
@@ -1174,6 +1264,66 @@
             }
         ],
         "inputFile": "DesignElement.h",
+        "outputRevision": 69
+    },
+    {
+        "classes": [
+            {
+                "className": "DragManager",
+                "lineNumber": 11,
+                "object": true,
+                "properties": [
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 0,
+                        "name": "isDragging",
+                        "notify": "isDraggingChanged",
+                        "read": "isDragging",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "bool",
+                        "user": false
+                    }
+                ],
+                "qualifiedClassName": "DragManager",
+                "signals": [
+                    {
+                        "access": "public",
+                        "index": 0,
+                        "name": "isDraggingChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 1,
+                        "name": "dragStarted",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 2,
+                        "name": "dragUpdated",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 3,
+                        "name": "dragEnded",
+                        "returnType": "void"
+                    }
+                ],
+                "superClasses": [
+                    {
+                        "access": "public",
+                        "name": "QObject"
+                    }
+                ]
+            }
+        ],
+        "inputFile": "DragManager.h",
         "outputRevision": 69
     },
     {
@@ -1926,6 +2076,93 @@
     {
         "classes": [
             {
+                "className": "HitTestService",
+                "enums": [
+                    {
+                        "isClass": true,
+                        "isFlag": false,
+                        "name": "CanvasType",
+                        "values": [
+                            "Design",
+                            "Script"
+                        ]
+                    }
+                ],
+                "lineNumber": 13,
+                "object": true,
+                "qualifiedClassName": "HitTestService",
+                "signals": [
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "element",
+                                "type": "Element*"
+                            }
+                        ],
+                        "index": 0,
+                        "name": "elementHit",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 1,
+                        "name": "spatialIndexRebuilt",
+                        "returnType": "void"
+                    }
+                ],
+                "slots": [
+                    {
+                        "access": "private",
+                        "arguments": [
+                            {
+                                "name": "element",
+                                "type": "Element*"
+                            }
+                        ],
+                        "index": 2,
+                        "name": "onElementAdded",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "private",
+                        "arguments": [
+                            {
+                                "name": "elementId",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 3,
+                        "name": "onElementRemoved",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "private",
+                        "arguments": [
+                            {
+                                "name": "element",
+                                "type": "Element*"
+                            }
+                        ],
+                        "index": 4,
+                        "name": "onElementUpdated",
+                        "returnType": "void"
+                    }
+                ],
+                "superClasses": [
+                    {
+                        "access": "public",
+                        "name": "QObject"
+                    }
+                ]
+            }
+        ],
+        "inputFile": "HitTestService.h",
+        "outputRevision": 69
+    },
+    {
+        "classes": [
+            {
                 "className": "Html",
                 "lineNumber": 4,
                 "object": true,
@@ -1985,6 +2222,78 @@
             }
         ],
         "inputFile": "Html.h",
+        "outputRevision": 69
+    },
+    {
+        "classes": [
+            {
+                "className": "JsonImporter",
+                "lineNumber": 10,
+                "object": true,
+                "qualifiedClassName": "JsonImporter",
+                "signals": [
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "nodeId",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 0,
+                        "name": "nodeImported",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "nodeIds",
+                                "type": "QStringList"
+                            }
+                        ],
+                        "index": 1,
+                        "name": "nodesImported",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "nodeCount",
+                                "type": "int"
+                            },
+                            {
+                                "name": "edgeCount",
+                                "type": "int"
+                            }
+                        ],
+                        "index": 2,
+                        "name": "graphImported",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "error",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 3,
+                        "name": "importError",
+                        "returnType": "void"
+                    }
+                ],
+                "superClasses": [
+                    {
+                        "access": "public",
+                        "name": "QObject"
+                    }
+                ]
+            }
+        ],
+        "inputFile": "JsonImporter.h",
         "outputRevision": 69
     },
     {
