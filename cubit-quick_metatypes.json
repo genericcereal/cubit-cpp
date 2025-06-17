@@ -2868,7 +2868,7 @@
         "classes": [
             {
                 "className": "ScriptCompiler",
-                "lineNumber": 17,
+                "lineNumber": 14,
                 "methods": [
                     {
                         "access": "public",

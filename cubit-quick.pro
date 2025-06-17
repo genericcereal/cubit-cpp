@@ -42,7 +42,11 @@ SOURCES += \
     src/commands/ResizeElementCommand.cpp \
     src/commands/SetPropertyCommand.cpp \
     src/ScriptCompiler.cpp \
-    src/ScriptExecutor.cpp
+    src/ScriptExecutor.cpp \
+    src/ScriptGraphValidator.cpp \
+    src/ScriptInvokeBuilder.cpp \
+    src/ScriptFunctionRegistry.cpp \
+    src/ScriptSerializer.cpp
 
 HEADERS += \
     src/Element.h \
@@ -80,7 +84,11 @@ HEADERS += \
     src/commands/ResizeElementCommand.h \
     src/commands/SetPropertyCommand.h \
     src/ScriptCompiler.h \
-    src/ScriptExecutor.h
+    src/ScriptExecutor.h \
+    src/ScriptGraphValidator.h \
+    src/ScriptInvokeBuilder.h \
+    src/ScriptFunctionRegistry.h \
+    src/ScriptSerializer.h
 
 RESOURCES += qml.qrc
 

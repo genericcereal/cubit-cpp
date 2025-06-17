@@ -1,6 +1,9 @@
 #include "DesignElement.h"
 #include "Scripts.h"
 #include "ScriptExecutor.h"
+#include "Application.h"
+#include "Canvas.h"
+#include <QCoreApplication>
 #include <QDebug>
 
 DesignElement::DesignElement(const QString &id, QObject *parent)
@@ -27,7 +30,18 @@ void DesignElement::executeScriptEvent(const QString& eventName) {
     ScriptExecutor executor(this);
     executor.setScripts(m_scripts.get());
     
-    // TODO: Set element model and canvas controller if needed
-    // For now, just execute the event
+    // Get element model and canvas controller from Application
+    // Since design elements are part of a canvas, we can get the active canvas
+    Application* app = qobject_cast<Application*>(qApp);
+    if (app && app->activeCanvas()) {
+        Canvas* canvas = app->activeCanvas();
+        if (canvas->elementModel()) {
+            executor.setElementModel(canvas->elementModel());
+        }
+        if (canvas->controller()) {
+            executor.setCanvasController(canvas->controller());
+        }
+    }
+    
     executor.executeEvent(eventName);
 }
