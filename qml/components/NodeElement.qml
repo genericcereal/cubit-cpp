@@ -27,6 +27,11 @@ Item {
         
         if (!nodeElement || !nodeElement.rowConfigurations) return 180
         
+        // Variable nodes only have header
+        if (nodeElement.nodeType === "Variable") {
+            return Config.nodeHeaderHeight
+        }
+        
         var titleHeight = Config.nodeHeaderHeight  // Node header height from Config
         var topMargin = 10    // Title top margin
         var titleBottomMargin = 15  // Space between title and columns
@@ -122,6 +127,7 @@ Item {
             console.log("  position:", element.x, ",", element.y)
             console.log("  size:", element.width, "x", element.height)
             console.log("  nodeTitle:", nodeElement ? nodeElement.nodeTitle : "null")
+            console.log("  nodeType:", nodeElement ? nodeElement.nodeType : "null")
         }
     }
     
@@ -198,9 +204,10 @@ Item {
             z: 1  // Ensure header is above the node body
         }
         
-        // Two column layout for targets and sources
+        // Two column layout for targets and sources (not for Variable nodes)
         Row {
             id: columnsContainer
+            visible: nodeElement ? nodeElement.nodeType !== "Variable" : true
             anchors.top: nodeHeader.bottom
             anchors.left: parent.left
             anchors.right: parent.right
@@ -413,6 +420,50 @@ Item {
                         }
                     }
                 }
+            }
+        }
+        
+        // Variable node source handle (appears on right edge of header)
+        Rectangle {
+            id: variableSourceHandle
+            visible: nodeElement && nodeElement.nodeType === "Variable"
+            anchors.right: parent.right
+            anchors.rightMargin: 5
+            anchors.verticalCenter: nodeHeader.verticalCenter
+            width: 20
+            height: 20
+            radius: 0  // Square for data ports
+            z: 10  // Ensure it's above other elements
+            
+            property bool isHovered: {
+                if (!root.elementHovered || !root.canvas) return false
+                
+                // Calculate the handle's position in canvas coordinates
+                var handleCenterX = root.element.x + root.element.width - 15  // 5px margin + 10px to center
+                var handleCenterY = root.element.y + 15  // Center of 30px header
+                
+                // Check if the hovered point is within 10px of the handle center
+                var dx = root.canvas.hoveredPoint.x - handleCenterX
+                var dy = root.canvas.hoveredPoint.y - handleCenterY
+                
+                return Math.abs(dx) <= 10 && Math.abs(dy) <= 10
+            }
+            
+            color: isHovered ? "#FF9800" : "#795548"  // Orange when hovered, brown otherwise
+            border.width: 2
+            border.color: isHovered ? "#E65100" : "#5D4037"  // Dark orange when hovered, dark brown otherwise
+            
+            Component.onCompleted: {
+                console.log("Variable source handle created - visible:", visible, 
+                           "parent:", parent, 
+                           "nodeType:", nodeElement ? nodeElement.nodeType : "null",
+                           "position:", x, y,
+                           "size:", width, "x", height)
+            }
+            
+            onVisibleChanged: {
+                console.log("Variable source handle visibility changed to:", visible,
+                           "nodeType:", nodeElement ? nodeElement.nodeType : "null")
             }
         }
     }

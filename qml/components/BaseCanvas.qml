@@ -30,6 +30,7 @@ Item {
     property alias flickable: flick
     property alias canvasArea: canvasArea
     property alias selectionBoxHandler: selectionBoxHandler
+    property alias zoomLevel: root.zoom  // Alias for ViewportOverlay compatibility
     
     // Expose content layer through default property
     default property alias contentData: contentLayer.data

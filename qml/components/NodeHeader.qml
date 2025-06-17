@@ -7,7 +7,7 @@ Rectangle {
     id: root
     
     property string nodeName: ""
-    property string nodeType: "Operation" // Event, Operation, or Param
+    property string nodeType: "Operation" // Event, Operation, Param, or Variable
     
     height: Config.nodeHeaderHeight
     
@@ -24,6 +24,8 @@ Rectangle {
                 return Config.nodeHeaderOperationColor
             case "Param":
                 return Config.nodeHeaderParamColor
+            case "Variable":
+                return Config.nodeHeaderVariableColor
             default:
                 return Config.nodeHeaderOperationColor
         }
