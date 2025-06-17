@@ -8,21 +8,99 @@ BaseCanvas {
     
     canvasType: "design"
     
-    // Trigger onEditorLoad event when the canvas loads
-    Component.onCompleted: {
+    // Function to execute onEditorLoad events
+    function executeOnEditorLoad() {
+        console.log("DesignCanvas: executeOnEditorLoad called")
+        
         // Execute onEditorLoad for canvas scripts
         if (Application.activeCanvas) {
+            console.log("DesignCanvas: Executing canvas scripts")
             Application.activeCanvas.executeScriptEvent("onEditorLoad")
         }
         
         // Also execute onEditorLoad for all design elements
         if (elementModel) {
             var elements = elementModel.getAllElements()
+            console.log("DesignCanvas: Found", elements.length, "elements")
             for (var i = 0; i < elements.length; i++) {
                 var element = elements[i]
-                if (element && element.executeScriptEvent) {
-                    element.executeScriptEvent("onEditorLoad")
+                if (!element) continue
+                
+                var elementType = element.elementType || "unknown"
+                
+                console.log("DesignCanvas: Element", i, "id:", element.elementId, 
+                            "type:", elementType)
+                
+                // Only Frame, Text, and Html elements (DesignElements) can execute scripts
+                if (elementType === "Frame" || elementType === "Text" || elementType === "Html") {
+                    console.log("DesignCanvas: Found design element", element.elementId, "- executing script")
+                    try {
+                        element.executeScriptEvent("onEditorLoad")
+                    } catch (e) {
+                        console.log("DesignCanvas: Error executing script for", element.elementId, ":", e)
+                    }
                 }
+            }
+        }
+    }
+    
+    property bool scriptsExecutedForCurrentLoad: false
+    
+    // Watch for when elementModel is set
+    onElementModelChanged: {
+        console.log("DesignCanvas: elementModel changed -", elementModel ? "set" : "null", "rowCount:", elementModel ? elementModel.rowCount() : 0)
+        if (visible && elementModel && elementModel.rowCount() > 0 && !scriptsExecutedForCurrentLoad) {
+            console.log("DesignCanvas: ElementModel set with elements, executing scripts")
+            scriptsExecutedForCurrentLoad = true
+            Qt.callLater(executeOnEditorLoad)
+        }
+    }
+    
+    // Execute when visible AND has elements
+    onVisibleChanged: {
+        console.log("DesignCanvas: onVisibleChanged - visible:", visible, "rowCount:", elementModel ? elementModel.rowCount() : 0)
+        if (visible) {
+            if (!scriptsExecutedForCurrentLoad) {
+                scriptsExecutedForCurrentLoad = true
+                if (elementModel && elementModel.rowCount() > 0) {
+                    console.log("DesignCanvas: Visible with elements, executing scripts")
+                    // Use Qt.callLater to ensure elements are fully loaded
+                    Qt.callLater(executeOnEditorLoad)
+                } else {
+                    // If no elements yet, just execute canvas scripts
+                    if (Application.activeCanvas) {
+                        console.log("DesignCanvas: No elements, executing canvas scripts only")
+                        Application.activeCanvas.executeScriptEvent("onEditorLoad")
+                    }
+                }
+            }
+        } else {
+            // Reset the flag when becoming invisible
+            scriptsExecutedForCurrentLoad = false
+        }
+    }
+    
+    // Also execute when first created if we already have elements
+    Component.onCompleted: {
+        console.log("DesignCanvas: Component.onCompleted - visible:", visible, "rowCount:", elementModel ? elementModel.rowCount() : 0)
+        if (visible && elementModel && elementModel.rowCount() > 0) {
+            scriptsExecutedForCurrentLoad = true
+            executeOnEditorLoad()
+        } else if (visible && Application.activeCanvas) {
+            // If no elements yet, just execute canvas scripts
+            // Don't set scriptsExecutedForCurrentLoad to true here, as we may get elements later
+            Application.activeCanvas.executeScriptEvent("onEditorLoad")
+        }
+    }
+    
+    // Watch for when elements are loaded into the model
+    Connections {
+        target: elementModel
+        function onRowsInserted(parent, first, last) {
+            console.log("DesignCanvas: Rows inserted -", last - first + 1, "new elements")
+            if (visible && !scriptsExecutedForCurrentLoad) {
+                scriptsExecutedForCurrentLoad = true
+                Qt.callLater(executeOnEditorLoad)
             }
         }
     }

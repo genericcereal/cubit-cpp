@@ -21,10 +21,14 @@ Scripts* DesignElement::scripts() const {
 }
 
 void DesignElement::executeScriptEvent(const QString& eventName) {
+    qDebug() << "DesignElement::executeScriptEvent called for" << getId() << "event:" << eventName;
+    
     if (!m_scripts) {
         qWarning() << "DesignElement: No scripts available";
         return;
     }
+    
+    qDebug() << "DesignElement" << getId() << "has" << m_scripts->nodeCount() << "nodes," << m_scripts->edgeCount() << "edges";
     
     // Create a temporary script executor for this element
     ScriptExecutor executor(this);
