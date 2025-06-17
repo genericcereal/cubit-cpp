@@ -9,6 +9,7 @@ class SelectionManager : public QObject {
     Q_PROPERTY(bool hasSelection READ hasSelection NOTIFY selectionChanged)
     Q_PROPERTY(int selectionCount READ selectionCount NOTIFY selectionChanged)
     Q_PROPERTY(QList<Element*> selectedElements READ selectedElements NOTIFY selectionChanged)
+    Q_PROPERTY(bool hasVisualSelection READ hasVisualSelection NOTIFY selectionChanged)
     Q_PROPERTY(qreal boundingX READ boundingX NOTIFY selectionChanged)
     Q_PROPERTY(qreal boundingY READ boundingY NOTIFY selectionChanged)
     Q_PROPERTY(qreal boundingWidth READ boundingWidth NOTIFY selectionChanged)
@@ -22,6 +23,7 @@ public:
     int selectionCount() const { return m_selectedElements.size(); }
     QList<Element*> selectedElements() const { return m_selectedElements.values(); }
     Q_INVOKABLE bool isSelected(Element *element) const;
+    Q_INVOKABLE bool hasVisualSelection() const;
     
     // Bounding box properties
     qreal boundingX() const { return m_boundingX; }

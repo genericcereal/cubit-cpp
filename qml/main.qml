@@ -87,6 +87,11 @@ Window {
                         }
                     }
                 }
+                onCreateVariableClicked: {
+                    if (Application.activeCanvas && Application.activeCanvas.controller) {
+                        Application.activeCanvas.controller.createVariable()
+                    }
+                }
                 
                 Connections {
                     target: Application.activeCanvas ? Application.activeCanvas.controller : null

@@ -26,8 +26,7 @@ public:
         Select,
         Frame,
         Text,
-        Html,
-        Variable
+        Html
     };
     Q_ENUM(Mode)
     
@@ -75,6 +74,7 @@ public slots:
     
     // Element creation (delegated to CreationManager)
     void createElement(const QString &type, qreal x, qreal y, qreal width = 200, qreal height = 150);
+    Q_INVOKABLE void createVariable();
     Q_INVOKABLE void createNode(qreal x, qreal y, const QString &title = "Node", const QString &color = "");
     Q_INVOKABLE void createEdge(const QString &sourceNodeId, const QString &targetNodeId, 
                                 const QString &sourceHandleType, const QString &targetHandleType,

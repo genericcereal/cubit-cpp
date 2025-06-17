@@ -14,6 +14,17 @@ bool SelectionManager::isSelected(Element *element) const
     return element && m_selectedElements.contains(element);  // O(1) with QSet
 }
 
+bool SelectionManager::hasVisualSelection() const
+{
+    // Check if any selected element is visual
+    for (Element* element : m_selectedElements) {
+        if (element && element->isVisual()) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void SelectionManager::selectElement(Element *element)
 {
     if (!element || isSelected(element)) return;

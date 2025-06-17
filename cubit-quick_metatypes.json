@@ -403,8 +403,7 @@
                             "Select",
                             "Frame",
                             "Text",
-                            "Html",
-                            "Variable"
+                            "Html"
                         ]
                     },
                     {
@@ -427,7 +426,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 23,
+                        "index": 24,
                         "name": "setMode",
                         "returnType": "void"
                     },
@@ -439,7 +438,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 24,
+                        "index": 25,
                         "name": "setCanvasType",
                         "returnType": "void"
                     },
@@ -451,7 +450,7 @@
                                 "type": "ElementModel*"
                             }
                         ],
-                        "index": 25,
+                        "index": 26,
                         "name": "setElementModel",
                         "returnType": "void"
                     },
@@ -463,7 +462,7 @@
                                 "type": "SelectionManager*"
                             }
                         ],
-                        "index": 26,
+                        "index": 27,
                         "name": "setSelectionManager",
                         "returnType": "void"
                     },
@@ -479,19 +478,19 @@
                                 "type": "qreal"
                             }
                         ],
-                        "index": 27,
+                        "index": 28,
                         "name": "hitTest",
                         "returnType": "Element*"
                     },
                     {
                         "access": "public",
-                        "index": 28,
+                        "index": 29,
                         "name": "undo",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 29,
+                        "index": 30,
                         "name": "redo",
                         "returnType": "void"
                     }
@@ -741,6 +740,12 @@
                     },
                     {
                         "access": "public",
+                        "index": 12,
+                        "name": "createVariable",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
                         "arguments": [
                             {
                                 "name": "x",
@@ -759,7 +764,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 12,
+                        "index": 13,
                         "name": "createNode",
                         "returnType": "void"
                     },
@@ -779,7 +784,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 13,
+                        "index": 14,
                         "isCloned": true,
                         "name": "createNode",
                         "returnType": "void"
@@ -796,7 +801,7 @@
                                 "type": "qreal"
                             }
                         ],
-                        "index": 14,
+                        "index": 15,
                         "isCloned": true,
                         "name": "createNode",
                         "returnType": "void"
@@ -829,7 +834,7 @@
                                 "type": "int"
                             }
                         ],
-                        "index": 15,
+                        "index": 16,
                         "name": "createEdge",
                         "returnType": "void"
                     },
@@ -853,7 +858,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 16,
+                        "index": 17,
                         "name": "createEdgeByPortId",
                         "returnType": "void"
                     },
@@ -865,7 +870,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 17,
+                        "index": 18,
                         "name": "createNodeFromJson",
                         "returnType": "QString"
                     },
@@ -877,7 +882,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 18,
+                        "index": 19,
                         "name": "createNodesFromJson",
                         "returnType": "void"
                     },
@@ -889,7 +894,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 19,
+                        "index": 20,
                         "name": "createGraphFromJson",
                         "returnType": "void"
                     },
@@ -901,19 +906,19 @@
                                 "type": "QRectF"
                             }
                         ],
-                        "index": 20,
+                        "index": 21,
                         "name": "selectElementsInRect",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 21,
+                        "index": 22,
                         "name": "selectAll",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 22,
+                        "index": 23,
                         "name": "deleteSelectedElements",
                         "returnType": "void"
                     }
@@ -1301,7 +1306,7 @@
         "classes": [
             {
                 "className": "CreateFrameCommand",
-                "lineNumber": 12,
+                "lineNumber": 13,
                 "object": true,
                 "qualifiedClassName": "CreateFrameCommand",
                 "superClasses": [
@@ -1959,6 +1964,19 @@
                         "type": "bool",
                         "user": false,
                         "write": "setSelected"
+                    },
+                    {
+                        "constant": true,
+                        "designable": true,
+                        "final": false,
+                        "index": 5,
+                        "name": "isVisual",
+                        "read": "isVisual",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "bool",
+                        "user": false
                     }
                 ],
                 "qualifiedClassName": "Element",
@@ -3308,6 +3326,13 @@
                         "isConst": true,
                         "name": "isSelected",
                         "returnType": "bool"
+                    },
+                    {
+                        "access": "public",
+                        "index": 11,
+                        "isConst": true,
+                        "name": "hasVisualSelection",
+                        "returnType": "bool"
                     }
                 ],
                 "object": true,
@@ -3359,6 +3384,20 @@
                         "designable": true,
                         "final": false,
                         "index": 3,
+                        "name": "hasVisualSelection",
+                        "notify": "selectionChanged",
+                        "read": "hasVisualSelection",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "bool",
+                        "user": false
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 4,
                         "name": "boundingX",
                         "notify": "selectionChanged",
                         "read": "boundingX",
@@ -3372,7 +3411,7 @@
                         "constant": false,
                         "designable": true,
                         "final": false,
-                        "index": 4,
+                        "index": 5,
                         "name": "boundingY",
                         "notify": "selectionChanged",
                         "read": "boundingY",
@@ -3386,7 +3425,7 @@
                         "constant": false,
                         "designable": true,
                         "final": false,
-                        "index": 5,
+                        "index": 6,
                         "name": "boundingWidth",
                         "notify": "selectionChanged",
                         "read": "boundingWidth",
@@ -3400,7 +3439,7 @@
                         "constant": false,
                         "designable": true,
                         "final": false,
-                        "index": 6,
+                        "index": 7,
                         "name": "boundingHeight",
                         "notify": "selectionChanged",
                         "read": "boundingHeight",
@@ -3636,7 +3675,49 @@
         "classes": [
             {
                 "className": "Variable",
-                "lineNumber": 5,
+                "lineNumber": 6,
+                "methods": [
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "value",
+                                "type": "QVariant"
+                            }
+                        ],
+                        "index": 3,
+                        "name": "addArrayValue",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "index",
+                                "type": "int"
+                            }
+                        ],
+                        "index": 4,
+                        "name": "removeArrayValue",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "index",
+                                "type": "int"
+                            },
+                            {
+                                "name": "value",
+                                "type": "QVariant"
+                            }
+                        ],
+                        "index": 5,
+                        "name": "setArrayValue",
+                        "returnType": "void"
+                    }
+                ],
                 "object": true,
                 "properties": [
                     {
@@ -3653,6 +3734,49 @@
                         "type": "QVariant",
                         "user": false,
                         "write": "setValue"
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 1,
+                        "name": "isArray",
+                        "notify": "isArrayChanged",
+                        "read": "isArray",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "bool",
+                        "user": false,
+                        "write": "setIsArray"
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 2,
+                        "name": "arrayValues",
+                        "notify": "arrayValuesChanged",
+                        "read": "arrayValues",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "QVariantList",
+                        "user": false
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 3,
+                        "name": "arrayLength",
+                        "notify": "arrayValuesChanged",
+                        "read": "arrayLength",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "int",
+                        "user": false
                     }
                 ],
                 "qualifiedClassName": "Variable",
@@ -3661,6 +3785,18 @@
                         "access": "public",
                         "index": 0,
                         "name": "valueChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 1,
+                        "name": "isArrayChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 2,
+                        "name": "arrayValuesChanged",
                         "returnType": "void"
                     }
                 ],

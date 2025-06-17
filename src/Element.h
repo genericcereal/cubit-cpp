@@ -9,6 +9,7 @@ class Element : public QObject {
     Q_PROPERTY(QString name READ getName WRITE setName NOTIFY nameChanged)
     Q_PROPERTY(QString parentId READ getParentElementId WRITE setParentElementId NOTIFY parentIdChanged)
     Q_PROPERTY(bool selected READ isSelected WRITE setSelected NOTIFY selectedChanged)
+    Q_PROPERTY(bool isVisual READ isVisual CONSTANT)
     
 public:
     enum ElementType {

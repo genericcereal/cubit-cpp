@@ -156,10 +156,6 @@ void CanvasController::handleMousePress(qreal x, qreal y)
             break;
         }
         
-        case Mode::Variable:
-            // Variables don't have visual representation during creation
-            m_creationStartPos = QPointF(x, y);
-            break;
     }
 }
 
@@ -244,25 +240,24 @@ void CanvasController::handleMouseRelease(qreal x, qreal y)
             break;
         }
         
-        case Mode::Variable: {
-            // Create variable on release
-            qreal width = qAbs(x - m_creationStartPos.x());
-            qreal height = qAbs(y - m_creationStartPos.y());
-            qreal left = qMin(x, m_creationStartPos.x());
-            qreal top = qMin(y, m_creationStartPos.y());
-            
-            if (width < 10) width = Config::DEFAULT_ELEMENT_WIDTH;
-            if (height < 10) height = Config::DEFAULT_ELEMENT_HEIGHT;
-            
-            m_creationManager->createElement(modeToString(m_mode), left, top, width, height);
-            break;
-        }
     }
 }
 
 void CanvasController::createElement(const QString &type, qreal x, qreal y, qreal width, qreal height)
 {
     m_creationManager->createElement(type, x, y, width, height);
+}
+
+void CanvasController::createVariable()
+{
+    // Variables are non-visual, but createElement still requires position/size parameters
+    // The CreationManager will ignore these for non-visual elements
+    Element* variable = m_creationManager->createElement("variable", 0, 0, 0, 0);
+    
+    if (variable && m_selectionManager) {
+        // Select the newly created variable
+        m_selectionManager->selectOnly(variable);
+    }
 }
 
 void CanvasController::createNode(qreal x, qreal y, const QString &title, const QString &color)
@@ -368,7 +363,6 @@ CanvasController::Mode CanvasController::modeFromString(const QString &str)
     if (str == "frame") return Mode::Frame;
     if (str == "text") return Mode::Text;
     if (str == "html") return Mode::Html;
-    if (str == "variable") return Mode::Variable;
     
     qWarning() << "Unknown mode string:" << str << "defaulting to Select";
     return Mode::Select;
@@ -381,7 +375,6 @@ QString CanvasController::modeToString(Mode mode)
         case Mode::Frame: return "frame";
         case Mode::Text: return "text";
         case Mode::Html: return "html";
-        case Mode::Variable: return "variable";
     }
     return "select"; // Should never reach here
 }
