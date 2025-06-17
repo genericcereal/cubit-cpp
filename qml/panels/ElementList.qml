@@ -57,9 +57,85 @@ ScrollView {
                 id: mouseArea
                 anchors.fill: parent
                 hoverEnabled: true
+                drag.target: dragItem
+                
                 onClicked: {
                     if (selectionManager) {
                         selectionManager.selectOnly(model.element)
+                    }
+                }
+                
+                onPressed: (mouse) => {
+                    dragItem.elementType = model.elementType
+                    dragItem.elementName = model.name
+                    // Ensure drag item starts at the correct position
+                    var globalPos = mapToItem(dragItem.parent, mouse.x, mouse.y)
+                    dragItem.x = globalPos.x - dragItem.width / 2
+                    dragItem.y = globalPos.y - dragItem.height / 2
+                }
+                
+                onReleased: {
+                    if (drag.active) {
+                        dragItem.Drag.drop()
+                    }
+                    // Reset position after drag
+                    dragItem.x = 0
+                    dragItem.y = 0
+                }
+            }
+            
+            // Drag preview that looks like a node
+            Rectangle {
+                id: dragItem
+                width: 200
+                height: 100
+                visible: mouseArea.drag.active
+                opacity: 0.8
+                parent: root.parent // Parent to the root's parent to allow movement outside list bounds
+                
+                property string elementType: ""
+                property string elementName: ""
+                
+                Drag.active: mouseArea.drag.active
+                Drag.hotSpot.x: width / 2
+                Drag.hotSpot.y: height / 2
+                
+                // Node-like appearance
+                color: "#f5f5f5"
+                border.color: "#ddd"
+                border.width: 1
+                radius: 4
+                
+                // Header
+                Rectangle {
+                    id: header
+                    anchors.top: parent.top
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    height: 30
+                    color: {
+                        switch(dragItem.elementType) {
+                            case "Variable": return "#000000"  // Black for Param nodes
+                            default: return "#2196F3"  // Blue for Operation nodes
+                        }
+                    }
+                    radius: 4
+                    
+                    Rectangle {
+                        anchors.bottom: parent.bottom
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        height: 4
+                        color: parent.color
+                    }
+                    
+                    Label {
+                        anchors.centerIn: parent
+                        text: dragItem.elementType === "Variable" 
+                            ? dragItem.elementName 
+                            : "Display: " + dragItem.elementName
+                        color: "white"
+                        font.pixelSize: 12
                     }
                 }
             }

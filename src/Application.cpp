@@ -19,6 +19,8 @@ Application::Application(QObject *parent)
 }
 
 Application::~Application() {
+    // Clear all canvases before destruction to ensure proper cleanup order
+    m_canvases.clear();
     s_instance = nullptr;
 }
 
