@@ -15,7 +15,12 @@ Canvas::Canvas(const QString& id, const QString& name, QObject *parent)
 {
 }
 
-Canvas::~Canvas() = default;
+Canvas::~Canvas() {
+    // Clear elements before destroying other components to avoid dangling pointers
+    if (m_elementModel) {
+        m_elementModel->clear();
+    }
+}
 
 CanvasController* Canvas::controller() const {
     return m_controller.get();

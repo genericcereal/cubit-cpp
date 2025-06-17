@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import Cubit 1.0
 import "."
+import "../CanvasUtils.js" as Utils
 
 BaseCanvas {
     id: root
@@ -231,6 +232,13 @@ BaseCanvas {
                         item.element = element
                         item.elementModel = root.elementModel
                         item.canvas = root  // Pass canvas reference
+                        console.log("ScriptCanvas: Loaded node", element.nodeTitle, "at", element.x, element.y, "view pos:", x, y)
+                    }
+                }
+                
+                Component.onCompleted: {
+                    if (element && elementType === "Node") {
+                        console.log("ScriptCanvas: Node delegate created for", element.nodeTitle, "at", element.x, element.y)
                     }
                 }
             }
@@ -347,6 +355,99 @@ BaseCanvas {
                 radius: 10
                 color: "orange"
                 opacity: 0.8
+            }
+        },
+        
+        // Drop area for elements dragged from ElementList - moved inside contentData
+        DropArea {
+            anchors.fill: parent
+            z: 100  // High z-order to ensure it's above other elements
+            
+            onEntered: (drag) => {
+                console.log("Drag entered DropArea - elementType:", drag.source ? drag.source.elementType : "no source", "elementName:", drag.source ? drag.source.elementName : "no source")
+            }
+            
+            onExited: {
+                console.log("Drag exited DropArea")
+            }
+            
+            onDropped: (drag) => {
+                console.log("DropArea.onDropped called")
+                // Get element information from drag source
+                var elementType = drag.source.elementType
+                var elementName = drag.source.elementName
+                
+                console.log("DropArea.onDropped - drag.x:", drag.x, "drag.y:", drag.y)
+                
+                // The drag.x and drag.y are relative to the DropArea, which fills the canvas view
+                // We need to map these to the actual canvas coordinates
+                
+                // Map the drop position to the content item
+                var dropPosInContent = mapToItem(root.canvasArea, drag.x, drag.y)
+                console.log("Drop position in content:", dropPosInContent.x, dropPosInContent.y)
+                
+                // Convert to canvas coordinates
+                var nodeX = dropPosInContent.x / root.zoom + root.canvasMinX
+                var nodeY = dropPosInContent.y / root.zoom + root.canvasMinY
+                
+                console.log("Calculated node position:", nodeX, nodeY)
+                
+                console.log("Creating node at position:", nodeX, nodeY)
+                
+                // Create node based on element type
+                if (elementType === "Variable") {
+                    // Create a Variable node (black header)
+                    var nodeData = {
+                        x: nodeX,
+                        y: nodeY,
+                        name: elementName,
+                        type: "Param",
+                        targets: [],
+                        sources: [{
+                            id: "value",
+                            label: "Value",
+                            type: "String"
+                        }]
+                    }
+                    var nodeId = controller.createNodeFromJson(JSON.stringify(nodeData))
+                    console.log("Created Variable node with ID:", nodeId)
+                    
+                    // Check if the node was actually created
+                    if (nodeId && elementModel) {
+                        var createdNode = elementModel.getElementById(nodeId)
+                        if (createdNode) {
+                            console.log("Node successfully added to model at", createdNode.x, createdNode.y)
+                        } else {
+                            console.log("ERROR: Node was not found in model after creation")
+                        }
+                    }
+                } else {
+                    // Create a Display Output node (blue header)
+                    var displayNodeData = {
+                        x: nodeX,
+                        y: nodeY,
+                        name: "Display: " + elementName,
+                        type: "Operation",
+                        targets: [{
+                            id: "content",
+                            label: "Content",
+                            type: "String"
+                        }],
+                        sources: []
+                    }
+                    var displayNodeId = controller.createNodeFromJson(JSON.stringify(displayNodeData))
+                    console.log("Created Display node with ID:", displayNodeId)
+                    
+                    // Check if the node was actually created
+                    if (displayNodeId && elementModel) {
+                        var createdNode = elementModel.getElementById(displayNodeId)
+                        if (createdNode) {
+                            console.log("Node successfully added to model at", createdNode.x, createdNode.y)
+                        } else {
+                            console.log("ERROR: Node was not found in model after creation")
+                        }
+                    }
+                }
             }
         }
     ]
@@ -597,6 +698,23 @@ BaseCanvas {
                 selectionManager.selectElement(selectedNodes[j])
             }
         }
+    }
+    
+    // Pan to show a node at the given canvas position
+    function panToNode(canvasPos) {
+        // Calculate the content position to center the node in the viewport
+        var centerPos = Utils.calculateCenterPosition(
+            canvasPos,
+            flickable.width,
+            flickable.height,
+            canvasMinX,
+            canvasMinY,
+            zoom
+        )
+        
+        // Animate to the new position
+        flickable.contentX = centerPos.x
+        flickable.contentY = centerPos.y
     }
     
     // Create default nodes
