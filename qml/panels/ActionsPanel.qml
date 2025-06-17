@@ -13,6 +13,7 @@ Rectangle {
     
     signal modeChanged(string mode)
     signal compileClicked()
+    signal createVariableClicked()
     
     property string currentMode: "select"
     property bool isScriptMode: Application.activeCanvas && Application.activeCanvas.viewMode === "script"
@@ -213,32 +214,30 @@ Rectangle {
             visible: !isScriptMode
             Layout.fillHeight: true
             Layout.preferredWidth: height
-            checkable: true
-            checked: currentMode === "variable"
+            checkable: false  // Not a toggle button anymore
             
             contentItem: Text {
                 text: "V"
-                color: parent.checked ? "#ffffff" : "#aaaaaa"
+                color: parent.hovered ? "#ffffff" : "#aaaaaa"
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 font.pixelSize: 16
             }
             
             background: Rectangle {
-                color: parent.checked ? "#0066cc" : "transparent"
+                color: parent.hovered ? Qt.rgba(0.4, 0.4, 0.4, 0.3) : "transparent"
                 radius: 4
                 antialiasing: true
             }
             
             onClicked: {
                 if (!isScriptMode) {
-                    currentMode = "variable"
-                    root.modeChanged("variable")
+                    root.createVariableClicked()
                 }
             }
             
             ToolTip.visible: hovered
-            ToolTip.text: "Variable Mode"
+            ToolTip.text: "Create Variable"
         }
         
         Item {

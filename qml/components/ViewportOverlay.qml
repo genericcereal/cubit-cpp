@@ -55,7 +55,8 @@ Item {
             if (canvasType !== "design") {
                 return false
             }
-            if (selectedElements && selectedElements.length > 0) {
+            // Only show controls if there are visual elements selected
+            if (selectionManager && selectionManager.hasVisualSelection) {
                 return true
             }
             if (creationDragHandler && creationDragHandler.active) {

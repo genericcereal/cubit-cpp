@@ -19,9 +19,13 @@ CreateFrameCommand::CreateFrameCommand(ElementModel* model, SelectionManager* se
 
 CreateFrameCommand::~CreateFrameCommand()
 {
-    // If the frame exists but is not in the model (undone state), delete it
-    if (m_frame && !m_elementModel->getAllElements().contains(m_frame)) {
-        delete m_frame;
+    // QPointer will automatically be null if the objects were deleted
+    // Only delete the frame if it exists and the model is still valid
+    if (m_frame && m_elementModel) {
+        // Check if frame is not in the model (undone state)
+        if (!m_elementModel->getAllElements().contains(m_frame)) {
+            delete m_frame;
+        }
     }
 }
 

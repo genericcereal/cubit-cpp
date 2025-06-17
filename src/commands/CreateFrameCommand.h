@@ -4,6 +4,7 @@
 #include "../Command.h"
 #include <QRectF>
 #include <QString>
+#include <QPointer>
 
 class ElementModel;
 class SelectionManager;
@@ -22,11 +23,11 @@ public:
     void undo() override;
 
 private:
-    ElementModel* m_elementModel;
-    SelectionManager* m_selectionManager;
+    QPointer<ElementModel> m_elementModel;
+    QPointer<SelectionManager> m_selectionManager;
     QRectF m_rect;
     QString m_frameId;
-    Frame* m_frame;
+    QPointer<Frame> m_frame;
 };
 
 #endif // CREATEFRAMECOMMAND_H
