@@ -109,36 +109,47 @@ BaseCanvas {
                         }
                         console.log("updateEdgePositions called for edge", edgeObj.elementId)
                         
-                        var titleAndMargins = 30 + 15  // Title height + margins
-                        var columnsMargin = 10  // Left/right margin of columns container
-                        var columnSpacing = 20  // Spacing between columns
+                        var sourceX, sourceY
                         
-                        // Find the source port index in the sources column
-                        var sourceIndex = 0
-                        var foundSource = false
-                        for (var i = 0; i < sourceNode.rowConfigurations.length; i++) {
-                            var config = sourceNode.rowConfigurations[i]
-                            if (config.hasSource) {
-                                if (config.sourcePortIndex === edgeObj.sourcePortIndex) {
-                                    foundSource = true
-                                    break
+                        // Special handling for Variable nodes as source
+                        if (sourceNode.nodeType === "Variable") {
+                            sourceX = sourceNode.x + sourceNode.width - 15  // 5px margin + 10px to center
+                            sourceY = sourceNode.y + 15  // Center of 30px header
+                        } else {
+                            var titleAndMargins = 30 + 15  // Title height + margins
+                            var columnsMargin = 10  // Left/right margin of columns container
+                            var columnSpacing = 20  // Spacing between columns
+                            
+                            // Find the source port index in the sources column
+                            var sourceIndex = 0
+                            var foundSource = false
+                            for (var i = 0; i < sourceNode.rowConfigurations.length; i++) {
+                                var config = sourceNode.rowConfigurations[i]
+                                if (config.hasSource) {
+                                    if (config.sourcePortIndex === edgeObj.sourcePortIndex) {
+                                        foundSource = true
+                                        break
+                                    }
+                                    sourceIndex++
                                 }
-                                sourceIndex++
                             }
+                            
+                            if (!foundSource) {
+                                console.log("Warning: Could not find source port", edgeObj.sourcePortIndex)
+                                return
+                            }
+                            
+                            // Calculate source point (right column, right side)
+                            var columnWidth = (sourceNode.width - 2 * columnsMargin - columnSpacing) / 2
+                            var rightColumnX = sourceNode.x + columnsMargin + columnWidth + columnSpacing
+                            sourceX = rightColumnX + columnWidth - 10  // 10px from right edge to center
+                            sourceY = sourceNode.y + titleAndMargins + sourceIndex * 40 + 15  // center of 30px item
                         }
-                        
-                        if (!foundSource) {
-                            console.log("Warning: Could not find source port", edgeObj.sourcePortIndex)
-                            return
-                        }
-                        
-                        // Calculate source point (right column, right side)
-                        var columnWidth = (sourceNode.width - 2 * columnsMargin - columnSpacing) / 2
-                        var rightColumnX = sourceNode.x + columnsMargin + columnWidth + columnSpacing
-                        var sourceX = rightColumnX + columnWidth - 10  // 10px from right edge to center
-                        var sourceY = sourceNode.y + titleAndMargins + sourceIndex * 40 + 15  // center of 30px item
                         
                         // Find the target port index in the targets column
+                        var titleAndMargins = 30 + 15  // Title height + margins
+                        var columnsMargin = 10  // Left/right margin of columns container
+                        
                         var targetIndex = 0
                         var foundTarget = false
                         for (var j = 0; j < targetNode.rowConfigurations.length; j++) {
@@ -253,6 +264,13 @@ BaseCanvas {
             
             property point sourcePoint: {
                 if (!root.dragSourceNode) return Qt.point(0, 0)
+                
+                // Special handling for Variable nodes
+                if (root.dragSourceNode.nodeType === "Variable") {
+                    var handleX = root.dragSourceNode.x + root.dragSourceNode.width - 15  // 5px margin + 10px to center
+                    var handleY = root.dragSourceNode.y + 15  // Center of 30px header
+                    return Qt.point(handleX, handleY)
+                }
                 
                 var titleAndMargins = 30 + 15
                 var columnsMargin = 10
@@ -394,58 +412,31 @@ BaseCanvas {
                 
                 console.log("Creating node at position:", nodeX, nodeY)
                 
-                // Create node based on element type
-                if (elementType === "Variable") {
-                    // Create a Variable node (black header)
-                    var nodeData = {
-                        x: nodeX,
-                        y: nodeY,
-                        name: elementName,
-                        type: "Param",
-                        targets: [],
-                        sources: [{
-                            id: "value",
-                            label: "Value",
-                            type: "String"
-                        }]
-                    }
-                    var nodeId = controller.createNodeFromJson(JSON.stringify(nodeData))
-                    console.log("Created Variable node with ID:", nodeId)
-                    
-                    // Check if the node was actually created
-                    if (nodeId && elementModel) {
-                        var createdNode = elementModel.getElementById(nodeId)
-                        if (createdNode) {
-                            console.log("Node successfully added to model at", createdNode.x, createdNode.y)
-                        } else {
-                            console.log("ERROR: Node was not found in model after creation")
-                        }
-                    }
-                } else {
-                    // Create a Display Output node (blue header)
-                    var displayNodeData = {
-                        x: nodeX,
-                        y: nodeY,
-                        name: "Display: " + elementName,
-                        type: "Operation",
-                        targets: [{
-                            id: "content",
-                            label: "Content",
-                            type: "String"
-                        }],
-                        sources: []
-                    }
-                    var displayNodeId = controller.createNodeFromJson(JSON.stringify(displayNodeData))
-                    console.log("Created Display node with ID:", displayNodeId)
-                    
-                    // Check if the node was actually created
-                    if (displayNodeId && elementModel) {
-                        var createdNode = elementModel.getElementById(displayNodeId)
-                        if (createdNode) {
-                            console.log("Node successfully added to model at", createdNode.x, createdNode.y)
-                        } else {
-                            console.log("ERROR: Node was not found in model after creation")
-                        }
+                // Create Variable node for ALL element types (Frame, Text, Html, Variable)
+                var nodeData = {
+                    x: nodeX,
+                    y: nodeY,
+                    width: 150,  // Narrower since it's just a header
+                    name: elementName,
+                    type: "Variable",
+                    targets: [],
+                    sources: [{
+                        id: "value",
+                        label: "Value",
+                        type: "String"
+                    }]
+                }
+                console.log("Creating node with JSON:", JSON.stringify(nodeData))
+                var nodeId = controller.createNodeFromJson(JSON.stringify(nodeData))
+                console.log("Created Variable node for", elementType, "element with ID:", nodeId)
+                
+                // Check if the node was actually created
+                if (nodeId && elementModel) {
+                    var createdNode = elementModel.getElementById(nodeId)
+                    if (createdNode) {
+                        console.log("Node successfully added to model at", createdNode.x, createdNode.y)
+                    } else {
+                        console.log("ERROR: Node was not found in model after creation")
                     }
                 }
             }
@@ -741,6 +732,23 @@ BaseCanvas {
         for (var i = 0; i < elements.length; i++) {
             var element = elements[i]
             if (element && element.objectName === "Node") {
+                // Special handling for Variable nodes
+                if (element.nodeType === "Variable") {
+                    // Variable nodes have a single source handle on the right edge of the header
+                    var handleX = element.x + element.width - 15  // 5px margin + 10px to center
+                    var handleY = element.y + 15  // Center of 30px header
+                    
+                    if (Math.abs(point.x - handleX) <= 10 && Math.abs(point.y - handleY) <= 10) {
+                        return {
+                            node: element,
+                            handleType: "right",
+                            portIndex: 0,  // Variable nodes have only one source port
+                            portType: "String"  // Variables are always String type
+                        }
+                    }
+                    continue  // Skip normal port checking for Variable nodes
+                }
+                
                 var titleAndMargins = 30 + 15  // Title height + margins
                 var columnsMargin = 10  // Left/right margin of columns container
                 var columnSpacing = 20  // Spacing between columns

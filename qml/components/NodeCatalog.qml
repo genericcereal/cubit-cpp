@@ -30,7 +30,7 @@ QtObject {
                 },
                 {
                     "id": "message",
-                    "type": "Data",
+                    "type": "String",
                     "label": "Message"
                 }
             ],
@@ -71,12 +71,12 @@ QtObject {
             "targets": nodeType.targets || [],
             "sources": nodeType.sources || []
         };
-        
+
         // Include script if present
         if (nodeType.script) {
             nodeData.script = nodeType.script;
         }
-        
+
         return nodeData;
     }
 }

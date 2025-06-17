@@ -20,6 +20,7 @@ QtObject {
     readonly property string nodeHeaderEventColor: "#FF0000"      // Red for Event nodes
     readonly property string nodeHeaderOperationColor: "#0066FF"  // Blue for Operation nodes
     readonly property string nodeHeaderParamColor: "#000000"      // Black for Param nodes
+    readonly property string nodeHeaderVariableColor: "#9C27B0"   // Purple for Variable nodes
     readonly property string nodeHeaderTextColor: "#FFFFFF"       // White text on headers
     
     // Edge colors

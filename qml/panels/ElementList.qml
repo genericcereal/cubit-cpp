@@ -113,12 +113,7 @@ ScrollView {
                     anchors.left: parent.left
                     anchors.right: parent.right
                     height: 30
-                    color: {
-                        switch(dragItem.elementType) {
-                            case "Variable": return "#000000"  // Black for Param nodes
-                            default: return "#2196F3"  // Blue for Operation nodes
-                        }
-                    }
+                    color: "#9C27B0"  // Purple for Variable nodes (all elements create Variable nodes)
                     radius: 4
                     
                     Rectangle {
@@ -131,9 +126,7 @@ ScrollView {
                     
                     Label {
                         anchors.centerIn: parent
-                        text: dragItem.elementType === "Variable" 
-                            ? dragItem.elementName 
-                            : "Display: " + dragItem.elementName
+                        text: dragItem.elementName  // All elements create Variable nodes
                         color: "white"
                         font.pixelSize: 12
                     }
