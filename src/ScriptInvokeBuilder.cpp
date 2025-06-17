@@ -92,23 +92,32 @@ QJsonArray ScriptInvokeBuilder::createNodeParameters(Node* node, Scripts* script
         QJsonObject param;
         param["output"] = outputId;
         params.append(param);
+        
+        qDebug() << "ScriptInvokeBuilder: Node" << node->getId() << "has direct value:" << nodeValue;
     } else if (!dataEdges.isEmpty()) {
         // Node gets data from connected edges
         for (Edge* edge : dataEdges) {
             Node* sourceNode = scripts->getNode(edge->sourceNodeId());
-            if (sourceNode && !sourceNode->value().isEmpty()) {
-                // Create output for source node's value
-                QString outputId = generateOutputId(context);
-                QJsonObject output;
-                output["type"] = "literal";
-                output["value"] = sourceNode->value();
-                output["sourceNodeId"] = sourceNode->getId();
-                context.outputs[outputId] = output;
+            if (sourceNode) {
+                QString sourceValue = sourceNode->value();
+                qDebug() << "ScriptInvokeBuilder: Source node" << sourceNode->getId() 
+                         << "(" << sourceNode->nodeTitle() << ")"
+                         << "value:" << sourceValue;
                 
-                // Reference this output in params
-                QJsonObject param;
-                param["output"] = outputId;
-                params.append(param);
+                if (!sourceValue.isEmpty()) {
+                    // Create output for source node's value
+                    QString outputId = generateOutputId(context);
+                    QJsonObject output;
+                    output["type"] = "literal";
+                    output["value"] = sourceValue;
+                    output["sourceNodeId"] = sourceNode->getId();
+                    context.outputs[outputId] = output;
+                    
+                    // Reference this output in params
+                    QJsonObject param;
+                    param["output"] = outputId;
+                    params.append(param);
+                }
             }
         }
     }
@@ -142,7 +151,8 @@ QList<Edge*> ScriptInvokeBuilder::getIncomingDataEdges(Node* node, Scripts* scri
     QList<Edge*> edges = scripts->getIncomingEdges(node->getId());
     
     for (Edge* edge : edges) {
-        if (edge->targetPortType() == "Data") {
+        // Check for non-Flow edges (Data, String, Number, Boolean, etc.)
+        if (edge->targetPortType() != "Flow") {
             result.append(edge);
         }
     }

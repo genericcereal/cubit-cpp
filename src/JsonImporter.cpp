@@ -39,6 +39,7 @@ QString JsonImporter::createNodeFromJson(const QString& jsonData)
     QString nodeType = nodeObj.value("type").toString("Operation");
     qreal x = nodeObj.value("x").toDouble(0);
     qreal y = nodeObj.value("y").toDouble(0);
+    QString sourceElementId = nodeObj.value("sourceElementId").toString();
     
     // Create the node
     Node *node = new Node(nodeId);
@@ -46,6 +47,11 @@ QString JsonImporter::createNodeFromJson(const QString& jsonData)
     node->setX(x);
     node->setY(y);
     node->setNodeTitle(name);
+    
+    // Set source element ID if provided
+    if (!sourceElementId.isEmpty()) {
+        node->setSourceElementId(sourceElementId);
+    }
     
     // Parse targets (input ports)
     QJsonArray targets = nodeObj.value("targets").toArray();

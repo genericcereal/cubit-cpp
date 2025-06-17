@@ -1,5 +1,10 @@
 #include "Node.h"
 #include "Config.h"
+#include "ElementModel.h"
+#include "Frame.h"
+#include "Text.h"
+#include "Html.h"
+#include "Variable.h"
 #include <QDebug>
 
 Node::Node(const QString &id, QObject *parent)
@@ -73,6 +78,62 @@ void Node::setValue(const QString &value)
         emit valueChanged();
         emit elementChanged();
     }
+}
+
+void Node::setSourceElementId(const QString &elementId)
+{
+    if (m_sourceElementId != elementId) {
+        m_sourceElementId = elementId;
+        emit sourceElementIdChanged();
+        emit elementChanged();
+    }
+}
+
+QString Node::value() const
+{
+    // If this is a Variable node representing a design element
+    if (m_nodeType == "Variable" && !m_sourceElementId.isEmpty()) {
+        qDebug() << "Node::value() - Variable node" << getId() << "has sourceElementId:" << m_sourceElementId;
+        
+        // Try to find the element model from parent hierarchy
+        ElementModel* elementModel = nullptr;
+        QObject* p = parent();
+        while (p && !elementModel) {
+            elementModel = qobject_cast<ElementModel*>(p);
+            p = p->parent();
+        }
+        
+        if (elementModel) {
+            Element* sourceElement = elementModel->getElementById(m_sourceElementId);
+            if (sourceElement) {
+                qDebug() << "Node::value() - Found source element:" << sourceElement->getName() 
+                         << "type:" << sourceElement->objectName();
+                
+                // Return the element ID for design elements (Frame, Text, Html)
+                if (qobject_cast<Frame*>(sourceElement) || 
+                    qobject_cast<Text*>(sourceElement) || 
+                    qobject_cast<Html*>(sourceElement)) {
+                    QString id = sourceElement->getId();
+                    qDebug() << "Node::value() - Returning element ID:" << id;
+                    return id;
+                }
+                // Return the value for Variable elements
+                else if (Variable* var = qobject_cast<Variable*>(sourceElement)) {
+                    QString val = var->value().toString();
+                    qDebug() << "Node::value() - Returning Variable value:" << val;
+                    return val;
+                }
+            } else {
+                qDebug() << "Node::value() - Source element not found for ID:" << m_sourceElementId;
+            }
+        } else {
+            qDebug() << "Node::value() - ElementModel not found in parent hierarchy";
+        }
+    }
+    
+    // Default: return the stored value
+    qDebug() << "Node::value() - Returning stored value:" << m_value;
+    return m_value;
 }
 
 void Node::addInputPort(const QString &portName)

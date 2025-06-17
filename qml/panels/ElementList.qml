@@ -68,6 +68,7 @@ ScrollView {
                 onPressed: (mouse) => {
                     dragItem.elementType = model.elementType
                     dragItem.elementName = model.name
+                    dragItem.elementId = model.element.elementId
                     // Ensure drag item starts at the correct position
                     var globalPos = mapToItem(dragItem.parent, mouse.x, mouse.y)
                     dragItem.x = globalPos.x - dragItem.width / 2
@@ -95,6 +96,7 @@ ScrollView {
                 
                 property string elementType: ""
                 property string elementName: ""
+                property string elementId: ""
                 
                 Drag.active: mouseArea.drag.active
                 Drag.hotSpot.x: width / 2

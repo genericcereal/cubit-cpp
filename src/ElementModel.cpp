@@ -88,6 +88,9 @@ void ElementModel::addElement(Element *element)
 {
     if (!element) return;
     
+    // Set the element's parent to this model so it can find the model later
+    element->setParent(this);
+    
     beginInsertRows(QModelIndex(), m_elements.size(), m_elements.size());
     m_elements.append(element);
     connectElement(element);
