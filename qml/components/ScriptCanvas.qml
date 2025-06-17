@@ -394,6 +394,9 @@ BaseCanvas {
                 // Get element information from drag source
                 var elementType = drag.source.elementType
                 var elementName = drag.source.elementName
+                var elementId = drag.source.elementId
+                
+                console.log("Dragged element - type:", elementType, "name:", elementName, "id:", elementId)
                 
                 console.log("DropArea.onDropped - drag.x:", drag.x, "drag.y:", drag.y)
                 console.log("Current zoom level:", root.zoom)
@@ -419,6 +422,7 @@ BaseCanvas {
                     width: 150,  // Narrower since it's just a header
                     name: elementName,
                     type: "Variable",
+                    sourceElementId: elementId,  // Store reference to source element
                     targets: [],
                     sources: [{
                         id: "value",

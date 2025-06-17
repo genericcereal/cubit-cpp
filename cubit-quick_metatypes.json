@@ -2552,7 +2552,7 @@
                                 "type": "int"
                             }
                         ],
-                        "index": 7,
+                        "index": 8,
                         "isConst": true,
                         "name": "getRowForInputPort",
                         "returnType": "int"
@@ -2565,7 +2565,7 @@
                                 "type": "int"
                             }
                         ],
-                        "index": 8,
+                        "index": 9,
                         "isConst": true,
                         "name": "getRowForOutputPort",
                         "returnType": "int"
@@ -2689,6 +2689,21 @@
                         "type": "QString",
                         "user": false,
                         "write": "setValue"
+                    },
+                    {
+                        "constant": false,
+                        "designable": true,
+                        "final": false,
+                        "index": 8,
+                        "name": "sourceElementId",
+                        "notify": "sourceElementIdChanged",
+                        "read": "sourceElementId",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "QString",
+                        "user": false,
+                        "write": "setSourceElementId"
                     }
                 ],
                 "qualifiedClassName": "Node",
@@ -2733,6 +2748,12 @@
                         "access": "public",
                         "index": 6,
                         "name": "valueChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "index": 7,
+                        "name": "sourceElementIdChanged",
                         "returnType": "void"
                     }
                 ],
