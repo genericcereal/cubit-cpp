@@ -378,17 +378,17 @@ BaseCanvas {
                 var elementName = drag.source.elementName
                 
                 console.log("DropArea.onDropped - drag.x:", drag.x, "drag.y:", drag.y)
+                console.log("Current zoom level:", root.zoom)
+                console.log("Flickable contentX:", root.flickable.contentX, "contentY:", root.flickable.contentY)
                 
-                // The drag.x and drag.y are relative to the DropArea, which fills the canvas view
-                // We need to map these to the actual canvas coordinates
+                // The drag.x and drag.y are relative to the DropArea which fills the contentLayer
+                // The contentLayer is at the canvas coordinate space (before zoom is applied)
+                // So drag.x and drag.y are already in canvas coordinates, just offset by canvasMinX/Y
                 
-                // Map the drop position to the content item
-                var dropPosInContent = mapToItem(root.canvasArea, drag.x, drag.y)
-                console.log("Drop position in content:", dropPosInContent.x, dropPosInContent.y)
-                
-                // Convert to canvas coordinates
-                var nodeX = dropPosInContent.x / root.zoom + root.canvasMinX
-                var nodeY = dropPosInContent.y / root.zoom + root.canvasMinY
+                // The drag preview is 200x100 with hotspot at center (100, 50)
+                // So we need to offset by half the node size to align with where the preview appeared
+                var nodeX = drag.x + root.canvasMinX - 100  // Subtract half width
+                var nodeY = drag.y + root.canvasMinY - 50   // Subtract half height
                 
                 console.log("Calculated node position:", nodeX, nodeY)
                 
