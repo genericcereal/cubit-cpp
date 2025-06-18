@@ -13,6 +13,11 @@
 #include "commands/MoveElementsCommand.h"
 #include "commands/ResizeElementCommand.h"
 #include "commands/SetPropertyCommand.h"
+#include "IModeHandler.h"
+#include "SelectModeHandler.h"
+#include "FrameModeHandler.h"
+#include "TextModeHandler.h"
+#include "HtmlModeHandler.h"
 #include <QDebug>
 
 CanvasController::CanvasController(QObject *parent)
@@ -23,6 +28,7 @@ CanvasController::CanvasController(QObject *parent)
     , m_selectionManager(nullptr)
 {
     initializeSubcontrollers();
+    initializeModeHandlers();
 }
 
 CanvasController::~CanvasController() = default;
@@ -64,6 +70,28 @@ void CanvasController::initializeSubcontrollers()
     updateSubcontrollersCanvasType();
 }
 
+void CanvasController::initializeModeHandlers()
+{
+    // Create mode handlers
+    auto setModeFunc = [this](const QString& mode) { this->setMode(mode); };
+    
+    m_modeHandlers[Mode::Select] = std::make_unique<SelectModeHandler>(
+        m_dragManager.get(), m_hitTestService.get(), m_selectionManager);
+    
+    m_modeHandlers[Mode::Frame] = std::make_unique<FrameModeHandler>(
+        m_creationManager.get(), m_elementModel, m_selectionManager, 
+        m_commandHistory.get(), setModeFunc);
+    
+    m_modeHandlers[Mode::Text] = std::make_unique<TextModeHandler>(
+        m_creationManager.get(), setModeFunc);
+    
+    m_modeHandlers[Mode::Html] = std::make_unique<HtmlModeHandler>(
+        m_creationManager.get(), setModeFunc);
+    
+    // Set initial handler
+    m_currentHandler = m_modeHandlers[m_mode].get();
+}
+
 void CanvasController::updateSubcontrollersCanvasType()
 {
     auto creationType = (m_canvasType == CanvasType::Design) 
@@ -84,6 +112,16 @@ void CanvasController::setMode(const QString &mode)
     qDebug() << "CanvasController::setMode called - current:" << modeToString(m_mode) << "new:" << mode;
     if (m_mode != newMode) {
         m_mode = newMode;
+        
+        // Update current handler
+        auto it = m_modeHandlers.find(m_mode);
+        if (it != m_modeHandlers.end()) {
+            m_currentHandler = it->second.get();
+        } else {
+            m_currentHandler = nullptr;
+            qWarning() << "No handler found for mode:" << mode;
+        }
+        
         qDebug() << "Mode changed, emitting signal";
         emit modeChanged();
     }
@@ -111,6 +149,11 @@ void CanvasController::setElementModel(ElementModel *model)
     m_creationManager->setElementModel(model);
     m_hitTestService->setElementModel(model);
     m_jsonImporter->setElementModel(model);
+    
+    // Reinitialize mode handlers with updated model
+    if (m_selectionManager) {
+        initializeModeHandlers();
+    }
 }
 
 void CanvasController::setSelectionManager(SelectionManager *manager)
@@ -118,6 +161,11 @@ void CanvasController::setSelectionManager(SelectionManager *manager)
     m_selectionManager = manager;
     m_dragManager->setSelectionManager(manager);
     m_creationManager->setSelectionManager(manager);
+    
+    // Reinitialize mode handlers with updated selection manager
+    if (m_elementModel) {
+        initializeModeHandlers();
+    }
 }
 
 Element* CanvasController::hitTest(qreal x, qreal y)
@@ -134,117 +182,22 @@ void CanvasController::handleMousePress(qreal x, qreal y)
 {
     if (!m_elementModel || !m_selectionManager) return;
     
-    switch (m_mode) {
-        case Mode::Select: {
-            Element *element = m_hitTestService->hitTest(x, y);
-            if (element) {
-                // Don't change selection on press - wait to see if it's a click or drag
-                // Just prepare for potential drag
-                bool started = m_dragManager->startDrag(element, QPointF(x, y));
-                if (!started) {
-                    qDebug() << "WARNING: DragManager::startDrag returned false for" << element->getName();
-                }
-            } else {
-                m_selectionManager->clearSelection();
-            }
-            break;
-        }
-        
-        case Mode::Frame:
-        case Mode::Text:
-        case Mode::Html: {
-            // Start element creation
-            m_creationStartPos = QPointF(x, y);
-            
-            // Create element immediately for visual elements
-            m_creationElement = m_creationManager->createElement(modeToString(m_mode), x, y, 1, 1);
-            break;
-        }
-        
+    if (m_currentHandler) {
+        m_currentHandler->onPress(x, y);
     }
 }
 
 void CanvasController::handleMouseMove(qreal x, qreal y)
 {
-    if (m_mode == Mode::Select && m_dragManager->isDragging()) {
-        m_dragManager->updateDrag(QPointF(x, y));
-    } else if (m_creationElement) {
-        // Update element size during creation
-        qreal width = qAbs(x - m_creationStartPos.x());
-        qreal height = qAbs(y - m_creationStartPos.y());
-        qreal left = qMin(x, m_creationStartPos.x());
-        qreal top = qMin(y, m_creationStartPos.y());
-        
-        if (m_creationElement->isVisual()) {
-            CanvasElement* canvasElement = qobject_cast<CanvasElement*>(m_creationElement);
-            if (canvasElement) {
-                canvasElement->setX(left);
-                canvasElement->setY(top);
-                canvasElement->setWidth(qMax(width, 1.0));
-                canvasElement->setHeight(qMax(height, 1.0));
-            }
-        }
-        
-        qDebug() << "Element resize:" << left << top << width << height;
+    if (m_currentHandler) {
+        m_currentHandler->onMove(x, y);
     }
 }
 
 void CanvasController::handleMouseRelease(qreal x, qreal y)
 {
-    switch (m_mode) {
-        case Mode::Select: {
-            if (m_dragManager->isDragging()) {
-                // Check if this was a click (no significant movement) vs a drag
-                if (!m_dragManager->hasDraggedMinDistance() && m_dragManager->dragElement()) {
-                    // This was a click - update selection
-                    Element* clickedElement = m_dragManager->dragElement();
-                    if (m_selectionManager->selectionCount() > 1 && clickedElement->isSelected()) {
-                        // Multiple elements were selected and user clicked on one of them
-                        // Select only the clicked element
-                        m_selectionManager->selectOnly(clickedElement);
-                    } else if (!clickedElement->isSelected()) {
-                        // Clicked on an unselected element
-                        m_selectionManager->selectOnly(clickedElement);
-                    }
-                }
-                m_dragManager->endDrag();
-            }
-            break;
-        }
-        
-        case Mode::Frame:
-        case Mode::Text:
-        case Mode::Html: {
-            // Calculate final dimensions
-            qreal width = qAbs(x - m_creationStartPos.x());
-            qreal height = qAbs(y - m_creationStartPos.y());
-            qreal left = qMin(x, m_creationStartPos.x());
-            qreal top = qMin(y, m_creationStartPos.y());
-            
-            // Ensure minimum size
-            if (width < 10) width = Config::DEFAULT_ELEMENT_WIDTH;
-            if (height < 10) height = Config::DEFAULT_ELEMENT_HEIGHT;
-            
-            // Remove the temporary creation element
-            if (m_creationElement && m_elementModel) {
-                m_elementModel->removeElement(m_creationElement->getId());
-                m_creationElement = nullptr;
-            }
-            
-            // Create frame using command
-            if (m_mode == Mode::Frame) {
-                QRectF rect(left, top, width, height);
-                auto command = std::make_unique<CreateFrameCommand>(
-                    m_elementModel, m_selectionManager, rect);
-                m_commandHistory->execute(std::move(command));
-            }
-            // TODO: Handle Text and Html creation with commands
-            
-            // Switch back to select mode
-            setMode("select");
-            break;
-        }
-        
+    if (m_currentHandler) {
+        m_currentHandler->onRelease(x, y);
     }
 }
 

@@ -25,10 +25,14 @@ public:
     void updateDrag(const QPointF& currentPos);
     void endDrag();
     
+    // Handle click vs drag selection logic
+    void handleClickSelection(Element* clickedElement);
+    
     // Properties
     bool isDragging() const { return m_isDragging; }
     bool hasDraggedMinDistance() const { return m_hasDraggedMinDistance; }
     Element* dragElement() const { return m_dragElement; }
+    bool wasClick() const { return !m_hasDraggedMinDistance; }
     
 signals:
     void isDraggingChanged();

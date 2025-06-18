@@ -2,6 +2,7 @@
 #include <QObject>
 #include <QPointF>
 #include <memory>
+#include <unordered_map>
 #include "Element.h"
 
 class ElementModel;
@@ -11,6 +12,7 @@ class CreationManager;
 class HitTestService;
 class JsonImporter;
 class CommandHistory;
+struct IModeHandler;
 
 class CanvasController : public QObject {
     Q_OBJECT
@@ -114,17 +116,18 @@ private:
     std::unique_ptr<JsonImporter> m_jsonImporter;
     std::unique_ptr<CommandHistory> m_commandHistory;
     
+    // Mode handlers
+    std::unordered_map<Mode, std::unique_ptr<IModeHandler>> m_modeHandlers;
+    IModeHandler* m_currentHandler = nullptr;
+    
     // Helper methods for enum conversion
     static Mode modeFromString(const QString &str);
     static QString modeToString(Mode mode);
     static CanvasType canvasTypeFromString(const QString &str);
     static QString canvasTypeToString(CanvasType type);
     
-    // Creation state for drag-to-create
-    QPointF m_creationStartPos;
-    Element* m_creationElement = nullptr;
-    
     // Initialize subcontrollers
     void initializeSubcontrollers();
+    void initializeModeHandlers();
     void updateSubcontrollersCanvasType();
 };
