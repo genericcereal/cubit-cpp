@@ -10,6 +10,8 @@ class CanvasElement : public Element {
     Q_PROPERTY(qreal y READ y WRITE setY NOTIFY yChanged)
     Q_PROPERTY(qreal width READ width WRITE setWidth NOTIFY widthChanged)
     Q_PROPERTY(qreal height READ height WRITE setHeight NOTIFY heightChanged)
+    Q_PROPERTY(bool isDesignElement READ isDesignElement CONSTANT)
+    Q_PROPERTY(bool isScriptElement READ isScriptElement CONSTANT)
     
 public:
     explicit CanvasElement(ElementType type, const QString &id, QObject *parent = nullptr);

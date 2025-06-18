@@ -54,6 +54,16 @@ ScrollView {
                     text: selectedElement ? selectedElement.elementId : ""
                     color: "#666666"
                 }
+                
+                Label { 
+                    text: "Parent ID:" 
+                    visible: selectedElement && selectedElement.isDesignElement
+                }
+                Label {
+                    text: selectedElement && selectedElement.parentId ? selectedElement.parentId : "None"
+                    color: "#666666"
+                    visible: selectedElement && selectedElement.isDesignElement
+                }
             }
         }
         
