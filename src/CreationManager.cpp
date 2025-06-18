@@ -12,6 +12,7 @@
 #include "Config.h"
 #include "HandleType.h"
 #include <QDebug>
+#include <QtMath>
 
 CreationManager::CreationManager(QObject *parent)
     : QObject(parent)
@@ -289,4 +290,90 @@ void CreationManager::calculateEdgePoints(Edge* edge, Element* sourceNode, Eleme
              << "Target:" << QPointF(targetX, targetY);
     qDebug() << "Edge bounds - Position:" << edge->x() << "," << edge->y()
              << "Size:" << edge->width() << "x" << edge->height();
+}
+
+Element* CreationManager::startDragCreation(const QString& type, const QPointF& startPos)
+{
+    if (!m_elementModel) return nullptr;
+    
+    // Only create elements for design canvas
+    if (m_canvasType != CanvasType::Design) {
+        qDebug() << "Cannot create elements on script canvas via drag";
+        return nullptr;
+    }
+    
+    // Cancel any existing drag creation
+    if (m_dragCreationElement) {
+        cancelDragCreation();
+    }
+    
+    m_dragCreationType = type;
+    m_dragCreationStartPos = startPos;
+    
+    // Create element at start position with minimal size
+    m_dragCreationElement = createElement(type, startPos.x(), startPos.y(), 1, 1);
+    
+    return m_dragCreationElement;
+}
+
+void CreationManager::updateDragCreation(const QPointF& currentPos)
+{
+    if (!m_dragCreationElement || !m_dragCreationElement->isVisual()) return;
+    
+    CanvasElement* canvasElement = qobject_cast<CanvasElement*>(m_dragCreationElement);
+    if (!canvasElement) return;
+    
+    // Calculate dimensions based on drag
+    qreal width = qAbs(currentPos.x() - m_dragCreationStartPos.x());
+    qreal height = qAbs(currentPos.y() - m_dragCreationStartPos.y());
+    qreal left = qMin(currentPos.x(), m_dragCreationStartPos.x());
+    qreal top = qMin(currentPos.y(), m_dragCreationStartPos.y());
+    
+    // Update element size and position
+    canvasElement->setX(left);
+    canvasElement->setY(top);
+    canvasElement->setWidth(qMax(width, 1.0));
+    canvasElement->setHeight(qMax(height, 1.0));
+}
+
+Element* CreationManager::finishDragCreation()
+{
+    if (!m_dragCreationElement || !m_dragCreationElement->isVisual()) {
+        m_dragCreationElement = nullptr;
+        return nullptr;
+    }
+    
+    CanvasElement* canvasElement = qobject_cast<CanvasElement*>(m_dragCreationElement);
+    if (!canvasElement) {
+        m_dragCreationElement = nullptr;
+        return nullptr;
+    }
+    
+    // Ensure minimum size
+    if (canvasElement->width() < 10) {
+        canvasElement->setWidth(Config::DEFAULT_ELEMENT_WIDTH);
+    }
+    if (canvasElement->height() < 10) {
+        canvasElement->setHeight(Config::DEFAULT_ELEMENT_HEIGHT);
+    }
+    
+    // Select the newly created element
+    if (m_selectionManager) {
+        m_selectionManager->selectOnly(m_dragCreationElement);
+    }
+    
+    Element* createdElement = m_dragCreationElement;
+    m_dragCreationElement = nullptr;
+    m_dragCreationType.clear();
+    
+    return createdElement;
+}
+
+void CreationManager::cancelDragCreation()
+{
+    if (m_dragCreationElement && m_elementModel) {
+        m_elementModel->removeElement(m_dragCreationElement->getId());
+        m_dragCreationElement = nullptr;
+        m_dragCreationType.clear();
+    }
 }

@@ -46,7 +46,11 @@ SOURCES += \
     src/ScriptGraphValidator.cpp \
     src/ScriptInvokeBuilder.cpp \
     src/ScriptFunctionRegistry.cpp \
-    src/ScriptSerializer.cpp
+    src/ScriptSerializer.cpp \
+    src/SelectModeHandler.cpp \
+    src/FrameModeHandler.cpp \
+    src/TextModeHandler.cpp \
+    src/HtmlModeHandler.cpp
 
 HEADERS += \
     src/Element.h \
@@ -88,7 +92,12 @@ HEADERS += \
     src/ScriptGraphValidator.h \
     src/ScriptInvokeBuilder.h \
     src/ScriptFunctionRegistry.h \
-    src/ScriptSerializer.h
+    src/ScriptSerializer.h \
+    src/IModeHandler.h \
+    src/SelectModeHandler.h \
+    src/FrameModeHandler.h \
+    src/TextModeHandler.h \
+    src/HtmlModeHandler.h
 
 RESOURCES += qml.qrc
 

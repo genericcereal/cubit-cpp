@@ -96,6 +96,11 @@ void DragManager::updateDrag(const QPointF& currentPos)
 
 void DragManager::endDrag()
 {
+    // Handle click vs drag selection before clearing state
+    if (m_isDragging && !m_hasDraggedMinDistance && m_dragElement) {
+        handleClickSelection(m_dragElement);
+    }
+    
     m_isDragging = false;
     m_dragElement = nullptr;
     m_draggedElements.clear();
@@ -103,6 +108,21 @@ void DragManager::endDrag()
     
     emit isDraggingChanged();
     emit dragEnded();
+}
+
+void DragManager::handleClickSelection(Element* clickedElement)
+{
+    if (!m_selectionManager || !clickedElement) return;
+    
+    if (m_selectionManager->selectionCount() > 1 && clickedElement->isSelected()) {
+        // Multiple elements were selected and user clicked on one of them
+        // Select only the clicked element
+        m_selectionManager->selectOnly(clickedElement);
+    } else if (!clickedElement->isSelected()) {
+        // Clicked on an unselected element
+        m_selectionManager->selectOnly(clickedElement);
+    }
+    // If single element is already selected, do nothing (keep it selected)
 }
 
 QList<Element*> DragManager::draggedElements() const

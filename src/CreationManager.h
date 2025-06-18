@@ -28,6 +28,12 @@ public:
     // Design element creation
     Element* createElement(const QString& type, qreal x, qreal y, qreal width, qreal height);
     
+    // Drag-to-create operations
+    Element* startDragCreation(const QString& type, const QPointF& startPos);
+    void updateDragCreation(const QPointF& currentPos);
+    Element* finishDragCreation();
+    void cancelDragCreation();
+    
     // Script element creation
     Node* createNode(qreal x, qreal y, const QString& title = "Node", const QString& color = QString());
     Edge* createEdge(const QString& sourceNodeId, const QString& targetNodeId, 
@@ -45,6 +51,11 @@ private:
     ElementModel* m_elementModel = nullptr;
     SelectionManager* m_selectionManager = nullptr;
     CanvasType m_canvasType = CanvasType::Design;
+    
+    // Drag creation state
+    Element* m_dragCreationElement = nullptr;
+    QPointF m_dragCreationStartPos;
+    QString m_dragCreationType;
     
     // Helper to set up default node ports
     void setupDefaultNodePorts(Node* node);
