@@ -8,6 +8,35 @@ BaseCanvas {
     
     canvasType: "design"
     
+    // Update parentId of selected elements when hovering
+    onHoveredElementChanged: {
+        if (!selectionManager || selectionManager.selectionCount === 0) {
+            return
+        }
+        
+        // Get all selected elements
+        var selectedElements = selectionManager.selectedElements
+        
+        // Update parentId for each selected element
+        for (var i = 0; i < selectedElements.length; i++) {
+            var element = selectedElements[i]
+            if (element) {
+                if (hoveredElement) {
+                    // Don't set an element as its own parent
+                    if (hoveredElement.elementId !== element.elementId) {
+                        // Set parentId to the hovered element's ID
+                        console.log("Setting parentId of", element.elementId, "to", hoveredElement.elementId)
+                        element.parentId = hoveredElement.elementId
+                    }
+                } else {
+                    // Clear parentId when no element is hovered
+                    console.log("Clearing parentId of", element.elementId)
+                    element.parentId = ""
+                }
+            }
+        }
+    }
+    
     // Function to execute onEditorLoad events
     function executeOnEditorLoad() {
         console.log("DesignCanvas: executeOnEditorLoad called")
