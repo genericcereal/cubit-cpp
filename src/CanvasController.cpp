@@ -125,6 +125,11 @@ Element* CanvasController::hitTest(qreal x, qreal y)
     return m_hitTestService->hitTest(x, y);
 }
 
+Element* CanvasController::hitTestForHover(qreal x, qreal y)
+{
+    return m_hitTestService->hitTestForHover(x, y);
+}
+
 void CanvasController::handleMousePress(qreal x, qreal y)
 {
     if (!m_elementModel || !m_selectionManager) return;

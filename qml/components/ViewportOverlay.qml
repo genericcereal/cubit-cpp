@@ -210,6 +210,17 @@ Item {
         property real initialControlWidth: 0
         property real initialControlHeight: 0
         
+        // Handle mouse drag for hover detection
+        onMouseDragged: (viewportPos) => {
+            if (canvasView && canvasView.handleHover) {
+                // Convert viewport position to canvas coordinates
+                var canvasX = (viewportPos.x + (flickable?.contentX ?? 0)) / zoomLevel + canvasMinX
+                var canvasY = (viewportPos.y + (flickable?.contentY ?? 0)) / zoomLevel + canvasMinY
+                var canvasPoint = Qt.point(canvasX, canvasY)
+                canvasView.handleHover(canvasPoint)
+            }
+        }
+        
         // Frame throttling for drag updates
         property bool updateFramePending: false
         

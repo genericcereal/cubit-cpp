@@ -58,6 +58,7 @@ public:
     
     // Helper methods (delegated to HitTestService)
     Q_INVOKABLE Element* hitTest(qreal x, qreal y);
+    Q_INVOKABLE Element* hitTestForHover(qreal x, qreal y);
     
     // Undo/Redo support
     bool canUndo() const;

@@ -30,6 +30,10 @@ public:
     Element* hitTest(const QPointF& point) const;
     Element* hitTest(qreal x, qreal y) const { return hitTest(QPointF(x, y)); }
     
+    // Hit testing for hover (excludes selected elements)
+    Element* hitTestForHover(const QPointF& point) const;
+    Element* hitTestForHover(qreal x, qreal y) const { return hitTestForHover(QPointF(x, y)); }
+    
     // Spatial queries
     QList<Element*> elementsInRect(const QRectF& rect) const;
     QList<Element*> elementsAt(const QPointF& point) const;

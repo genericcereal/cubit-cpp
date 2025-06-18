@@ -4,7 +4,7 @@
 namespace Config {
     // Colors
     constexpr const char* SELECTION_COLOR = "#0066cc";
-    constexpr const char* HOVER_COLOR = "#999999";
+    constexpr const char* HOVER_COLOR = "rgba(0, 100, 255, 1.0)";    // Blue to match control lines
     constexpr const char* CANVAS_BACKGROUND = "#f5f5f5";
     constexpr const char* PANEL_BACKGROUND = "#ffffff";
     constexpr const char* PANEL_HEADER_BACKGROUND = "#f0f0f0";
