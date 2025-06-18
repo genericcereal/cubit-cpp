@@ -23,6 +23,9 @@ Item {
     property real dragStartRotation: 0
     property point lastMousePosition: Qt.point(0, 0)
     
+    // Signal to notify about mouse position during drag
+    signal mouseDragged(point viewportPos)
+    
     // Track if dimensions are flipped
     property bool widthFlipped: controlWidth < 0
     property bool heightFlipped: controlHeight < 0
@@ -64,6 +67,7 @@ Item {
             id: surfaceMouseArea
             anchors.fill: parent
             cursorShape: dragging ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+            propagateComposedEvents: true
             
             onPressed: (mouse) => {
                 root.dragging = true
@@ -93,6 +97,9 @@ Item {
                     // Update control position in canvas coordinates
                     root.controlX = root.dragStartControlPos.x + deltaX / root.parent.zoomLevel
                     root.controlY = root.dragStartControlPos.y + deltaY / root.parent.zoomLevel
+                    
+                    // Emit signal for hover detection
+                    root.mouseDragged(mouseInParent)
                 }
             }
         }

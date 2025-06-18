@@ -83,6 +83,8 @@ Item {
                     ih.canvasMinY
                 )
                 ih.dragMoved(canvasPoint)
+                // Also emit hover during drag
+                ih.hovered(canvasPoint)
             } else {
                 var canvasPoint = Utils.viewportToCanvas(
                     Qt.point(mouse.x, mouse.y),

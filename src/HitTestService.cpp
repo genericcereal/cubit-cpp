@@ -94,6 +94,57 @@ Element* HitTestService::hitTest(const QPointF& point) const
     return nullptr;
 }
 
+Element* HitTestService::hitTestForHover(const QPointF& point) const
+{
+    if (!m_elementModel) return nullptr;
+    
+    QList<Element*> candidates;
+    
+    if (m_useQuadTree && m_quadTree) {
+        // Use quadtree for efficient spatial query
+        candidates = m_quadTree->query(point);
+    } else {
+        // Fallback to linear search
+        candidates = m_elementModel->getAllElements();
+    }
+    
+    qDebug() << "HitTestService::hitTestForHover at" << point << "- found" << candidates.size() << "candidates";
+    
+    // Test in reverse order (top to bottom) for proper z-ordering
+    for (int i = candidates.size() - 1; i >= 0; --i) {
+        Element *element = candidates[i];
+        
+        if (!shouldTestElement(element)) {
+            qDebug() << "  Skipping element" << element->getName() << "- shouldTestElement returned false";
+            continue;
+        }
+        
+        // Skip selected elements for hover
+        if (element->isSelected()) {
+            qDebug() << "  Skipping element" << element->getName() << "- element is selected";
+            continue;
+        }
+        
+        // Only visual elements can be hit tested
+        if (element->isVisual()) {
+            CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+            if (canvasElement) {
+                QRectF elementRect = canvasElement->rect();
+                bool contains = canvasElement->containsPoint(point);
+                qDebug() << "  Testing element" << element->getName() 
+                         << "at" << elementRect 
+                         << "- contains:" << contains;
+                if (contains) {
+                    return element;
+                }
+            }
+        }
+    }
+    
+    qDebug() << "  No element found at point";
+    return nullptr;
+}
+
 QList<Element*> HitTestService::elementsInRect(const QRectF& rect) const
 {
     QList<Element*> result;

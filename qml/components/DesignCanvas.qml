@@ -219,9 +219,9 @@ BaseCanvas {
     }
     
     function handleHover(pt) {
-        // Track hover for design elements
+        // Track hover for design elements (use hitTestForHover to exclude selected elements)
         if (controller.mode === "select") {
-            hoveredElement = controller.hitTest(pt.x, pt.y)
+            hoveredElement = controller.hitTestForHover(pt.x, pt.y)
         } else {
             hoveredElement = null
         }

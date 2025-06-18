@@ -77,9 +77,9 @@ MouseArea {
         // Get canvas coordinates using cached conversion
         var canvasPoint = viewportCache.viewportToCanvas(mouseX, mouseY)
         
-        // Track hover when not dragging
-        if (!pressed && controller.mode === "select") {
-            hoveredElement = controller.hitTest(canvasPoint.x, canvasPoint.y)
+        // Track hover even when dragging controls (use hitTestForHover to exclude selected elements)
+        if (controller.mode === "select") {
+            hoveredElement = controller.hitTestForHover(canvasPoint.x, canvasPoint.y)
         }
         
         if (selectionBoxHandler.active) {
