@@ -2,11 +2,12 @@
 #include <QObject>
 #include <QPointF>
 #include <QRectF>
-#include <QList>
 #include <QHash>
 #include <memory>
+#include <vector>
 
 class Element;
+class CanvasElement;
 class ElementModel;
 class QuadTree;
 
@@ -35,8 +36,8 @@ public:
     Element* hitTestForHover(qreal x, qreal y) const { return hitTestForHover(QPointF(x, y)); }
     
     // Spatial queries
-    QList<Element*> elementsInRect(const QRectF& rect) const;
-    QList<Element*> elementsAt(const QPointF& point) const;
+    std::vector<Element*> elementsInRect(const QRectF& rect) const;
+    std::vector<Element*> elementsAt(const QPointF& point) const;
     
     // Spatial index management
     void rebuildSpatialIndex();
@@ -72,4 +73,23 @@ private:
     
     // Track elements for removal
     mutable QHash<QString, Element*> m_elementMap;
+    
+    // Cached visual elements for fast hit testing
+    mutable std::vector<CanvasElement*> m_visualElements;
+    mutable bool m_visualsCacheValid = false;
+    
+    // Rebuild the visual elements cache
+    void rebuildVisualsCache() const;
+    
+    // Query candidates from spatial index or fallback
+    std::vector<Element*> queryCandidates(const QPointF& point) const;
+    std::vector<Element*> queryCandidates(const QRectF& rect) const;
+    
+    // Unified helper for finding topmost element with custom predicate
+    template<typename Pred>
+    Element* findTopmost(const QPointF& pt, Pred shouldSkip) const;
+    
+    // Unified helper for finding all elements with custom predicate
+    template<typename Pred>
+    std::vector<Element*> findAll(const QPointF& pt, Pred shouldSkip) const;
 };

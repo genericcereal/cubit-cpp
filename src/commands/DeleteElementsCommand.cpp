@@ -3,6 +3,7 @@
 #include "../ElementModel.h"
 #include "../SelectionManager.h"
 #include <QDebug>
+#include <vector>
 
 DeleteElementsCommand::DeleteElementsCommand(ElementModel* model, SelectionManager* selectionManager,
                                              const QList<Element*>& elements, QObject *parent)
@@ -71,9 +72,10 @@ void DeleteElementsCommand::undo()
 
     // Restore selection
     if (m_selectionManager && !m_deletedElements.isEmpty()) {
-        QList<Element*> elementsToSelect;
+        std::vector<Element*> elementsToSelect;
+        elementsToSelect.reserve(m_deletedElements.size());
         for (const ElementInfo& info : m_deletedElements) {
-            elementsToSelect.append(info.element);
+            elementsToSelect.push_back(info.element);
         }
         m_selectionManager->selectAll(elementsToSelect);
     }

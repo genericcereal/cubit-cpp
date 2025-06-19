@@ -8,6 +8,7 @@
 #include "CanvasElement.h"
 #include "Config.h"
 #include "CommandHistory.h"
+#include <vector>
 #include "commands/CreateFrameCommand.h"
 #include "commands/DeleteElementsCommand.h"
 #include "commands/MoveElementsCommand.h"
@@ -237,9 +238,9 @@ void CanvasController::createGraphFromJson(const QString &jsonData)
 void CanvasController::selectElementsInRect(const QRectF &rect)
 {
     
-    QList<Element*> elementsInRect = m_hitTestService->elementsInRect(rect);
+    std::vector<Element*> elementsInRect = m_hitTestService->elementsInRect(rect);
     
-    if (!elementsInRect.isEmpty()) {
+    if (!elementsInRect.empty()) {
         m_selectionManager.selectAll(elementsInRect);
     } else {
         // Clear selection if no elements are in the rect
@@ -249,7 +250,9 @@ void CanvasController::selectElementsInRect(const QRectF &rect)
 
 void CanvasController::selectAll()
 {
-    m_selectionManager.selectAll(m_elementModel.getAllElements());
+    QList<Element*> allElements = m_elementModel.getAllElements();
+    std::vector<Element*> elementsVec(allElements.begin(), allElements.end());
+    m_selectionManager.selectAll(elementsVec);
 }
 
 void CanvasController::deleteSelectedElements()

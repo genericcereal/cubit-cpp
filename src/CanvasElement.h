@@ -23,7 +23,18 @@ public:
     qreal width() const { return canvasSize.width(); }
     qreal height() const { return canvasSize.height(); }
     
-    QRectF rect() const { return QRectF(canvasPosition, canvasSize); }
+    QRectF rect() const { 
+        if (!m_boundsValid) {
+            updateCachedBounds();
+        }
+        return m_cachedBounds; 
+    }
+    const QRectF& cachedBounds() const { 
+        if (!m_boundsValid) {
+            updateCachedBounds();
+        }
+        return m_cachedBounds; 
+    }
     
     // Hit testing - can be overridden for custom shapes
     virtual bool containsPoint(const QPointF &point) const;
@@ -52,4 +63,12 @@ signals:
 protected:
     QPointF canvasPosition;
     QSizeF canvasSize;
+    
+private:
+    // Cached bounding box to avoid repeated construction
+    mutable QRectF m_cachedBounds;
+    mutable bool m_boundsValid = false;
+    
+    // Update the cached bounds
+    void updateCachedBounds() const;
 };
