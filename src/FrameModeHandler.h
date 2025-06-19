@@ -12,8 +12,7 @@ class Element;
 
 class FrameModeHandler : public IModeHandler {
 public:
-    FrameModeHandler(CreationManager* creationManager,
-                     ElementModel* elementModel,
+    FrameModeHandler(ElementModel* elementModel,
                      SelectionManager* selectionManager,
                      CommandHistory* commandHistory,
                      std::function<void(CanvasController::Mode)> setModeFunc);
@@ -23,9 +22,12 @@ public:
     void onRelease(qreal x, qreal y) override;
     
 private:
-    CreationManager* m_creationManager;
     ElementModel* m_elementModel;
     SelectionManager* m_selectionManager;
     CommandHistory* m_commandHistory;
     std::function<void(CanvasController::Mode)> m_setModeFunc;
+    
+    // Drag state
+    QPointF m_startPos;
+    bool m_isDragging = false;
 };

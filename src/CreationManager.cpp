@@ -21,6 +21,7 @@ CreationManager::CreationManager(QObject *parent)
 
 Element* CreationManager::createElement(const QString& type, qreal x, qreal y, qreal width, qreal height)
 {
+    qDebug() << "CreationManager::createElement() called - Type:" << type << "Pos:" << x << y << "Size:" << width << height;
     if (!m_elementModel) return nullptr;
     
     // Only create elements for design canvas
@@ -37,8 +38,12 @@ Element* CreationManager::createElement(const QString& type, qreal x, qreal y, q
     if (type == "frame") {
         element = new Frame(id);
     } else if (type == "text") {
-        element = new Text(id);
+        // For text creation preview, we'll use a Frame
+        // The actual Text element will be created by the command
+        element = new Frame(id);
     } else if (type == "html") {
+        // For HTML creation preview, we'll use a Frame
+        // The actual Html element will be created by the command
         element = new Frame(id);
     } else if (type == "variable") {
         element = new Variable(id);
@@ -294,6 +299,8 @@ void CreationManager::calculateEdgePoints(Edge* edge, Element* sourceNode, Eleme
 
 Element* CreationManager::startDragCreation(const QString& type, const QPointF& startPos)
 {
+    qDebug() << "WARNING: startDragCreation() called - this should not happen with new creation flow!";
+    qDebug() << "Type:" << type << "StartPos:" << startPos;
     if (!m_elementModel) return nullptr;
     
     // Only create elements for design canvas
