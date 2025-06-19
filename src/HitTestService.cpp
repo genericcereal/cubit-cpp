@@ -3,7 +3,6 @@
 #include "CanvasElement.h"
 #include "ElementModel.h"
 #include "QuadTree.h"
-#include <QDebug>
 #include <QElapsedTimer>
 
 HitTestService::HitTestService(QObject *parent)
@@ -26,15 +25,19 @@ void HitTestService::setElementModel(ElementModel* elementModel)
     }
     
     m_elementModel = elementModel;
+    m_visualsCacheValid = false;  // Invalidate cache
     
     if (m_elementModel) {
         // Connect to model signals
         connect(m_elementModel, &ElementModel::elementAdded,
-                this, &HitTestService::onElementAdded);
+                this, &HitTestService::onElementAdded,
+                Qt::UniqueConnection);
         connect(m_elementModel, &ElementModel::elementRemoved,
-                this, &HitTestService::onElementRemoved);
+                this, &HitTestService::onElementRemoved,
+                Qt::UniqueConnection);
         connect(m_elementModel, &ElementModel::elementUpdated,
-                this, &HitTestService::onElementUpdated);
+                this, &HitTestService::onElementUpdated,
+                Qt::UniqueConnection);
         
         // Rebuild spatial index
         rebuildSpatialIndex();
@@ -45,6 +48,7 @@ void HitTestService::setCanvasType(CanvasType type)
 {
     if (m_canvasType != type) {
         m_canvasType = type;
+        m_visualsCacheValid = false;  // Invalidate cache
         rebuildSpatialIndex();
     }
 }
@@ -53,115 +57,43 @@ Element* HitTestService::hitTest(const QPointF& point) const
 {
     if (!m_elementModel) return nullptr;
     
-    QList<Element*> candidates;
+    auto candidates = queryCandidates(point);
     
-    if (m_useQuadTree && m_quadTree) {
-        // Use quadtree for efficient spatial query
-        candidates = m_quadTree->query(point);
-    } else {
-        // Fallback to linear search
-        candidates = m_elementModel->getAllElements();
-    }
+    Element* result = findTopmost(point, [this](Element* e) {
+        bool skip = !shouldTestElement(e);
+        return skip;
+    });
     
-    qDebug() << "HitTestService::hitTest at" << point << "- found" << candidates.size() << "candidates";
-    
-    // Test in reverse order (top to bottom) for proper z-ordering
-    for (int i = candidates.size() - 1; i >= 0; --i) {
-        Element *element = candidates[i];
-        
-        if (!shouldTestElement(element)) {
-            qDebug() << "  Skipping element" << element->getName() << "- shouldTestElement returned false";
-            continue;
-        }
-        
-        // Only visual elements can be hit tested
-        if (element->isVisual()) {
-            CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
-            if (canvasElement) {
-                QRectF elementRect = canvasElement->rect();
-                bool contains = canvasElement->containsPoint(point);
-                qDebug() << "  Testing element" << element->getName() 
-                         << "at" << elementRect 
-                         << "- contains:" << contains;
-                if (contains) {
-                    return element;
-                }
-            }
-        }
-    }
-    
-    qDebug() << "  No element found at point";
-    return nullptr;
+    return result;
 }
 
 Element* HitTestService::hitTestForHover(const QPointF& point) const
 {
     if (!m_elementModel) return nullptr;
     
-    QList<Element*> candidates;
+    auto candidates = queryCandidates(point);
     
-    if (m_useQuadTree && m_quadTree) {
-        // Use quadtree for efficient spatial query
-        candidates = m_quadTree->query(point);
-    } else {
-        // Fallback to linear search
-        candidates = m_elementModel->getAllElements();
-    }
-    
-    qDebug() << "HitTestService::hitTestForHover at" << point << "- found" << candidates.size() << "candidates";
-    
-    // Test in reverse order (top to bottom) for proper z-ordering
-    for (int i = candidates.size() - 1; i >= 0; --i) {
-        Element *element = candidates[i];
-        
-        if (!shouldTestElement(element)) {
-            qDebug() << "  Skipping element" << element->getName() << "- shouldTestElement returned false";
-            continue;
+    Element* result = findTopmost(point, [this](Element* e) {
+        if (!shouldTestElement(e)) {
+            return true;
         }
-        
-        // Skip selected elements for hover
-        if (element->isSelected()) {
-            qDebug() << "  Skipping element" << element->getName() << "- element is selected";
-            continue;
+        if (e->isSelected()) {
+            return true;
         }
-        
-        // Only visual elements can be hit tested
-        if (element->isVisual()) {
-            CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
-            if (canvasElement) {
-                QRectF elementRect = canvasElement->rect();
-                bool contains = canvasElement->containsPoint(point);
-                qDebug() << "  Testing element" << element->getName() 
-                         << "at" << elementRect 
-                         << "- contains:" << contains;
-                if (contains) {
-                    return element;
-                }
-            }
-        }
-    }
+        return false;
+    });
     
-    qDebug() << "  No element found at point";
-    return nullptr;
+    return result;
 }
 
-QList<Element*> HitTestService::elementsInRect(const QRectF& rect) const
+std::vector<Element*> HitTestService::elementsInRect(const QRectF& rect) const
 {
-    QList<Element*> result;
+    if (!m_elementModel) return std::vector<Element*>();
     
-    if (!m_elementModel) return result;
+    std::vector<Element*> result;
+    auto candidates = queryCandidates(rect);
     
-    QList<Element*> candidates;
-    
-    if (m_useQuadTree && m_quadTree) {
-        // Use quadtree for efficient spatial query
-        candidates = m_quadTree->query(rect);
-    } else {
-        // Fallback to linear search
-        candidates = m_elementModel->getAllElements();
-    }
-    
-    for (Element *element : candidates) {
+    for (Element* element : candidates) {
         if (!shouldTestElement(element)) {
             continue;
         }
@@ -169,8 +101,8 @@ QList<Element*> HitTestService::elementsInRect(const QRectF& rect) const
         // Only visual elements can be selected by rectangle
         if (element->isVisual()) {
             CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
-            if (canvasElement && rect.intersects(canvasElement->rect())) {
-                result.append(element);
+            if (canvasElement && rect.intersects(canvasElement->cachedBounds())) {
+                result.push_back(element);
             }
         }
     }
@@ -178,42 +110,21 @@ QList<Element*> HitTestService::elementsInRect(const QRectF& rect) const
     return result;
 }
 
-QList<Element*> HitTestService::elementsAt(const QPointF& point) const
+std::vector<Element*> HitTestService::elementsAt(const QPointF& point) const
 {
-    QList<Element*> result;
+    if (!m_elementModel) return std::vector<Element*>();
     
-    if (!m_elementModel) return result;
-    
-    QList<Element*> candidates;
-    
-    if (m_useQuadTree && m_quadTree) {
-        // Use quadtree for efficient spatial query
-        candidates = m_quadTree->query(point);
-    } else {
-        // Fallback to linear search
-        candidates = m_elementModel->getAllElements();
-    }
-    
-    // Test all elements at this point (not just the topmost)
-    for (Element *element : candidates) {
-        if (!shouldTestElement(element)) {
-            continue;
-        }
-        
-        if (element->isVisual()) {
-            CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
-            if (canvasElement && canvasElement->containsPoint(point)) {
-                result.append(element);
-            }
-        }
-    }
-    
-    return result;
+    return findAll(point, [this](Element* e) {
+        return !shouldTestElement(e);
+    });
 }
 
 void HitTestService::rebuildSpatialIndex()
 {
     if (!m_elementModel) return;
+    
+    // First rebuild the visuals cache
+    rebuildVisualsCache();
     
     // Calculate bounds for all elements
     QRectF bounds = calculateBounds();
@@ -226,23 +137,16 @@ void HitTestService::rebuildSpatialIndex()
     m_quadTree = std::make_unique<QuadTree>(bounds);
     m_elementMap.clear();
     
-    // Add all appropriate elements to the quadtree
-    QList<Element*> elements = m_elementModel->getAllElements();
-    for (Element* element : elements) {
-        if (shouldTestElement(element)) {
-            m_quadTree->insert(element);
-            m_elementMap[element->getId()] = element;
-        }
+    // Add all visual elements to the quadtree
+    for (CanvasElement* ce : m_visualElements) {
+        m_quadTree->insert(ce);
+        m_elementMap[ce->getId()] = ce;
     }
     
     m_needsRebuild = false;
     emit spatialIndexRebuilt();
     
-    // Debug output
-    QuadTree::Stats stats = m_quadTree->getStats();
-    qDebug() << "QuadTree rebuilt - Nodes:" << stats.totalNodes 
-             << "Elements:" << stats.totalElements 
-             << "Depth:" << stats.maxDepth;
+    // Spatial index rebuilt
 }
 
 void HitTestService::insertElement(Element* element)
@@ -275,13 +179,10 @@ void HitTestService::updateElement(Element* element)
         if (element->isVisual()) {
             CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
             if (canvasElement) {
-                QRectF elementRect = canvasElement->rect();
-                qDebug() << "HitTestService::updateElement -" << element->getName() 
-                         << "at" << elementRect;
+                const QRectF& elementRect = canvasElement->cachedBounds();
                 
                 // Check if element is outside current quadtree bounds
                 if (!m_quadTree->getBounds().contains(elementRect)) {
-                    qDebug() << "Element" << element->getName() << "is outside QuadTree bounds - rebuilding spatial index";
                     needsRebuild = true;
                 }
             }
@@ -295,7 +196,6 @@ void HitTestService::updateElement(Element* element)
             m_quadTree->remove(element);
             bool inserted = m_quadTree->insert(element);
             if (!inserted) {
-                qDebug() << "Failed to insert element" << element->getName() << "into QuadTree - rebuilding";
                 rebuildSpatialIndex();
             }
         }
@@ -314,11 +214,13 @@ void HitTestService::setUseQuadTree(bool use)
 
 void HitTestService::onElementAdded(Element* element)
 {
+    m_visualsCacheValid = false;  // Invalidate cache
     insertElement(element);
 }
 
 void HitTestService::onElementRemoved(const QString& elementId)
 {
+    m_visualsCacheValid = false;  // Invalidate cache
     if (Element* element = m_elementMap.value(elementId)) {
         removeElement(element);
     }
@@ -326,6 +228,7 @@ void HitTestService::onElementRemoved(const QString& elementId)
 
 void HitTestService::onElementUpdated(Element* element)
 {
+    m_visualsCacheValid = false;  // Invalidate cache
     updateElement(element);
 }
 
@@ -333,20 +236,19 @@ QRectF HitTestService::calculateBounds() const
 {
     if (!m_elementModel) return QRectF();
     
-    QRectF bounds;
-    QList<Element*> elements = m_elementModel->getAllElements();
+    // Ensure visual cache is up to date
+    if (!m_visualsCacheValid) {
+        rebuildVisualsCache();
+    }
     
-    for (Element* element : elements) {
-        if (shouldTestElement(element) && element->isVisual()) {
-            CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
-            if (canvasElement) {
-                QRectF elementRect = canvasElement->rect();
-                if (bounds.isEmpty()) {
-                    bounds = elementRect;
-                } else {
-                    bounds = bounds.united(elementRect);
-                }
-            }
+    QRectF bounds;
+    
+    for (CanvasElement* ce : m_visualElements) {
+        const QRectF& elementRect = ce->cachedBounds();
+        if (bounds.isEmpty()) {
+            bounds = elementRect;
+        } else {
+            bounds = bounds.united(elementRect);
         }
     }
     
@@ -360,8 +262,6 @@ QRectF HitTestService::calculateBounds() const
     
     // Ensure bounds include the origin
     bounds = bounds.united(QRectF(-100, -100, 200, 200));
-    
-    qDebug() << "HitTestService::calculateBounds - computed bounds:" << bounds;
     
     return bounds;
 }
@@ -382,4 +282,107 @@ bool HitTestService::shouldTestElement(Element* element) const
     }
     
     return true;
+}
+
+void HitTestService::rebuildVisualsCache() const
+{
+    if (!m_elementModel) {
+        m_visualElements.clear();
+        m_visualsCacheValid = true;
+        return;
+    }
+    
+    // Clear existing cache
+    m_visualElements.clear();
+    
+    // Reserve space for efficiency
+    QList<Element*> allElements = m_elementModel->getAllElements();
+    m_visualElements.reserve(allElements.size());
+    
+    // Build cache of visual elements that should be tested
+    for (Element* e : allElements) {
+        if (shouldTestElement(e) && e->isVisual()) {
+            // Since we already checked isVisual(), static_cast is safe
+            m_visualElements.push_back(static_cast<CanvasElement*>(e));
+        }
+    }
+    
+    m_visualsCacheValid = true;
+}
+
+std::vector<Element*> HitTestService::queryCandidates(const QPointF& point) const
+{
+    if (!m_visualsCacheValid) {
+        rebuildVisualsCache();
+    }
+    
+    if (m_useQuadTree && m_quadTree) {
+        return m_quadTree->query(point);
+    } else {
+        // Return visual elements as Element* list for compatibility
+        std::vector<Element*> result;
+        result.reserve(m_visualElements.size());
+        for (CanvasElement* ce : m_visualElements) {
+            result.push_back(ce);
+        }
+        return result;
+    }
+}
+
+std::vector<Element*> HitTestService::queryCandidates(const QRectF& rect) const
+{
+    if (!m_visualsCacheValid) {
+        rebuildVisualsCache();
+    }
+    
+    if (m_useQuadTree && m_quadTree) {
+        return m_quadTree->query(rect);
+    } else {
+        // Return visual elements as Element* list for compatibility
+        std::vector<Element*> result;
+        result.reserve(m_visualElements.size());
+        for (CanvasElement* ce : m_visualElements) {
+            result.push_back(ce);
+        }
+        return result;
+    }
+}
+
+// Template implementations
+template<typename Pred>
+Element* HitTestService::findTopmost(const QPointF& pt, Pred shouldSkip) const {
+    auto candidates = queryCandidates(pt);
+    
+    // Test in reverse order (top to bottom) for proper z-ordering
+    for (int i = int(candidates.size()) - 1; i >= 0; --i) {
+        Element* e = candidates.at(i);
+        
+        if (shouldSkip(e)) continue;
+        
+        // If we're using cached visuals, we know it's already a CanvasElement
+        // and it's visual, so we can skip those checks
+        CanvasElement* ce = static_cast<CanvasElement*>(e);
+        if (!ce->containsPoint(pt)) continue;
+        
+        return e;
+    }
+    return nullptr;
+}
+
+template<typename Pred>
+std::vector<Element*> HitTestService::findAll(const QPointF& pt, Pred shouldSkip) const {
+    std::vector<Element*> result;
+    auto candidates = queryCandidates(pt);
+    
+    for (Element* e : candidates) {
+        if (shouldSkip(e)) continue;
+        
+        // If we're using cached visuals, we know it's already a CanvasElement
+        CanvasElement* ce = static_cast<CanvasElement*>(e);
+        if (ce->containsPoint(pt)) {
+            result.push_back(e);
+        }
+    }
+    
+    return result;
 }

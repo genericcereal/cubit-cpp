@@ -1,7 +1,6 @@
 #include "QuadTree.h"
 #include "Element.h"
 #include "CanvasElement.h"
-#include <QDebug>
 
 QuadTree::QuadTree(const QRectF& bounds, int nodeCapacity)
     : m_nodeCapacity(nodeCapacity)
@@ -20,7 +19,7 @@ bool QuadTree::insert(Element* element)
         return false;
     }
     
-    QRectF elementBounds = canvasElement->rect();
+    const QRectF& elementBounds = canvasElement->cachedBounds();
     return insertIntoNode(m_root.get(), element, elementBounds);
 }
 
@@ -33,19 +32,21 @@ bool QuadTree::remove(Element* element)
     return removeFromNode(m_root.get(), element);
 }
 
-QList<Element*> QuadTree::query(const QPointF& point) const
+std::vector<Element*> QuadTree::query(const QPointF& point) const
 {
-    QList<Element*> result;
+    std::vector<Element*> result;
     if (m_root) {
+        result.reserve(16);  // Pre-allocate for better performance
         queryNode(m_root.get(), point, result);
     }
     return result;
 }
 
-QList<Element*> QuadTree::query(const QRectF& rect) const
+std::vector<Element*> QuadTree::query(const QRectF& rect) const
 {
-    QList<Element*> result;
+    std::vector<Element*> result;
     if (m_root) {
+        result.reserve(32);  // Pre-allocate for better performance
         queryNode(m_root.get(), rect, result);
     }
     return result;
@@ -58,7 +59,7 @@ void QuadTree::clear()
     }
 }
 
-void QuadTree::rebuild(const QList<Element*>& elements)
+void QuadTree::rebuild(const std::vector<Element*>& elements)
 {
     QRectF bounds = m_root ? m_root->bounds : QRectF();
     clear();
@@ -127,7 +128,7 @@ bool QuadTree::insertIntoNode(Node* node, Element* element, const QRectF& elemen
             if (existingElement->isVisual()) {
                 CanvasElement* canvasElem = qobject_cast<CanvasElement*>(existingElement);
                 if (canvasElem) {
-                    QRectF existingBounds = canvasElem->rect();
+                    const QRectF& existingBounds = canvasElem->cachedBounds();
                     int quadrant = getQuadrant(node->bounds, existingBounds);
                     
                     if (quadrant != -1) {
@@ -195,7 +196,7 @@ bool QuadTree::removeFromNode(Node* node, Element* element)
     return false;
 }
 
-void QuadTree::queryNode(const Node* node, const QPointF& point, QList<Element*>& result) const
+void QuadTree::queryNode(const Node* node, const QPointF& point, std::vector<Element*>& result) const
 {
     if (!node || !node->bounds.contains(point)) {
         return;
@@ -206,7 +207,7 @@ void QuadTree::queryNode(const Node* node, const QPointF& point, QList<Element*>
         if (element && element->isVisual()) {
             CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
             if (canvasElement && canvasElement->containsPoint(point)) {
-                result.append(element);
+                result.push_back(element);
             }
         }
     }
@@ -220,7 +221,7 @@ void QuadTree::queryNode(const Node* node, const QPointF& point, QList<Element*>
     }
 }
 
-void QuadTree::queryNode(const Node* node, const QRectF& rect, QList<Element*>& result) const
+void QuadTree::queryNode(const Node* node, const QRectF& rect, std::vector<Element*>& result) const
 {
     if (!node || !node->bounds.intersects(rect)) {
         return;
@@ -230,8 +231,8 @@ void QuadTree::queryNode(const Node* node, const QRectF& rect, QList<Element*>& 
     for (Element* element : node->elements) {
         if (element && element->isVisual()) {
             CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
-            if (canvasElement && rect.intersects(canvasElement->rect())) {
-                result.append(element);
+            if (canvasElement && rect.intersects(canvasElement->cachedBounds())) {
+                result.push_back(element);
             }
         }
     }

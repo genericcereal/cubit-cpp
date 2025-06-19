@@ -99,11 +99,11 @@ void SelectionManager::selectOnly(Element *element)
     emit selectionChanged();
 }
 
-void SelectionManager::selectAll(const QList<Element*> &elements)
+void SelectionManager::selectAll(const std::vector<Element*> &elements)
 {
     clearSelection();
     
-    if (elements.isEmpty()) return;
+    if (elements.empty()) return;
     
     // Initialize bounding box with first valid element
     bool firstElement = true;

@@ -1,7 +1,6 @@
 #pragma once
 #include <QRectF>
 #include <QPointF>
-#include <QList>
 #include <memory>
 #include <vector>
 
@@ -21,16 +20,16 @@ public:
     bool remove(Element* element);
     
     // Query elements at a specific point
-    QList<Element*> query(const QPointF& point) const;
+    std::vector<Element*> query(const QPointF& point) const;
     
     // Query elements within a rectangle
-    QList<Element*> query(const QRectF& rect) const;
+    std::vector<Element*> query(const QRectF& rect) const;
     
     // Clear all elements
     void clear();
     
     // Rebuild the entire tree (useful after many changes)
-    void rebuild(const QList<Element*>& elements);
+    void rebuild(const std::vector<Element*>& elements);
     
     // Get statistics for debugging
     struct Stats {
@@ -63,8 +62,8 @@ private:
     void subdivide(Node* node);
     bool insertIntoNode(Node* node, Element* element, const QRectF& elementBounds, int depth = 0);
     bool removeFromNode(Node* node, Element* element);
-    void queryNode(const Node* node, const QPointF& point, QList<Element*>& result) const;
-    void queryNode(const Node* node, const QRectF& rect, QList<Element*>& result) const;
+    void queryNode(const Node* node, const QPointF& point, std::vector<Element*>& result) const;
+    void queryNode(const Node* node, const QRectF& rect, std::vector<Element*>& result) const;
     void clearNode(Node* node);
     void getStatsForNode(const Node* node, Stats& stats, int depth) const;
     

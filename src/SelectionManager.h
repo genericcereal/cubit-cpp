@@ -2,6 +2,7 @@
 #include <QObject>
 #include <QList>
 #include <QSet>
+#include <vector>
 #include "Element.h"
 
 class SelectionManager : public QObject {
@@ -37,7 +38,7 @@ public slots:
     void deselectElement(Element *element);
     void toggleSelection(Element *element);
     void selectOnly(Element *element);
-    void selectAll(const QList<Element*> &elements);
+    void selectAll(const std::vector<Element*> &elements);
     void clearSelection();
     
 private slots:
