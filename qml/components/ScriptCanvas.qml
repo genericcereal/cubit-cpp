@@ -35,11 +35,6 @@ BaseCanvas {
         id: nodeCatalog
     }
     
-    // Default nodes creator
-    DefaultNodesCreator {
-        id: defaultNodesCreator
-        controller: root.controller
-    }
     
     // Handle drag state
     property bool isDraggingHandle: false
@@ -492,16 +487,8 @@ BaseCanvas {
             console.log("ScriptCanvas: No element being edited")
         }
         
-        // Create default nodes after a delay
-        delayTimer.start()
     }
     
-    Timer {
-        id: delayTimer
-        interval: 100
-        repeat: false
-        onTriggered: createDefaultNodes()
-    }
     
     // Implement behavior by overriding handler functions
     function handleDragStart(pt) {
@@ -712,21 +699,6 @@ BaseCanvas {
         flickable.contentY = centerPos.y
     }
     
-    // Create default nodes
-    function createDefaultNodes() {
-        // Check if nodes already exist (not just any elements)
-        if (elementModel) {
-            var elements = elementModel.getAllElements()
-            for (var i = 0; i < elements.length; i++) {
-                if (elements[i] && elements[i].objectName === "Node") {
-                    console.log("ScriptCanvas.createDefaultNodes: Nodes already exist, skipping creation")
-                    return
-                }
-            }
-        }
-        
-        defaultNodesCreator.createDefaultNodes()
-    }
     
     // Helper function to check if a point is over a handle
     function getHandleAtPoint(point) {

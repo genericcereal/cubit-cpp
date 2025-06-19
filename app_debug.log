@@ -1,0 +1,5 @@
+QQmlApplicationEngine failed to load component
+qrc:/qml/main.qml:46:17: Type DesignCanvas unavailable
+qrc:/qml/components/DesignCanvas.qml:6:1: Type BaseCanvas unavailable
+qrc:/qml/components/BaseCanvas.qml:102:5: Type CanvasGestureHandler unavailable
+qrc:/qml/components/CanvasGestureHandler.qml:140:9: Cannot assign object to list property "children"

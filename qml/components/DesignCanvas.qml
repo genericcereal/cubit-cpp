@@ -25,12 +25,12 @@ BaseCanvas {
                     // Don't set an element as its own parent
                     if (hoveredElement.elementId !== element.elementId) {
                         // Set parentId to the hovered element's ID
-                        console.log("Setting parentId of", element.elementId, "to", hoveredElement.elementId)
+                        // console.log("Setting parentId of", element.elementId, "to", hoveredElement.elementId)
                         element.parentId = hoveredElement.elementId
                     }
                 } else {
                     // Clear parentId when no element is hovered
-                    console.log("Clearing parentId of", element.elementId)
+                    // console.log("Clearing parentId of", element.elementId)
                     element.parentId = ""
                 }
             }
