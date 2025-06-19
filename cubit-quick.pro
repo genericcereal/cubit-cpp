@@ -36,7 +36,6 @@ SOURCES += \
     src/QuadTree.cpp \
     src/Command.cpp \
     src/CommandHistory.cpp \
-    src/commands/CreateFrameCommand.cpp \
     src/commands/CreateDesignElementCommand.cpp \
     src/commands/DeleteElementsCommand.cpp \
     src/commands/MoveElementsCommand.cpp \
@@ -49,9 +48,7 @@ SOURCES += \
     src/ScriptFunctionRegistry.cpp \
     src/ScriptSerializer.cpp \
     src/SelectModeHandler.cpp \
-    src/FrameModeHandler.cpp \
-    src/TextModeHandler.cpp \
-    src/HtmlModeHandler.cpp
+    src/CreationModeHandler.cpp
 
 HEADERS += \
     src/Element.h \
@@ -83,7 +80,6 @@ HEADERS += \
     src/QuadTree.h \
     src/Command.h \
     src/CommandHistory.h \
-    src/commands/CreateFrameCommand.h \
     src/commands/CreateDesignElementCommand.h \
     src/commands/DeleteElementsCommand.h \
     src/commands/MoveElementsCommand.h \
@@ -97,9 +93,7 @@ HEADERS += \
     src/ScriptSerializer.h \
     src/IModeHandler.h \
     src/SelectModeHandler.h \
-    src/FrameModeHandler.h \
-    src/TextModeHandler.h \
-    src/HtmlModeHandler.h
+    src/CreationModeHandler.h
 
 RESOURCES += qml.qrc
 

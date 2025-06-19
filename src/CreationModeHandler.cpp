@@ -1,26 +1,28 @@
-#include "FrameModeHandler.h"
-#include "CreationManager.h"
+#include "CreationModeHandler.h"
 #include "ElementModel.h"
 #include "SelectionManager.h"
 #include "CommandHistory.h"
 #include "CanvasElement.h"
+#include "CanvasController.h"
 #include "Config.h"
-#include "commands/CreateDesignElementCommand.h"
 #include <QRectF>
 #include <memory>
+#include <QDebug>
 
-FrameModeHandler::FrameModeHandler(ElementModel* elementModel,
-                                   SelectionManager* selectionManager,
-                                   CommandHistory* commandHistory,
-                                   std::function<void(CanvasController::Mode)> setModeFunc)
-    : m_elementModel(elementModel)
-    , m_selectionManager(selectionManager)
-    , m_commandHistory(commandHistory)
-    , m_setModeFunc(setModeFunc)
+CreationModeHandler::CreationModeHandler(Config cfg,
+                                         ElementModel* model,
+                                         SelectionManager* selection,
+                                         CommandHistory* history,
+                                         std::function<void(CanvasController::Mode)> setMode)
+    : m_cfg(cfg)
+    , m_elementModel(model)
+    , m_selectionManager(selection)
+    , m_commandHistory(history)
+    , m_setModeFunc(setMode)
 {
 }
 
-void FrameModeHandler::onPress(qreal x, qreal y)
+void CreationModeHandler::onPress(qreal x, qreal y)
 {
     if (!m_commandHistory || !m_elementModel || !m_selectionManager) return;
     
@@ -32,21 +34,17 @@ void FrameModeHandler::onPress(qreal x, qreal y)
     QRectF rect(x, y, 1, 1);
     auto command = std::make_unique<CreateDesignElementCommand>(
         m_elementModel, m_selectionManager, 
-        CreateDesignElementCommand::FrameElement, rect);
+        m_cfg.elementType, rect, m_cfg.defaultPayload);
     m_commandHistory->execute(std::move(command));
     
     // The element is now created and selected, ready for resize
 }
 
-void FrameModeHandler::onMove(qreal x, qreal y)
+void CreationModeHandler::onMove(qreal x, qreal y)
 {
     if (!m_isDragging || !m_selectionManager) return;
     
-    // Get the selected element (just created)
-    auto selectedElements = m_selectionManager->selectedElements();
-    if (selectedElements.isEmpty()) return;
-    
-    CanvasElement* element = qobject_cast<CanvasElement*>(selectedElements.first());
+    CanvasElement* element = currentElement();
     if (!element) return;
     
     // Calculate new dimensions based on drag
@@ -62,7 +60,7 @@ void FrameModeHandler::onMove(qreal x, qreal y)
     element->setHeight(qMax(height, 1.0));
 }
 
-void FrameModeHandler::onRelease(qreal x, qreal y)
+void CreationModeHandler::onRelease(qreal x, qreal y)
 {
     Q_UNUSED(x)
     Q_UNUSED(y)
@@ -71,17 +69,24 @@ void FrameModeHandler::onRelease(qreal x, qreal y)
     m_isDragging = false;
     
     // If the element is too small, resize it to default size
-    auto selectedElements = m_selectionManager->selectedElements();
-    if (!selectedElements.isEmpty()) {
-        CanvasElement* element = qobject_cast<CanvasElement*>(selectedElements.first());
-        if (element && (element->width() < 10 || element->height() < 10)) {
-            element->setWidth(qMax(element->width(), qreal(Config::DEFAULT_ELEMENT_WIDTH)));
-            element->setHeight(qMax(element->height(), qreal(Config::DEFAULT_ELEMENT_HEIGHT)));
-        }
+    CanvasElement* element = currentElement();
+    if (element && (element->width() < 10 || element->height() < 10)) {
+        element->setWidth(qMax(element->width(), qreal(::Config::DEFAULT_ELEMENT_WIDTH)));
+        element->setHeight(qMax(element->height(), qreal(::Config::DEFAULT_ELEMENT_HEIGHT)));
     }
     
     // Switch back to select mode
     if (m_setModeFunc) {
         m_setModeFunc(CanvasController::Mode::Select);
     }
+}
+
+CanvasElement* CreationModeHandler::currentElement() const
+{
+    if (!m_selectionManager) return nullptr;
+    
+    auto selectedElements = m_selectionManager->selectedElements();
+    if (selectedElements.isEmpty()) return nullptr;
+    
+    return qobject_cast<CanvasElement*>(selectedElements.first());
 }

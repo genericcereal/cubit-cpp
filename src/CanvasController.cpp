@@ -9,16 +9,13 @@
 #include "Config.h"
 #include "CommandHistory.h"
 #include <vector>
-#include "commands/CreateFrameCommand.h"
 #include "commands/DeleteElementsCommand.h"
 #include "commands/MoveElementsCommand.h"
 #include "commands/ResizeElementCommand.h"
 #include "commands/SetPropertyCommand.h"
 #include "IModeHandler.h"
 #include "SelectModeHandler.h"
-#include "FrameModeHandler.h"
-#include "TextModeHandler.h"
-#include "HtmlModeHandler.h"
+#include "CreationModeHandler.h"
 #include <QDebug>
 
 CanvasController::CanvasController(ElementModel& model,
@@ -86,15 +83,30 @@ void CanvasController::initializeModeHandlers()
     m_modeHandlers[Mode::Select] = std::make_unique<SelectModeHandler>(
         m_dragManager.get(), m_hitTestService.get(), &m_selectionManager);
     
-    m_modeHandlers[Mode::Frame] = std::make_unique<FrameModeHandler>(
-        &m_elementModel, &m_selectionManager, 
-        m_commandHistory.get(), setModeFunc);
-    
-    m_modeHandlers[Mode::Text] = std::make_unique<TextModeHandler>(
+    // Frame mode
+    m_modeHandlers[Mode::Frame] = std::make_unique<CreationModeHandler>(
+        CreationModeHandler::Config{
+            CreateDesignElementCommand::FrameElement,
+            QVariant()  // No default payload for frames
+        },
         &m_elementModel, &m_selectionManager,
         m_commandHistory.get(), setModeFunc);
     
-    m_modeHandlers[Mode::Html] = std::make_unique<HtmlModeHandler>(
+    // Text mode
+    m_modeHandlers[Mode::Text] = std::make_unique<CreationModeHandler>(
+        CreationModeHandler::Config{
+            CreateDesignElementCommand::TextElement,
+            QVariant("Text")  // Default text content
+        },
+        &m_elementModel, &m_selectionManager,
+        m_commandHistory.get(), setModeFunc);
+    
+    // HTML mode
+    m_modeHandlers[Mode::Html] = std::make_unique<CreationModeHandler>(
+        CreationModeHandler::Config{
+            CreateDesignElementCommand::HtmlElement,
+            QVariant("<h1>HTML Content</h1>")  // Default HTML content
+        },
         &m_elementModel, &m_selectionManager,
         m_commandHistory.get(), setModeFunc);
     
