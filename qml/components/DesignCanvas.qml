@@ -8,9 +8,17 @@ BaseCanvas {
     
     canvasType: "design"
     
-    // Update parentId of selected elements when hovering
+    // Property to access the viewport overlay's controls
+    property var viewportControls: null
+    
+    // Update parentId of selected elements when hovering ONLY during controls drag
     onHoveredElementChanged: {
         if (!selectionManager || selectionManager.selectionCount === 0) {
+            return
+        }
+        
+        // Only update parentId if the viewport controls are actively dragging
+        if (!viewportControls || !viewportControls.dragging) {
             return
         }
         
@@ -116,6 +124,7 @@ BaseCanvas {
     
     // Implement behavior by overriding handler functions
     function handleDragStart(pt) {
+        console.log("DesignCanvas.handleDragStart:", pt.x, pt.y, "mode:", controller.mode)
         if (controller.mode === CanvasController.Select) {
             controller.handleMousePress(pt.x, pt.y)
         } else {

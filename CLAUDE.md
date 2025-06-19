@@ -258,7 +258,7 @@ Element (base class)
     │   ├── isDesignElement() returns true
     │   │
     │   ├── Frame
-    │   │   └── Properties: backgroundColor, borderColor, borderWidth, borderRadius, clipContent
+    │   │   └── Properties: backgroundColor, borderColor, borderWidth, borderRadius, overflow
     │   │
     │   ├── Text
     │   │   └── Properties: text, font, color

@@ -37,6 +37,10 @@ Window {
                             item.selectionManager = Application.activeCanvas.selectionManager
                             item.elementModel = Application.activeCanvas.elementModel
                         }
+                        // Set viewportControls reference for DesignCanvas
+                        if (item.hasOwnProperty("viewportControls")) {
+                            item.viewportControls = viewportOverlay.selectionControls
+                        }
                     }
                 }
             }
@@ -57,6 +61,7 @@ Window {
             
             // Viewport overlay for non-scaling UI elements
             ViewportOverlay {
+                id: viewportOverlay
                 anchors.fill: parent
                 canvasView: canvasLoader.item
                 hoveredElement: canvasLoader.item?.hoveredElement ?? null

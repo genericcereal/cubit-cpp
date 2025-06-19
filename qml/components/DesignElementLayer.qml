@@ -9,7 +9,7 @@ Item {
     required property real canvasMinX
     required property real canvasMinY
     
-    // Element rendering
+    // Element rendering - only render root elements (no parent)
     Repeater {
         id: elementRepeater
         model: root.elementModel
@@ -17,13 +17,17 @@ Item {
         delegate: Loader {
             property var element: model.element
             property string elementType: model.elementType
+            property string elementParentId: element ? element.parentId : ""
+            
+            // Only render elements without a parent (root elements)
+            active: elementParentId === ""
             
             // Position elements relative to canvas origin
-            x: element ? element.x - root.canvasMinX : 0
-            y: element ? element.y - root.canvasMinY : 0
+            x: element && active ? element.x - root.canvasMinX : 0
+            y: element && active ? element.y - root.canvasMinY : 0
             
             sourceComponent: {
-                if (!element || !elementType) return null
+                if (!active || !element || !elementType) return null
                 switch(elementType) {
                     case "Frame": return frameComponent
                     case "Text": return textComponent
@@ -35,6 +39,8 @@ Item {
                 if (item && element) {
                     item.element = element
                     item.elementModel = root.elementModel
+                    item.canvasMinX = root.canvasMinX
+                    item.canvasMinY = root.canvasMinY
                 }
             }
         }
