@@ -98,9 +98,9 @@ Item {
         ScrollIndicator.horizontal: ScrollIndicator { active: true }
     }
     
-    // Input handling
-    CanvasInputHandler {
-        id: inputHandler
+    // Gesture handling
+    CanvasGestureHandler {
+        id: gestureHandler
         anchors.fill: parent
         
         contentX: flick.contentX
@@ -112,19 +112,9 @@ Item {
         property point dragStartPoint
         property bool dragStartedOnElement: false
         
-        onPanned: (dx, dy) => {
-            flick.contentX -= dx
-            flick.contentY -= dy
-        }
-        
-        onClicked: (pt) => {
-            if (!selectionBoxHandler.active) {
-                root.handleClick(pt)
-            }
-        }
-        
-        onDragStarted: (pt) => {
+        onPress: (pt) => {
             dragStartPoint = pt
+            
             // Check if we're starting a drag on an element
             if (controller && controller.mode === CanvasController.Select) {
                 var element = controller.hitTest(pt.x, pt.y)
@@ -135,10 +125,10 @@ Item {
             root.handleDragStart(pt)
         }
         
-        onDragMoved: (pt) => {
+        onMove: (pt) => {
             // Start selection box if in select mode and not dragging an element
             if (controller && controller.mode === CanvasController.Select && !selectionBoxHandler.active && 
-                inputHandler.isDragging() && !dragStartedOnElement) {
+                !dragStartedOnElement) {
                 selectionBoxHandler.startSelection(dragStartPoint)
             }
             
@@ -149,7 +139,7 @@ Item {
             }
         }
         
-        onDragEnded: (pt) => {
+        onRelease: (pt) => {
             if (selectionBoxHandler.active) {
                 selectionBoxHandler.endSelection()
             } else {
@@ -158,15 +148,26 @@ Item {
             dragStartedOnElement = false
         }
         
-        onHovered: (pt) => {
+        onClick: (pt) => {
+            if (!selectionBoxHandler.active) {
+                root.handleClick(pt)
+            }
+        }
+        
+        onHover: (pt) => {
             root.handleHover(pt)
         }
         
-        onExited: {
+        onExitCanvas: {
             root.handleExit()
         }
         
-        onZoomed: (pt, scaleFactor) => {
+        onPan: (dx, dy) => {
+            flick.contentX -= dx
+            flick.contentY -= dy
+        }
+        
+        onPinch: (center, scaleFactor) => {
             // Store old zoom for calculations
             var oldZoom = root.zoom
             
@@ -174,14 +175,14 @@ Item {
             root.zoom = Utils.clamp(oldZoom * scaleFactor, root.minZoom, root.maxZoom)
             
             // Keep the zoom point stable in viewport
-            // The point 'pt' is in canvas coordinates, we need to find where it is in the viewport
+            // The point 'center' is in canvas coordinates, we need to find where it is in the viewport
             // before zoom, then adjust content position to keep it at the same viewport location
-            var viewportX = (pt.x - root.canvasMinX) * oldZoom - flick.contentX
-            var viewportY = (pt.y - root.canvasMinY) * oldZoom - flick.contentY
+            var viewportX = (center.x - root.canvasMinX) * oldZoom - flick.contentX
+            var viewportY = (center.y - root.canvasMinY) * oldZoom - flick.contentY
             
             // Recalculate content position to keep zoom point fixed
-            flick.contentX = (pt.x - root.canvasMinX) * root.zoom - viewportX
-            flick.contentY = (pt.y - root.canvasMinY) * root.zoom - viewportY
+            flick.contentX = (center.x - root.canvasMinX) * root.zoom - viewportX
+            flick.contentY = (center.y - root.canvasMinY) * root.zoom - viewportY
         }
     }
     
