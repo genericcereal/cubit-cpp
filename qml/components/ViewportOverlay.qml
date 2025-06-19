@@ -23,6 +23,9 @@ Item {
     property real canvasMinX: canvasView?.canvasMinX ?? 0
     property real canvasMinY: canvasView?.canvasMinY ?? 0
     
+    // Expose the selection controls
+    property alias selectionControls: selectionControls
+    
     // Selection box visual during drag selection
     SelectionBox {
         id: selectionBox

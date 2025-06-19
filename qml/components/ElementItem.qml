@@ -31,7 +31,8 @@ Item {
     // Clipping support
     clip: {
         if (element && element.elementType === "Frame") {
-            return element.clipContent
+            // Frame.OverflowMode: Hidden = 0, Scroll = 1, Visible = 2
+            return element.overflow !== 2  // clip for Hidden and Scroll modes
         }
         return false
     }

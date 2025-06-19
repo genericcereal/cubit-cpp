@@ -11,6 +11,8 @@ Item {
     property var elementModel
     property Frame frameElement: element as Frame
     property alias contentContainer: contentContainer
+    property real canvasMinX: 0
+    property real canvasMinY: 0
     
     // Size properties bound to C++ element (position is handled by parent Loader)
     width: element ? element.width : 100
@@ -24,8 +26,8 @@ Item {
         id: frameRect
         anchors.fill: parent
         
-        // Frame-specific properties - light blue box with no border
-        color: Config.elementBackgroundColor
+        // Frame-specific properties - red if has parent, light blue otherwise
+        color: element && element.parentId !== "" ? "red" : Config.elementBackgroundColor
         border.width: 0
         radius: frameElement ? frameElement.borderRadius : 0
         antialiasing: true
@@ -36,7 +38,46 @@ Item {
             anchors.fill: parent
             anchors.margins: frameRect.border.width
             
-            // Child elements will be added here in a future update
+            // Apply clipping based on overflow mode
+            clip: frameElement ? frameElement.overflow !== 2 : false  // clip for Hidden (0) and Scroll (1) modes
+            
+            // Render child elements
+            Repeater {
+                model: root.elementModel
+                
+                delegate: Loader {
+                    property var childElement: model.element
+                    property string childElementType: model.elementType
+                    property string childParentId: childElement ? childElement.parentId : ""
+                    
+                    // Only render elements that are children of this frame
+                    active: childParentId === root.element.elementId
+                    
+                    // Position child elements relative to parent
+                    x: childElement && active ? childElement.x - root.element.x : 0
+                    y: childElement && active ? childElement.y - root.element.y : 0
+                    
+                    source: {
+                        if (!active || !childElement || !childElementType) return ""
+                        switch(childElementType) {
+                            case "Frame": return "FrameElement.qml"
+                            case "Text": return "TextElement.qml"
+                            default: return ""
+                        }
+                    }
+                    
+                    onLoaded: {
+                        if (item && childElement) {
+                            item.element = childElement
+                            item.elementModel = root.elementModel
+                            if (item.hasOwnProperty("canvasMinX")) {
+                                item.canvasMinX = root.canvasMinX
+                                item.canvasMinY = root.canvasMinY
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

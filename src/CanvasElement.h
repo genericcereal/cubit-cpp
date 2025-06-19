@@ -3,6 +3,8 @@
 #include <QPointF>
 #include <QSizeF>
 #include <QRectF>
+#include <QMetaObject>
+#include <QStringList>
 
 class CanvasElement : public Element {
     Q_OBJECT
@@ -53,16 +55,31 @@ public:
     virtual bool isDesignElement() const { return false; }
     virtual bool isScriptElement() const { return false; }
     
+    // Parent tracking
+    void setParentElement(CanvasElement* parent);
+    CanvasElement* parentElement() const { return m_parentElement; }
+    
+    // Clipping support
+    Q_INVOKABLE QRectF clipBounds() const;
+    
+    // Property subscription system
+    void subscribeToParentProperty(const QString& propertyName);
+    void unsubscribeFromParentProperty(const QString& propertyName);
+    
 signals:
     void xChanged();
     void yChanged();
     void widthChanged();
     void heightChanged();
     void geometryChanged();  // Emitted when x, y, width, or height change
+    void parentPropertyChanged(const QString& propertyName);  // Generic signal for any parent property change
     
 protected:
     QPointF canvasPosition;
     QSizeF canvasSize;
+    
+private slots:
+    void onParentPropertyChanged();
     
 private:
     // Cached bounding box to avoid repeated construction
@@ -71,4 +88,9 @@ private:
     
     // Update the cached bounds
     void updateCachedBounds() const;
+    
+    // Parent element tracking
+    CanvasElement* m_parentElement = nullptr;
+    QStringList m_subscribedProperties;
+    QList<QMetaObject::Connection> m_parentConnections;
 };

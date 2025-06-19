@@ -6,7 +6,7 @@ Frame::Frame(const QString &id, QObject *parent)
     , m_borderColor(Qt::black)
     , m_borderWidth(1)
     , m_borderRadius(0)
-    , m_clipContent(true)
+    , m_overflow(Hidden)
 {
     // Set element type
     elementType = Element::FrameType;
@@ -50,11 +50,11 @@ void Frame::setBorderRadius(int radius)
     }
 }
 
-void Frame::setClipContent(bool clip)
+void Frame::setOverflow(OverflowMode mode)
 {
-    if (m_clipContent != clip) {
-        m_clipContent = clip;
-        emit clipContentChanged();
+    if (m_overflow != mode) {
+        m_overflow = mode;
+        emit overflowChanged();
         emit elementChanged();
     }
 }

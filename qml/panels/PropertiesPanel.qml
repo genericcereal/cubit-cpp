@@ -81,38 +81,115 @@ ScrollView {
                 
                 Label { text: "X:" }
                 SpinBox {
+                    id: xSpinBox
                     Layout.fillWidth: true
                     from: -9999
                     to: 9999
-                    value: selectedElement ? selectedElement.x : 0
-                    onValueChanged: if (selectedElement) selectedElement.x = value
+                    value: selectedElement ? Math.round(selectedElement.x) : 0
+                    onValueModified: {
+                        if (selectedElement && value !== Math.round(selectedElement.x)) {
+                            selectedElement.x = value
+                        }
+                    }
                 }
                 
                 Label { text: "Y:" }
                 SpinBox {
+                    id: ySpinBox
                     Layout.fillWidth: true
                     from: -9999
                     to: 9999
-                    value: selectedElement ? selectedElement.y : 0
-                    onValueChanged: if (selectedElement) selectedElement.y = value
+                    value: selectedElement ? Math.round(selectedElement.y) : 0
+                    onValueModified: {
+                        if (selectedElement && value !== Math.round(selectedElement.y)) {
+                            selectedElement.y = value
+                        }
+                    }
                 }
                 
                 Label { text: "Width:" }
                 SpinBox {
+                    id: widthSpinBox
                     Layout.fillWidth: true
                     from: 1
                     to: 9999
-                    value: selectedElement ? selectedElement.width : 0
-                    onValueChanged: if (selectedElement) selectedElement.width = value
+                    value: selectedElement ? Math.round(selectedElement.width) : 0
+                    onValueModified: {
+                        if (selectedElement && value !== Math.round(selectedElement.width)) {
+                            selectedElement.width = value
+                        }
+                    }
                 }
                 
                 Label { text: "Height:" }
                 SpinBox {
+                    id: heightSpinBox
                     Layout.fillWidth: true
                     from: 1
                     to: 9999
-                    value: selectedElement ? selectedElement.height : 0
-                    onValueChanged: if (selectedElement) selectedElement.height = value
+                    value: selectedElement ? Math.round(selectedElement.height) : 0
+                    onValueModified: {
+                        if (selectedElement && value !== Math.round(selectedElement.height)) {
+                            selectedElement.height = value
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Frame-specific properties
+        GroupBox {
+            Layout.fillWidth: true
+            Layout.margins: 10
+            title: "Frame"
+            visible: selectedElement && selectedElement.elementType === "Frame"
+            
+            GridLayout {
+                anchors.fill: parent
+                columns: 2
+                columnSpacing: 10
+                rowSpacing: 5
+                
+                Label { text: "Overflow:" }
+                ComboBox {
+                    Layout.fillWidth: true
+                    model: ["Hidden", "Scroll", "Visible"]
+                    currentIndex: {
+                        if (selectedElement && selectedElement.elementType === "Frame") {
+                            // Map Frame.OverflowMode enum values to combo box indices
+                            switch (selectedElement.overflow) {
+                                case 0: return 0  // Hidden
+                                case 1: return 1  // Scroll
+                                case 2: return 2  // Visible
+                                default: return 0
+                            }
+                        }
+                        return 0
+                    }
+                    onActivated: {
+                        if (selectedElement && selectedElement.elementType === "Frame") {
+                            // Map combo box index to Frame.OverflowMode enum value
+                            selectedElement.overflow = index
+                        }
+                    }
+                }
+                
+                Label { text: "Border Radius:" }
+                SpinBox {
+                    Layout.fillWidth: true
+                    from: 0
+                    to: 100
+                    value: selectedElement && selectedElement.borderRadius !== undefined ? selectedElement.borderRadius : 0
+                    onValueChanged: if (selectedElement && selectedElement.elementType === "Frame") selectedElement.borderRadius = value
+                }
+                
+                Label { text: "Border Width:" }
+                SpinBox {
+                    Layout.fillWidth: true
+                    from: 0
+                    to: 20
+                    value: selectedElement && selectedElement.borderWidth !== undefined ? selectedElement.borderWidth : 0
+                    onValueChanged: if (selectedElement && selectedElement.elementType === "Frame") selectedElement.borderWidth = value
                 }
             }
         }
