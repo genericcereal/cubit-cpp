@@ -26,8 +26,8 @@ Item {
         id: frameRect
         anchors.fill: parent
         
-        // Frame-specific properties - red if has parent, light blue otherwise
-        color: element && element.parentId !== "" ? "red" : Config.elementBackgroundColor
+        // Frame-specific properties - use the fill property
+        color: frameElement ? frameElement.fill : Config.elementBackgroundColor
         border.width: 0
         radius: frameElement ? frameElement.borderRadius : 0
         antialiasing: true

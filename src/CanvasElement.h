@@ -14,6 +14,7 @@ class CanvasElement : public Element {
     Q_PROPERTY(qreal height READ height WRITE setHeight NOTIFY heightChanged)
     Q_PROPERTY(bool isDesignElement READ isDesignElement CONSTANT)
     Q_PROPERTY(bool isScriptElement READ isScriptElement CONSTANT)
+    Q_PROPERTY(CanvasElement* parentElement READ parentElement WRITE setParentElement NOTIFY parentElementChanged)
     
 public:
     explicit CanvasElement(ElementType type, const QString &id, QObject *parent = nullptr);
@@ -50,6 +51,7 @@ public:
     
     // Override from Element
     bool isVisual() const override { return true; }
+    void setParentElementId(const QString &parentId) override;
     
     // Virtual methods to identify element category
     virtual bool isDesignElement() const { return false; }
@@ -58,9 +60,6 @@ public:
     // Parent tracking
     void setParentElement(CanvasElement* parent);
     CanvasElement* parentElement() const { return m_parentElement; }
-    
-    // Clipping support
-    Q_INVOKABLE QRectF clipBounds() const;
     
     // Property subscription system
     void subscribeToParentProperty(const QString& propertyName);
@@ -72,6 +71,7 @@ signals:
     void widthChanged();
     void heightChanged();
     void geometryChanged();  // Emitted when x, y, width, or height change
+    void parentElementChanged();
     void parentPropertyChanged(const QString& propertyName);  // Generic signal for any parent property change
     
 protected:
@@ -93,4 +93,8 @@ private:
     CanvasElement* m_parentElement = nullptr;
     QStringList m_subscribedProperties;
     QList<QMetaObject::Connection> m_parentConnections;
+    
+    // Parent position tracking for relative positioning
+    QPointF m_lastParentPosition;
+    bool m_trackingParentPosition = false;
 };
