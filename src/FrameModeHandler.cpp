@@ -12,7 +12,7 @@ FrameModeHandler::FrameModeHandler(CreationManager* creationManager,
                                    ElementModel* elementModel,
                                    SelectionManager* selectionManager,
                                    CommandHistory* commandHistory,
-                                   std::function<void(const QString&)> setModeFunc)
+                                   std::function<void(CanvasController::Mode)> setModeFunc)
     : m_creationManager(creationManager)
     , m_elementModel(elementModel)
     , m_selectionManager(selectionManager)
@@ -63,6 +63,6 @@ void FrameModeHandler::onRelease(qreal x, qreal y)
     
     // Switch back to select mode
     if (m_setModeFunc) {
-        m_setModeFunc("select");
+        m_setModeFunc(CanvasController::Mode::Select);
     }
 }

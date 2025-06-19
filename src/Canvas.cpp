@@ -107,12 +107,12 @@ void Canvas::setViewMode(const QString& viewMode) {
         
         // Update the canvas controller's canvas type
         if (m_controller) {
-            m_controller->setCanvasType(viewMode);
+            m_controller->setCanvasType(viewMode == "design" ? CanvasController::CanvasType::Design : CanvasController::CanvasType::Script);
         }
         
         // Reset to select mode
         if (m_controller) {
-            m_controller->setMode("select");
+            m_controller->setMode(CanvasController::Mode::Select);
         }
         
         emit viewModeChanged();
@@ -120,16 +120,14 @@ void Canvas::setViewMode(const QString& viewMode) {
 }
 
 void Canvas::initialize() {
-    // Create the components
+    // Create the components that don't have dependencies first
     m_elementModel = std::make_unique<ElementModel>(this);
     m_selectionManager = std::make_unique<SelectionManager>(this);
-    m_controller = std::make_unique<CanvasController>(this);
     m_scripts = std::make_unique<Scripts>(this);
     m_scriptExecutor = std::make_unique<ScriptExecutor>(this);
     
-    // Set up the connections
-    m_controller->setElementModel(m_elementModel.get());
-    m_controller->setSelectionManager(m_selectionManager.get());
+    // Create the controller with its required dependencies
+    m_controller = std::make_unique<CanvasController>(*m_elementModel, *m_selectionManager, this);
     
     // Set up script executor
     m_scriptExecutor->setScripts(m_scripts.get());

@@ -20,20 +20,14 @@
 #include "HtmlModeHandler.h"
 #include <QDebug>
 
-CanvasController::CanvasController(QObject *parent)
+CanvasController::CanvasController(ElementModel& model,
+                                   SelectionManager& sel,
+                                   QObject *parent)
     : QObject(parent)
     , m_mode(Mode::Select)
     , m_canvasType(CanvasType::Design)
-    , m_elementModel(nullptr)
-    , m_selectionManager(nullptr)
-{
-    initializeSubcontrollers();
-    initializeModeHandlers();
-}
-
-CanvasController::~CanvasController() = default;
-
-void CanvasController::initializeSubcontrollers()
+    , m_elementModel(model)
+    , m_selectionManager(sel)
 {
     // Create subcontrollers
     m_dragManager = std::make_unique<DragManager>(this);
@@ -41,6 +35,14 @@ void CanvasController::initializeSubcontrollers()
     m_hitTestService = std::make_unique<HitTestService>(this);
     m_jsonImporter = std::make_unique<JsonImporter>(this);
     m_commandHistory = std::make_unique<CommandHistory>(this);
+    
+    // Set element model and selection manager on subcontrollers
+    m_dragManager->setElementModel(&m_elementModel);
+    m_dragManager->setSelectionManager(&m_selectionManager);
+    m_creationManager->setElementModel(&m_elementModel);
+    m_creationManager->setSelectionManager(&m_selectionManager);
+    m_hitTestService->setElementModel(&m_elementModel);
+    m_jsonImporter->setElementModel(&m_elementModel);
     
     // Connect drag manager signals
     connect(m_dragManager.get(), &DragManager::isDraggingChanged,
@@ -68,18 +70,23 @@ void CanvasController::initializeSubcontrollers()
     
     // Set up canvas type
     updateSubcontrollersCanvasType();
+    
+    initializeModeHandlers();
 }
+
+CanvasController::~CanvasController() = default;
+
 
 void CanvasController::initializeModeHandlers()
 {
     // Create mode handlers
-    auto setModeFunc = [this](const QString& mode) { this->setMode(mode); };
+    auto setModeFunc = [this](Mode mode) { this->setMode(mode); };
     
     m_modeHandlers[Mode::Select] = std::make_unique<SelectModeHandler>(
-        m_dragManager.get(), m_hitTestService.get(), m_selectionManager);
+        m_dragManager.get(), m_hitTestService.get(), &m_selectionManager);
     
     m_modeHandlers[Mode::Frame] = std::make_unique<FrameModeHandler>(
-        m_creationManager.get(), m_elementModel, m_selectionManager, 
+        m_creationManager.get(), &m_elementModel, &m_selectionManager, 
         m_commandHistory.get(), setModeFunc);
     
     m_modeHandlers[Mode::Text] = std::make_unique<TextModeHandler>(
@@ -106,12 +113,11 @@ void CanvasController::updateSubcontrollersCanvasType()
     m_hitTestService->setCanvasType(hitTestType);
 }
 
-void CanvasController::setMode(const QString &mode)
+void CanvasController::setMode(Mode mode)
 {
-    Mode newMode = modeFromString(mode);
-    qDebug() << "CanvasController::setMode called - current:" << modeToString(m_mode) << "new:" << mode;
-    if (m_mode != newMode) {
-        m_mode = newMode;
+    qDebug() << "CanvasController::setMode called - current:" << static_cast<int>(m_mode) << "new:" << static_cast<int>(mode);
+    if (m_mode != mode) {
+        m_mode = mode;
         
         // Update current handler
         auto it = m_modeHandlers.find(m_mode);
@@ -119,7 +125,7 @@ void CanvasController::setMode(const QString &mode)
             m_currentHandler = it->second.get();
         } else {
             m_currentHandler = nullptr;
-            qWarning() << "No handler found for mode:" << mode;
+            qWarning() << "No handler found for mode:" << static_cast<int>(mode);
         }
         
         qDebug() << "Mode changed, emitting signal";
@@ -127,11 +133,10 @@ void CanvasController::setMode(const QString &mode)
     }
 }
 
-void CanvasController::setCanvasType(const QString &type)
+void CanvasController::setCanvasType(CanvasType type)
 {
-    CanvasType newType = canvasTypeFromString(type);
-    if (m_canvasType != newType) {
-        m_canvasType = newType;
+    if (m_canvasType != type) {
+        m_canvasType = type;
         updateSubcontrollersCanvasType();
         emit canvasTypeChanged();
     }
@@ -142,31 +147,6 @@ bool CanvasController::isDragging() const
     return m_dragManager->isDragging();
 }
 
-void CanvasController::setElementModel(ElementModel *model)
-{
-    m_elementModel = model;
-    m_dragManager->setElementModel(model);
-    m_creationManager->setElementModel(model);
-    m_hitTestService->setElementModel(model);
-    m_jsonImporter->setElementModel(model);
-    
-    // Reinitialize mode handlers with updated model
-    if (m_selectionManager) {
-        initializeModeHandlers();
-    }
-}
-
-void CanvasController::setSelectionManager(SelectionManager *manager)
-{
-    m_selectionManager = manager;
-    m_dragManager->setSelectionManager(manager);
-    m_creationManager->setSelectionManager(manager);
-    
-    // Reinitialize mode handlers with updated selection manager
-    if (m_elementModel) {
-        initializeModeHandlers();
-    }
-}
 
 Element* CanvasController::hitTest(qreal x, qreal y)
 {
@@ -180,8 +160,6 @@ Element* CanvasController::hitTestForHover(qreal x, qreal y)
 
 void CanvasController::handleMousePress(qreal x, qreal y)
 {
-    if (!m_elementModel || !m_selectionManager) return;
-    
     if (m_currentHandler) {
         m_currentHandler->onPress(x, y);
     }
@@ -212,9 +190,9 @@ void CanvasController::createVariable()
     // The CreationManager will ignore these for non-visual elements
     Element* variable = m_creationManager->createElement("variable", 0, 0, 0, 0);
     
-    if (variable && m_selectionManager) {
+    if (variable) {
         // Select the newly created variable
-        m_selectionManager->selectOnly(variable);
+        m_selectionManager.selectOnly(variable);
     }
 }
 
@@ -258,34 +236,30 @@ void CanvasController::createGraphFromJson(const QString &jsonData)
 
 void CanvasController::selectElementsInRect(const QRectF &rect)
 {
-    if (!m_selectionManager) return;
     
     QList<Element*> elementsInRect = m_hitTestService->elementsInRect(rect);
     
     if (!elementsInRect.isEmpty()) {
-        m_selectionManager->selectAll(elementsInRect);
+        m_selectionManager.selectAll(elementsInRect);
     } else {
         // Clear selection if no elements are in the rect
-        m_selectionManager->clearSelection();
+        m_selectionManager.clearSelection();
     }
 }
 
 void CanvasController::selectAll()
 {
-    if (!m_elementModel || !m_selectionManager) return;
-    m_selectionManager->selectAll(m_elementModel->getAllElements());
+    m_selectionManager.selectAll(m_elementModel.getAllElements());
 }
 
 void CanvasController::deleteSelectedElements()
 {
-    if (!m_elementModel || !m_selectionManager) return;
-    
-    QList<Element*> selectedElements = m_selectionManager->selectedElements();
+    QList<Element*> selectedElements = m_selectionManager.selectedElements();
     if (selectedElements.isEmpty()) return;
     
     // Create and execute delete command
     auto command = std::make_unique<DeleteElementsCommand>(
-        m_elementModel, m_selectionManager, selectedElements);
+        &m_elementModel, &m_selectionManager, selectedElements);
     m_commandHistory->execute(std::move(command));
 }
 
@@ -314,43 +288,3 @@ void CanvasController::redo()
 }
 
 
-// Helper methods for enum conversion
-CanvasController::Mode CanvasController::modeFromString(const QString &str)
-{
-    if (str == "select") return Mode::Select;
-    if (str == "frame") return Mode::Frame;
-    if (str == "text") return Mode::Text;
-    if (str == "html") return Mode::Html;
-    
-    qWarning() << "Unknown mode string:" << str << "defaulting to Select";
-    return Mode::Select;
-}
-
-QString CanvasController::modeToString(Mode mode)
-{
-    switch (mode) {
-        case Mode::Select: return "select";
-        case Mode::Frame: return "frame";
-        case Mode::Text: return "text";
-        case Mode::Html: return "html";
-    }
-    return "select"; // Should never reach here
-}
-
-CanvasController::CanvasType CanvasController::canvasTypeFromString(const QString &str)
-{
-    if (str == "design") return CanvasType::Design;
-    if (str == "script") return CanvasType::Script;
-    
-    qWarning() << "Unknown canvas type string:" << str << "defaulting to Design";
-    return CanvasType::Design;
-}
-
-QString CanvasController::canvasTypeToString(CanvasType type)
-{
-    switch (type) {
-        case CanvasType::Design: return "design";
-        case CanvasType::Script: return "script";
-    }
-    return "design"; // Should never reach here
-}

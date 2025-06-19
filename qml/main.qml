@@ -69,10 +69,10 @@ Window {
                 anchors.bottom: parent.bottom
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.bottomMargin: 20
-                currentMode: Application.activeCanvas && Application.activeCanvas.controller ? Application.activeCanvas.controller.mode : "select"
+                currentMode: Application.activeCanvas && Application.activeCanvas.controller ? Application.activeCanvas.controller.mode : CanvasController.Select
                 onModeChanged: (mode) => {
                     if (Application.activeCanvas && Application.activeCanvas.controller) {
-                        Application.activeCanvas.controller.setMode(mode)
+                        Application.activeCanvas.controller.mode = mode
                     }
                 }
                 onCompileClicked: {

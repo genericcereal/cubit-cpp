@@ -44,7 +44,7 @@ MouseArea {
         var canvasPoint = viewportCache.viewportToCanvas(mouse.x, mouse.y)
         
         if (mouse.button === Qt.LeftButton) {
-            if (controller.mode === "select") {
+            if (controller.mode === CanvasController.Select) {
                 // Check if we hit an element
                 var element = controller.hitTest(canvasPoint.x, canvasPoint.y)
                 if (element) {
@@ -78,7 +78,7 @@ MouseArea {
         var canvasPoint = viewportCache.viewportToCanvas(mouseX, mouseY)
         
         // Track hover even when dragging controls (use hitTestForHover to exclude selected elements)
-        if (controller.mode === "select") {
+        if (controller.mode === CanvasController.Select) {
             hoveredElement = controller.hitTestForHover(canvasPoint.x, canvasPoint.y)
         }
         

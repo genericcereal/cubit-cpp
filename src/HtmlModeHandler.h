@@ -1,5 +1,6 @@
 #pragma once
 #include "IModeHandler.h"
+#include "CanvasController.h"
 #include <QPointF>
 #include <functional>
 
@@ -8,7 +9,7 @@ class CreationManager;
 class HtmlModeHandler : public IModeHandler {
 public:
     HtmlModeHandler(CreationManager* creationManager,
-                    std::function<void(const QString&)> setModeFunc);
+                    std::function<void(CanvasController::Mode)> setModeFunc);
     
     void onPress(qreal x, qreal y) override;
     void onMove(qreal x, qreal y) override;
@@ -16,5 +17,5 @@ public:
     
 private:
     CreationManager* m_creationManager;
-    std::function<void(const QString&)> m_setModeFunc;
+    std::function<void(CanvasController::Mode)> m_setModeFunc;
 };

@@ -1,5 +1,6 @@
 #pragma once
 #include "IModeHandler.h"
+#include "CanvasController.h"
 #include <QPointF>
 #include <functional>
 
@@ -15,7 +16,7 @@ public:
                      ElementModel* elementModel,
                      SelectionManager* selectionManager,
                      CommandHistory* commandHistory,
-                     std::function<void(const QString&)> setModeFunc);
+                     std::function<void(CanvasController::Mode)> setModeFunc);
     
     void onPress(qreal x, qreal y) override;
     void onMove(qreal x, qreal y) override;
@@ -26,5 +27,5 @@ private:
     ElementModel* m_elementModel;
     SelectionManager* m_selectionManager;
     CommandHistory* m_commandHistory;
-    std::function<void(const QString&)> m_setModeFunc;
+    std::function<void(CanvasController::Mode)> m_setModeFunc;
 };

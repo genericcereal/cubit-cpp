@@ -126,7 +126,7 @@ Item {
         onDragStarted: (pt) => {
             dragStartPoint = pt
             // Check if we're starting a drag on an element
-            if (controller && controller.mode === "select") {
+            if (controller && controller.mode === CanvasController.Select) {
                 var element = controller.hitTest(pt.x, pt.y)
                 dragStartedOnElement = (element !== null)
             } else {
@@ -137,7 +137,7 @@ Item {
         
         onDragMoved: (pt) => {
             // Start selection box if in select mode and not dragging an element
-            if (controller && controller.mode === "select" && !selectionBoxHandler.active && 
+            if (controller && controller.mode === CanvasController.Select && !selectionBoxHandler.active && 
                 inputHandler.isDragging() && !dragStartedOnElement) {
                 selectionBoxHandler.startSelection(dragStartPoint)
             }
@@ -246,7 +246,7 @@ Item {
                 selectionManager.clearSelection()
             }
             if (controller) {
-                controller.setMode("select")
+                controller.mode = CanvasController.Select
             }
         }
     }
