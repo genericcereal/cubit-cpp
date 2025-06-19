@@ -16,8 +16,8 @@ struct IModeHandler;
 
 class CanvasController : public QObject {
     Q_OBJECT
-    Q_PROPERTY(QString mode READ mode WRITE setMode NOTIFY modeChanged)
-    Q_PROPERTY(QString canvasType READ canvasType WRITE setCanvasType NOTIFY canvasTypeChanged)
+    Q_PROPERTY(Mode mode READ mode WRITE setMode NOTIFY modeChanged)
+    Q_PROPERTY(CanvasType canvasType READ canvasType WRITE setCanvasType NOTIFY canvasTypeChanged)
     Q_PROPERTY(bool isDragging READ isDragging NOTIFY isDraggingChanged)
     Q_PROPERTY(bool canUndo READ canUndo NOTIFY canUndoChanged)
     Q_PROPERTY(bool canRedo READ canRedo NOTIFY canRedoChanged)
@@ -40,23 +40,22 @@ public:
     Q_ENUM(CanvasType)
     
 public:
-    explicit CanvasController(QObject *parent = nullptr);
+    explicit CanvasController(ElementModel& model,
+                             SelectionManager& sel,
+                             QObject *parent = nullptr);
     ~CanvasController();
     
     // Mode management
-    QString mode() const { return modeToString(m_mode); }
-    Q_INVOKABLE void setMode(const QString &mode);
+    Mode mode() const { return m_mode; }
+    void setMode(Mode mode);
     
     // Canvas type management
-    QString canvasType() const { return canvasTypeToString(m_canvasType); }
-    Q_INVOKABLE void setCanvasType(const QString &type);
+    CanvasType canvasType() const { return m_canvasType; }
+    void setCanvasType(CanvasType type);
     
     // Drag state (delegated to DragManager)
     bool isDragging() const;
     
-    // Element model and selection manager
-    Q_INVOKABLE void setElementModel(ElementModel *model);
-    Q_INVOKABLE void setSelectionManager(SelectionManager *manager);
     
     // Helper methods (delegated to HitTestService)
     Q_INVOKABLE Element* hitTest(qreal x, qreal y);
@@ -106,8 +105,8 @@ signals:
 private:
     Mode m_mode;
     CanvasType m_canvasType;
-    ElementModel *m_elementModel;
-    SelectionManager *m_selectionManager;
+    ElementModel& m_elementModel;
+    SelectionManager& m_selectionManager;
     
     // Subcontrollers
     std::unique_ptr<DragManager> m_dragManager;
@@ -120,14 +119,8 @@ private:
     std::unordered_map<Mode, std::unique_ptr<IModeHandler>> m_modeHandlers;
     IModeHandler* m_currentHandler = nullptr;
     
-    // Helper methods for enum conversion
-    static Mode modeFromString(const QString &str);
-    static QString modeToString(Mode mode);
-    static CanvasType canvasTypeFromString(const QString &str);
-    static QString canvasTypeToString(CanvasType type);
     
     // Initialize subcontrollers
-    void initializeSubcontrollers();
     void initializeModeHandlers();
     void updateSubcontrollersCanvasType();
 };

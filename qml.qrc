@@ -8,6 +8,9 @@
         <file>qml/components/BaseCanvas.qml</file>
         <file>qml/components/CanvasInputHandler.qml</file>
         <file>qml/components/DesignCanvas.qml</file>
+        <file>qml/components/DesignElementLayer.qml</file>
+        <file>qml/components/DesignOverlayLayers.qml</file>
+        <file>qml/components/DesignScriptExecutorOverlay.qml</file>
         <file>qml/components/ScriptCanvas.qml</file>
         <file>qml/components/DefaultNodesCreator.qml</file>
         <file>qml/components/NodeCatalog.qml</file>

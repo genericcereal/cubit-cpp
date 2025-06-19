@@ -11,11 +11,11 @@ Rectangle {
     color: Qt.rgba(0, 0, 0, 0.8)
     antialiasing: true
     
-    signal modeChanged(string mode)
+    signal modeChanged(int mode)
     signal compileClicked()
     signal createVariableClicked()
     
-    property string currentMode: "select"
+    property int currentMode: CanvasController.Select
     property bool isScriptMode: Application.activeCanvas && Application.activeCanvas.viewMode === "script"
     property bool needsCompilation: {
         if (!Application.activeCanvas) return false
@@ -83,7 +83,7 @@ Rectangle {
             Layout.fillHeight: true
             Layout.preferredWidth: height
             checkable: true
-            checked: currentMode === "select"
+            checked: currentMode === CanvasController.Select
             
             contentItem: Text {
                 text: "S"
@@ -101,8 +101,8 @@ Rectangle {
             
             onClicked: {
                 if (!isScriptMode) {
-                    currentMode = "select"
-                    root.modeChanged("select")
+                    currentMode = CanvasController.Select
+                    root.modeChanged(CanvasController.Select)
                 }
             }
             
@@ -116,7 +116,7 @@ Rectangle {
             Layout.fillHeight: true
             Layout.preferredWidth: height
             checkable: true
-            checked: currentMode === "frame"
+            checked: currentMode === CanvasController.Frame
             
             contentItem: Text {
                 text: "F"
@@ -134,8 +134,8 @@ Rectangle {
             
             onClicked: {
                 if (!isScriptMode) {
-                    currentMode = "frame"
-                    root.modeChanged("frame")
+                    currentMode = CanvasController.Frame
+                    root.modeChanged(CanvasController.Frame)
                 }
             }
             
@@ -149,7 +149,7 @@ Rectangle {
             Layout.fillHeight: true
             Layout.preferredWidth: height
             checkable: true
-            checked: currentMode === "text"
+            checked: currentMode === CanvasController.Text
             
             contentItem: Text {
                 text: "T"
@@ -167,8 +167,8 @@ Rectangle {
             
             onClicked: {
                 if (!isScriptMode) {
-                    currentMode = "text"
-                    root.modeChanged("text")
+                    currentMode = CanvasController.Text
+                    root.modeChanged(CanvasController.Text)
                 }
             }
             
@@ -182,7 +182,7 @@ Rectangle {
             Layout.fillHeight: true
             Layout.preferredWidth: height
             checkable: true
-            checked: currentMode === "html"
+            checked: currentMode === CanvasController.Html
             
             contentItem: Text {
                 text: "H"
@@ -200,8 +200,8 @@ Rectangle {
             
             onClicked: {
                 if (!isScriptMode) {
-                    currentMode = "html"
-                    root.modeChanged("html")
+                    currentMode = CanvasController.Html
+                    root.modeChanged(CanvasController.Html)
                 }
             }
             

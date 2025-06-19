@@ -511,7 +511,7 @@ BaseCanvas {
         
         console.log("ScriptCanvas.handleDragStart called at", pt.x, pt.y)
         
-        if (controller.mode === "select") {
+        if (controller.mode === CanvasController.Select) {
             // Check if we're over a handle first
             var handleInfo = getHandleAtPoint(pt)
             console.log("getHandleAtPoint returned:", handleInfo ? "handle found" : "no handle")
