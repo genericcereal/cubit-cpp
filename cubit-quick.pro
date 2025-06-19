@@ -37,6 +37,7 @@ SOURCES += \
     src/Command.cpp \
     src/CommandHistory.cpp \
     src/commands/CreateFrameCommand.cpp \
+    src/commands/CreateDesignElementCommand.cpp \
     src/commands/DeleteElementsCommand.cpp \
     src/commands/MoveElementsCommand.cpp \
     src/commands/ResizeElementCommand.cpp \
@@ -83,6 +84,7 @@ HEADERS += \
     src/Command.h \
     src/CommandHistory.h \
     src/commands/CreateFrameCommand.h \
+    src/commands/CreateDesignElementCommand.h \
     src/commands/DeleteElementsCommand.h \
     src/commands/MoveElementsCommand.h \
     src/commands/ResizeElementCommand.h \

@@ -87,14 +87,16 @@ void CanvasController::initializeModeHandlers()
         m_dragManager.get(), m_hitTestService.get(), &m_selectionManager);
     
     m_modeHandlers[Mode::Frame] = std::make_unique<FrameModeHandler>(
-        m_creationManager.get(), &m_elementModel, &m_selectionManager, 
+        &m_elementModel, &m_selectionManager, 
         m_commandHistory.get(), setModeFunc);
     
     m_modeHandlers[Mode::Text] = std::make_unique<TextModeHandler>(
-        m_creationManager.get(), setModeFunc);
+        &m_elementModel, &m_selectionManager,
+        m_commandHistory.get(), setModeFunc);
     
     m_modeHandlers[Mode::Html] = std::make_unique<HtmlModeHandler>(
-        m_creationManager.get(), setModeFunc);
+        &m_elementModel, &m_selectionManager,
+        m_commandHistory.get(), setModeFunc);
     
     // Set initial handler
     m_currentHandler = m_modeHandlers[m_mode].get();
