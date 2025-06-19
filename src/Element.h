@@ -35,7 +35,7 @@ public:
     void setName(const QString &newName);
     
     // Parent management
-    void setParentElementId(const QString &parentId);
+    virtual void setParentElementId(const QString &parentId);
     QString getParentElementId() const { return parentElementId; }
     bool hasParent() const { return !parentElementId.isEmpty(); }
     

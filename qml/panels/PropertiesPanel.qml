@@ -150,6 +150,31 @@ ScrollView {
                 columnSpacing: 10
                 rowSpacing: 5
                 
+                Label { text: "Fill:" }
+                ComboBox {
+                    Layout.fillWidth: true
+                    model: ["Light Blue", "Dark Blue", "Green", "Red"]
+                    currentIndex: {
+                        if (selectedElement && selectedElement.elementType === "Frame") {
+                            // Map Frame.FillColor enum values to combo box indices
+                            switch (selectedElement.fillColor) {
+                                case 0: return 0  // LightBlue
+                                case 1: return 1  // DarkBlue
+                                case 2: return 2  // Green
+                                case 3: return 3  // Red
+                                default: return 0
+                            }
+                        }
+                        return 0
+                    }
+                    onActivated: {
+                        if (selectedElement && selectedElement.elementType === "Frame") {
+                            // Map combo box index to Frame.FillColor enum value
+                            selectedElement.fillColor = index
+                        }
+                    }
+                }
+                
                 Label { text: "Overflow:" }
                 ComboBox {
                     Layout.fillWidth: true

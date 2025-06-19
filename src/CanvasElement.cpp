@@ -1,18 +1,18 @@
 #include "CanvasElement.h"
+#include "ElementModel.h"
 #include <QMetaProperty>
 #include <QDebug>
 
 CanvasElement::CanvasElement(ElementType type, const QString &id, QObject *parent)
-    : Element(type, id, parent)
-    , canvasPosition(0, 0)
-    , canvasSize(200, 150)  // Default size
+    : Element(type, id, parent), canvasPosition(0, 0), canvasSize(200, 150) // Default size
 {
     updateCachedBounds();
 }
 
 void CanvasElement::setX(qreal x)
 {
-    if (!qFuzzyCompare(canvasPosition.x(), x)) {
+    if (!qFuzzyCompare(canvasPosition.x(), x))
+    {
         canvasPosition.setX(x);
         m_boundsValid = false;
         updateCachedBounds();
@@ -24,7 +24,8 @@ void CanvasElement::setX(qreal x)
 
 void CanvasElement::setY(qreal y)
 {
-    if (!qFuzzyCompare(canvasPosition.y(), y)) {
+    if (!qFuzzyCompare(canvasPosition.y(), y))
+    {
         canvasPosition.setY(y);
         m_boundsValid = false;
         updateCachedBounds();
@@ -36,7 +37,8 @@ void CanvasElement::setY(qreal y)
 
 void CanvasElement::setWidth(qreal w)
 {
-    if (!qFuzzyCompare(canvasSize.width(), w)) {
+    if (!qFuzzyCompare(canvasSize.width(), w))
+    {
         canvasSize.setWidth(w);
         m_boundsValid = false;
         updateCachedBounds();
@@ -48,7 +50,8 @@ void CanvasElement::setWidth(qreal w)
 
 void CanvasElement::setHeight(qreal h)
 {
-    if (!qFuzzyCompare(canvasSize.height(), h)) {
+    if (!qFuzzyCompare(canvasSize.height(), h))
+    {
         canvasSize.setHeight(h);
         m_boundsValid = false;
         updateCachedBounds();
@@ -62,18 +65,21 @@ void CanvasElement::setRect(const QRectF &rect)
 {
     bool posChanged = canvasPosition != rect.topLeft();
     bool sizeChanged = canvasSize != rect.size();
-    
-    if (posChanged || sizeChanged) {
+
+    if (posChanged || sizeChanged)
+    {
         canvasPosition = rect.topLeft();
         canvasSize = rect.size();
         m_boundsValid = false;
         updateCachedBounds();
-        
-        if (posChanged) {
+
+        if (posChanged)
+        {
             emit xChanged();
             emit yChanged();
         }
-        if (sizeChanged) {
+        if (sizeChanged)
+        {
             emit widthChanged();
             emit heightChanged();
         }
@@ -90,85 +96,101 @@ bool CanvasElement::containsPoint(const QPointF &point) const
 
 void CanvasElement::updateCachedBounds() const
 {
-    if (!m_boundsValid) {
+    if (!m_boundsValid)
+    {
         m_cachedBounds = QRectF(canvasPosition, canvasSize);
         m_boundsValid = true;
     }
 }
 
-void CanvasElement::setParentElement(CanvasElement* parent)
+void CanvasElement::setParentElement(CanvasElement *parent)
 {
-    if (m_parentElement == parent) {
+    if (m_parentElement == parent)
+    {
         return;
     }
-    
     // Disconnect all existing parent connections
-    for (const auto& connection : m_parentConnections) {
+    for (const auto &connection : m_parentConnections)
+    {
         disconnect(connection);
     }
     m_parentConnections.clear();
-    
+
     m_parentElement = parent;
-    
+    emit parentElementChanged();
+
     // Only subscribe to parent properties for design elements
-    if (m_parentElement && isDesignElement()) {
+    if (m_parentElement && isDesignElement())
+    {
+        // Store initial parent position for tracking
+        m_lastParentPosition = QPointF(m_parentElement->x(), m_parentElement->y());
+        m_trackingParentPosition = true;
+        
         // Define the properties we want to track from parent
         static const QStringList parentPropertiesToTrack = {
-            "overflow",  // For clipping
-            "x",         // For relative positioning
-            "y",         // For relative positioning
-            "width",     // For bounds checking
-            "height"     // For bounds checking
+            "overflow", // For clipping
+            "x",        // For relative positioning
+            "y",        // For relative positioning
+            "width",    // For bounds checking
+            "height"    // For bounds checking
         };
-        
+
         // Subscribe to each property
-        for (const QString& propertyName : parentPropertiesToTrack) {
+        for (const QString &propertyName : parentPropertiesToTrack)
+        {
             subscribeToParentProperty(propertyName);
         }
     }
+    else
+    {
+        m_trackingParentPosition = false;
+    }
 }
 
-void CanvasElement::subscribeToParentProperty(const QString& propertyName)
+void CanvasElement::subscribeToParentProperty(const QString &propertyName)
 {
-    if (!m_parentElement) {
+    if (!m_parentElement)
+    {
         return;
     }
-    
+
     // Add to subscribed list if not already there
-    if (!m_subscribedProperties.contains(propertyName)) {
+    if (!m_subscribedProperties.contains(propertyName))
+    {
         m_subscribedProperties.append(propertyName);
     }
-    
+
     // Find the property's notify signal
-    const QMetaObject* metaObj = m_parentElement->metaObject();
+    const QMetaObject *metaObj = m_parentElement->metaObject();
     int propertyIndex = metaObj->indexOfProperty(propertyName.toUtf8().constData());
-    
-    if (propertyIndex >= 0) {
+
+    if (propertyIndex >= 0)
+    {
         QMetaProperty property = metaObj->property(propertyIndex);
-        if (property.hasNotifySignal()) {
+        if (property.hasNotifySignal())
+        {
             QMetaMethod notifySignal = property.notifySignal();
             QMetaMethod targetSlot = metaObject()->method(
-                metaObject()->indexOfSlot("onParentPropertyChanged()")
-            );
-            
+                metaObject()->indexOfSlot("onParentPropertyChanged()"));
+
             // Connect the parent's property change signal to our slot
             QMetaObject::Connection connection = connect(
                 m_parentElement, notifySignal,
                 this, targetSlot,
-                Qt::UniqueConnection
-            );
-            
-            if (connection) {
+                Qt::UniqueConnection);
+
+            if (connection)
+            {
                 m_parentConnections.append(connection);
             }
         }
     }
 }
 
-void CanvasElement::unsubscribeFromParentProperty(const QString& propertyName)
+void CanvasElement::unsubscribeFromParentProperty(const QString &propertyName)
 {
     m_subscribedProperties.removeAll(propertyName);
-    
+
     // Note: We don't disconnect individual properties here since it's complex
     // to track which connection corresponds to which property.
     // Connections will be cleaned up when parent changes or object is destroyed.
@@ -177,53 +199,89 @@ void CanvasElement::unsubscribeFromParentProperty(const QString& propertyName)
 void CanvasElement::onParentPropertyChanged()
 {
     // Determine which property changed by inspecting the sender's signal
-    if (!m_parentElement || !sender()) {
+    if (!m_parentElement || !sender())
+    {
         return;
     }
-    
+
     // Get the signal that triggered this slot
     int signalIndex = senderSignalIndex();
-    if (signalIndex < 0) {
+    if (signalIndex < 0)
+    {
         return;
     }
-    
+
     // Find which property this signal belongs to
-    const QMetaObject* metaObj = m_parentElement->metaObject();
-    for (int i = 0; i < metaObj->propertyCount(); ++i) {
+    const QMetaObject *metaObj = m_parentElement->metaObject();
+    for (int i = 0; i < metaObj->propertyCount(); ++i)
+    {
         QMetaProperty property = metaObj->property(i);
-        if (property.hasNotifySignal() && 
-            property.notifySignalIndex() == signalIndex) {
+        if (property.hasNotifySignal() &&
+            property.notifySignalIndex() == signalIndex)
+        {
             // Found the property that changed
-            emit parentPropertyChanged(QString::fromUtf8(property.name()));
+            QString propertyName = QString::fromUtf8(property.name());
+            
+            // Handle parent position changes
+            if (m_trackingParentPosition && (propertyName == "x" || propertyName == "y"))
+            {
+                QPointF currentParentPos(m_parentElement->x(), m_parentElement->y());
+                QPointF delta = currentParentPos - m_lastParentPosition;
+                
+                // Move this element by the same delta
+                if (!qFuzzyIsNull(delta.x()) || !qFuzzyIsNull(delta.y()))
+                {
+                    setX(x() + delta.x());
+                    setY(y() + delta.y());
+                    m_lastParentPosition = currentParentPos;
+                }
+            }
+            
+            emit parentPropertyChanged(propertyName);
             break;
         }
     }
 }
 
-QRectF CanvasElement::clipBounds() const
+void CanvasElement::setParentElementId(const QString &parentId)
 {
-    // If no parent, return infinite bounds (no clipping)
-    if (!m_parentElement) {
-        return QRectF(-1e9, -1e9, 2e9, 2e9);
+    // Call the base class implementation first
+    Element::setParentElementId(parentId);
+
+    // Now resolve the parent element pointer
+    if (parentId.isEmpty())
+    {
+        // No parent, clear the parent element
+        setParentElement(nullptr);
     }
-    
-    // Check if parent has overflow property (only Frame elements have this)
-    QVariant overflowVar = m_parentElement->property("overflow");
-    if (!overflowVar.isValid()) {
-        // Parent doesn't have overflow property, no clipping
-        return QRectF(-1e9, -1e9, 2e9, 2e9);
+    else
+    {
+        // Find the parent element in the model
+        ElementModel *model = nullptr;
+
+        // Try to find the ElementModel through the parent chain
+        QObject *p = parent();
+        while (p && !model)
+        {
+            model = qobject_cast<ElementModel *>(p);
+            if (!model)
+            {
+                p = p->parent();
+            }
+        }
+
+        if (model)
+        {
+            // Look for the parent element
+            Element *parentElement = model->getElementById(parentId);
+            if (parentElement && parentElement->isVisual())
+            {
+                CanvasElement *canvasParent = qobject_cast<CanvasElement *>(parentElement);
+                if (canvasParent)
+                {
+                    setParentElement(canvasParent);
+                }
+            }
+        }
     }
-    
-    // Check overflow mode
-    int overflowMode = overflowVar.toInt();
-    // Frame::OverflowMode::Hidden = 0, Scroll = 1, Visible = 2
-    if (overflowMode == 2) { // Visible
-        // No clipping for overflow: visible
-        return QRectF(-1e9, -1e9, 2e9, 2e9);
-    }
-    
-    // For Hidden or Scroll modes, clip to parent bounds
-    // Return parent's bounds in parent's coordinate space
-    // Child elements will need to transform this to their own coordinate space
-    return m_parentElement->rect();
 }
