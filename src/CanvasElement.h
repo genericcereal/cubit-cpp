@@ -43,11 +43,11 @@ public:
     virtual bool containsPoint(const QPointF &point) const;
     
     // Property setters
-    void setX(qreal x);
-    void setY(qreal y);
-    void setWidth(qreal w);
-    void setHeight(qreal h);
-    void setRect(const QRectF &rect);
+    virtual void setX(qreal x);
+    virtual void setY(qreal y);
+    virtual void setWidth(qreal w);
+    virtual void setHeight(qreal h);
+    virtual void setRect(const QRectF &rect);
     
     // Override from Element
     bool isVisual() const override { return true; }
@@ -58,7 +58,7 @@ public:
     virtual bool isScriptElement() const { return false; }
     
     // Parent tracking
-    void setParentElement(CanvasElement* parent);
+    virtual void setParentElement(CanvasElement* parent);
     CanvasElement* parentElement() const { return m_parentElement; }
     
     // Property subscription system

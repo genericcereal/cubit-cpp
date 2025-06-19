@@ -9,6 +9,9 @@ ScrollView {
     property var selectedElement: selectionManager && selectionManager.selectionCount === 1 
                                  ? selectionManager.selectedElements[0] : null
     
+    // Helper property to access DesignElement-specific properties
+    property var selectedDesignElement: selectedElement && selectedElement.isDesignElement ? selectedElement : null
+    
     ColumnLayout {
         width: root.width
         spacing: 10
@@ -79,30 +82,217 @@ ScrollView {
                 columnSpacing: 10
                 rowSpacing: 5
                 
-                Label { text: "X:" }
-                SpinBox {
-                    id: xSpinBox
+                // Show x/y when no parent, or left/top when parent exists
+                Label { 
+                    text: selectedElement && selectedElement.isDesignElement && selectedElement.parentId ? "Left:" : "X:" 
+                }
+                RowLayout {
                     Layout.fillWidth: true
-                    from: -9999
-                    to: 9999
-                    value: selectedElement ? Math.round(selectedElement.x) : 0
-                    onValueModified: {
-                        if (selectedElement && value !== Math.round(selectedElement.x)) {
-                            selectedElement.x = value
+                    spacing: 5
+                    
+                    SpinBox {
+                        id: xSpinBox
+                        Layout.fillWidth: true
+                        from: -9999
+                        to: 9999
+                        value: {
+                            if (!selectedElement) return 0
+                            if (selectedElement.isDesignElement && selectedElement.parentId) {
+                                return Math.round(selectedElement.left)
+                            }
+                            return Math.round(selectedElement.x)
+                        }
+                        onValueModified: {
+                            if (!selectedElement) return
+                            if (selectedElement.isDesignElement && selectedElement.parentId) {
+                                if (value !== Math.round(selectedElement.left)) {
+                                    selectedElement.left = value
+                                }
+                            } else {
+                                if (value !== Math.round(selectedElement.x)) {
+                                    selectedElement.x = value
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Anchor button for left
+                    Button {
+                        id: leftAnchorButton
+                        Layout.preferredWidth: 30
+                        Layout.preferredHeight: 30
+                        visible: selectedElement && selectedElement.isDesignElement && selectedElement.parentId
+                        checkable: true
+                        checked: selectedElement && selectedElement.leftAnchored
+                        text: "⚓"
+                        font.pixelSize: 16
+                        
+                        background: Rectangle {
+                            color: leftAnchorButton.checked ? "#4080ff" : (leftAnchorButton.hovered ? "#f0f0f0" : "#ffffff")
+                            border.color: leftAnchorButton.checked ? "#2060ff" : "#d0d0d0"
+                            border.width: 1
+                            radius: 4
+                        }
+                        
+                        onToggled: {
+                            if (selectedElement && selectedElement.isDesignElement) {
+                                selectedElement.leftAnchored = checked
+                            }
                         }
                     }
                 }
                 
-                Label { text: "Y:" }
-                SpinBox {
-                    id: ySpinBox
+                Label { 
+                    text: selectedElement && selectedElement.isDesignElement && selectedElement.parentId ? "Top:" : "Y:" 
+                }
+                RowLayout {
                     Layout.fillWidth: true
-                    from: -9999
-                    to: 9999
-                    value: selectedElement ? Math.round(selectedElement.y) : 0
-                    onValueModified: {
-                        if (selectedElement && value !== Math.round(selectedElement.y)) {
-                            selectedElement.y = value
+                    spacing: 5
+                    
+                    SpinBox {
+                        id: ySpinBox
+                        Layout.fillWidth: true
+                        from: -9999
+                        to: 9999
+                        value: {
+                            if (!selectedElement) return 0
+                            if (selectedElement.isDesignElement && selectedElement.parentId) {
+                                return Math.round(selectedElement.top)
+                            }
+                            return Math.round(selectedElement.y)
+                        }
+                        onValueModified: {
+                            if (!selectedElement) return
+                            if (selectedElement.isDesignElement && selectedElement.parentId) {
+                                if (value !== Math.round(selectedElement.top)) {
+                                    selectedElement.top = value
+                                }
+                            } else {
+                                if (value !== Math.round(selectedElement.y)) {
+                                    selectedElement.y = value
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Anchor button for top
+                    Button {
+                        id: topAnchorButton
+                        Layout.preferredWidth: 30
+                        Layout.preferredHeight: 30
+                        visible: selectedElement && selectedElement.isDesignElement && selectedElement.parentId
+                        checkable: true
+                        checked: selectedElement && selectedElement.topAnchored
+                        text: "⚓"
+                        font.pixelSize: 16
+                        
+                        background: Rectangle {
+                            color: topAnchorButton.checked ? "#4080ff" : (topAnchorButton.hovered ? "#f0f0f0" : "#ffffff")
+                            border.color: topAnchorButton.checked ? "#2060ff" : "#d0d0d0"
+                            border.width: 1
+                            radius: 4
+                        }
+                        
+                        onToggled: {
+                            if (selectedElement && selectedElement.isDesignElement) {
+                                selectedElement.topAnchored = checked
+                            }
+                        }
+                    }
+                }
+                
+                // Right anchor (only shown when element has parent)
+                Label { 
+                    text: "Right:" 
+                    visible: selectedElement && selectedElement.isDesignElement && selectedElement.parentId
+                }
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 5
+                    visible: selectedElement && selectedElement.isDesignElement && selectedElement.parentId
+                    
+                    SpinBox {
+                        id: rightSpinBox
+                        Layout.fillWidth: true
+                        from: -9999
+                        to: 9999
+                        value: selectedElement ? Math.round(selectedElement.right) : 0
+                        onValueModified: {
+                            if (selectedElement && value !== Math.round(selectedElement.right)) {
+                                selectedElement.right = value
+                            }
+                        }
+                    }
+                    
+                    // Anchor button for right
+                    Button {
+                        id: rightAnchorButton
+                        Layout.preferredWidth: 30
+                        Layout.preferredHeight: 30
+                        checkable: true
+                        checked: selectedElement && selectedElement.rightAnchored
+                        text: "⚓"
+                        font.pixelSize: 16
+                        
+                        background: Rectangle {
+                            color: rightAnchorButton.checked ? "#4080ff" : (rightAnchorButton.hovered ? "#f0f0f0" : "#ffffff")
+                            border.color: rightAnchorButton.checked ? "#2060ff" : "#d0d0d0"
+                            border.width: 1
+                            radius: 4
+                        }
+                        
+                        onToggled: {
+                            if (selectedElement && selectedElement.isDesignElement) {
+                                selectedElement.rightAnchored = checked
+                            }
+                        }
+                    }
+                }
+                
+                // Bottom anchor (only shown when element has parent)
+                Label { 
+                    text: "Bottom:" 
+                    visible: selectedElement && selectedElement.isDesignElement && selectedElement.parentId
+                }
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 5
+                    visible: selectedElement && selectedElement.isDesignElement && selectedElement.parentId
+                    
+                    SpinBox {
+                        id: bottomSpinBox
+                        Layout.fillWidth: true
+                        from: -9999
+                        to: 9999
+                        value: selectedElement ? Math.round(selectedElement.bottom) : 0
+                        onValueModified: {
+                            if (selectedElement && value !== Math.round(selectedElement.bottom)) {
+                                selectedElement.bottom = value
+                            }
+                        }
+                    }
+                    
+                    // Anchor button for bottom
+                    Button {
+                        id: bottomAnchorButton
+                        Layout.preferredWidth: 30
+                        Layout.preferredHeight: 30
+                        checkable: true
+                        checked: selectedElement && selectedElement.bottomAnchored
+                        text: "⚓"
+                        font.pixelSize: 16
+                        
+                        background: Rectangle {
+                            color: bottomAnchorButton.checked ? "#4080ff" : (bottomAnchorButton.hovered ? "#f0f0f0" : "#ffffff")
+                            border.color: bottomAnchorButton.checked ? "#2060ff" : "#d0d0d0"
+                            border.width: 1
+                            radius: 4
+                        }
+                        
+                        onToggled: {
+                            if (selectedElement && selectedElement.isDesignElement) {
+                                selectedElement.bottomAnchored = checked
+                            }
                         }
                     }
                 }
