@@ -8,6 +8,32 @@ QML_IMPORT_MAJOR_VERSION = 1
 # Allow both debug and release builds
 CONFIG += debug_and_release
 
+# Debug build configuration
+CONFIG(debug, debug|release) {
+    CONFIG += debug
+    CONFIG += force_debug_info
+    CONFIG -= separate_debug_info
+    
+    QMAKE_CXXFLAGS += -O0 -g -gdwarf-2
+    QMAKE_CFLAGS += -O0 -g -gdwarf-2
+    QMAKE_LFLAGS += -g
+    
+    # Disable stripping
+    QMAKE_STRIP =
+    CONFIG += nostrip
+    
+    # Generate dSYM on macOS
+    macx {
+        # Force DWARF with dSYM generation
+        QMAKE_XCODE_DEBUG_INFORMATION_FORMAT = dwarf-with-dsym
+        QMAKE_CXXFLAGS_DEBUG = -O0 -g -gdwarf-2
+        QMAKE_CFLAGS_DEBUG = -O0 -g -gdwarf-2
+        
+        # Post-link dSYM generation
+        QMAKE_POST_LINK = dsymutil \"$$OUT_PWD/cubit-quick.app/Contents/MacOS/cubit-quick\" -o \"$$OUT_PWD/cubit-quick.app.dSYM\"
+    }
+}
+
 SOURCES += \
     src/main.cpp \
     src/Element.cpp \
@@ -29,7 +55,6 @@ SOURCES += \
     src/Canvas.cpp \
     src/Panels.cpp \
     src/Scripts.cpp \
-    src/DragManager.cpp \
     src/CreationManager.cpp \
     src/HitTestService.cpp \
     src/JsonImporter.cpp \
@@ -73,7 +98,6 @@ HEADERS += \
     src/Canvas.h \
     src/Panels.h \
     src/Scripts.h \
-    src/DragManager.h \
     src/CreationManager.h \
     src/HitTestService.h \
     src/JsonImporter.h \

@@ -26,10 +26,12 @@ Item {
     // Canvas type - to be overridden by subclasses
     property string canvasType: "base"
     
+    // Edge preview state - to be provided by ScriptCanvas
+    property bool isEdgePreview: false
+    
     // Expose internal components for viewport overlay
     property alias flickable: flick
     property alias canvasArea: canvasArea
-    property alias selectionBoxHandler: selectionBoxHandler
     property alias zoomLevel: root.zoom  // Alias for ViewportOverlay compatibility
     
     // Expose content layer through default property
@@ -54,21 +56,12 @@ Item {
         flick.contentY = centerPos.y
     }
     
-    // Watch for mode changes to ensure selection box is deactivated
+    // Watch for mode changes (keeping for subclasses that might need it)
     Connections {
         target: controller
         function onModeChanged() {
-            if (controller.mode !== "select" && selectionBoxHandler.active) {
-                selectionBoxHandler.endSelection()
-            }
+            // Subclasses can override to handle mode changes
         }
-    }
-    
-    // Background
-    Rectangle {
-        anchors.fill: parent
-        color: "#f5f5f5"
-        antialiasing: true
     }
     
     // Main canvas area
@@ -79,6 +72,18 @@ Item {
         contentHeight: (root.canvasMaxY - root.canvasMinY) * root.zoom
         clip: true
         boundsBehavior: Flickable.StopAtBounds
+        
+        // Disable interactive dragging during edge preview mode
+        interactive: root.canvasType !== "script" || !root.isEdgePreview
+        
+        // Watch for edge preview changes to immediately stop any ongoing interaction
+        onInteractiveChanged: {
+            if (!interactive) {
+                // Force stop any ongoing flick/drag
+                cancelFlick()
+                returnToBounds()
+            }
+        }
         
         Item {
             id: canvasArea
@@ -98,7 +103,7 @@ Item {
         ScrollIndicator.horizontal: ScrollIndicator { active: true }
     }
     
-    // Gesture handling
+    // Gesture handling for pan and zoom
     CanvasGestureHandler {
         id: gestureHandler
         anchors.fill: parent
@@ -109,50 +114,8 @@ Item {
         canvasMinX: root.canvasMinX
         canvasMinY: root.canvasMinY
         
-        property point dragStartPoint
-        property bool dragStartedOnElement: false
-        
-        onPress: (pt) => {
-            dragStartPoint = pt
-            
-            // Check if we're starting a drag on an element
-            if (controller && controller.mode === CanvasController.Select) {
-                var element = controller.hitTest(pt.x, pt.y)
-                dragStartedOnElement = (element !== null)
-            } else {
-                dragStartedOnElement = false
-            }
-            root.handleDragStart(pt)
-        }
-        
-        onMove: (pt) => {
-            // Start selection box if in select mode and not dragging an element
-            if (controller && controller.mode === CanvasController.Select && !selectionBoxHandler.active && 
-                !dragStartedOnElement) {
-                selectionBoxHandler.startSelection(dragStartPoint)
-            }
-            
-            if (selectionBoxHandler.active) {
-                selectionBoxHandler.updateSelection(pt)
-            } else {
-                root.handleDragMove(pt)
-            }
-        }
-        
-        onRelease: (pt) => {
-            if (selectionBoxHandler.active) {
-                selectionBoxHandler.endSelection()
-            } else {
-                root.handleDragEnd(pt)
-            }
-            dragStartedOnElement = false
-        }
-        
-        onClick: (pt) => {
-            if (!selectionBoxHandler.active) {
-                root.handleClick(pt)
-            }
-        }
+        // Disable gesture handling during edge preview in script canvas
+        enabled: root.canvasType !== "script" || !root.isEdgePreview
         
         onHover: (pt) => {
             root.handleHover(pt)
@@ -163,6 +126,10 @@ Item {
         }
         
         onPan: (dx, dy) => {
+            // Don't pan during edge preview mode
+            if (root.canvasType === "script" && root.isEdgePreview) {
+                return
+            }
             flick.contentX -= dx
             flick.contentY -= dy
         }
@@ -186,41 +153,13 @@ Item {
         }
     }
     
-    // Selection box handler
-    SelectionBoxHandler {
-        id: selectionBoxHandler
-        selectionManager: root.selectionManager
-        onSelectionRectChanged: (rect) => {
-            root.handleSelectionRect(rect)
-        }
-    }
     
     // Default implementations - subclasses override these
-    function handleClick(pt) {
-        // Override in subclasses
-    }
-    
-    function handleDragStart(pt) {
-        // Override in subclasses
-    }
-    
-    function handleDragMove(pt) {
-        // Override in subclasses
-    }
-    
-    function handleDragEnd(pt) {
-        // Override in subclasses
-    }
-    
     function handleHover(pt) {
         // Override in subclasses
     }
     
     function handleExit() {
-        // Override in subclasses
-    }
-    
-    function handleSelectionRect(rect) {
         // Override in subclasses
     }
     

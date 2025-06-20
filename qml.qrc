@@ -6,6 +6,7 @@
         <file>qml/CanvasUtils.js</file>
         <file>qml/qmldir</file>
         <file>qml/components/BaseCanvas.qml</file>
+        <file>qml/components/CanvasBackground.qml</file>
         <file>qml/components/CanvasGestureHandler.qml</file>
         <file>qml/components/DesignCanvas.qml</file>
         <file>qml/components/DesignElementLayer.qml</file>

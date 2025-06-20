@@ -3,6 +3,7 @@ import QtQuick.Controls
 import Cubit 1.0
 import Cubit.UI 1.0
 import ".."
+import "../CanvasUtils.js" as Utils
 
 Item {
     id: root
@@ -186,6 +187,205 @@ Item {
         border.color: "#CCCCCC"  // Light gray border
         radius: 0  // No radius for sharp corners to match header
         
+        // MouseArea to handle node body interactions
+        MouseArea {
+            id: nodeBodyMouseArea
+            anchors.fill: parent
+            acceptedButtons: Qt.LeftButton | Qt.RightButton
+            hoverEnabled: true
+            z: -1  // Below all other elements so port handles can intercept events
+            preventStealing: true  // Prevent parent from stealing mouse events during drag
+            enabled: !root.canvas || !root.canvas.isEdgePreview  // Disable when edge preview is active
+            
+            onEnabledChanged: {
+                console.log("NodeBodyMouseArea enabled changed to:", enabled, 
+                           "for node:", root.element ? root.element.nodeTitle : "unknown",
+                           "isEdgePreview:", root.canvas ? root.canvas.isEdgePreview : "no canvas")
+            }
+            
+            Component.onCompleted: {
+                console.log("NodeBodyMouseArea created - enabled:", enabled, 
+                           "visible:", visible, 
+                           "size:", width, "x", height,
+                           "parent:", parent)
+            }
+            
+            onEntered: {
+                console.log("Mouse entered node:", root.element ? root.element.nodeTitle : "unknown")
+            }
+            
+            onExited: {
+                console.log("Mouse exited node:", root.element ? root.element.nodeTitle : "unknown")
+            }
+            
+            property bool isDragging: false
+            property point dragStartPoint
+            property int dragFrameCount: 0
+            property point lastLoggedPos: Qt.point(0, 0)
+            property point startElementPos: Qt.point(0, 0)
+            property point dragOffset: Qt.point(0, 0)  // Offset from node origin to mouse click point
+            
+            onPressed: (mouse) => {
+                // Accept the event to prevent canvas from handling it
+                mouse.accepted = true
+                isDragging = false
+                dragStartPoint = Qt.point(mouse.x, mouse.y)
+                dragFrameCount = 0
+                lastLoggedPos = Qt.point(mouse.x, mouse.y)
+                startElementPos = Qt.point(root.element.x, root.element.y)
+                
+                // Calculate the offset from where the mouse clicked to the node's origin
+                // This keeps the node from jumping when drag starts
+                dragOffset = Qt.point(mouse.x, mouse.y)
+                
+                console.log("Node pressed:", root.element ? root.element.nodeTitle : "unknown node",
+                           "ID:", root.element ? root.element.elementId : "unknown",
+                           "at local position:", mouse.x.toFixed(2), mouse.y.toFixed(2),
+                           "drag offset:", dragOffset.x.toFixed(2), dragOffset.y.toFixed(2),
+                           "selected:", root.element ? root.element.selected : false)
+                
+                // Let the controller handle selection
+                // We need to convert to canvas coordinates, not just viewport coordinates
+                var mouseInViewport = mapToItem(root.canvas, mouse.x, mouse.y)
+                var flickable = root.canvas.flickable
+                var zoom = root.canvas.zoom || 1.0
+                var canvasMinX = root.canvas.canvasMinX
+                var canvasMinY = root.canvas.canvasMinY
+                
+                // Convert viewport position to canvas coordinates
+                var canvasPos = Utils.viewportToCanvas(
+                    mouseInViewport,
+                    flickable.contentX,
+                    flickable.contentY,
+                    zoom,
+                    canvasMinX,
+                    canvasMinY
+                )
+                
+                console.log("Converted mouse press - viewport:", mouseInViewport.x.toFixed(2), mouseInViewport.y.toFixed(2),
+                           "canvas:", canvasPos.x.toFixed(2), canvasPos.y.toFixed(2))
+                
+                root.canvas.controller.handleMousePress(canvasPos.x, canvasPos.y)
+                
+                // Log selection state after press
+                console.log("After press - selected:", root.element ? root.element.selected : false)
+                console.log("Controller mode:", root.canvas.controller ? root.canvas.controller.mode : "no controller")
+            }
+            
+            onPositionChanged: (mouse) => {
+                if (pressed) {
+                    // Check if we've moved enough to start dragging
+                    var dx = Math.abs(mouse.x - dragStartPoint.x)
+                    var dy = Math.abs(mouse.y - dragStartPoint.y)
+                    if (!isDragging && (dx > 3 || dy > 3)) {
+                        isDragging = true
+                        console.log("Node drag started for:", root.element ? root.element.nodeTitle : "unknown node", 
+                                   "ID:", root.element ? root.element.elementId : "unknown")
+                        // Notify canvas that node dragging has started
+                        if (root.canvas && root.canvas.canvasType === "script") {
+                            root.canvas.isNodeDragging = true
+                        }
+                    }
+                    
+                    if (isDragging) {
+                        dragFrameCount++
+                        
+                        // Map current mouse position to the canvas viewport
+                        var mouseInViewport = mapToItem(root.canvas, mouse.x, mouse.y)
+                        
+                        // Convert viewport coordinates to canvas coordinates
+                        // We need the flickable's content position and zoom level
+                        var flickable = root.canvas.flickable
+                        var zoom = root.canvas.zoom || 1.0
+                        var canvasMinX = root.canvas.canvasMinX
+                        var canvasMinY = root.canvas.canvasMinY
+                        
+                        // Convert viewport position to canvas coordinates
+                        var canvasPos = Utils.viewportToCanvas(
+                            mouseInViewport,
+                            flickable.contentX,
+                            flickable.contentY,
+                            zoom,
+                            canvasMinX,
+                            canvasMinY
+                        )
+                        
+                        // Update element position, accounting for where the mouse grabbed the node
+                        if (root.element) {
+                            root.element.x = canvasPos.x - dragOffset.x
+                            root.element.y = canvasPos.y - dragOffset.y
+                        }
+                        
+                        // Log every frame with frame count
+                        console.log("[Frame " + dragFrameCount + "] Node dragging:", 
+                                   root.element ? root.element.nodeTitle : "unknown node",
+                                   "viewport pos:", mouseInViewport.x.toFixed(2), mouseInViewport.y.toFixed(2),
+                                   "canvas pos:", canvasPos.x.toFixed(2), canvasPos.y.toFixed(2),
+                                   "zoom:", zoom.toFixed(2),
+                                   "node pos:", root.element ? root.element.x.toFixed(2) : "?", root.element ? root.element.y.toFixed(2) : "?")
+                        
+                        lastLoggedPos = Qt.point(mouse.x, mouse.y)
+                    }
+                }
+            }
+            
+            onReleased: (mouse) => {
+                // Convert to canvas coordinates
+                var mouseInViewport = mapToItem(root.canvas, mouse.x, mouse.y)
+                var flickable = root.canvas.flickable
+                var zoom = root.canvas.zoom || 1.0
+                var canvasMinX = root.canvas.canvasMinX
+                var canvasMinY = root.canvas.canvasMinY
+                
+                var canvasPos = Utils.viewportToCanvas(
+                    mouseInViewport,
+                    flickable.contentX,
+                    flickable.contentY,
+                    zoom,
+                    canvasMinX,
+                    canvasMinY
+                )
+                
+                if (isDragging) {
+                    var totalDeltaX = root.element.x - startElementPos.x
+                    var totalDeltaY = root.element.y - startElementPos.y
+                    
+                    console.log("Node drag ended for:", root.element ? root.element.nodeTitle : "unknown node",
+                               "Final pos:", root.element.x.toFixed(2), root.element.y.toFixed(2),
+                               "Total frames:", dragFrameCount,
+                               "Total canvas movement:", totalDeltaX.toFixed(2), totalDeltaY.toFixed(2),
+                               "Zoom:", zoom.toFixed(2))
+                } else {
+                    console.log("Node clicked (no drag) - sending release to controller at canvas pos:", 
+                               canvasPos.x.toFixed(2), canvasPos.y.toFixed(2))
+                }
+                
+                // Always notify the controller about mouse release for proper selection handling
+                // This ensures clicks (press + release without drag) properly select the node
+                root.canvas.controller.handleMouseRelease(canvasPos.x, canvasPos.y)
+                
+                // Notify canvas that node dragging has stopped
+                if (root.canvas && root.canvas.canvasType === "script") {
+                    root.canvas.isNodeDragging = false
+                }
+                
+                isDragging = false
+                dragFrameCount = 0
+            }
+            
+            onContainsMouseChanged: {
+                if (containsMouse) {
+                    // Use mapToItem without mouse parameter for hover position
+                    var canvasPos = mapToItem(root.canvas, 0, 0)
+                    root.canvas.hoveredElement = root.element
+                    root.canvas.hoveredPoint = canvasPos
+                    console.log("Started hovering over node:", root.element ? root.element.nodeTitle : "null")
+                } else if (root.canvas.hoveredElement === root.element) {
+                    root.canvas.hoveredElement = null
+                }
+            }
+        }
+        
         Component.onCompleted: {
             console.log("NodeElement Rectangle - color:", color)
             console.log("NodeElement Rectangle - size:", width, "x", height)
@@ -201,7 +401,7 @@ Item {
             anchors.right: parent.right
             nodeName: nodeElement ? nodeElement.nodeTitle : "Node"
             nodeType: nodeElement && nodeElement.nodeType ? nodeElement.nodeType : "Operation"
-            z: 1  // Ensure header is above the node body
+            z: 2  // Ensure header is above the node body MouseArea
         }
         
         // Two column layout for targets and sources (not for Variable nodes)
@@ -214,6 +414,7 @@ Item {
             anchors.margins: 10
             anchors.topMargin: 15
             spacing: 20
+            z: 3  // Above MouseArea and header
             
             // Left column - Target handles
             Column {
@@ -293,8 +494,9 @@ Item {
                             width: 20
                             height: 20
                             radius: targetType === "Flow" ? 10 : 0
+                            z: 100  // Higher than node body
                             color: {
-                                if (handleHovered) {
+                                if (handleHovered || targetHandleMouseArea.containsMouse) {
                                     return targetType === "Flow" ? "#4CAF50" : "#FF9800"
                                 } else {
                                     return targetType === "Flow" ? "#666666" : "#795548"
@@ -302,10 +504,26 @@ Item {
                             }
                             border.width: 2
                             border.color: {
-                                if (handleHovered) {
+                                if (handleHovered || targetHandleMouseArea.containsMouse) {
                                     return targetType === "Flow" ? "#2E7D32" : "#E65100"
                                 } else {
                                     return targetType === "Flow" ? "#333333" : "#5D4037"
+                                }
+                            }
+                            
+                            MouseArea {
+                                id: targetHandleMouseArea
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.CrossCursor
+                                propagateComposedEvents: false  // Don't let events bubble to node body
+                                preventStealing: true  // Prevent parent from stealing events
+                                
+                                property bool isDragging: false
+                                
+                                onPressed: (mouse) => {
+                                    // Don't allow dragging from target handles
+                                    mouse.accepted = true
                                 }
                             }
                         }
@@ -402,8 +620,9 @@ Item {
                             width: 20
                             height: 20
                             radius: sourceType === "Flow" ? 10 : 0
+                            z: 100  // Higher than node body
                             color: {
-                                if (handleHovered) {
+                                if (handleHovered || sourceHandleMouseArea.containsMouse) {
                                     return sourceType === "Flow" ? "#2196F3" : "#FF9800"
                                 } else {
                                     return sourceType === "Flow" ? "#666666" : "#795548"
@@ -411,10 +630,71 @@ Item {
                             }
                             border.width: 2
                             border.color: {
-                                if (handleHovered) {
+                                if (handleHovered || sourceHandleMouseArea.containsMouse) {
                                     return sourceType === "Flow" ? "#1565C0" : "#E65100"
                                 } else {
                                     return sourceType === "Flow" ? "#333333" : "#5D4037"
+                                }
+                            }
+                            
+                            MouseArea {
+                                id: sourceHandleMouseArea
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.CrossCursor
+                                propagateComposedEvents: false  // Don't let events bubble to node body
+                                preventStealing: true  // Prevent parent from stealing events
+                                
+                                property bool isDragging: false
+                                
+                                onPressed: (mouse) => {
+                                    // Start dragging from this source port
+                                    isDragging = true
+                                    root.canvas.startPortDrag(root.element, "right", sourcePortIndex, sourceType)
+                                    mouse.accepted = true
+                                }
+                                
+                                onPositionChanged: (mouse) => {
+                                    if (isDragging && pressed) {
+                                        // Convert to canvas coordinates
+                                        var mouseInViewport = mapToItem(root.canvas, mouse.x, mouse.y)
+                                        var flickable = root.canvas.flickable
+                                        var zoom = root.canvas.zoom || 1.0
+                                        var canvasMinX = root.canvas.canvasMinX
+                                        var canvasMinY = root.canvas.canvasMinY
+                                        
+                                        var canvasPos = Utils.viewportToCanvas(
+                                            mouseInViewport,
+                                            flickable.contentX,
+                                            flickable.contentY,
+                                            zoom,
+                                            canvasMinX,
+                                            canvasMinY
+                                        )
+                                        root.canvas.updatePortDrag(canvasPos)
+                                    }
+                                }
+                                
+                                onReleased: (mouse) => {
+                                    if (isDragging) {
+                                        isDragging = false
+                                        // Convert to canvas coordinates
+                                        var mouseInViewport = mapToItem(root.canvas, mouse.x, mouse.y)
+                                        var flickable = root.canvas.flickable
+                                        var zoom = root.canvas.zoom || 1.0
+                                        var canvasMinX = root.canvas.canvasMinX
+                                        var canvasMinY = root.canvas.canvasMinY
+                                        
+                                        var canvasPos = Utils.viewportToCanvas(
+                                            mouseInViewport,
+                                            flickable.contentX,
+                                            flickable.contentY,
+                                            zoom,
+                                            canvasMinX,
+                                            canvasMinY
+                                        )
+                                        root.canvas.endPortDrag(canvasPos)
+                                    }
                                 }
                             }
                         }
@@ -433,25 +713,74 @@ Item {
             width: 20
             height: 20
             radius: 0  // Square for data ports
-            z: 10  // Ensure it's above other elements
+            z: 100  // Ensure it's above all other elements including MouseArea
             
-            property bool isHovered: {
-                if (!root.elementHovered || !root.canvas) return false
-                
-                // Calculate the handle's position in canvas coordinates
-                var handleCenterX = root.element.x + root.element.width - 15  // 5px margin + 10px to center
-                var handleCenterY = root.element.y + 15  // Center of 30px header
-                
-                // Check if the hovered point is within 10px of the handle center
-                var dx = root.canvas.hoveredPoint.x - handleCenterX
-                var dy = root.canvas.hoveredPoint.y - handleCenterY
-                
-                return Math.abs(dx) <= 10 && Math.abs(dy) <= 10
-            }
+            property bool isHovered: variableHandleMouseArea.containsMouse
             
             color: isHovered ? "#FF9800" : "#795548"  // Orange when hovered, brown otherwise
             border.width: 2
             border.color: isHovered ? "#E65100" : "#5D4037"  // Dark orange when hovered, dark brown otherwise
+            
+            MouseArea {
+                id: variableHandleMouseArea
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.CrossCursor
+                propagateComposedEvents: false  // Don't let events bubble to node body
+                preventStealing: true  // Prevent parent from stealing events
+                
+                property bool isDragging: false
+                
+                onPressed: (mouse) => {
+                    // Start dragging from variable source port
+                    isDragging = true
+                    root.canvas.startPortDrag(root.element, "right", 0, "String")
+                    mouse.accepted = true
+                }
+                
+                onPositionChanged: (mouse) => {
+                    if (isDragging && pressed) {
+                        // Convert to canvas coordinates
+                        var mouseInViewport = mapToItem(root.canvas, mouse.x, mouse.y)
+                        var flickable = root.canvas.flickable
+                        var zoom = root.canvas.zoom || 1.0
+                        var canvasMinX = root.canvas.canvasMinX
+                        var canvasMinY = root.canvas.canvasMinY
+                        
+                        var canvasPos = Utils.viewportToCanvas(
+                            mouseInViewport,
+                            flickable.contentX,
+                            flickable.contentY,
+                            zoom,
+                            canvasMinX,
+                            canvasMinY
+                        )
+                        root.canvas.updatePortDrag(canvasPos)
+                    }
+                }
+                
+                onReleased: (mouse) => {
+                    if (isDragging) {
+                        isDragging = false
+                        // Convert to canvas coordinates
+                        var mouseInViewport = mapToItem(root.canvas, mouse.x, mouse.y)
+                        var flickable = root.canvas.flickable
+                        var zoom = root.canvas.zoom || 1.0
+                        var canvasMinX = root.canvas.canvasMinX
+                        var canvasMinY = root.canvas.canvasMinY
+                        
+                        var canvasPos = Utils.viewportToCanvas(
+                            mouseInViewport,
+                            flickable.contentX,
+                            flickable.contentY,
+                            zoom,
+                            canvasMinX,
+                            canvasMinY
+                        )
+                        root.canvas.endPortDrag(canvasPos)
+                    }
+                }
+            }
             
             Component.onCompleted: {
                 console.log("Variable source handle created - visible:", visible, 

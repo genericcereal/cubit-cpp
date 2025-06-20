@@ -7,7 +7,6 @@
 
 class ElementModel;
 class SelectionManager;
-class DragManager;
 class CreationManager;
 class HitTestService;
 class JsonImporter;
@@ -53,8 +52,8 @@ public:
     CanvasType canvasType() const { return m_canvasType; }
     void setCanvasType(CanvasType type);
     
-    // Drag state (delegated to DragManager)
-    bool isDragging() const;
+    // Drag state (handled in QML now)
+    bool isDragging() const { return false; }  // Always false since dragging is handled in QML
     
     
     // Helper methods (delegated to HitTestService)
@@ -109,7 +108,6 @@ private:
     SelectionManager& m_selectionManager;
     
     // Subcontrollers
-    std::unique_ptr<DragManager> m_dragManager;
     std::unique_ptr<CreationManager> m_creationManager;
     std::unique_ptr<HitTestService> m_hitTestService;
     std::unique_ptr<JsonImporter> m_jsonImporter;

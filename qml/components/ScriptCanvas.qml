@@ -8,6 +8,7 @@ BaseCanvas {
     id: root
     
     canvasType: "script"
+    // isEdgePreview is defined in this component and passed to BaseCanvas
     
     // Node and edge management
     property var nodes: []
@@ -35,9 +36,45 @@ BaseCanvas {
         id: nodeCatalog
     }
     
+    // Track if any node is being dragged
+    property bool isNodeDragging: false
+    
+    // Force edge updates when node dragging state changes
+    onIsNodeDraggingChanged: {
+        if (!isNodeDragging) {
+            // When dragging stops, force a final update of all edges
+            updateAllEdges()
+        }
+    }
+    
+    // Timer to update edges during node dragging
+    Timer {
+        id: edgeUpdateTimer
+        interval: 16  // 60 FPS
+        repeat: true
+        running: isNodeDragging
+        onTriggered: {
+            // Force re-evaluation of all edge bindings
+            edgesLayer.visible = false
+            edgesLayer.visible = true
+        }
+    }
+    
+    // Function to force update all edges
+    function updateAllEdges() {
+        console.log("updateAllEdges called - model count:", elementModel ? elementModel.rowCount() : 0)
+        // Force all edge delegates to update by triggering a model refresh
+        if (elementModel) {
+            // This will cause all delegates to re-evaluate their bindings
+            elementModel.dataChanged(elementModel.index(0, 0), 
+                                   elementModel.index(elementModel.rowCount() - 1, 0))
+        }
+    }
+    
     
     // Handle drag state
     property bool isDraggingHandle: false
+    property bool isEdgePreview: false  // True when dragging to create edge preview
     property var dragSourceNode: null
     property string dragSourceHandleType: ""  // "left" or "right"
     property int dragSourcePortIndex: -1
@@ -48,8 +85,82 @@ BaseCanvas {
     property bool showNodeCatalog: false
     property point nodeCatalogPosition: Qt.point(0, 0)
     
+    // Port drag handling functions for nodes
+    function startPortDrag(node, handleType, portIndex, portType) {
+        isDraggingHandle = true
+        isEdgePreview = true  // Enable edge preview mode
+        dragSourceNode = node
+        dragSourceHandleType = handleType
+        dragSourcePortIndex = portIndex
+        dragSourcePortType = portType
+        console.log("Started port drag from node:", node.nodeTitle, "handle:", handleType, "port:", portIndex, "type:", portType)
+        console.log("Edge preview mode enabled - all node dragging disabled")
+    }
+    
+    function updatePortDrag(canvasPos) {
+        dragCurrentPoint = canvasPos
+        console.log("Updating port drag to canvas position:", canvasPos.x.toFixed(2), canvasPos.y.toFixed(2))
+    }
+    
+    function endPortDrag(canvasPos) {
+        if (!isDraggingHandle) return
+        
+        // Check if we're over a target handle
+        var targetHandleInfo = getHandleAtPoint(canvasPos)
+        if (targetHandleInfo && targetHandleInfo.node !== dragSourceNode) {
+            // Create edge between source and target
+            console.log("Creating edge from", dragSourceNode.nodeTitle, "to", targetHandleInfo.node.nodeTitle)
+            controller.createEdge(
+                dragSourceNode.elementId,
+                targetHandleInfo.node.elementId,
+                dragSourceHandleType,
+                targetHandleInfo.handleType,
+                dragSourcePortIndex,
+                targetHandleInfo.portIndex
+            )
+        } else {
+            // Show node catalog at release position
+            showNodeCatalog = true
+            nodeCatalogPosition = canvasPos
+            console.log("Showing node catalog at", canvasPos.x, canvasPos.y)
+        }
+        
+        // Reset drag state, but keep source info when showing catalog
+        isDraggingHandle = false
+        isEdgePreview = false  // Disable edge preview mode
+        if (!showNodeCatalog) {
+            dragSourceNode = null
+            dragSourceHandleType = ""
+            dragSourcePortIndex = -1
+            dragSourcePortType = "Flow"
+        }
+        console.log("Edge preview mode disabled - node dragging re-enabled")
+    }
+    
+    
     // Add content into the default contentData
     contentData: [
+        // Canvas background - handles background clicks
+        CanvasBackground {
+            id: canvasBackground
+            anchors.fill: parent
+            canvas: root
+            z: -1  // Ensure it's behind all other elements
+            
+            onClicked: (canvasPoint) => {
+                // Notify canvas about the click
+                root.canvasClicked(canvasPoint)
+                root.clickedThisFrame = true
+                root.clickPoint = canvasPoint
+                
+                // Check if clicked outside any node
+                var element = controller.hitTest(canvasPoint.x, canvasPoint.y)
+                if (!element || element.objectName !== "Node") {
+                    root.canvasClickedOutside()
+                }
+            }
+        },
+        
         // Edges layer
         Item {
             id: edgesLayer
@@ -57,132 +168,221 @@ BaseCanvas {
             z: 10  // Very high z-order
             
             Repeater {
+                id: edgesRepeater
                 model: root.elementModel
                 
                 delegate: Item {
+                    id: edgeDelegate
                     visible: model.elementType === "Edge"
                     property var edge: model.element
                     property var edgeObj: edge as Edge
                     
-                    // Get source and target nodes
-                    property var sourceNode: edgeObj && root.elementModel ? root.elementModel.getElementById(edgeObj.sourceNodeId) : null
-                    property var targetNode: edgeObj && root.elementModel ? root.elementModel.getElementById(edgeObj.targetNodeId) : null
+                    // Get source and target nodes - dynamically look them up
+                    property var sourceNode: {
+                        if (model.elementType !== "Edge" || !edgeObj || !root.elementModel) return null
+                        // Force re-evaluation when dragging
+                        var dummy = root.isNodeDragging
+                        return root.elementModel.getElementById(edgeObj.sourceNodeId)
+                    }
+                    property var targetNode: {
+                        if (model.elementType !== "Edge" || !edgeObj || !root.elementModel) return null
+                        // Force re-evaluation when dragging
+                        var dummy = root.isNodeDragging
+                        return root.elementModel.getElementById(edgeObj.targetNodeId)
+                    }
                     
-                    // Update edge positions when nodes move
+                    // Watch for source/target node changes and update positions
+                    onSourceNodeChanged: {
+                        if (sourceNode) {
+                            console.log("Edge source node changed to:", sourceNode.nodeTitle, "id:", sourceNode.elementId)
+                            Qt.callLater(updateEdgePositions)
+                        } else {
+                            console.log("Edge source node is null for edge:", edgeObj ? edgeObj.elementId : "unknown")
+                        }
+                    }
+                    
+                    onTargetNodeChanged: {
+                        if (targetNode) {
+                            console.log("Edge target node changed to:", targetNode.nodeTitle, "id:", targetNode.elementId)
+                            Qt.callLater(updateEdgePositions)
+                        } else {
+                            console.log("Edge target node is null for edge:", edgeObj ? edgeObj.elementId : "unknown")
+                        }
+                    }
+                    
+                    // Connect to node position changes
                     Connections {
                         target: sourceNode
-                        enabled: sourceNode !== null
-                        function onXChanged() { 
-                            console.log("Edge source node X changed:", sourceNode.x)
-                            updateEdgePositions() 
+                        enabled: sourceNode !== null && model.elementType === "Edge"
+                        function onXChanged() {
+                            console.log("Edge detected sourceNode X changed:", sourceNode.nodeTitle, "new x:", sourceNode.x)
+                            updateEdgePositions()
                         }
-                        function onYChanged() { 
-                            console.log("Edge source node Y changed:", sourceNode.y)
-                            updateEdgePositions() 
+                        function onYChanged() {
+                            console.log("Edge detected sourceNode Y changed:", sourceNode.nodeTitle, "new y:", sourceNode.y)
+                            updateEdgePositions()
                         }
-                        function onWidthChanged() { updateEdgePositions() }
+                        function onWidthChanged() {
+                            updateEdgePositions()
+                        }
+                        function onHeightChanged() {
+                            updateEdgePositions()
+                        }
                     }
                     
                     Connections {
                         target: targetNode
-                        enabled: targetNode !== null
-                        function onXChanged() { 
-                            console.log("Edge target node X changed:", targetNode.x)
-                            updateEdgePositions() 
+                        enabled: targetNode !== null && model.elementType === "Edge"
+                        function onXChanged() {
+                            console.log("Edge detected targetNode X changed:", targetNode.nodeTitle, "new x:", targetNode.x)
+                            updateEdgePositions()
                         }
-                        function onYChanged() { 
-                            console.log("Edge target node Y changed:", targetNode.y)
-                            updateEdgePositions() 
+                        function onYChanged() {
+                            console.log("Edge detected targetNode Y changed:", targetNode.nodeTitle, "new y:", targetNode.y)
+                            updateEdgePositions()
                         }
-                        function onHeightChanged() { updateEdgePositions() }
+                        function onWidthChanged() {
+                            updateEdgePositions()
+                        }
+                        function onHeightChanged() {
+                            updateEdgePositions()
+                        }
                     }
                     
                     function updateEdgePositions() {
-                        if (!edgeObj || !sourceNode || !targetNode) {
-                            console.log("updateEdgePositions early return - edgeObj:", !!edgeObj, "sourceNode:", !!sourceNode, "targetNode:", !!targetNode)
+                        // Always refresh node references when updating
+                        var currentSourceNode = sourceNode
+                        var currentTargetNode = targetNode
+                        
+                        if (!edgeObj) {
+                            console.log("updateEdgePositions: edgeObj is null!")
                             return
                         }
-                        console.log("updateEdgePositions called for edge", edgeObj.elementId)
+                        
+                        if (!currentSourceNode) {
+                            console.log("updateEdgePositions: sourceNode is null for edge", edgeObj.elementId, 
+                                       "sourceNodeId:", edgeObj.sourceNodeId)
+                            return
+                        }
+                        
+                        if (!currentTargetNode) {
+                            console.log("updateEdgePositions: targetNode is null for edge", edgeObj.elementId,
+                                       "targetNodeId:", edgeObj.targetNodeId)
+                            return
+                        }
+                        
+                        console.log("updateEdgePositions running for edge", edgeObj.elementId)
                         
                         var sourceX, sourceY
                         
                         // Special handling for Variable nodes as source
-                        if (sourceNode.nodeType === "Variable") {
-                            sourceX = sourceNode.x + sourceNode.width - 15  // 5px margin + 10px to center
-                            sourceY = sourceNode.y + 15  // Center of 30px header
+                        if (currentSourceNode.nodeType === "Variable") {
+                            sourceX = currentSourceNode.x + currentSourceNode.width - 15  // 5px margin + 10px to center
+                            sourceY = currentSourceNode.y + 15  // Center of 30px header
                         } else {
                             var titleAndMargins = 30 + 15  // Title height + margins
                             var columnsMargin = 10  // Left/right margin of columns container
                             var columnSpacing = 20  // Spacing between columns
                             
-                            // Find the source port index in the sources column
-                            var sourceIndex = 0
-                            var foundSource = false
-                            for (var i = 0; i < sourceNode.rowConfigurations.length; i++) {
-                                var config = sourceNode.rowConfigurations[i]
-                                if (config.hasSource) {
-                                    if (config.sourcePortIndex === edgeObj.sourcePortIndex) {
-                                        foundSource = true
-                                        break
+                            // Check if this is a flow port (index -1)
+                            if (edgeObj.sourcePortIndex === -1) {
+                                // Flow ports are positioned at the top right, in the first row of the sources column
+                                // Handle is 20x20, anchored to right edge, vertically centered in 30px row
+                                sourceX = currentSourceNode.x + currentSourceNode.width - 10 - 10  // right edge - right margin - half handle width
+                                sourceY = currentSourceNode.y + 30 + 15 + 15  // header + top margin + half row height
+                                console.log("updateEdgePositions: Using flow port position for source")
+                            } else {
+                                // Find the source port index in the sources column
+                                var sourceIndex = 0
+                                var foundSource = false
+                                for (var i = 0; i < currentSourceNode.rowConfigurations.length; i++) {
+                                    var config = currentSourceNode.rowConfigurations[i]
+                                    if (config.hasSource) {
+                                        if (config.sourcePortIndex === edgeObj.sourcePortIndex) {
+                                            foundSource = true
+                                            break
+                                        }
+                                        sourceIndex++
                                     }
-                                    sourceIndex++
                                 }
+                                
+                                if (!foundSource) {
+                                    console.log("updateEdgePositions: Could not find source port", edgeObj.sourcePortIndex, "in node", currentSourceNode.nodeTitle)
+                                    return
+                                }
+                                
+                                // Calculate source point (right column, right side)
+                                var columnWidth = (currentSourceNode.width - 2 * columnsMargin - columnSpacing) / 2
+                                var rightColumnX = currentSourceNode.x + columnsMargin + columnWidth + columnSpacing
+                                sourceX = rightColumnX + columnWidth - 10  // 10px from right edge to center
+                                sourceY = currentSourceNode.y + titleAndMargins + sourceIndex * 40 + 15  // center of 30px item
                             }
-                            
-                            if (!foundSource) {
-                                console.log("Warning: Could not find source port", edgeObj.sourcePortIndex)
-                                return
-                            }
-                            
-                            // Calculate source point (right column, right side)
-                            var columnWidth = (sourceNode.width - 2 * columnsMargin - columnSpacing) / 2
-                            var rightColumnX = sourceNode.x + columnsMargin + columnWidth + columnSpacing
-                            sourceX = rightColumnX + columnWidth - 10  // 10px from right edge to center
-                            sourceY = sourceNode.y + titleAndMargins + sourceIndex * 40 + 15  // center of 30px item
                         }
                         
                         // Find the target port index in the targets column
                         var titleAndMargins = 30 + 15  // Title height + margins
                         var columnsMargin = 10  // Left/right margin of columns container
                         
-                        var targetIndex = 0
-                        var foundTarget = false
-                        for (var j = 0; j < targetNode.rowConfigurations.length; j++) {
-                            var targetConfig = targetNode.rowConfigurations[j]
-                            if (targetConfig.hasTarget) {
-                                if (targetConfig.targetPortIndex === edgeObj.targetPortIndex) {
-                                    foundTarget = true
-                                    break
+                        // Check if this is a flow port (index -1)
+                        if (edgeObj.targetPortIndex === -1) {
+                            // Flow ports are positioned at the top left, in the first row of the targets column
+                            // Handle is 20x20, anchored to left edge, vertically centered in 30px row
+                            var targetX = currentTargetNode.x + 10 + 10  // left edge + left margin + half handle width
+                            var targetY = currentTargetNode.y + 30 + 15 + 15  // header + top margin + half row height
+                            console.log("updateEdgePositions: Using flow port position for target")
+                        } else {
+                            var targetIndex = 0
+                            var foundTarget = false
+                            for (var j = 0; j < currentTargetNode.rowConfigurations.length; j++) {
+                                var targetConfig = currentTargetNode.rowConfigurations[j]
+                                if (targetConfig.hasTarget) {
+                                    if (targetConfig.targetPortIndex === edgeObj.targetPortIndex) {
+                                        foundTarget = true
+                                        break
+                                    }
+                                    targetIndex++
                                 }
-                                targetIndex++
                             }
+                            
+                            if (!foundTarget) {
+                                console.log("updateEdgePositions: Could not find target port", edgeObj.targetPortIndex, "in node", currentTargetNode.nodeTitle)
+                                return
+                            }
+                            
+                            // Calculate target point (left column, left side)
+                            var targetX = currentTargetNode.x + columnsMargin + 10  // 10px to center of 20px handle
+                            var targetY = currentTargetNode.y + titleAndMargins + targetIndex * 40 + 15
                         }
-                        
-                        if (!foundTarget) {
-                            console.log("Warning: Could not find target port", edgeObj.targetPortIndex)
-                            return
-                        }
-                        
-                        // Calculate target point (left column, left side)
-                        var targetX = targetNode.x + columnsMargin + 10  // 10px to center of 20px handle
-                        var targetY = targetNode.y + titleAndMargins + targetIndex * 40 + 15
                         
                         // Update the edge points
+                        console.log("Setting edge points - source:", sourceX, sourceY, "target:", targetX, targetY)
                         edgeObj.sourcePoint = Qt.point(sourceX, sourceY)
                         edgeObj.targetPoint = Qt.point(targetX, targetY)
+                        console.log("Edge points updated - source:", edgeObj.sourcePoint, "target:", edgeObj.targetPoint)
                     }
                     
                     Component.onCompleted: {
-                        updateEdgePositions()
+                        if (model.elementType === "Edge") {
+                            console.log("Edge delegate created for edge:", edgeObj ? edgeObj.elementId : "unknown",
+                                       "sourceNodeId:", edgeObj ? edgeObj.sourceNodeId : "unknown",
+                                       "targetNodeId:", edgeObj ? edgeObj.targetNodeId : "unknown")
+                            console.log("  sourceNode found:", !!sourceNode, sourceNode ? sourceNode.nodeTitle : "null")
+                            console.log("  targetNode found:", !!targetNode, targetNode ? targetNode.nodeTitle : "null")
+                            updateEdgePositions()
+                        }
                     }
                     
                     // Bezier curve using Shape and PathSVG
                     BezierEdge {
+                        id: bezierEdge
                         anchors.fill: parent
                         edge: edgeObj
                         canvasMinX: root.canvasMinX
                         canvasMinY: root.canvasMinY
                         z: -1
+                        
+                        // Force update when nodes are dragging
+                        visible: !root.isNodeDragging || true
                     }
                     
                     // Source handle circle
@@ -257,6 +457,13 @@ BaseCanvas {
             anchors.fill: parent
             z: 11  // Above edges layer
             
+            onVisibleChanged: {
+                console.log("Temp edge container visibility changed to:", visible,
+                           "isDraggingHandle:", root.isDraggingHandle,
+                           "showNodeCatalog:", root.showNodeCatalog,
+                           "dragSourceNode:", root.dragSourceNode ? root.dragSourceNode.nodeTitle : "null")
+            }
+            
             property point sourcePoint: {
                 if (!root.dragSourceNode) return Qt.point(0, 0)
                 
@@ -272,53 +479,71 @@ BaseCanvas {
                 var columnSpacing = 20
                 
                 if (root.dragSourceHandleType === "right") {
-                    // Find source port index in sources column
-                    var sourceIndex = 0
-                    var foundSource = false
-                    for (var i = 0; i < root.dragSourceNode.rowConfigurations.length; i++) {
-                        var config = root.dragSourceNode.rowConfigurations[i]
-                        if (config.hasSource) {
-                            if (config.sourcePortIndex === root.dragSourcePortIndex) {
-                                foundSource = true
-                                break
+                    // Check if this is a flow port (index -1)
+                    if (root.dragSourcePortIndex === -1) {
+                        // Flow ports are positioned at the top right, in the first row of the sources column
+                        // Handle is 20x20, anchored to right edge, vertically centered in 30px row
+                        var handleX = root.dragSourceNode.x + root.dragSourceNode.width - 10 - 10  // right edge - right margin - half handle width
+                        var handleY = root.dragSourceNode.y + 30 + 15 + 15  // header + top margin + half row height
+                        return Qt.point(handleX, handleY)
+                    } else {
+                        // Find source port index in sources column
+                        var sourceIndex = 0
+                        var foundSource = false
+                        for (var i = 0; i < root.dragSourceNode.rowConfigurations.length; i++) {
+                            var config = root.dragSourceNode.rowConfigurations[i]
+                            if (config.hasSource) {
+                                if (config.sourcePortIndex === root.dragSourcePortIndex) {
+                                    foundSource = true
+                                    break
+                                }
+                                sourceIndex++
                             }
-                            sourceIndex++
                         }
+                        
+                        if (!foundSource) {
+                            console.log("Warning: Could not find source port", root.dragSourcePortIndex)
+                            return Qt.point(0, 0)
+                        }
+                        
+                        var columnWidth = (root.dragSourceNode.width - 2 * columnsMargin - columnSpacing) / 2
+                        var rightColumnX = root.dragSourceNode.x + columnsMargin + columnWidth + columnSpacing
+                        var handleX = rightColumnX + columnWidth - 10
+                        var handleY = root.dragSourceNode.y + titleAndMargins + sourceIndex * 40 + 15
+                        return Qt.point(handleX, handleY)
                     }
-                    
-                    if (!foundSource) {
-                        console.log("Warning: Could not find source port", root.dragSourcePortIndex)
-                        return Qt.point(0, 0)
-                    }
-                    
-                    var columnWidth = (root.dragSourceNode.width - 2 * columnsMargin - columnSpacing) / 2
-                    var rightColumnX = root.dragSourceNode.x + columnsMargin + columnWidth + columnSpacing
-                    var handleX = rightColumnX + columnWidth - 10
-                    var handleY = root.dragSourceNode.y + titleAndMargins + sourceIndex * 40 + 15
-                    return Qt.point(handleX, handleY)
                 } else {
-                    // Find target port index in targets column
-                    var targetIndex = 0
-                    var foundTarget = false
-                    for (var j = 0; j < root.dragSourceNode.rowConfigurations.length; j++) {
-                        var targetConfig = root.dragSourceNode.rowConfigurations[j]
-                        if (targetConfig.hasTarget) {
-                            if (targetConfig.targetPortIndex === root.dragSourcePortIndex) {
-                                foundTarget = true
-                                break
+                    // Check if this is a flow port (index -1)
+                    if (root.dragSourcePortIndex === -1) {
+                        // Flow ports are positioned at the top left, in the first row of the targets column
+                        // Handle is 20x20, anchored to left edge, vertically centered in 30px row
+                        var targetHandleX = root.dragSourceNode.x + 10 + 10  // left edge + left margin + half handle width
+                        var targetHandleY = root.dragSourceNode.y + 30 + 15 + 15  // header + top margin + half row height
+                        return Qt.point(targetHandleX, targetHandleY)
+                    } else {
+                        // Find target port index in targets column
+                        var targetIndex = 0
+                        var foundTarget = false
+                        for (var j = 0; j < root.dragSourceNode.rowConfigurations.length; j++) {
+                            var targetConfig = root.dragSourceNode.rowConfigurations[j]
+                            if (targetConfig.hasTarget) {
+                                if (targetConfig.targetPortIndex === root.dragSourcePortIndex) {
+                                    foundTarget = true
+                                    break
+                                }
+                                targetIndex++
                             }
-                            targetIndex++
                         }
+                        
+                        if (!foundTarget) {
+                            console.log("Warning: Could not find target port", root.dragSourcePortIndex)
+                            return Qt.point(0, 0)
+                        }
+                        
+                        var targetHandleX = root.dragSourceNode.x + columnsMargin + 10
+                        var targetHandleY = root.dragSourceNode.y + titleAndMargins + targetIndex * 40 + 15
+                        return Qt.point(targetHandleX, targetHandleY)
                     }
-                    
-                    if (!foundTarget) {
-                        console.log("Warning: Could not find target port", root.dragSourcePortIndex)
-                        return Qt.point(0, 0)
-                    }
-                    
-                    var targetHandleX = root.dragSourceNode.x + columnsMargin + 10
-                    var targetHandleY = root.dragSourceNode.y + titleAndMargins + targetIndex * 40 + 15
-                    return Qt.point(targetHandleX, targetHandleY)
                 }
             }
             
@@ -459,19 +684,25 @@ BaseCanvas {
         onNodeSelected: {
             // Clear catalog and drag state
             root.showNodeCatalog = false
+            root.isDraggingHandle = false
+            root.isEdgePreview = false
             root.dragSourceNode = null
             root.dragSourceHandleType = ""
             root.dragSourcePortIndex = -1
             root.dragSourcePortType = "Flow"
+            console.log("Node selected from catalog - edge preview mode disabled")
         }
         
         onDismissed: {
             // Clear catalog and drag state
             root.showNodeCatalog = false
+            root.isDraggingHandle = false
+            root.isEdgePreview = false
             root.dragSourceNode = null
             root.dragSourceHandleType = ""
             root.dragSourcePortIndex = -1
             root.dragSourcePortType = "Flow"
+            console.log("Node catalog dismissed - edge preview mode disabled")
         }
     }
     
@@ -486,135 +717,8 @@ BaseCanvas {
         } else {
             console.log("ScriptCanvas: No element being edited")
         }
-        
     }
     
-    
-    // Implement behavior by overriding handler functions
-    function handleDragStart(pt) {
-        // Set click state but don't emit signal yet - wait for release to confirm it's a click
-        clickedThisFrame = true
-        clickPoint = pt
-        
-        console.log("ScriptCanvas.handleDragStart called at", pt.x, pt.y)
-        
-        if (controller.mode === CanvasController.Select) {
-            // Check if we're over a handle first
-            var handleInfo = getHandleAtPoint(pt)
-            console.log("getHandleAtPoint returned:", handleInfo ? "handle found" : "no handle")
-            if (handleInfo) {
-                // Start handle drag immediately
-                isDraggingHandle = true
-                dragSourceNode = handleInfo.node
-                dragSourceHandleType = handleInfo.handleType
-                dragSourcePortIndex = handleInfo.portIndex
-                dragSourcePortType = handleInfo.portType
-                dragCurrentPoint = pt
-                console.log("Started dragging handle:", handleInfo.handleType, "port:", handleInfo.portIndex, "type:", handleInfo.portType, "from node:", handleInfo.node.nodeTitle)
-            } else {
-                // Let the controller handle the press
-                console.log("No handle found, calling controller.handleMousePress")
-                controller.handleMousePress(pt.x, pt.y)
-            }
-        }
-        // Other modes will be handled when node creation is implemented
-    }
-    
-    function handleDragMove(pt) {
-        // Emit drag started signal on first drag movement
-        if (!isDraggingHandle) {
-            canvasDragStarted()
-        }
-        
-        if (isDraggingHandle) {
-            // Update drag position for edge preview
-            dragCurrentPoint = pt
-        } else {
-            // Let the controller handle drag
-            controller.handleMouseMove(pt.x, pt.y)
-        }
-    }
-    
-    function handleDragEnd(pt) {
-        // Check if this was a click (not a drag)
-        var wasClick = !isDraggingHandle && !selectionBoxHandler.active && 
-                      Math.abs(pt.x - clickPoint.x) < 5 && 
-                      Math.abs(pt.y - clickPoint.y) < 5
-        
-        if (wasClick) {
-            // If node catalog is showing, dismiss it
-            if (root.showNodeCatalog) {
-                console.log("Click detected in handleDragEnd - dismissing node catalog")
-                root.showNodeCatalog = false
-                root.dragSourceNode = null
-                root.dragSourceHandleType = ""
-                root.dragSourcePortIndex = -1
-                root.dragSourcePortType = "Flow"
-                return
-            }
-            
-            // Check if clicking on a node or empty space
-            var element = controller.hitTest(pt.x, pt.y)
-            if (element && element.objectName === "Node") {
-                // Clicked on a node - emit click signal for input handling
-                canvasClicked(pt)
-            } else {
-                // Clicked outside any node - emit outside click signal
-                canvasClickedOutside()
-            }
-        }
-        
-        if (isDraggingHandle) {
-            // End handle drag
-            var targetHandleInfo = getHandleAtPoint(pt)
-            if (targetHandleInfo && targetHandleInfo.node !== dragSourceNode) {
-                // Create edge between source and target
-                console.log("Creating edge from", dragSourceNode.nodeTitle, "to", targetHandleInfo.node.nodeTitle)
-                controller.createEdge(
-                    dragSourceNode.elementId,
-                    targetHandleInfo.node.elementId,
-                    dragSourceHandleType,
-                    targetHandleInfo.handleType,
-                    dragSourcePortIndex,
-                    targetHandleInfo.portIndex
-                )
-                // Reset drag state
-                isDraggingHandle = false
-                dragSourceNode = null
-                dragSourceHandleType = ""
-                dragSourcePortIndex = -1
-                dragSourcePortType = "Flow"
-            } else {
-                // Show node catalog at release position
-                showNodeCatalog = true
-                nodeCatalogPosition = pt
-                isDraggingHandle = false
-                console.log("Showing node catalog at", pt.x, pt.y)
-            }
-        } else {
-            // Check if this was a click on empty canvas (no selection box was drawn)
-            var element = controller.hitTest(pt.x, pt.y)
-            if (!element && !selectionBoxHandler.active && selectionManager && selectionManager.hasSelection) {
-                // Clear selection when clicking on empty canvas
-                selectionManager.clearSelection()
-            }
-            
-            // Let the controller handle release
-            controller.handleMouseRelease(pt.x, pt.y)
-        }
-    }
-    
-    function handleClick(pt) {
-        // Dismiss node catalog if it's showing
-        if (root.showNodeCatalog) {
-            console.log("Click detected - dismissing node catalog")
-            root.showNodeCatalog = false
-            root.dragSourceNode = null
-            root.dragSourceHandleType = ""
-            root.dragSourcePortIndex = -1
-            root.dragSourcePortType = "Flow"
-        }
-    }
     
     function handleHover(pt) {
         // Check if hovering over a node
@@ -636,51 +740,6 @@ BaseCanvas {
         hoveredElement = null
     }
     
-    function handleSelectionRect(rect) {
-        console.log("=== ScriptCanvas.handleSelectionRect called ===")
-        console.log("Selection rect:", JSON.stringify({x: rect.x, y: rect.y, width: rect.width, height: rect.height}))
-        
-        // Select all nodes that intersect with the selection rectangle
-        if (!controller || !elementModel || !selectionManager) {
-            console.log("ERROR: Missing required components")
-            return
-        }
-        
-        var elements = elementModel.getAllElements()
-        console.log("Total elements found:", elements.length)
-        
-        var selectedNodes = []
-        
-        for (var i = 0; i < elements.length; i++) {
-            var element = elements[i]
-            
-            // Only consider Node elements
-            if (element && element.objectName === "Node") {
-                // Check if element intersects with selection rect
-                var elementRect = Qt.rect(element.x, element.y, element.width, element.height)
-                
-                // Check for intersection
-                var intersects = rect.x < elementRect.x + elementRect.width &&
-                    rect.x + rect.width > elementRect.x &&
-                    rect.y < elementRect.y + elementRect.height &&
-                    rect.y + rect.height > elementRect.y
-                
-                if (intersects) {
-                    selectedNodes.push(element)
-                }
-            }
-        }
-        
-        console.log("Total nodes selected:", selectedNodes.length)
-        
-        // Update selection
-        if (selectedNodes.length > 0) {
-            selectionManager.clearSelection()
-            for (var j = 0; j < selectedNodes.length; j++) {
-                selectionManager.selectElement(selectedNodes[j])
-            }
-        }
-    }
     
     // Pan to show a node at the given canvas position
     function panToNode(canvasPos) {

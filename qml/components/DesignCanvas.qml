@@ -47,7 +47,6 @@ BaseCanvas {
     
     // Additional properties for design canvas
     property var hoveredElement: null
-    property alias creationDragHandler: creationDragHandler
     
     // Clear hover when selection changes
     Connections {
@@ -70,6 +69,19 @@ BaseCanvas {
     
     // Add elements into the default contentData
     contentData: [
+        // Canvas background - handles background clicks
+        CanvasBackground {
+            id: canvasBackground
+            anchors.fill: parent
+            canvas: root
+            z: -1  // Ensure it's behind all other elements
+            
+            onClicked: (canvasPoint) => {
+                // Forward the click to the canvas handler
+                root.handleClick(canvasPoint)
+            }
+        },
+        
         // Element layer
         DesignElementLayer {
             id: elementLayer
@@ -78,12 +90,11 @@ BaseCanvas {
             canvasMinY: root.canvasMinY
         },
         
-        // Overlay layer (creation previews, hover highlights)
+        // Overlay layer (hover highlights)
         DesignOverlayLayers {
             id: overlayLayer
             controller: root.controller
             selectionManager: root.selectionManager
-            creationDragHandler: creationDragHandler
             hoveredElement: root.hoveredElement
             canvasMinX: root.canvasMinX
             canvasMinY: root.canvasMinY
@@ -98,61 +109,41 @@ BaseCanvas {
         }
     ]
     
-    // Creation drag handler
-    QtObject {
-        id: creationDragHandler
-        property bool active: false
-        property point startPoint: Qt.point(0, 0)
-        property point currentPoint: Qt.point(0, 0)
-        
-        function start(point) {
-            active = true
-            startPoint = point
-            currentPoint = point
-        }
-        
-        function update(point) {
-            currentPoint = point
-        }
-        
-        function end() {
-            // The C++ controller already handles element creation
-            // We just need to reset our state
-            active = false
-        }
-    }
     
     // Implement behavior by overriding handler functions
     function handleDragStart(pt) {
         console.log("DesignCanvas.handleDragStart:", pt.x, pt.y, "mode:", controller.mode)
-        if (controller.mode === CanvasController.Select) {
-            controller.handleMousePress(pt.x, pt.y)
-        } else {
-            creationDragHandler.start(pt)
-            controller.handleMousePress(pt.x, pt.y)
-        }
+        // In design canvas, we don't handle drag start - elements can only be moved via controls
+        // This prevents direct element dragging
     }
     
     function handleDragMove(pt) {
-        if (creationDragHandler.active) {
-            creationDragHandler.update(pt)
-        }
-        controller.handleMouseMove(pt.x, pt.y)
+        // In design canvas, we don't handle drag move - elements can only be moved via controls
     }
     
     function handleDragEnd(pt) {
-        if (creationDragHandler.active) {
-            creationDragHandler.end()
-        }
-        controller.handleMouseRelease(pt.x, pt.y)
+        // In design canvas, we don't handle drag end - elements can only be moved via controls
     }
     
     function handleClick(pt) {
-        // Click is already handled in handleDragStart/End
-        // This is called only for quick clicks without drag
+        console.log("DesignCanvas.handleClick:", pt.x, pt.y, "mode:", controller.mode)
         if (controller.mode === CanvasController.Select) {
+            // In select mode, handle click for selection
             controller.handleMousePress(pt.x, pt.y)
             controller.handleMouseRelease(pt.x, pt.y)
+        } else {
+            // In creation modes, create element with default size at click position
+            var defaultSize = 100
+            var x = pt.x - defaultSize/2
+            var y = pt.y - defaultSize/2
+            
+            // Create element through controller - it will automatically select the new element
+            controller.handleMousePress(x, y)
+            controller.handleMouseMove(x + defaultSize, y + defaultSize)
+            controller.handleMouseRelease(x + defaultSize, y + defaultSize)
+            
+            // Switch back to select mode so user can immediately resize with controls
+            controller.mode = CanvasController.Select
         }
     }
     
