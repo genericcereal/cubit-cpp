@@ -30,8 +30,8 @@ public:
     virtual ~DesignElement();
     
     // Override to identify as design element
-    virtual bool isDesignElement() const { return true; }
-    virtual bool isScriptElement() const { return false; }
+    virtual bool isDesignElement() const override { return true; }
+    virtual bool isScriptElement() const override { return false; }
     
     // Scripts management
     Scripts* scripts() const;

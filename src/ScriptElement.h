@@ -12,8 +12,8 @@ public:
     virtual ~ScriptElement() = default;
     
     // Override to identify as script element
-    virtual bool isDesignElement() const { return false; }
-    virtual bool isScriptElement() const { return true; }
+    virtual bool isDesignElement() const override { return false; }
+    virtual bool isScriptElement() const override { return true; }
 };
 
 #endif // SCRIPTELEMENT_H
