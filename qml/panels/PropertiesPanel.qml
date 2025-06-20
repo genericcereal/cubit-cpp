@@ -123,7 +123,7 @@ ScrollView {
                         Layout.preferredHeight: 30
                         visible: selectedElement && selectedElement.isDesignElement && selectedElement.parentId
                         checkable: true
-                        checked: selectedElement && selectedElement.leftAnchored
+                        checked: selectedElement && selectedElement.isDesignElement && selectedElement.leftAnchored
                         text: "⚓"
                         font.pixelSize: 16
                         
@@ -182,7 +182,7 @@ ScrollView {
                         Layout.preferredHeight: 30
                         visible: selectedElement && selectedElement.isDesignElement && selectedElement.parentId
                         checkable: true
-                        checked: selectedElement && selectedElement.topAnchored
+                        checked: selectedElement && selectedElement.isDesignElement && selectedElement.topAnchored
                         text: "⚓"
                         font.pixelSize: 16
                         
@@ -230,7 +230,7 @@ ScrollView {
                         Layout.preferredWidth: 30
                         Layout.preferredHeight: 30
                         checkable: true
-                        checked: selectedElement && selectedElement.rightAnchored
+                        checked: selectedElement && selectedElement.isDesignElement && selectedElement.rightAnchored
                         text: "⚓"
                         font.pixelSize: 16
                         
@@ -278,7 +278,7 @@ ScrollView {
                         Layout.preferredWidth: 30
                         Layout.preferredHeight: 30
                         checkable: true
-                        checked: selectedElement && selectedElement.bottomAnchored
+                        checked: selectedElement && selectedElement.isDesignElement && selectedElement.bottomAnchored
                         text: "⚓"
                         font.pixelSize: 16
                         
