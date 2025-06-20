@@ -7,24 +7,10 @@ Item {
     
     required property var controller
     required property var selectionManager
-    required property var creationDragHandler
     required property var hoveredElement
     required property real canvasMinX
     required property real canvasMinY
     required property real zoom
-    
-    // Creation preview rectangle
-    Rectangle {
-        visible: creationDragHandler.active
-        x: Math.min(creationDragHandler.startPoint.x, creationDragHandler.currentPoint.x) - root.canvasMinX
-        y: Math.min(creationDragHandler.startPoint.y, creationDragHandler.currentPoint.y) - root.canvasMinY
-        width: Math.abs(creationDragHandler.currentPoint.x - creationDragHandler.startPoint.x)
-        height: Math.abs(creationDragHandler.currentPoint.y - creationDragHandler.startPoint.y)
-        color: "transparent"
-        border.color: "#0066cc"
-        border.width: 1 / root.zoom
-        opacity: 0.7
-    }
     
     // Hover highlight
     Rectangle {

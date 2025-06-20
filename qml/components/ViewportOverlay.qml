@@ -1,4 +1,5 @@
 import QtQuick
+import QtQml
 import Cubit 1.0
 import Cubit.UI 1.0
 
@@ -15,7 +16,6 @@ Item {
     property var hoveredElement: null
     property var selectionManager: canvasView?.selectionManager ?? null
     property var selectedElements: selectionManager?.selectedElements ?? []
-    property var creationDragHandler: canvasView?.creationDragHandler ?? null
     property var controller: canvasView?.controller ?? null
     property string canvasType: canvasView?.canvasType ?? "design"
     
@@ -26,10 +26,105 @@ Item {
     // Expose the selection controls
     property alias selectionControls: selectionControls
     
+    // Direct mouse handling for selection box
+    MouseArea {
+        id: selectionMouseArea
+        anchors.fill: parent
+        acceptedButtons: Qt.LeftButton
+        propagateComposedEvents: true
+        z: -1  // Behind other overlays but above canvas
+        
+        property bool isSelecting: false
+        property point selectionStartPoint: Qt.point(0, 0)
+        
+        onPressed: (mouse) => {
+            // Only start selection if:
+            // 1. We're in select mode
+            // 2. Click is not on a control
+            // 3. Click is not on an element
+            if (controller?.mode !== 0) { // 0 is CanvasController.Select
+                mouse.accepted = false
+                return
+            }
+            
+            // Check if controls are visible and under mouse
+            if (selectionControls.visible && selectionControls.contains(selectionControls.mapFromItem(root, mouse.x, mouse.y))) {
+                mouse.accepted = false
+                return
+            }
+            
+            // Convert to canvas coordinates
+            var canvasX = (mouse.x + (flickable?.contentX ?? 0)) / zoomLevel + canvasMinX
+            var canvasY = (mouse.y + (flickable?.contentY ?? 0)) / zoomLevel + canvasMinY
+            var canvasPoint = Qt.point(canvasX, canvasY)
+            
+            // Check if clicking on an element
+            var element = controller?.hitTest(canvasX, canvasY) ?? null
+            if (element) {
+                mouse.accepted = false
+                return
+            }
+            
+            // Start selection
+            isSelecting = true
+            selectionStartPoint = canvasPoint
+            selectionBox.startPoint = canvasPoint
+            selectionBox.currentPoint = canvasPoint
+            selectionBox.active = true
+            
+            // Clear existing selection
+            if (selectionManager) {
+                selectionManager.clearSelection()
+            }
+            
+            mouse.accepted = true
+        }
+        
+        onPositionChanged: (mouse) => {
+            if (!isSelecting) {
+                mouse.accepted = false
+                return
+            }
+            
+            // Convert to canvas coordinates
+            var canvasX = (mouse.x + (flickable?.contentX ?? 0)) / zoomLevel + canvasMinX
+            var canvasY = (mouse.y + (flickable?.contentY ?? 0)) / zoomLevel + canvasMinY
+            var canvasPoint = Qt.point(canvasX, canvasY)
+            
+            // Update selection box
+            selectionBox.currentPoint = canvasPoint
+            
+            // Calculate selection rectangle
+            var rect = Qt.rect(
+                Math.min(selectionStartPoint.x, canvasPoint.x),
+                Math.min(selectionStartPoint.y, canvasPoint.y),
+                Math.abs(canvasPoint.x - selectionStartPoint.x),
+                Math.abs(canvasPoint.y - selectionStartPoint.y)
+            )
+            
+            // Select elements in rect through the controller
+            if (controller?.selectElementsInRect) {
+                controller.selectElementsInRect(rect)
+            }
+            
+            mouse.accepted = true
+        }
+        
+        onReleased: (mouse) => {
+            if (!isSelecting) {
+                mouse.accepted = false
+                return
+            }
+            
+            isSelecting = false
+            selectionBox.active = false
+            mouse.accepted = true
+        }
+    }
+    
     // Selection box visual during drag selection
     SelectionBox {
         id: selectionBox
-        selectionBoxHandler: canvasView?.selectionBoxHandler ?? null
     }
     
     // Node selection bounds (only for script canvas)
@@ -60,9 +155,6 @@ Item {
             }
             // Only show controls if there are visual elements selected
             if (selectionManager && selectionManager.hasVisualSelection) {
-                return true
-            }
-            if (creationDragHandler && creationDragHandler.active) {
                 return true
             }
             return false
@@ -109,19 +201,6 @@ Item {
             }
         }
         
-        // Update during creation drag
-        property bool creationActive: creationDragHandler?.active ?? false
-        onCreationActiveChanged: {
-            if (creationActive) {
-                updateFromCreationDrag()
-            }
-        }
-        
-        // Watch for creation drag updates with conditional execution
-        property point creationStart: creationDragHandler?.startPoint ?? Qt.point(0, 0)
-        property point creationCurrent: creationDragHandler?.currentPoint ?? Qt.point(0, 0)
-        onCreationStartChanged: if (creationActive) updateFromCreationDrag()
-        onCreationCurrentChanged: if (creationActive) updateFromCreationDrag()
         
         function initializeFromSelection() {
             if (!selectedElements || selectedElements.length === 0) {
@@ -146,24 +225,6 @@ Item {
             updateViewportPosition()
         }
         
-        function updateFromCreationDrag() {
-            if (!creationDragHandler || !creationDragHandler.active) return
-            
-            var startX = Math.min(creationDragHandler.startPoint.x, creationDragHandler.currentPoint.x)
-            var startY = Math.min(creationDragHandler.startPoint.y, creationDragHandler.currentPoint.y)
-            var width = Math.abs(creationDragHandler.currentPoint.x - creationDragHandler.startPoint.x)
-            var height = Math.abs(creationDragHandler.currentPoint.y - creationDragHandler.startPoint.y)
-            
-            // Set control properties from creation bounds
-            controlX = startX
-            controlY = startY
-            controlWidth = width
-            controlHeight = height
-            controlRotation = 0
-            
-            // Convert to viewport coordinates for display
-            updateViewportPosition()
-        }
         
         // Use Binding objects for efficient position updates
         Binding {

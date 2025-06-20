@@ -1,5 +1,4 @@
 #include "CanvasController.h"
-#include "DragManager.h"
 #include "CreationManager.h"
 #include "HitTestService.h"
 #include "JsonImporter.h"
@@ -28,33 +27,16 @@ CanvasController::CanvasController(ElementModel& model,
     , m_selectionManager(sel)
 {
     // Create subcontrollers
-    m_dragManager = std::make_unique<DragManager>(this);
     m_creationManager = std::make_unique<CreationManager>(this);
     m_hitTestService = std::make_unique<HitTestService>(this);
     m_jsonImporter = std::make_unique<JsonImporter>(this);
     m_commandHistory = std::make_unique<CommandHistory>(this);
     
     // Set element model and selection manager on subcontrollers
-    m_dragManager->setElementModel(&m_elementModel);
-    m_dragManager->setSelectionManager(&m_selectionManager);
     m_creationManager->setElementModel(&m_elementModel);
     m_creationManager->setSelectionManager(&m_selectionManager);
     m_hitTestService->setElementModel(&m_elementModel);
     m_jsonImporter->setElementModel(&m_elementModel);
-    
-    // Connect drag manager signals
-    connect(m_dragManager.get(), &DragManager::isDraggingChanged,
-            this, &CanvasController::isDraggingChanged);
-    connect(m_dragManager.get(), &DragManager::dragEnded,
-            this, [this]() {
-                // Create move command if elements were actually moved
-                if (m_dragManager->hasDraggedMinDistance() && !m_dragManager->draggedElements().isEmpty()) {
-                    auto command = std::make_unique<MoveElementsCommand>(
-                        m_dragManager->draggedElements(), 
-                        m_dragManager->totalDelta());
-                    m_commandHistory->execute(std::move(command));
-                }
-            });
     
     // Connect creation manager signals
     connect(m_creationManager.get(), &CreationManager::elementCreated,
@@ -81,7 +63,7 @@ void CanvasController::initializeModeHandlers()
     auto setModeFunc = [this](Mode mode) { this->setMode(mode); };
     
     m_modeHandlers[Mode::Select] = std::make_unique<SelectModeHandler>(
-        m_dragManager.get(), m_hitTestService.get(), &m_selectionManager);
+        m_hitTestService.get(), &m_selectionManager);
     
     // Frame mode
     m_modeHandlers[Mode::Frame] = std::make_unique<CreationModeHandler>(
@@ -157,10 +139,6 @@ void CanvasController::setCanvasType(CanvasType type)
     }
 }
 
-bool CanvasController::isDragging() const
-{
-    return m_dragManager->isDragging();
-}
 
 
 Element* CanvasController::hitTest(qreal x, qreal y)
