@@ -3,8 +3,16 @@
 #include "ScriptExecutor.h"
 #include "Application.h"
 #include "Project.h"
+#include "Component.h"
+#include "ComponentInstance.h"
+#include "Frame.h"
+#include "Text.h"
+#include "Html.h"
+#include "UniqueIdGenerator.h"
+#include "ElementModel.h"
 #include <QCoreApplication>
 #include <QDebug>
+#include <QHash>
 
 DesignElement::DesignElement(const QString &id, QObject *parent)
     : CanvasElement(Element::FrameType, id, parent)  // Use FrameType as default, subclasses will override
@@ -427,4 +435,161 @@ void DesignElement::onParentGeometryChanged() {
     
     // Handle anchor-based resizing
     updateFromParentGeometry();
+}
+
+Component* DesignElement::createComponent() {
+    // Get the element model from the Application
+    Application* app = Application::instance();
+    if (!app || !app->activeCanvas() || !app->activeCanvas()->elementModel()) {
+        qWarning() << "DesignElement::createComponent - No active canvas or element model";
+        return nullptr;
+    }
+    
+    ElementModel* elementModel = app->activeCanvas()->elementModel();
+    
+    // Create a new Component
+    QString componentId = UniqueIdGenerator::generate16DigitId();
+    Component* component = new Component(componentId, this->parent());
+    
+    // Create a new Frame as the first variant
+    QString frameId = UniqueIdGenerator::generate16DigitId();
+    Frame* variantFrame = new Frame(frameId, component);
+    variantFrame->setName("Variant1");
+    
+    // Set the variant frame's position to 0,0 (relative to component)
+    variantFrame->setRect(QRectF(0, 0, width(), height()));
+    
+    // Add the frame as a variant to the component
+    component->addVariant(variantFrame);
+    
+    // Add the variant frame to the element model
+    elementModel->addElement(variantFrame);
+    
+    // Create a mapping of old IDs to new IDs for maintaining parent-child relationships
+    QHash<QString, QString> oldToNewIdMap;
+    
+    // Copy this element and all its children recursively
+    CanvasElement* copiedElement = copyElementRecursively(this, variantFrame, elementModel, oldToNewIdMap);
+    
+    // Add the component to the element model first
+    elementModel->addElement(component);
+    
+    // Create a ComponentInstance to represent this component on the canvas
+    QString instanceId = UniqueIdGenerator::generate16DigitId();
+    ComponentInstance* instance = new ComponentInstance(instanceId, this->parent());
+    
+    // Position the instance offset from the original element (20px right, 20px down)
+    instance->setRect(QRectF(x() + 20, y() + 20, width(), height()));
+    
+    // Add the instance to the element model
+    elementModel->addElement(instance);
+    
+    // Set the instance to reference this component after both are in the model
+    instance->setInstanceOf(componentId);
+    
+    return component;
+}
+
+CanvasElement* DesignElement::copyElementRecursively(CanvasElement* sourceElement, CanvasElement* parentInVariant, ElementModel* elementModel, QHash<QString, QString>& oldToNewIdMap) {
+    if (!sourceElement || !parentInVariant || !elementModel) {
+        return nullptr;
+    }
+    
+    // Create the appropriate type of copy
+    CanvasElement* copiedElement = nullptr;
+    QString newId = UniqueIdGenerator::generate16DigitId();
+    
+    // Store the ID mapping
+    oldToNewIdMap[sourceElement->getId()] = newId;
+    
+    // Create copy based on type
+    if (Frame* frame = qobject_cast<Frame*>(sourceElement)) {
+        Frame* frameCopy = new Frame(newId, parentInVariant);
+        frameCopy->setName("Copied " + frame->getName());
+        
+        // Calculate relative position to the root element being copied
+        qreal relX = 0;
+        qreal relY = 0;
+        
+        // If this is not the root element being copied
+        if (sourceElement != this) {
+            // Calculate position relative to the root element
+            relX = sourceElement->x() - this->x();
+            relY = sourceElement->y() - this->y();
+        }
+        
+        // Set position relative to parent in variant
+        frameCopy->setRect(QRectF(relX, relY, frame->width(), frame->height()));
+        frameCopy->setFillColor(frame->fillColor());
+        frameCopy->setBorderColor(frame->borderColor());
+        frameCopy->setBorderWidth(frame->borderWidth());
+        frameCopy->setBorderRadius(frame->borderRadius());
+        frameCopy->setOverflow(frame->overflow());
+        
+        copiedElement = frameCopy;
+    } else if (Text* text = qobject_cast<Text*>(sourceElement)) {
+        Text* textCopy = new Text(newId, parentInVariant);
+        textCopy->setName("Copied " + text->getName());
+        
+        // Calculate relative position
+        qreal relX = 0;
+        qreal relY = 0;
+        if (sourceElement != this) {
+            relX = sourceElement->x() - this->x();
+            relY = sourceElement->y() - this->y();
+        }
+        
+        textCopy->setRect(QRectF(relX, relY, text->width(), text->height()));
+        textCopy->setText(text->text());
+        textCopy->setFont(text->font());
+        textCopy->setColor(text->color());
+        
+        copiedElement = textCopy;
+    } else if (Html* html = qobject_cast<Html*>(sourceElement)) {
+        Html* htmlCopy = new Html(newId, parentInVariant);
+        htmlCopy->setName("Copied " + html->getName());
+        
+        // Calculate relative position
+        qreal relX = 0;
+        qreal relY = 0;
+        if (sourceElement != this) {
+            relX = sourceElement->x() - this->x();
+            relY = sourceElement->y() - this->y();
+        }
+        
+        htmlCopy->setRect(QRectF(relX, relY, html->width(), html->height()));
+        htmlCopy->setHtml(html->html());
+        htmlCopy->setUrl(html->url());
+        
+        copiedElement = htmlCopy;
+    }
+    
+    if (copiedElement) {
+        // Set parent relationship
+        copiedElement->setParentElementId(parentInVariant->getId());
+        copiedElement->setParentElement(parentInVariant);
+        
+        // Add to element model
+        elementModel->addElement(copiedElement);
+        
+        // Now recursively copy all children
+        QList<Element*> children = elementModel->getChildrenRecursive(sourceElement->getId());
+        
+        // Filter to only get direct children (not grandchildren)
+        QList<CanvasElement*> directChildren;
+        for (Element* child : children) {
+            if (child->getParentElementId() == sourceElement->getId()) {
+                if (CanvasElement* canvasChild = qobject_cast<CanvasElement*>(child)) {
+                    directChildren.append(canvasChild);
+                }
+            }
+        }
+        
+        // Recursively copy each direct child
+        for (CanvasElement* child : directChildren) {
+            copyElementRecursively(child, copiedElement, elementModel, oldToNewIdMap);
+        }
+    }
+    
+    return copiedElement;
 }

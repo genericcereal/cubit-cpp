@@ -270,6 +270,14 @@ bool HitTestService::shouldTestElement(Element* element) const
 {
     if (!element) return false;
     
+    // Check if mouse events are disabled for this element
+    if (element->isVisual()) {
+        CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+        if (canvasElement && !canvasElement->mouseEventsEnabled()) {
+            return false;
+        }
+    }
+    
     // For script canvas, test nodes and edges
     if (m_canvasType == CanvasType::Script) {
         return element->getType() == Element::NodeType || 

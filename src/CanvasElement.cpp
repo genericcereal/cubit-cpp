@@ -317,3 +317,11 @@ void CanvasElement::setParentElementId(const QString &parentId)
         }
     }
 }
+
+void CanvasElement::setMouseEventsEnabled(bool enabled)
+{
+    if (m_mouseEventsEnabled != enabled) {
+        m_mouseEventsEnabled = enabled;
+        emit mouseEventsEnabledChanged();
+    }
+}

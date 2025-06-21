@@ -31,10 +31,12 @@ public:
     // Element management
     Q_INVOKABLE void addElement(Element *element);
     Q_INVOKABLE void removeElement(const QString &elementId);
+    Q_INVOKABLE void removeElement(Element *element);
     Q_INVOKABLE void removeElementWithoutDelete(Element *element);
     Q_INVOKABLE Element* getElementById(const QString &elementId) const;
     Q_INVOKABLE Element* elementAt(int index) const;
     Q_INVOKABLE QList<Element*> getAllElements() const { return m_elements; }
+    Q_INVOKABLE QList<Element*> getChildrenRecursive(const QString &parentId) const;
     Q_INVOKABLE void clear();
     
     // ID generation

@@ -24,6 +24,10 @@ QString Element::getTypeName() const
             return "Node";
         case EdgeType:
             return "Edge";
+        case ComponentType:
+            return "Component";
+        case ComponentInstanceType:
+            return "ComponentInstance";
         default:
             return "Unknown";
     }

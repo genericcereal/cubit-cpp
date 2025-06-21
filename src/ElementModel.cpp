@@ -179,6 +179,30 @@ QString ElementModel::generateId()
     return UniqueIdGenerator::generate16DigitId();
 }
 
+void ElementModel::removeElement(Element *element)
+{
+    if (!element) return;
+    removeElement(element->getId());
+}
+
+QList<Element*> ElementModel::getChildrenRecursive(const QString &parentId) const
+{
+    QList<Element*> children;
+    
+    // Find all direct children
+    for (Element *element : m_elements) {
+        if (element && element->getParentElementId() == parentId) {
+            children.append(element);
+            
+            // Recursively get children of this child
+            QList<Element*> grandChildren = getChildrenRecursive(element->getId());
+            children.append(grandChildren);
+        }
+    }
+    
+    return children;
+}
+
 void ElementModel::onElementChanged()
 {
     Element *element = qobject_cast<Element*>(sender());

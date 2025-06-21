@@ -79,6 +79,9 @@ public:
     // Override parent setter to initialize anchors
     void setParentElement(CanvasElement* parent) override;
     
+    // Create a component from this design element
+    Q_INVOKABLE class Component* createComponent();
+    
 signals:
     void scriptsChanged();
     void leftChanged();
@@ -97,6 +100,9 @@ protected:
     std::unique_ptr<Scripts> m_scripts;
     
 private:
+    // Helper for component creation
+    CanvasElement* copyElementRecursively(CanvasElement* sourceElement, CanvasElement* parentInVariant, class ElementModel* elementModel, QHash<QString, QString>& oldToNewIdMap);
+    
     // Anchor positions (relative to parent)
     qreal m_left = 0;
     qreal m_right = 0;
