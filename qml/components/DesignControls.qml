@@ -56,6 +56,16 @@ Item {
         return (adjustedIndex === 0 || adjustedIndex === 2) ? Qt.SizeFDiagCursor : Qt.SizeBDiagCursor
     }
     
+    // Helper function to update mouse position in both controls and canvas
+    function updateMousePosition(pos) {
+        root.lastMousePosition = pos
+        // Also update the canvas's lastMousePosition if we can access it
+        // The parent should be ViewportOverlay, which has canvasView
+        if (root.parent && root.parent.canvasView) {
+            root.parent.canvasView.lastMousePosition = pos
+        }
+    }
+    
     // Control Surface - yellow transparent fill
     Rectangle {
         id: controlSurface
@@ -74,7 +84,7 @@ Item {
                 root.dragMode = "move"
                 // Store mouse position in parent coordinates to handle rotation correctly
                 var mouseInParent = mapToItem(root.parent, mouse.x, mouse.y)
-                root.lastMousePosition = mouseInParent
+                root.updateMousePosition(mouseInParent)
                 root.dragStartPoint = mouseInParent
                 root.dragStartControlPos = Qt.point(root.controlX, root.controlY)
                 mouse.accepted = true
@@ -83,14 +93,14 @@ Item {
             onReleased: {
                 root.dragging = false
                 root.dragMode = ""
-                root.lastMousePosition = Qt.point(0, 0)
+                root.updateMousePosition(Qt.point(0, 0))
             }
             
             onPositionChanged: (mouse) => {
                 if (root.dragMode === "move") {
                     // Calculate delta in parent coordinates so movement follows mouse regardless of rotation
                     var mouseInParent = mapToItem(root.parent, mouse.x, mouse.y)
-                    root.lastMousePosition = mouseInParent
+                    root.updateMousePosition(mouseInParent)
                     var deltaX = mouseInParent.x - root.dragStartPoint.x
                     var deltaY = mouseInParent.y - root.dragStartPoint.y
                     
@@ -182,7 +192,7 @@ Item {
                     
                     // Initialize mouse position
                     var mouseInParent = mapToItem(root.parent, mouse.x, mouse.y)
-                    root.lastMousePosition = mouseInParent
+                    root.updateMousePosition(mouseInParent)
                     
                     // Get the corners of the control in local space
                     var corners = [
@@ -232,7 +242,7 @@ Item {
                 onReleased: {
                     root.dragging = false
                     root.dragMode = ""
-                    root.lastMousePosition = Qt.point(0, 0)
+                    root.updateMousePosition(Qt.point(0, 0))
                 }
                 
                 onPositionChanged: (mouse) => {
@@ -240,7 +250,7 @@ Item {
                     
                     // Get mouse position in parent coordinates
                     var mouseInParent = mapToItem(root.parent, mouse.x, mouse.y)
-                    root.lastMousePosition = mouseInParent
+                    root.updateMousePosition(mouseInParent)
                     
                     // For constraint-based approach:
                     // 1. The anchor edge stays fixed at anchorEdgePoint1 and anchorEdgePoint2
@@ -402,7 +412,7 @@ Item {
                         root.y + root.height / 2
                     )
                     startMousePos = mapToItem(root.parent, mouse.x, mouse.y)
-                    root.lastMousePosition = startMousePos
+                    root.updateMousePosition(startMousePos)
                     startAngle = Math.atan2(startMousePos.y - centerPoint.y, startMousePos.x - centerPoint.x) * 180 / Math.PI
                     root.dragStartRotation = root.controlRotation
                     mouse.accepted = true
@@ -421,7 +431,7 @@ Item {
                             root.y + root.height / 2
                         )
                         var currentMousePos = mapToItem(root.parent, mouse.x, mouse.y)
-                        root.lastMousePosition = currentMousePos
+                        root.updateMousePosition(currentMousePos)
                         var currentAngle = Math.atan2(currentMousePos.y - centerPoint.y, currentMousePos.x - centerPoint.x) * 180 / Math.PI
                         var deltaAngle = currentAngle - startAngle
                         
@@ -495,7 +505,7 @@ Item {
                     
                     // Initialize mouse position
                     var mouseInParent = mapToItem(root.parent, mouse.x, mouse.y)
-                    root.lastMousePosition = mouseInParent
+                    root.updateMousePosition(mouseInParent)
                     
                     // Get the corners of the control in local space
                     var corners = [
@@ -548,7 +558,7 @@ Item {
                     
                     // Get mouse position in parent coordinates
                     var mouseInParent = mapToItem(root.parent, mouse.x, mouse.y)
-                    root.lastMousePosition = mouseInParent
+                    root.updateMousePosition(mouseInParent)
                     
                     // For constraint-based approach:
                     // 1. The anchor corner stays fixed

@@ -69,7 +69,7 @@ BaseCanvas {
     
     // Add elements into the default contentData
     contentData: [
-        // Canvas background - handles background clicks
+        // Canvas background - handles background clicks and drags
         CanvasBackground {
             id: canvasBackground
             anchors.fill: parent
@@ -79,6 +79,21 @@ BaseCanvas {
             onClicked: (canvasPoint) => {
                 // Forward the click to the canvas handler
                 root.handleClick(canvasPoint)
+            }
+            
+            onDragStarted: (canvasPoint) => {
+                // Forward drag start to the canvas handler
+                root.handleDragStart(canvasPoint)
+            }
+            
+            onDragMoved: (canvasPoint) => {
+                // Forward drag move to the canvas handler
+                root.handleDragMove(canvasPoint)
+            }
+            
+            onDragEnded: (canvasPoint) => {
+                // Forward drag end to the canvas handler
+                root.handleDragEnd(canvasPoint)
             }
         },
         
@@ -116,16 +131,33 @@ BaseCanvas {
     // Implement behavior by overriding handler functions
     function handleDragStart(pt) {
         console.log("DesignCanvas.handleDragStart:", pt.x, pt.y, "mode:", controller.mode)
-        // In design canvas, we don't handle drag start - elements can only be moved via controls
-        // This prevents direct element dragging
+        if (controller.mode !== CanvasController.Select) {
+            // In creation modes, start creating element at drag start position
+            controller.handleMousePress(pt.x, pt.y)
+            // Set isResizing to true during creation drag
+            root.isResizing = true
+        }
+        // In select mode, we don't handle drag - elements can only be moved via controls
     }
     
     function handleDragMove(pt) {
-        // In design canvas, we don't handle drag move - elements can only be moved via controls
+        if (controller.mode !== CanvasController.Select) {
+            // In creation modes, update element size as if dragging bottom-right resize joint
+            controller.handleMouseMove(pt.x, pt.y)
+        }
+        // In select mode, we don't handle drag - elements can only be moved via controls
     }
     
     function handleDragEnd(pt) {
-        // In design canvas, we don't handle drag end - elements can only be moved via controls
+        if (controller.mode !== CanvasController.Select) {
+            // In creation modes, finish creating element
+            controller.handleMouseRelease(pt.x, pt.y)
+            // Switch back to select mode after creation
+            controller.mode = CanvasController.Select
+            // Clear isResizing when creation drag ends
+            root.isResizing = false
+        }
+        // In select mode, we don't handle drag - elements can only be moved via controls
     }
     
     function handleClick(pt) {
@@ -134,20 +166,8 @@ BaseCanvas {
             // In select mode, handle click for selection
             controller.handleMousePress(pt.x, pt.y)
             controller.handleMouseRelease(pt.x, pt.y)
-        } else {
-            // In creation modes, create element with default size at click position
-            var defaultSize = 100
-            var x = pt.x - defaultSize/2
-            var y = pt.y - defaultSize/2
-            
-            // Create element through controller - it will automatically select the new element
-            controller.handleMousePress(x, y)
-            controller.handleMouseMove(x + defaultSize, y + defaultSize)
-            controller.handleMouseRelease(x + defaultSize, y + defaultSize)
-            
-            // Switch back to select mode so user can immediately resize with controls
-            controller.mode = CanvasController.Select
         }
+        // In creation modes, don't create on click - require drag
     }
     
     function handleHover(pt) {

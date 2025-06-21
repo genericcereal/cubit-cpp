@@ -340,6 +340,8 @@ void DesignElement::setParentElement(CanvasElement* parent) {
         disconnect(parentElement(), nullptr, this, nullptr);
     }
     
+    // Call base class but it will skip parent tracking since isDesignElement() returns true
+    // and we handle it ourselves
     CanvasElement::setParentElement(parent);
     
     if (parent) {
@@ -392,6 +394,37 @@ void DesignElement::setParentElement(CanvasElement* parent) {
 }
 
 void DesignElement::onParentGeometryChanged() {
+    // Prevent re-entry during updates
+    if (m_updatingFromAnchors) return;
+    
     qDebug() << "Parent geometry changed for" << getId();
+    
+    CanvasElement* parent = parentElement();
+    if (!parent) return;
+    
+    // Track parent position changes
+    static QMap<QString, QPointF> lastParentPositions;
+    QString parentId = parent->getId();
+    
+    QPointF currentParentPos(parent->x(), parent->y());
+    QPointF delta(0, 0);
+    
+    if (lastParentPositions.contains(parentId)) {
+        QPointF lastPos = lastParentPositions[parentId];
+        delta = currentParentPos - lastPos;
+        
+        if (!qFuzzyIsNull(delta.x()) || !qFuzzyIsNull(delta.y())) {
+            qDebug() << "  -> Parent moved by delta:" << delta;
+            // Set flag to prevent circular updates
+            m_updatingFromAnchors = true;
+            // Always move child when parent moves
+            CanvasElement::setX(x() + delta.x());
+            CanvasElement::setY(y() + delta.y());
+            m_updatingFromAnchors = false;
+        }
+    }
+    lastParentPositions[parentId] = currentParentPos;
+    
+    // Handle anchor-based resizing
     updateFromParentGeometry();
 }

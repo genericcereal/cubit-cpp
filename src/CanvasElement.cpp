@@ -13,9 +13,11 @@ void CanvasElement::setX(qreal x)
 {
     if (!qFuzzyCompare(canvasPosition.x(), x))
     {
+        qreal oldX = canvasPosition.x();
         canvasPosition.setX(x);
         m_boundsValid = false;
         updateCachedBounds();
+        qDebug() << "CanvasElement::setX -" << this->getTypeName() << getId() << "moved from x:" << oldX << "to x:" << x;
         emit xChanged();
         emit geometryChanged();
         emit elementChanged();
@@ -26,9 +28,11 @@ void CanvasElement::setY(qreal y)
 {
     if (!qFuzzyCompare(canvasPosition.y(), y))
     {
+        qreal oldY = canvasPosition.y();
         canvasPosition.setY(y);
         m_boundsValid = false;
         updateCachedBounds();
+        qDebug() << "CanvasElement::setY -" << this->getTypeName() << getId() << "moved from y:" << oldY << "to y:" << y;
         emit yChanged();
         emit geometryChanged();
         emit elementChanged();
@@ -39,9 +43,11 @@ void CanvasElement::setWidth(qreal w)
 {
     if (!qFuzzyCompare(canvasSize.width(), w))
     {
+        qreal oldWidth = canvasSize.width();
         canvasSize.setWidth(w);
         m_boundsValid = false;
         updateCachedBounds();
+        qDebug() << "CanvasElement::setWidth -" << this->getTypeName() << getId() << "resized from width:" << oldWidth << "to width:" << w;
         emit widthChanged();
         emit geometryChanged();
         emit elementChanged();
@@ -52,9 +58,11 @@ void CanvasElement::setHeight(qreal h)
 {
     if (!qFuzzyCompare(canvasSize.height(), h))
     {
+        qreal oldHeight = canvasSize.height();
         canvasSize.setHeight(h);
         m_boundsValid = false;
         updateCachedBounds();
+        qDebug() << "CanvasElement::setHeight -" << this->getTypeName() << getId() << "resized from height:" << oldHeight << "to height:" << h;
         emit heightChanged();
         emit geometryChanged();
         emit elementChanged();
@@ -109,6 +117,10 @@ void CanvasElement::setParentElement(CanvasElement *parent)
     {
         return;
     }
+    
+    qDebug() << "CanvasElement::setParentElement -" << this->getTypeName() << getId() 
+             << "setting parent to" << (parent ? parent->getTypeName() + " " + parent->getId() : "null");
+    
     // Disconnect all existing parent connections
     for (const auto &connection : m_parentConnections)
     {
@@ -119,12 +131,16 @@ void CanvasElement::setParentElement(CanvasElement *parent)
     m_parentElement = parent;
     emit parentElementChanged();
 
-    // Only subscribe to parent properties for design elements
-    if (m_parentElement && isDesignElement())
+    // Only subscribe to parent properties for non-design elements
+    // (DesignElement has its own parent tracking system)
+    if (m_parentElement && !isDesignElement())
     {
         // Store initial parent position for tracking
         m_lastParentPosition = QPointF(m_parentElement->x(), m_parentElement->y());
         m_trackingParentPosition = true;
+        
+        qDebug() << "  -> Element is NOT a design element. Tracking parent position enabled.";
+        qDebug() << "  -> Initial parent position:" << m_lastParentPosition;
         
         // Define the properties we want to track from parent
         static const QStringList parentPropertiesToTrack = {
@@ -140,10 +156,15 @@ void CanvasElement::setParentElement(CanvasElement *parent)
         {
             subscribeToParentProperty(propertyName);
         }
+        
+        qDebug() << "  -> Subscribed to parent properties:" << parentPropertiesToTrack;
     }
     else
     {
         m_trackingParentPosition = false;
+        if (m_parentElement && isDesignElement()) {
+            qDebug() << "  -> Element is a design element. Using DesignElement's parent tracking.";
+        }
     }
 }
 
@@ -182,6 +203,11 @@ void CanvasElement::subscribeToParentProperty(const QString &propertyName)
             if (connection)
             {
                 m_parentConnections.append(connection);
+                qDebug() << "    -> Successfully connected to parent's" << propertyName << "property change signal";
+            }
+            else
+            {
+                qDebug() << "    -> FAILED to connect to parent's" << propertyName << "property change signal";
             }
         }
     }
@@ -228,9 +254,15 @@ void CanvasElement::onParentPropertyChanged()
                 QPointF currentParentPos(m_parentElement->x(), m_parentElement->y());
                 QPointF delta = currentParentPos - m_lastParentPosition;
                 
+                qDebug() << "CanvasElement::onParentPropertyChanged -" << this->getTypeName() << getId() 
+                         << "detected parent" << m_parentElement->getTypeName() << m_parentElement->getId()
+                         << "moved. Delta x:" << delta.x() << "y:" << delta.y();
+                
                 // Move this element by the same delta
                 if (!qFuzzyIsNull(delta.x()) || !qFuzzyIsNull(delta.y()))
                 {
+                    qDebug() << "  -> Moving child from (" << x() << "," << y() << ") to (" 
+                             << (x() + delta.x()) << "," << (y() + delta.y()) << ")";
                     setX(x() + delta.x());
                     setY(y() + delta.y());
                     m_lastParentPosition = currentParentPos;

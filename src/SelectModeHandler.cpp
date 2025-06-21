@@ -17,8 +17,8 @@ void SelectModeHandler::onPress(qreal x, qreal y)
     
     Element *element = m_hitTestService->hitTest(x, y);
     if (element) {
-        // Select element on press (dragging is now handled in QML)
-        m_selectionManager->selectElement(element);
+        // Use selectOnly to clear existing selection and select only this element
+        m_selectionManager->selectOnly(element);
     } else {
         m_selectionManager->clearSelection();
     }

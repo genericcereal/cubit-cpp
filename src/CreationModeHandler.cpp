@@ -47,17 +47,31 @@ void CreationModeHandler::onMove(qreal x, qreal y)
     CanvasElement* element = currentElement();
     if (!element) return;
     
-    // Calculate new dimensions based on drag
-    qreal width = qAbs(x - m_startPos.x());
-    qreal height = qAbs(y - m_startPos.y());
-    qreal left = qMin(x, m_startPos.x());
-    qreal top = qMin(y, m_startPos.y());
+    // Behave like bottom-right resize joint:
+    // - Top-left corner stays fixed at start position
+    // - Bottom-right corner follows the mouse
+    qreal width = x - m_startPos.x();
+    qreal height = y - m_startPos.y();
     
-    // Update element size and position directly (resize command will be created on release)
-    element->setX(left);
-    element->setY(top);
-    element->setWidth(qMax(width, 1.0));
-    element->setHeight(qMax(height, 1.0));
+    // Allow negative sizes for flipping, just like standard resize
+    // The controls will handle the flipping behavior
+    
+    // Update element position and size to handle flipping
+    if (width < 0) {
+        element->setX(x);
+        element->setWidth(qMax(-width, 1.0));
+    } else {
+        element->setX(m_startPos.x());
+        element->setWidth(qMax(width, 1.0));
+    }
+    
+    if (height < 0) {
+        element->setY(y);
+        element->setHeight(qMax(-height, 1.0));
+    } else {
+        element->setY(m_startPos.y());
+        element->setHeight(qMax(height, 1.0));
+    }
 }
 
 void CreationModeHandler::onRelease(qreal x, qreal y)

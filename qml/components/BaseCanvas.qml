@@ -29,6 +29,10 @@ Item {
     // Edge preview state - to be provided by ScriptCanvas
     property bool isEdgePreview: false
     
+    // Mouse tracking
+    property point lastMousePosition: Qt.point(0, 0)
+    property bool isResizing: false
+    
     // Expose internal components for viewport overlay
     property alias flickable: flick
     property alias canvasArea: canvasArea
@@ -73,8 +77,18 @@ Item {
         clip: true
         boundsBehavior: Flickable.StopAtBounds
         
-        // Disable interactive dragging during edge preview mode
-        interactive: root.canvasType !== "script" || !root.isEdgePreview
+        // Disable interactive dragging during edge preview mode or creation modes
+        interactive: {
+            // Disable for script canvas edge preview
+            if (root.canvasType === "script" && root.isEdgePreview) {
+                return false
+            }
+            // Disable for design canvas creation modes
+            if (root.canvasType === "design" && controller && controller.mode !== CanvasController.Select) {
+                return false
+            }
+            return true
+        }
         
         // Watch for edge preview changes to immediately stop any ongoing interaction
         onInteractiveChanged: {
@@ -176,6 +190,9 @@ Item {
             }
             
             onPositionChanged: (mouse) => {
+                // Update last mouse position immediately for hover badge
+                root.lastMousePosition = Qt.point(mouse.x, mouse.y)
+                
                 // Throttle hover events
                 pendingMousePosition = Qt.point(mouse.x, mouse.y)
                 hasPendingMouseMove = true

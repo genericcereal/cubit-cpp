@@ -26,6 +26,8 @@ Item {
     // Expose the selection controls
     property alias selectionControls: selectionControls
     
+    
+    
     // Direct mouse handling for selection box
     MouseArea {
         id: selectionMouseArea
@@ -194,6 +196,29 @@ Item {
             }
         }
         
+        // Additional connection for creation mode - always update during element creation
+        Connections {
+            target: selectionManager
+            enabled: canvasView && canvasView.controller && 
+                    canvasView.controller.mode !== CanvasController.Select && 
+                    selectionManager !== null
+            
+            function onSelectionChanged() {
+                if (selectedElements.length > 0 && selectionControls.visible) {
+                    // Always update control properties during creation
+                    selectionControls.controlX = selectionBoundingX
+                    selectionControls.controlY = selectionBoundingY
+                    selectionControls.controlWidth = selectionBoundingWidth
+                    selectionControls.controlHeight = selectionBoundingHeight
+                    // Force visual update during creation
+                    selectionControls.updateViewportPosition()
+                    
+                    // During creation, don't override the mouse position here
+                    // Let the creationMouseTracker handle it so the hover badge follows the actual cursor
+                }
+            }
+        }
+        
         // Ensure controls are positioned when they become visible
         onVisibleChanged: {
             if (visible && !dragging) {
@@ -274,14 +299,32 @@ Item {
         property real initialControlWidth: 0
         property real initialControlHeight: 0
         
+        // Watch for dragMode changes
+        onDragModeChanged: {
+            // Update isResizing when dragMode changes during active drag
+            if (dragging && canvasView) {
+                if (dragMode.startsWith("resize-") || dragMode === "resize") {
+                    canvasView.isResizing = true
+                } else {
+                    canvasView.isResizing = false
+                }
+            }
+        }
+        
         // Handle mouse drag for hover detection
         onMouseDragged: (viewportPos) => {
-            if (canvasView && canvasView.handleHover) {
-                // Convert viewport position to canvas coordinates
-                var canvasX = (viewportPos.x + (flickable?.contentX ?? 0)) / zoomLevel + canvasMinX
-                var canvasY = (viewportPos.y + (flickable?.contentY ?? 0)) / zoomLevel + canvasMinY
-                var canvasPoint = Qt.point(canvasX, canvasY)
-                canvasView.handleHover(canvasPoint)
+            // Update the canvas's lastMousePosition for hover badge
+            if (canvasView) {
+                canvasView.lastMousePosition = viewportPos
+                
+                // Also handle hover detection
+                if (canvasView.handleHover) {
+                    // Convert viewport position to canvas coordinates
+                    var canvasX = (viewportPos.x + (flickable?.contentX ?? 0)) / zoomLevel + canvasMinX
+                    var canvasY = (viewportPos.y + (flickable?.contentY ?? 0)) / zoomLevel + canvasMinY
+                    var canvasPoint = Qt.point(canvasX, canvasY)
+                    canvasView.handleHover(canvasPoint)
+                }
             }
         }
         
@@ -301,9 +344,17 @@ Item {
         onDraggingChanged: {
             if (dragging) {
                 captureInitialStates()
+                // Set isResizing on the canvas when starting resize drag
+                if (canvasView && (dragMode.startsWith("resize-") || dragMode === "resize")) {
+                    canvasView.isResizing = true
+                }
             } else {
                 initialElementStates = []
                 updateViewportPosition() // Ensure position is correct after drag
+                // Clear isResizing on the canvas when ending drag
+                if (canvasView) {
+                    canvasView.isResizing = false
+                }
             }
         }
         
@@ -414,7 +465,15 @@ Item {
         onLoaded: {
             item.parent = root
             item.visible = Qt.binding(function() { 
-                return selectionControls.dragging && (selectionControls.dragMode.startsWith("resize-") || selectionControls.dragMode === "rotate")
+                // Show during resize (both standard resize and creation resize)
+                if (canvasView && canvasView.isResizing) {
+                    return true
+                }
+                // Show during rotation
+                if (selectionControls.dragging && selectionControls.dragMode === "rotate") {
+                    return true
+                }
+                return false
             })
             item.text = Qt.binding(function() {
                 if (selectionControls.dragMode === "rotate") {
@@ -423,7 +482,10 @@ Item {
                     return Math.round(Math.abs(selectionControls.controlWidth)) + " x " + Math.round(Math.abs(selectionControls.controlHeight))
                 }
             })
-            item.mousePosition = Qt.binding(function() { return selectionControls.lastMousePosition })
+            item.mousePosition = Qt.binding(function() { 
+                // Use the mouse position from BaseCanvas
+                return canvasView ? canvasView.lastMousePosition : Qt.point(0, 0)
+            })
             item.z = Config.zHoverBadge
         }
     }
