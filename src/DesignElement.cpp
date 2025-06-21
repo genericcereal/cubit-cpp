@@ -2,7 +2,7 @@
 #include "Scripts.h"
 #include "ScriptExecutor.h"
 #include "Application.h"
-#include "Canvas.h"
+#include "Project.h"
 #include <QCoreApplication>
 #include <QDebug>
 
@@ -38,7 +38,7 @@ void DesignElement::executeScriptEvent(const QString& eventName) {
     // Since design elements are part of a canvas, we can get the active canvas
     Application* app = qobject_cast<Application*>(qApp);
     if (app && app->activeCanvas()) {
-        Canvas* canvas = app->activeCanvas();
+        Project* canvas = app->activeCanvas();
         if (canvas->elementModel()) {
             executor.setElementModel(canvas->elementModel());
         }

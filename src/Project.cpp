@@ -1,4 +1,4 @@
-#include "Canvas.h"
+#include "Project.h"
 #include "CanvasController.h"
 #include "SelectionManager.h"
 #include "ElementModel.h"
@@ -7,7 +7,7 @@
 #include "Node.h"
 #include "Edge.h"
 
-Canvas::Canvas(const QString& id, const QString& name, QObject *parent)
+Project::Project(const QString& id, const QString& name, QObject *parent)
     : QObject(parent)
     , m_name(name.isEmpty() ? "Untitled Canvas" : name)
     , m_id(id)
@@ -15,49 +15,49 @@ Canvas::Canvas(const QString& id, const QString& name, QObject *parent)
 {
 }
 
-Canvas::~Canvas() {
+Project::~Project() {
     // Clear elements before destroying other components to avoid dangling pointers
     if (m_elementModel) {
         m_elementModel->clear();
     }
 }
 
-CanvasController* Canvas::controller() const {
+CanvasController* Project::controller() const {
     return m_controller.get();
 }
 
-SelectionManager* Canvas::selectionManager() const {
+SelectionManager* Project::selectionManager() const {
     return m_selectionManager.get();
 }
 
-ElementModel* Canvas::elementModel() const {
+ElementModel* Project::elementModel() const {
     return m_elementModel.get();
 }
 
-Scripts* Canvas::scripts() const {
+Scripts* Project::scripts() const {
     return m_scripts.get();
 }
 
-QString Canvas::name() const {
+QString Project::name() const {
     return m_name;
 }
 
-QString Canvas::id() const {
+QString Project::id() const {
     return m_id;
 }
 
-QString Canvas::viewMode() const {
+QString Project::viewMode() const {
     return m_viewMode;
 }
 
-void Canvas::setName(const QString& name) {
+void Project::setName(const QString& name) {
     if (m_name != name) {
         m_name = name;
         emit nameChanged();
     }
 }
 
-void Canvas::setViewMode(const QString& viewMode) {
+void Project::setViewMode(const QString& viewMode) {
     if (m_viewMode != viewMode) {
         m_viewMode = viewMode;
         
@@ -65,24 +65,24 @@ void Canvas::setViewMode(const QString& viewMode) {
         if (viewMode == "script") {
             if (m_selectionManager) {
                 auto selectedElements = m_selectionManager->selectedElements();
-                qDebug() << "Canvas: Switching to script mode, selected elements:" << selectedElements.size();
+                qDebug() << "Project: Switching to script mode, selected elements:" << selectedElements.size();
                 if (selectedElements.size() == 1) {
                     auto element = selectedElements.first();
                     if (element && element->isVisual()) {
                         CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
                         if (canvasElement && canvasElement->isDesignElement()) {
-                            qDebug() << "Canvas: Setting editing element to" << element->getId();
+                            qDebug() << "Project: Setting editing element to" << element->getId();
                             setEditingElement(qobject_cast<DesignElement*>(element));
                         } else {
-                            qDebug() << "Canvas: Element is not a design element";
+                            qDebug() << "Project: Element is not a design element";
                             setEditingElement(nullptr);
                         }
                     } else {
-                        qDebug() << "Canvas: Element is not visual";
+                        qDebug() << "Project: Element is not visual";
                         setEditingElement(nullptr);
                     }
                 } else {
-                    qDebug() << "Canvas: Not exactly one element selected";
+                    qDebug() << "Project: Not exactly one element selected";
                     setEditingElement(nullptr);
                 }
             }
@@ -119,7 +119,7 @@ void Canvas::setViewMode(const QString& viewMode) {
     }
 }
 
-void Canvas::initialize() {
+void Project::initialize() {
     // Create the components that don't have dependencies first
     m_elementModel = std::make_unique<ElementModel>(this);
     m_selectionManager = std::make_unique<SelectionManager>(this);
@@ -144,7 +144,7 @@ void Canvas::initialize() {
                 if (Node* node = qobject_cast<Node*>(element)) {
                     // Check if it's not already in scripts (to avoid duplicates during load)
                     if (!targetScripts->getNode(node->getId())) {
-                        qDebug() << "Canvas: Adding node" << node->getId() << "to" 
+                        qDebug() << "Project: Adding node" << node->getId() << "to" 
                                  << (m_editingElement ? "editing element's" : "canvas") << "scripts";
                         // The node was created by the controller, we need to transfer it to scripts
                         // Set the parent to scripts so it gets proper ownership
@@ -153,7 +153,7 @@ void Canvas::initialize() {
                     }
                 } else if (Edge* edge = qobject_cast<Edge*>(element)) {
                     if (!targetScripts->getEdge(edge->getId())) {
-                        qDebug() << "Canvas: Adding edge" << edge->getId() << "to" 
+                        qDebug() << "Project: Adding edge" << edge->getId() << "to" 
                                  << (m_editingElement ? "editing element's" : "canvas") << "scripts";
                         // Transfer ownership to scripts
                         edge->setParent(targetScripts);
@@ -171,11 +171,11 @@ void Canvas::initialize() {
             if (targetScripts) {
                 // Remove from scripts when removed from model
                 if (Node* node = targetScripts->getNode(elementId)) {
-                    qDebug() << "Canvas: Removing node" << elementId << "from" 
+                    qDebug() << "Project: Removing node" << elementId << "from" 
                              << (m_editingElement ? "editing element's" : "canvas") << "scripts";
                     targetScripts->removeNode(node);
                 } else if (Edge* edge = targetScripts->getEdge(elementId)) {
-                    qDebug() << "Canvas: Removing edge" << elementId << "from" 
+                    qDebug() << "Project: Removing edge" << elementId << "from" 
                              << (m_editingElement ? "editing element's" : "canvas") << "scripts";
                     targetScripts->removeEdge(edge);
                 }
@@ -184,11 +184,11 @@ void Canvas::initialize() {
     });
 }
 
-DesignElement* Canvas::editingElement() const {
+DesignElement* Project::editingElement() const {
     return m_editingElement;
 }
 
-Scripts* Canvas::activeScripts() const {
+Scripts* Project::activeScripts() const {
     // If we're editing a design element's scripts, return those
     // Otherwise return the canvas's global scripts
     if (m_editingElement && m_editingElement->scripts()) {
@@ -197,7 +197,7 @@ Scripts* Canvas::activeScripts() const {
     return m_scripts.get();
 }
 
-void Canvas::setEditingElement(DesignElement* element) {
+void Project::setEditingElement(DesignElement* element) {
     if (m_editingElement != element) {
         m_editingElement = element;
         emit editingElementChanged();
@@ -205,14 +205,14 @@ void Canvas::setEditingElement(DesignElement* element) {
     }
 }
 
-void Canvas::updateActiveScripts() {
+void Project::updateActiveScripts() {
     emit activeScriptsChanged();
 }
 
-void Canvas::loadScriptsIntoElementModel() {
+void Project::loadScriptsIntoElementModel() {
     if (!m_elementModel) return;
     
-    qDebug() << "Canvas::loadScriptsIntoElementModel - Starting";
+    qDebug() << "Project::loadScriptsIntoElementModel - Starting";
     
     // Clear existing script elements from the model first
     clearScriptElementsFromModel();
@@ -220,7 +220,7 @@ void Canvas::loadScriptsIntoElementModel() {
     // Get the active scripts
     Scripts* scripts = activeScripts();
     if (!scripts) {
-        qDebug() << "Canvas::loadScriptsIntoElementModel - No active scripts";
+        qDebug() << "Project::loadScriptsIntoElementModel - No active scripts";
         return;
     }
     
@@ -230,7 +230,7 @@ void Canvas::loadScriptsIntoElementModel() {
     
     // Add all nodes to the element model
     auto nodes = scripts->getAllNodes();
-    qDebug() << "Canvas::loadScriptsIntoElementModel - Loading" << nodes.size() << "nodes";
+    qDebug() << "Project::loadScriptsIntoElementModel - Loading" << nodes.size() << "nodes";
     for (Node* node : nodes) {
         if (node) {
             // Add to model but Scripts retains ownership
@@ -240,7 +240,7 @@ void Canvas::loadScriptsIntoElementModel() {
     
     // Add all edges to the element model
     auto edges = scripts->getAllEdges();
-    qDebug() << "Canvas::loadScriptsIntoElementModel - Loading" << edges.size() << "edges";
+    qDebug() << "Project::loadScriptsIntoElementModel - Loading" << edges.size() << "edges";
     for (Edge* edge : edges) {
         if (edge) {
             // Add to model but Scripts retains ownership
@@ -249,17 +249,17 @@ void Canvas::loadScriptsIntoElementModel() {
     }
 }
 
-void Canvas::saveElementModelToScripts() {
+void Project::saveElementModelToScripts() {
     if (!m_elementModel) return;
     
     // The nodes/edges are already in the scripts
     // They were added/removed dynamically via the connect() signals
     // No additional action needed here
     
-    qDebug() << "Canvas::saveElementModelToScripts - Scripts already synced via signals";
+    qDebug() << "Project::saveElementModelToScripts - Scripts already synced via signals";
 }
 
-void Canvas::clearScriptElementsFromModel() {
+void Project::clearScriptElementsFromModel() {
     if (!m_elementModel) return;
     
     // Get all elements and remove nodes and edges
@@ -296,9 +296,9 @@ void Canvas::clearScriptElementsFromModel() {
     }
 }
 
-void Canvas::executeScriptEvent(const QString& eventName) {
+void Project::executeScriptEvent(const QString& eventName) {
     if (!m_scriptExecutor) {
-        qWarning() << "Canvas: ScriptExecutor not initialized";
+        qWarning() << "Project: ScriptExecutor not initialized";
         return;
     }
     

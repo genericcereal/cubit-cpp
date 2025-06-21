@@ -1,5 +1,5 @@
 #include "Application.h"
-#include "Canvas.h"
+#include "Project.h"
 #include "SelectionManager.h"
 #include "UniqueIdGenerator.h"
 #include <QDebug>
@@ -32,7 +32,7 @@ QString Application::createCanvas(const QString& name) {
     QString canvasId = generateCanvasId();
     QString canvasName = name.isEmpty() ? QString("Canvas %1").arg(m_canvases.size() + 1) : name;
     
-    auto canvas = std::make_unique<Canvas>(canvasId, canvasName, this);
+    auto canvas = std::make_unique<Project>(canvasId, canvasName, this);
     canvas->initialize();
     
     m_canvases.push_back(std::move(canvas));
@@ -50,7 +50,7 @@ QString Application::createCanvas(const QString& name) {
 
 void Application::removeCanvas(const QString& canvasId) {
     auto it = std::find_if(m_canvases.begin(), m_canvases.end(),
-        [&canvasId](const std::unique_ptr<Canvas>& c) { return c->id() == canvasId; });
+        [&canvasId](const std::unique_ptr<Project>& c) { return c->id() == canvasId; });
     
     if (it != m_canvases.end()) {
         bool wasActive = (m_activeCanvasId == canvasId);
@@ -78,12 +78,12 @@ void Application::switchToCanvas(const QString& canvasId) {
 }
 
 QString Application::getCanvasName(const QString& canvasId) const {
-    const Canvas* canvas = findCanvas(canvasId);
+    const Project* canvas = findCanvas(canvasId);
     return canvas ? canvas->name() : QString();
 }
 
 void Application::renameCanvas(const QString& canvasId, const QString& newName) {
-    Canvas* canvas = findCanvas(canvasId);
+    Project* canvas = findCanvas(canvasId);
     if (canvas && !newName.isEmpty()) {
         canvas->setName(newName);
         emit canvasListChanged();
@@ -94,8 +94,8 @@ QString Application::activeCanvasId() const {
     return m_activeCanvasId;
 }
 
-Canvas* Application::activeCanvas() const {
-    return const_cast<Canvas*>(findCanvas(m_activeCanvasId));
+Project* Application::activeCanvas() const {
+    return const_cast<Project*>(findCanvas(m_activeCanvasId));
 }
 
 QStringList Application::canvasIds() const {
@@ -119,7 +119,7 @@ void Application::setActiveCanvasId(const QString& canvasId) {
         m_activeCanvasId = canvasId;
         
         // Clear selection when switching canvases
-        Canvas* canvas = findCanvas(canvasId);
+        Project* canvas = findCanvas(canvasId);
         if (canvas && canvas->selectionManager()) {
             canvas->selectionManager()->clearSelection();
         }
@@ -130,15 +130,15 @@ void Application::setActiveCanvasId(const QString& canvasId) {
 }
 
 
-Canvas* Application::findCanvas(const QString& canvasId) {
+Project* Application::findCanvas(const QString& canvasId) {
     auto it = std::find_if(m_canvases.begin(), m_canvases.end(),
-        [&canvasId](const std::unique_ptr<Canvas>& c) { return c->id() == canvasId; });
+        [&canvasId](const std::unique_ptr<Project>& c) { return c->id() == canvasId; });
     return (it != m_canvases.end()) ? it->get() : nullptr;
 }
 
-const Canvas* Application::findCanvas(const QString& canvasId) const {
+const Project* Application::findCanvas(const QString& canvasId) const {
     auto it = std::find_if(m_canvases.begin(), m_canvases.end(),
-        [&canvasId](const std::unique_ptr<Canvas>& c) { return c->id() == canvasId; });
+        [&canvasId](const std::unique_ptr<Project>& c) { return c->id() == canvasId; });
     return (it != m_canvases.end()) ? it->get() : nullptr;
 }
 

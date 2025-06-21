@@ -1,5 +1,5 @@
-#ifndef CANVAS_H
-#define CANVAS_H
+#ifndef PROJECT_H
+#define PROJECT_H
 
 #include <QObject>
 #include <QString>
@@ -11,7 +11,7 @@
 #include "DesignElement.h"
 #include "ScriptExecutor.h"
 
-class Canvas : public QObject {
+class Project : public QObject {
     Q_OBJECT
     Q_PROPERTY(CanvasController* controller READ controller CONSTANT)
     Q_PROPERTY(SelectionManager* selectionManager READ selectionManager CONSTANT)
@@ -24,8 +24,8 @@ class Canvas : public QObject {
     Q_PROPERTY(Scripts* activeScripts READ activeScripts NOTIFY activeScriptsChanged)
 
 public:
-    explicit Canvas(const QString& id, const QString& name = QString(), QObject *parent = nullptr);
-    ~Canvas();
+    explicit Project(const QString& id, const QString& name = QString(), QObject *parent = nullptr);
+    ~Project();
 
     // Property getters
     CanvasController* controller() const;
@@ -72,4 +72,4 @@ private:
     void clearScriptElementsFromModel();
 };
 
-#endif // CANVAS_H
+#endif // PROJECT_H

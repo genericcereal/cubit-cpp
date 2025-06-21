@@ -5,13 +5,13 @@
 #include <QQmlEngine>
 #include <memory>
 #include <vector>
-#include "Canvas.h"
+#include "Project.h"
 #include "Panels.h"
 
 class Application : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString activeCanvasId READ activeCanvasId WRITE setActiveCanvasId NOTIFY activeCanvasIdChanged)
-    Q_PROPERTY(Canvas* activeCanvas READ activeCanvas NOTIFY activeCanvasChanged)
+    Q_PROPERTY(Project* activeCanvas READ activeCanvas NOTIFY activeCanvasChanged)
     Q_PROPERTY(QStringList canvasIds READ canvasIds NOTIFY canvasListChanged)
     Q_PROPERTY(QStringList canvasNames READ canvasNames NOTIFY canvasListChanged)
     Q_PROPERTY(Panels* panels READ panels CONSTANT)
@@ -31,7 +31,7 @@ public:
 
     // Property getters
     QString activeCanvasId() const;
-    Canvas* activeCanvas() const;
+    Project* activeCanvas() const;
     QStringList canvasIds() const;
     QStringList canvasNames() const;
     Panels* panels() const;
@@ -48,12 +48,12 @@ signals:
 
 private:
     static Application* s_instance;
-    std::vector<std::unique_ptr<Canvas>> m_canvases;
+    std::vector<std::unique_ptr<Project>> m_canvases;
     QString m_activeCanvasId;
     std::unique_ptr<Panels> m_panels;
     
-    Canvas* findCanvas(const QString& canvasId);
-    const Canvas* findCanvas(const QString& canvasId) const;
+    Project* findCanvas(const QString& canvasId);
+    const Project* findCanvas(const QString& canvasId) const;
     QString generateCanvasId() const;
 };
 
