@@ -1,55 +1,158 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts 1.15
+import Cubit
 
-ScrollView {
+Item {
     id: root
     
     property var elementModel
     property var selectionManager
     
-    ListView {
-        id: listView
-        model: elementModel
-        spacing: 1
+    ScrollView {
+        id: scrollView
+        anchors.fill: parent
+        
+        ListView {
+            id: listView
+            model: elementModel
+            spacing: 1
         
         delegate: Rectangle {
+            id: delegateRect
             width: listView.width
-            height: visible ? 40 : 0
-            visible: model.elementType !== "Node" && model.elementType !== "Edge"
+            height: visible ? 28 : 0
             color: model.selected ? "#e3f2fd" : (mouseArea.containsMouse ? "#f5f5f5" : "#ffffff")
             antialiasing: true
             
-            RowLayout {
-                anchors.fill: parent
-                anchors.margins: 8
-                spacing: 8
-                
-                Rectangle {
-                    Layout.preferredWidth: 4
-                    Layout.fillHeight: true
-                    color: {
-                        switch(model.elementType) {
-                            case "Frame": return "#2196F3"
-                            case "Text": return "#4CAF50"
-                            case "Html": return "#FF9800"
-                            case "Variable": return "#9C27B0"
-                            default: return "#757575"
+            // Calculate indent level and check if has children
+            property int indentLevel: {
+                var level = 0
+                var currentElement = model.element
+                while (currentElement && currentElement.parentId) {
+                    level++
+                    // Find parent element
+                    var parentFound = false
+                    for (var i = 0; i < elementModel.rowCount(); i++) {
+                        var elem = elementModel.elementAt(i)
+                        if (elem && elem.elementId === currentElement.parentId) {
+                            currentElement = elem
+                            parentFound = true
+                            break
                         }
                     }
-                    antialiasing: true
+                    if (!parentFound) break
                 }
+                return level
+            }
+            
+            property bool hasChildren: {
+                if (!model.element) return false
+                for (var i = 0; i < elementModel.rowCount(); i++) {
+                    var child = elementModel.elementAt(i)
+                    if (child && child.parentId === model.element.elementId) {
+                        return true
+                    }
+                }
+                return false
+            }
+            
+            property bool isExpanded: true
+            
+            // Check if this item should be visible based on parent expansion state
+            property bool parentExpanded: {
+                if (!model.element || !model.element.parentId) return true
+                
+                // Find all ancestors and check if they are expanded
+                var ancestors = []
+                var currentElement = model.element
+                while (currentElement && currentElement.parentId) {
+                    // Find parent element
+                    var parentFound = false
+                    for (var i = 0; i < elementModel.rowCount(); i++) {
+                        var elem = elementModel.elementAt(i)
+                        if (elem && elem.elementId === currentElement.parentId) {
+                            ancestors.push(elem.elementId)
+                            currentElement = elem
+                            parentFound = true
+                            break
+                        }
+                    }
+                    if (!parentFound) break
+                }
+                
+                // Check if all ancestors are expanded
+                for (var j = 0; j < ancestors.length; j++) {
+                    var ancestorId = ancestors[j]
+                    // Find the delegate for this ancestor
+                    for (var k = 0; k < listView.count; k++) {
+                        var item = listView.itemAtIndex(k)
+                        if (item && item.elementId === ancestorId && !item.isExpanded) {
+                            return false
+                        }
+                    }
+                }
+                return true
+            }
+            
+            property string elementId: model.element ? model.element.elementId : ""
+            
+            visible: (model.elementType !== "Node" && model.elementType !== "Edge") && parentExpanded
+            
+            // Expand/collapse box positioned absolutely
+            Rectangle {
+                id: expandBox
+                x: 6 + (indentLevel * 16)
+                y: 7
+                width: 14
+                height: 14
+                visible: hasChildren
+                color: expandMouseArea.containsMouse ? "#e0e0e0" : "#f5f5f5"
+                border.width: 1
+                border.color: "#cccccc"
+                radius: 2
+                z: 1  // Above the main mouse area
+                
+                Text {
+                    anchors.centerIn: parent
+                    text: delegateRect.isExpanded ? "−" : "+"
+                    font.pixelSize: 10
+                    font.weight: Font.Medium
+                    color: "#444444"
+                }
+                
+                MouseArea {
+                    id: expandMouseArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    onClicked: {
+                        delegateRect.isExpanded = !delegateRect.isExpanded
+                        treeLinesOverlay.updateExpandedState(delegateRect.elementId, delegateRect.isExpanded)
+                    }
+                }
+            }
+            
+            
+            RowLayout {
+                anchors.fill: parent
+                anchors.leftMargin: 6 + (indentLevel * 16) + 18  // Add space for expand box
+                anchors.rightMargin: 6
+                anchors.topMargin: 4
+                anchors.bottomMargin: 4
+                spacing: 4
                 
                 Label {
                     Layout.fillWidth: true
-                    text: model.name
+                    text: model.name || "Unnamed"
                     elide: Text.ElideRight
+                    font.pixelSize: 12
                 }
                 
                 Label {
+                    Layout.alignment: Qt.AlignRight
                     text: model.elementType
                     color: "#666666"
-                    font.pixelSize: 11
+                    font.pixelSize: 10
                 }
             }
             
@@ -134,6 +237,121 @@ ScrollView {
                     }
                 }
             }
+        }
+        }
+    }
+    
+    // Tree lines overlay - draws vertical lines connecting parents to children
+    Canvas {
+        id: treeLinesOverlay
+        anchors.fill: scrollView
+        z: 1  // Above scrollview content
+        enabled: false  // Don't intercept mouse events
+        
+        property var expandedStates: ({})
+        
+        function updateExpandedState(elementId, isExpanded) {
+            expandedStates[elementId] = isExpanded
+            requestPaint()
+        }
+            
+        function repaintLines() {
+            requestPaint()
+        }
+            
+            onPaint: {
+                var ctx = getContext("2d")
+                if (!ctx) return
+                
+                ctx.clearRect(0, 0, width, height)
+                
+                // Set line style
+                ctx.strokeStyle = "#999999"  // Medium gray
+                ctx.lineWidth = 1
+                ctx.setLineDash([2, 2])  // Dotted line
+                
+                // Simple approach: draw vertical lines based on parent-child relationships
+                var itemHeight = 29  // 28px height + 1px spacing
+                var visibleIndex = 0
+                var itemPositions = {}
+                
+                // First pass: record positions of all visible items
+                for (var i = 0; i < root.elementModel.rowCount(); i++) {
+                    var element = root.elementModel.elementAt(i)
+                    if (!element) continue
+                    
+                    // Skip Node and Edge elements
+                    if (element.elementType === "Node" || element.elementType === "Edge") continue
+                    
+                    // Record the item position
+                    itemPositions[element.elementId] = {
+                        index: visibleIndex,
+                        element: element,
+                        y: visibleIndex * itemHeight
+                    }
+                    visibleIndex++
+                }
+                
+                // Second pass: draw vertical lines for parents with children
+                for (var elementId in itemPositions) {
+                    var parentInfo = itemPositions[elementId]
+                    var childrenYPositions = []
+                    
+                    // Find all children of this element
+                    for (var childId in itemPositions) {
+                        var childInfo = itemPositions[childId]
+                        if (childInfo.element.parentId === elementId) {
+                            childrenYPositions.push(childInfo.y + itemHeight - 1)  // Bottom of child row
+                        }
+                    }
+                    
+                    // If has children AND is expanded, draw vertical line
+                    if (childrenYPositions.length > 0 && treeLinesOverlay.expandedStates[elementId] !== false) {
+                        // Calculate indent level
+                        var indentLevel = 0
+                        var currentElement = parentInfo.element
+                        while (currentElement && currentElement.parentId) {
+                            indentLevel++
+                            currentElement = itemPositions[currentElement.parentId] ? 
+                                            itemPositions[currentElement.parentId].element : null
+                        }
+                        
+                        var x = 6 + (indentLevel * 16) + 7  // Center of expand box
+                        var startY = parentInfo.y + 21  // Below expand box
+                        var endY = Math.max.apply(null, childrenYPositions)
+                        
+                        ctx.beginPath()
+                        ctx.moveTo(x, startY)
+                        ctx.lineTo(x, endY)
+                        ctx.stroke()
+                    }
+                }
+            }
+            
+            // Repaint when model changes
+            Connections {
+                target: root.elementModel
+                function onDataChanged() { 
+                    treeLinesOverlay.repaintLines()
+                }
+                function onRowsInserted() { 
+                    treeLinesOverlay.repaintLines()
+                }
+                function onRowsRemoved() { 
+                    treeLinesOverlay.repaintLines()
+                }
+            }
+            
+        // Initial paint
+        Component.onCompleted: {
+            // Initialize all elements as expanded by default
+            for (var i = 0; i < root.elementModel.rowCount(); i++) {
+                var element = root.elementModel.elementAt(i)
+                if (element && element.elementType !== "Node" && element.elementType !== "Edge") {
+                    expandedStates[element.elementId] = true
+                }
+            }
+            repaintLines()
         }
     }
 }
