@@ -19,7 +19,7 @@
 #include "ViewportCache.h"
 #include "ConsoleMessageRepository.h"
 #include "Application.h"
-#include "Canvas.h"
+#include "Project.h"
 #include "Panels.h"
 #include "Scripts.h"
 #include "ScriptCompiler.h"
@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
     qmlRegisterType<ElementModel>("Cubit", 1, 0, "ElementModel");
     qmlRegisterType<SelectionManager>("Cubit", 1, 0, "SelectionManager");
     qmlRegisterType<ViewportCache>("Cubit", 1, 0, "ViewportCache");
-    qmlRegisterType<Canvas>("Cubit", 1, 0, "CanvasData");
+    qmlRegisterType<Project>("Cubit", 1, 0, "CanvasData");
     qmlRegisterType<Panels>("Cubit", 1, 0, "Panels");
     qmlRegisterType<Scripts>("Cubit", 1, 0, "Scripts");
     qmlRegisterType<ScriptCompiler>("Cubit", 1, 0, "ScriptCompiler");
