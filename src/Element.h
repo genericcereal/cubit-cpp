@@ -18,7 +18,9 @@ public:
         VariableType,
         HtmlType,
         NodeType,
-        EdgeType
+        EdgeType,
+        ComponentType,
+        ComponentInstanceType
     };
     Q_ENUM(ElementType)
 

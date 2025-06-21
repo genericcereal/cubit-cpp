@@ -44,6 +44,8 @@ SOURCES += \
     src/Text.cpp \
     src/Html.cpp \
     src/Variable.cpp \
+    src/Component.cpp \
+    src/ComponentInstance.cpp \
     src/Node.cpp \
     src/Edge.cpp \
     src/CanvasController.cpp \
@@ -84,6 +86,8 @@ HEADERS += \
     src/Text.h \
     src/Html.h \
     src/Variable.h \
+    src/Component.h \
+    src/ComponentInstance.h \
     src/Node.h \
     src/Edge.h \
     src/CanvasController.h \

@@ -15,6 +15,7 @@ class CanvasElement : public Element {
     Q_PROPERTY(bool isDesignElement READ isDesignElement CONSTANT)
     Q_PROPERTY(bool isScriptElement READ isScriptElement CONSTANT)
     Q_PROPERTY(CanvasElement* parentElement READ parentElement WRITE setParentElement NOTIFY parentElementChanged)
+    Q_PROPERTY(bool mouseEventsEnabled READ mouseEventsEnabled WRITE setMouseEventsEnabled NOTIFY mouseEventsEnabledChanged)
     
 public:
     explicit CanvasElement(ElementType type, const QString &id, QObject *parent = nullptr);
@@ -65,6 +66,10 @@ public:
     void subscribeToParentProperty(const QString& propertyName);
     void unsubscribeFromParentProperty(const QString& propertyName);
     
+    // Mouse events control
+    bool mouseEventsEnabled() const { return m_mouseEventsEnabled; }
+    void setMouseEventsEnabled(bool enabled);
+    
 signals:
     void xChanged();
     void yChanged();
@@ -73,6 +78,7 @@ signals:
     void geometryChanged();  // Emitted when x, y, width, or height change
     void parentElementChanged();
     void parentPropertyChanged(const QString& propertyName);  // Generic signal for any parent property change
+    void mouseEventsEnabledChanged();
     
 protected:
     QPointF canvasPosition;
@@ -97,4 +103,7 @@ private:
     // Parent position tracking for relative positioning
     QPointF m_lastParentPosition;
     bool m_trackingParentPosition = false;
+    
+    // Mouse events control
+    bool m_mouseEventsEnabled = true;
 };

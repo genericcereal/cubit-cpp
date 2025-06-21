@@ -54,7 +54,13 @@ ScrollView {
                     }
                     
                     onClicked: {
-                        ConsoleMessageRepository.addOutput("TODO: Component functionality")
+                        if (selectedDesignElement) {
+                            // Call createComponent on the selected design element
+                            var component = selectedDesignElement.createComponent()
+                            if (component) {
+                                ConsoleMessageRepository.addOutput("Component created with ID: " + component.elementId)
+                            }
+                        }
                     }
                 }
             }
