@@ -7,18 +7,15 @@
         <file>qml/qmldir</file>
         <file>qml/components/BaseCanvas.qml</file>
         <file>qml/components/CanvasBackground.qml</file>
-        <file>qml/components/CanvasGestureHandler.qml</file>
         <file>qml/components/DesignCanvas.qml</file>
         <file>qml/components/DesignElementLayer.qml</file>
-        <file>qml/components/DesignOverlayLayers.qml</file>
         <file>qml/components/DesignScriptExecutorOverlay.qml</file>
         <file>qml/components/ScriptCanvas.qml</file>
         <file>qml/components/NodeCatalog.qml</file>
         <file>qml/components/NodeCatalogPopup.qml</file>
-        <file>qml/components/NodeHeader.qml</file>
         <file>qml/components/PortTypeConfig.qml</file>
         <file>qml/components/PortInput.qml</file>
-        <file>qml/components/ElementItem.qml</file>
+        <file>qml/components/DesignElement.qml</file>
         <file>qml/components/ElementRenderer.qml</file>
         <file>qml/components/FrameElement.qml</file>
         <file>qml/components/TextElement.qml</file>
@@ -28,16 +25,9 @@
         <file>qml/components/BezierEdge.qml</file>
         <file>qml/components/NodeSelectionBounds.qml</file>
         <file>qml/components/ViewportOverlay.qml</file>
-        <file>qml/components/ResizeHandle.qml</file>
         <file>qml/components/SelectionBox.qml</file>
-        <file>qml/components/HoverIndicator.qml</file>
-        <file>qml/components/HoverBadge.qml</file>
-        <file>qml/components/Controls.qml</file>
-        <file>qml/components/SelectionBoxHandler.qml</file>
-        <file>qml/components/CreationDragHandler.qml</file>
-        <file>qml/components/GridOverlay.qml</file>
+        <file>qml/components/DesignControls.qml</file>
         <file>qml/components/ElementLayer.qml</file>
-        <file>qml/components/OverlayLayers.qml</file>
         <file>qml/panels/DetailPanel.qml</file>
         <file>qml/panels/ElementList.qml</file>
         <file>qml/panels/PropertiesPanel.qml</file>

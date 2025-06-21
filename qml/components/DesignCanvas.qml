@@ -90,15 +90,18 @@ BaseCanvas {
             canvasMinY: root.canvasMinY
         },
         
-        // Overlay layer (hover highlights)
-        DesignOverlayLayers {
-            id: overlayLayer
-            controller: root.controller
-            selectionManager: root.selectionManager
-            hoveredElement: root.hoveredElement
-            canvasMinX: root.canvasMinX
-            canvasMinY: root.canvasMinY
-            zoom: root.zoom
+        // Hover highlight overlay
+        Rectangle {
+            id: hoverRect
+            visible: root.hoveredElement !== null && root.controller.mode === CanvasController.Select
+            x: root.hoveredElement ? root.hoveredElement.x - root.canvasMinX : 0
+            y: root.hoveredElement ? root.hoveredElement.y - root.canvasMinY : 0
+            width: root.hoveredElement ? root.hoveredElement.width : 0
+            height: root.hoveredElement ? root.hoveredElement.height : 0
+            color: "transparent"
+            border.color: "#ffaa00"
+            border.width: 2 / root.zoom
+            opacity: 0.5
         },
         
         // Script executor overlay

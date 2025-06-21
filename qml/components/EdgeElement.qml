@@ -1,5 +1,7 @@
 import QtQuick
+import QtQuick.Shapes
 import Cubit 1.0
+import Cubit.UI 1.0
 
 Item {
     id: root
@@ -34,77 +36,41 @@ Item {
     // Selection state
     property bool selected: element ? element.selected : false
     
-    // Debug background to see if edge element is visible
-    Rectangle {
+    // Use BezierEdge component for rendering
+    BezierEdge {
+        id: bezierEdge
         anchors.fill: parent
-        color: "yellow"
-        opacity: 0.2
-        z: -1
-    }
-    
-    // Draw the edge using Canvas - simplified to just draw points for debugging
-    Canvas {
-        id: edgeCanvas
-        anchors.fill: parent
-        z: 10  // Ensure canvas is above the debug rectangle
-        
-        onPaint: {
-            console.log("EdgeElement onPaint called")
-            console.log("  Canvas size:", width, "x", height)
-            
-            var ctx = getContext("2d")
-            ctx.clearRect(0, 0, width, height)
-            
-            if (!edgeElement || !sourceNode || !targetNode) {
-                console.log("  Missing data - edgeElement:", !!edgeElement, "sourceNode:", !!sourceNode, "targetNode:", !!targetNode)
-                return
-            }
-            
-            // Get points in canvas coordinates
-            var sp = edgeElement.sourcePoint
-            var tp = edgeElement.targetPoint
-            
-            // Adjust for canvas offset (parent Loader is already offset by canvasMin)
-            var canvasOffsetX = canvas ? canvas.canvasMinX : 0
-            var canvasOffsetY = canvas ? canvas.canvasMinY : 0
-            
-            var localSp = Qt.point(sp.x - canvasOffsetX, sp.y - canvasOffsetY)
-            var localTp = Qt.point(tp.x - canvasOffsetX, tp.y - canvasOffsetY)
-            
-            console.log("  Source point (world):", sp.x, sp.y)
-            console.log("  Target point (world):", tp.x, tp.y)
-            console.log("  Canvas offset:", canvasOffsetX, canvasOffsetY)
-            console.log("  Source point (local):", localSp.x, localSp.y)
-            console.log("  Target point (local):", localTp.x, localTp.y)
-            
-            // Draw circles at the handle positions
-            ctx.fillStyle = "#FF0000"  // Red for source
-            ctx.beginPath()
-            ctx.arc(localSp.x, localSp.y, 10, 0, 2 * Math.PI)
-            ctx.fill()
-            
-            ctx.fillStyle = "#0000FF"  // Blue for target
-            ctx.beginPath()
-            ctx.arc(localTp.x, localTp.y, 10, 0, 2 * Math.PI)
-            ctx.fill()
-            
-            console.log("  Points drawn")
-        }
+        edge: edgeElement
+        canvasMinX: canvas ? canvas.canvasMinX : 0
+        canvasMinY: canvas ? canvas.canvasMinY : 0
+        isPreview: false
     }
     
     // Repaint when selection changes
-    onSelectedChanged: edgeCanvas.requestPaint()
+    onSelectedChanged: {
+        bezierEdge.edge = edgeElement  // Force refresh
+    }
     
     // Watch for element changes
     Connections {
         target: edgeElement
         enabled: edgeElement !== null
         
-        function onSourcePointChanged() { edgeCanvas.requestPaint() }
-        function onTargetPointChanged() { edgeCanvas.requestPaint() }
-        function onControlPoint1Changed() { edgeCanvas.requestPaint() }
-        function onControlPoint2Changed() { edgeCanvas.requestPaint() }
-        function onGeometryChanged() { edgeCanvas.requestPaint() }
+        function onSourcePointChanged() { 
+            bezierEdge.edge = edgeElement 
+        }
+        function onTargetPointChanged() { 
+            bezierEdge.edge = edgeElement 
+        }
+        function onControlPoint1Changed() { 
+            bezierEdge.edge = edgeElement 
+        }
+        function onControlPoint2Changed() { 
+            bezierEdge.edge = edgeElement 
+        }
+        function onGeometryChanged() { 
+            bezierEdge.edge = edgeElement 
+        }
     }
     
     // Watch for node movements
@@ -193,6 +159,5 @@ Item {
         }
         
         updateEdgePosition()
-        edgeCanvas.requestPaint()
     }
 }

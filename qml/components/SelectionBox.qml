@@ -17,6 +17,14 @@ Rectangle {
     property real canvasMinX: parent.canvasMinX
     property real canvasMinY: parent.canvasMinY
     
+    // Selection handler properties
+    property var selectionManager
+    property var onSelectionRectChanged: null
+    
+    // Frame throttling for better performance
+    property bool updatePending: false
+    property point pendingPoint: Qt.point(0, 0)
+    
     visible: active
     color: "transparent"
     border.color: Config.selectionColor
@@ -46,6 +54,39 @@ Rectangle {
         canvasY = Math.min(startPoint.y, currentPoint.y)
         canvasWidth = Math.abs(currentPoint.x - startPoint.x)
         canvasHeight = Math.abs(currentPoint.y - startPoint.y)
+        
+        // Notify parent of selection rect change
+        if (onSelectionRectChanged) {
+            var rect = Qt.rect(canvasX, canvasY, canvasWidth, canvasHeight)
+            onSelectionRectChanged(rect)
+        }
+    }
+    
+    function startSelection(point) {
+        active = true
+        startPoint = point
+        currentPoint = point
+        if (selectionManager) {
+            selectionManager.clearSelection()
+        }
+    }
+    
+    function updateSelection(point) {
+        pendingPoint = point
+        
+        if (!updatePending) {
+            updatePending = true
+            Qt.callLater(performUpdate)
+        }
+    }
+    
+    function performUpdate() {
+        updatePending = false
+        currentPoint = pendingPoint
+    }
+    
+    function endSelection() {
+        active = false
     }
     
     // Use Binding objects for efficient position updates

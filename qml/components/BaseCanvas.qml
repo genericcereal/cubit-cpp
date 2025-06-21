@@ -104,52 +104,160 @@ Item {
     }
     
     // Gesture handling for pan and zoom
-    CanvasGestureHandler {
+    Item {
         id: gestureHandler
         anchors.fill: parent
-        
-        contentX: flick.contentX
-        contentY: flick.contentY
-        zoom: root.zoom
-        canvasMinX: root.canvasMinX
-        canvasMinY: root.canvasMinY
         
         // Disable gesture handling during edge preview in script canvas
         enabled: root.canvasType !== "script" || !root.isEdgePreview
         
-        onHover: (pt) => {
-            root.handleHover(pt)
-        }
-        
-        onExitCanvas: {
-            root.handleExit()
-        }
-        
-        onPan: (dx, dy) => {
-            // Don't pan during edge preview mode
-            if (root.canvasType === "script" && root.isEdgePreview) {
-                return
+        // Mouse area for middle-button panning
+        MouseArea {
+            id: panArea
+            anchors.fill: parent
+            acceptedButtons: Qt.MiddleButton
+            
+            property bool isPanning: false
+            property point lastPanPosition
+            
+            onPressed: (mouse) => {
+                isPanning = true
+                lastPanPosition = Qt.point(mouse.x, mouse.y)
+                cursorShape = Qt.ClosedHandCursor
             }
-            flick.contentX -= dx
-            flick.contentY -= dy
+            
+            onPositionChanged: (mouse) => {
+                if (isPanning) {
+                    var dx = mouse.x - lastPanPosition.x
+                    var dy = mouse.y - lastPanPosition.y
+                    lastPanPosition = Qt.point(mouse.x, mouse.y)
+                    
+                    // Don't pan during edge preview mode
+                    if (root.canvasType === "script" && root.isEdgePreview) {
+                        return
+                    }
+                    flick.contentX -= dx
+                    flick.contentY -= dy
+                }
+            }
+            
+            onReleased: {
+                isPanning = false
+                cursorShape = Qt.ArrowCursor
+            }
         }
         
-        onPinch: (center, scaleFactor) => {
-            // Store old zoom for calculations
-            var oldZoom = root.zoom
+        // Mouse area for hover tracking and wheel events
+        MouseArea {
+            id: hoverArea
+            anchors.fill: parent
+            acceptedButtons: Qt.NoButton
+            hoverEnabled: true
             
-            // Calculate new zoom level
-            root.zoom = Utils.clamp(oldZoom * scaleFactor, root.minZoom, root.maxZoom)
+            property real throttleDelay: 16 // 60fps
+            property point pendingMousePosition
+            property bool hasPendingMouseMove: false
             
-            // Keep the zoom point stable in viewport
-            // The point 'center' is in canvas coordinates, we need to find where it is in the viewport
-            // before zoom, then adjust content position to keep it at the same viewport location
-            var viewportX = (center.x - root.canvasMinX) * oldZoom - flick.contentX
-            var viewportY = (center.y - root.canvasMinY) * oldZoom - flick.contentY
+            Timer {
+                id: throttleTimer
+                interval: hoverArea.throttleDelay
+                repeat: false
+                onTriggered: {
+                    if (hoverArea.hasPendingMouseMove) {
+                        var canvasPt = Utils.viewportToCanvas(
+                            hoverArea.pendingMousePosition,
+                            flick.contentX, flick.contentY, root.zoom, 
+                            root.canvasMinX, root.canvasMinY
+                        )
+                        root.handleHover(canvasPt)
+                        hoverArea.hasPendingMouseMove = false
+                    }
+                }
+            }
             
-            // Recalculate content position to keep zoom point fixed
-            flick.contentX = (center.x - root.canvasMinX) * root.zoom - viewportX
-            flick.contentY = (center.y - root.canvasMinY) * root.zoom - viewportY
+            onPositionChanged: (mouse) => {
+                // Throttle hover events
+                pendingMousePosition = Qt.point(mouse.x, mouse.y)
+                hasPendingMouseMove = true
+                if (!throttleTimer.running) {
+                    throttleTimer.start()
+                }
+            }
+            
+            onExited: {
+                root.handleExit()
+            }
+            
+            // Handle wheel events for zoom
+            onWheel: (wheel) => {
+                if (wheel.modifiers & Qt.ControlModifier) {
+                    var delta = wheel.angleDelta.y
+                    if (Math.abs(delta) > 0) {
+                        var scaleFactor = delta > 0 ? 1.1 : 0.9
+                        var canvasPt = Utils.viewportToCanvas(
+                            Qt.point(wheel.x, wheel.y),
+                            flick.contentX, flick.contentY, root.zoom, 
+                            root.canvasMinX, root.canvasMinY
+                        )
+                        
+                        // Store old zoom for calculations
+                        var oldZoom = root.zoom
+                        
+                        // Calculate new zoom level
+                        root.zoom = Utils.clamp(oldZoom * scaleFactor, root.minZoom, root.maxZoom)
+                        
+                        // Keep the zoom point stable in viewport
+                        var viewportX = (canvasPt.x - root.canvasMinX) * oldZoom - flick.contentX
+                        var viewportY = (canvasPt.y - root.canvasMinY) * oldZoom - flick.contentY
+                        
+                        // Recalculate content position to keep zoom point fixed
+                        flick.contentX = (canvasPt.x - root.canvasMinX) * root.zoom - viewportX
+                        flick.contentY = (canvasPt.y - root.canvasMinY) * root.zoom - viewportY
+                        
+                        wheel.accepted = true
+                    }
+                } else {
+                    wheel.accepted = false
+                }
+            }
+        }
+        
+        // Pinch handler for touch zoom
+        PinchHandler {
+            id: pinchHandler
+            target: null  // We don't want it to directly modify anything
+            
+            property real startZoom: 1.0
+            property point startCentroid
+            
+            onActiveChanged: {
+                if (active) {
+                    startZoom = root.zoom
+                    startCentroid = Utils.viewportToCanvas(
+                        centroid.position,
+                        flick.contentX, flick.contentY, root.zoom, 
+                        root.canvasMinX, root.canvasMinY
+                    )
+                }
+            }
+            
+            onScaleChanged: {
+                if (active && Math.abs(scale - 1.0) > 0.01) {
+                    // Store old zoom for calculations
+                    var oldZoom = root.zoom
+                    
+                    // Calculate new zoom level
+                    root.zoom = Utils.clamp(oldZoom * scale, root.minZoom, root.maxZoom)
+                    
+                    // Keep the zoom point stable in viewport
+                    var viewportX = (startCentroid.x - root.canvasMinX) * startZoom - flick.contentX
+                    var viewportY = (startCentroid.y - root.canvasMinY) * startZoom - flick.contentY
+                    
+                    // Recalculate content position to keep zoom point fixed
+                    flick.contentX = (startCentroid.x - root.canvasMinX) * root.zoom - viewportX
+                    flick.contentY = (startCentroid.y - root.canvasMinY) * root.zoom - viewportY
+                }
+            }
         }
     }
     

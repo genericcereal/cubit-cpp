@@ -146,7 +146,7 @@ Item {
     readonly property real selectionBoundingHeight: selectionManager?.boundingHeight ?? 0
     
     // Controls that follow selected elements (only for design canvas)
-    Controls {
+    DesignControls {
         id: selectionControls
         visible: {
             // Controls only visible on design canvas
@@ -404,30 +404,27 @@ Item {
         }
     }
     
-    // Hover indicator for elements under mouse (only for design canvas)
-    HoverIndicator {
-        hoveredElement: root.hoveredElement
-        selectionManager: root.selectionManager
-        zoomLevel: root.zoomLevel
-        flickable: root.flickable
-        canvasMinX: root.canvasMinX
-        canvasMinY: root.canvasMinY
-        canvasType: root.canvasType
-    }
-    
     // Hover badge that shows dimensions during resize or rotation angle during rotate (only for design canvas)
-    HoverBadge {
-        id: hoverBadge
+    Loader {
+        id: hoverBadgeLoader
         parent: root
-        visible: canvasType === "design" && selectionControls.dragging && (selectionControls.dragMode.startsWith("resize-") || selectionControls.dragMode === "rotate")
-        text: {
-            if (selectionControls.dragMode === "rotate") {
-                return Math.round(selectionControls.controlRotation) + "°"
-            } else {
-                return Math.round(Math.abs(selectionControls.controlWidth)) + " x " + Math.round(Math.abs(selectionControls.controlHeight))
-            }
+        active: canvasType === "design"
+        sourceComponent: selectionControls.hoverBadge
+        
+        onLoaded: {
+            item.parent = root
+            item.visible = Qt.binding(function() { 
+                return selectionControls.dragging && (selectionControls.dragMode.startsWith("resize-") || selectionControls.dragMode === "rotate")
+            })
+            item.text = Qt.binding(function() {
+                if (selectionControls.dragMode === "rotate") {
+                    return Math.round(selectionControls.controlRotation) + "°"
+                } else {
+                    return Math.round(Math.abs(selectionControls.controlWidth)) + " x " + Math.round(Math.abs(selectionControls.controlHeight))
+                }
+            })
+            item.mousePosition = Qt.binding(function() { return selectionControls.lastMousePosition })
+            item.z = Config.zHoverBadge
         }
-        mousePosition: selectionControls.lastMousePosition
-        z: Config.zHoverBadge
     }
 }
