@@ -1,10 +1,10 @@
 import QtQuick
 import QtQuick.Shapes
 import Cubit 1.0
-import ".."
+import Cubit.UI 1.0
 
 Shape {
-    id: root
+    id: bezierRoot
     
     property var edge: null
     property real canvasMinX: 0
@@ -49,26 +49,26 @@ Shape {
     }
     
     ShapePath {
-        strokeColor: root.strokeColor
-        strokeWidth: root.strokeWidth
+        strokeColor: bezierRoot.strokeColor
+        strokeWidth: bezierRoot.strokeWidth
         fillColor: "transparent"
         
         // Add dashed style for data edges (non-Flow)
-        strokeStyle: root.edgeType !== "Flow" ? ShapePath.DashLine : ShapePath.SolidLine
-        dashPattern: root.edgeType !== "Flow" ? [5, 3] : []
+        strokeStyle: bezierRoot.edgeType !== "Flow" ? ShapePath.DashLine : ShapePath.SolidLine
+        dashPattern: bezierRoot.edgeType !== "Flow" ? [5, 3] : []
         
         // Start at source point
-        startX: sourcePoint.x
-        startY: sourcePoint.y
+        startX: bezierRoot.sourcePoint.x
+        startY: bezierRoot.sourcePoint.y
         
         // Bezier curve to target point
         PathCubic {
-            x: targetPoint.x
-            y: targetPoint.y
-            control1X: controlPoint1.x
-            control1Y: controlPoint1.y
-            control2X: controlPoint2.x
-            control2Y: controlPoint2.y
+            x: bezierRoot.targetPoint.x
+            y: bezierRoot.targetPoint.y
+            control1X: bezierRoot.controlPoint1.x
+            control1Y: bezierRoot.controlPoint1.y
+            control2X: bezierRoot.controlPoint2.x
+            control2Y: bezierRoot.controlPoint2.y
         }
     }
 }

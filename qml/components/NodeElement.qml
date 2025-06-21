@@ -394,14 +394,44 @@ Item {
         }
         
         // Node header
-        NodeHeader {
+        Rectangle {
             id: nodeHeader
             anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
-            nodeName: nodeElement ? nodeElement.nodeTitle : "Node"
-            nodeType: nodeElement && nodeElement.nodeType ? nodeElement.nodeType : "Operation"
+            height: Config.nodeHeaderHeight
             z: 2  // Ensure header is above the node body MouseArea
+            
+            // Background color based on node type
+            color: {
+                var type = nodeElement && nodeElement.nodeType ? nodeElement.nodeType : "Operation"
+                switch(type) {
+                    case "Event":
+                        return Config.nodeHeaderEventColor
+                    case "Operation":
+                        return Config.nodeHeaderOperationColor
+                    case "Param":
+                        return Config.nodeHeaderParamColor
+                    case "Variable":
+                        return Config.nodeHeaderVariableColor
+                    default:
+                        return Config.nodeHeaderOperationColor
+                }
+            }
+            
+            Text {
+                id: headerText
+                text: nodeElement ? nodeElement.nodeTitle : "Node"
+                color: Config.nodeHeaderTextColor
+                font.pixelSize: Config.nodeHeaderTextSize
+                anchors {
+                    left: parent.left
+                    leftMargin: Config.nodeHeaderPadding
+                    verticalCenter: parent.verticalCenter
+                }
+                elide: Text.ElideRight
+                width: parent.width - (2 * Config.nodeHeaderPadding)
+            }
         }
         
         // Two column layout for targets and sources (not for Variable nodes)

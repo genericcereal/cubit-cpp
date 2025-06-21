@@ -4,7 +4,7 @@ import QtWebEngineQuick
 import Cubit 1.0
 import "."
 
-ElementItem {
+DesignElement {
     id: root
     
     property Html htmlElement: element as Html

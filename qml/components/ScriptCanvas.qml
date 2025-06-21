@@ -10,6 +10,9 @@ BaseCanvas {
     canvasType: "script"
     // isEdgePreview is defined in this component and passed to BaseCanvas
     
+    // BezierEdge component is now directly available
+    property Component bezierEdgeComponent: BezierEdge {}
+    
     // Node and edge management
     property var nodes: []
     property var edges: []
@@ -372,16 +375,14 @@ BaseCanvas {
                         }
                     }
                     
-                    // Bezier curve using Shape and PathSVG
+                    // Bezier curve using BezierEdge component
                     BezierEdge {
                         id: bezierEdge
                         anchors.fill: parent
+                        z: -1
                         edge: edgeObj
                         canvasMinX: root.canvasMinX
                         canvasMinY: root.canvasMinY
-                        z: -1
-                        
-                        // Force update when nodes are dragging
                         visible: !root.isNodeDragging || true
                     }
                     
@@ -703,6 +704,17 @@ BaseCanvas {
             root.dragSourcePortIndex = -1
             root.dragSourcePortType = "Flow"
             console.log("Node catalog dismissed - edge preview mode disabled")
+        }
+    }
+    
+    // Connect to canvasClickedOutside to dismiss the node catalog
+    Connections {
+        target: root
+        function onCanvasClickedOutside() {
+            if (root.showNodeCatalog) {
+                console.log("Canvas clicked outside - dismissing node catalog")
+                nodeCatalogPopup.dismissed()
+            }
         }
     }
     
