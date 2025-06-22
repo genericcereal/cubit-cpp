@@ -1,5 +1,6 @@
 #include "ComponentInstance.h"
 #include "Component.h"
+#include "ComponentVariant.h"
 #include "Frame.h"
 #include "Text.h"
 #include "Html.h"
@@ -106,7 +107,7 @@ void ComponentInstance::connectToVariant()
         return;
     }
     
-    QList<Frame*> variants = m_component->variants();
+    QList<ComponentVariant*> variants = m_component->variants();
     if (variants.isEmpty()) {
         return;
     }

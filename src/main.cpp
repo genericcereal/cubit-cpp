@@ -13,6 +13,7 @@
 #include "Variable.h"
 #include "Component.h"
 #include "ComponentInstance.h"
+#include "ComponentVariant.h"
 #include "Node.h"
 #include "Edge.h"
 #include "CanvasController.h"
@@ -52,6 +53,7 @@ int main(int argc, char *argv[])
     qmlRegisterType<Variable>("Cubit", 1, 0, "Variable");
     qmlRegisterType<Component>("Cubit", 1, 0, "ComponentElement");
     qmlRegisterType<ComponentInstance>("Cubit", 1, 0, "ComponentInstance");
+    qmlRegisterType<ComponentVariant>("Cubit", 1, 0, "ComponentVariant");
     qmlRegisterType<Node>("Cubit", 1, 0, "Node");
     qmlRegisterType<Edge>("Cubit", 1, 0, "Edge");
     

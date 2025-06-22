@@ -1,5 +1,5 @@
 #include "Component.h"
-#include "Frame.h"
+#include "ComponentVariant.h"
 #include "Scripts.h"
 
 Component::Component(const QString &id, QObject *parent)
@@ -15,7 +15,7 @@ Component::~Component()
 {
 }
 
-void Component::addVariant(Frame* variant)
+void Component::addVariant(ComponentVariant* variant)
 {
     if (variant && !m_variants.contains(variant)) {
         m_variants.append(variant);
@@ -23,7 +23,7 @@ void Component::addVariant(Frame* variant)
     }
 }
 
-void Component::removeVariant(Frame* variant)
+void Component::removeVariant(ComponentVariant* variant)
 {
     if (m_variants.removeOne(variant)) {
         emit variantsChanged();

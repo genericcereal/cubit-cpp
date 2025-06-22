@@ -4,12 +4,12 @@
 #include <QList>
 #include <memory>
 
-class Frame;
+class ComponentVariant;
 
 class Component : public Element
 {
     Q_OBJECT
-    Q_PROPERTY(QList<Frame*> variants READ variants NOTIFY variantsChanged)
+    Q_PROPERTY(QList<ComponentVariant*> variants READ variants NOTIFY variantsChanged)
     Q_PROPERTY(Scripts* scripts READ scripts NOTIFY scriptsChanged)
     
 public:
@@ -17,9 +17,9 @@ public:
     virtual ~Component();
     
     // Variants management
-    QList<Frame*> variants() const { return m_variants; }
-    void addVariant(Frame* variant);
-    void removeVariant(Frame* variant);
+    QList<ComponentVariant*> variants() const { return m_variants; }
+    void addVariant(ComponentVariant* variant);
+    void removeVariant(ComponentVariant* variant);
     void clearVariants();
     
     // Scripts management
@@ -30,6 +30,6 @@ signals:
     void scriptsChanged();
     
 private:
-    QList<Frame*> m_variants;
+    QList<ComponentVariant*> m_variants;
     std::unique_ptr<Scripts> m_scripts;
 };

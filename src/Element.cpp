@@ -28,6 +28,8 @@ QString Element::getTypeName() const
             return "Component";
         case ComponentInstanceType:
             return "ComponentInstance";
+        case ComponentVariantType:
+            return "ComponentVariant";
         default:
             return "Unknown";
     }

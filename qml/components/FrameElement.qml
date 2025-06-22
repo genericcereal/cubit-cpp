@@ -61,6 +61,7 @@ Item {
                         if (!active || !childElement || !childElementType) return ""
                         switch(childElementType) {
                             case "Frame": return "FrameElement.qml"
+                            case "ComponentVariant": return "FrameElement.qml"
                             case "Text": return "TextElement.qml"
                             default: return ""
                         }

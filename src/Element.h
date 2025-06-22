@@ -21,7 +21,8 @@ public:
         NodeType,
         EdgeType,
         ComponentType,
-        ComponentInstanceType
+        ComponentInstanceType,
+        ComponentVariantType
     };
     Q_ENUM(ElementType)
 

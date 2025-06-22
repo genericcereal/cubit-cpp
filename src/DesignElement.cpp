@@ -5,6 +5,7 @@
 #include "Project.h"
 #include "Component.h"
 #include "ComponentInstance.h"
+#include "ComponentVariant.h"
 #include "Frame.h"
 #include "Text.h"
 #include "Html.h"
@@ -453,13 +454,22 @@ Component* DesignElement::createComponent() {
     QString componentId = UniqueIdGenerator::generate16DigitId();
     Component* component = new Component(componentId, this->parent());
     
-    // Create a new Frame as the first variant
+    // Create a new ComponentVariant as the first variant
     QString frameId = UniqueIdGenerator::generate16DigitId();
-    Frame* variantFrame = new Frame(frameId, component);
+    ComponentVariant* variantFrame = new ComponentVariant(frameId, this->parent());
     variantFrame->setName("Variant1");
     
     // Set the variant frame's position to 0,0 (relative to component)
     variantFrame->setRect(QRectF(0, 0, width(), height()));
+    
+    // If the source element is a Frame, copy its style properties to the variant
+    if (Frame* sourceFrame = qobject_cast<Frame*>(this)) {
+        variantFrame->setFillColor(sourceFrame->fillColor());
+        variantFrame->setBorderColor(sourceFrame->borderColor());
+        variantFrame->setBorderWidth(sourceFrame->borderWidth());
+        variantFrame->setBorderRadius(sourceFrame->borderRadius());
+        variantFrame->setOverflow(sourceFrame->overflow());
+    }
     
     // Add the frame as a variant to the component
     component->addVariant(variantFrame);
