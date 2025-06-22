@@ -30,6 +30,7 @@ Item {
                 if (!active || !element || !elementType) return null
                 switch(elementType) {
                     case "Frame": return frameComponent
+                    case "ComponentVariant": return frameComponent
                     case "Text": return textComponent
                     default: return null
                 }

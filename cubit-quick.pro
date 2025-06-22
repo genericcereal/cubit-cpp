@@ -46,6 +46,7 @@ SOURCES += \
     src/Variable.cpp \
     src/Component.cpp \
     src/ComponentInstance.cpp \
+    src/ComponentVariant.cpp \
     src/Node.cpp \
     src/Edge.cpp \
     src/CanvasController.cpp \
@@ -88,6 +89,7 @@ HEADERS += \
     src/Variable.h \
     src/Component.h \
     src/ComponentInstance.h \
+    src/ComponentVariant.h \
     src/Node.h \
     src/Edge.h \
     src/CanvasController.h \

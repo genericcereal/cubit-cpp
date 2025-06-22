@@ -3,14 +3,14 @@
 #include <QMetaProperty>
 
 class Component;
-class Frame;
-Q_DECLARE_OPAQUE_POINTER(Frame*)
+class ComponentVariant;
+Q_DECLARE_OPAQUE_POINTER(ComponentVariant*)
 
 class ComponentInstance : public DesignElement
 {
     Q_OBJECT
     Q_PROPERTY(QString instanceOf READ instanceOf WRITE setInstanceOf NOTIFY instanceOfChanged)
-    Q_PROPERTY(Frame* sourceVariant READ sourceVariant NOTIFY sourceVariantChanged)
+    Q_PROPERTY(ComponentVariant* sourceVariant READ sourceVariant NOTIFY sourceVariantChanged)
     
 public:
     explicit ComponentInstance(const QString &id, QObject *parent = nullptr);
@@ -18,7 +18,7 @@ public:
     
     // Property getters
     QString instanceOf() const { return m_instanceOf; }
-    Frame* sourceVariant() const { return m_sourceVariant; }
+    ComponentVariant* sourceVariant() const { return m_sourceVariant; }
     
     // Property setters
     void setInstanceOf(const QString &componentId);
@@ -57,7 +57,7 @@ private:
     
     QString m_instanceOf;  // The ID of the Component this is an instance of
     Component* m_component = nullptr;
-    Frame* m_sourceVariant = nullptr;
+    ComponentVariant* m_sourceVariant = nullptr;
     QList<QMetaObject::Connection> m_variantConnections;
     QList<QMetaObject::Connection> m_componentConnections;
     QHash<QString, CanvasElement*> m_childInstances; // Maps source element ID to instance
