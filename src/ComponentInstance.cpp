@@ -3,6 +3,7 @@
 #include "Frame.h"
 #include "Text.h"
 #include "Html.h"
+#include "DesignElement.h"
 #include "Application.h"
 #include "ElementModel.h"
 #include "UniqueIdGenerator.h"
@@ -10,8 +11,11 @@
 #include <QDebug>
 
 ComponentInstance::ComponentInstance(const QString &id, QObject *parent)
-    : CanvasElement(ComponentInstanceType, id, parent)
+    : DesignElement(id, parent)
 {
+    // Set the element type directly (it's protected, not private)
+    elementType = ComponentInstanceType;
+    
     // Set the name to "Instance" + last 4 digits of ID
     QString last4 = id.right(4);
     setName("Instance" + last4);
@@ -257,6 +261,53 @@ void ComponentInstance::clearChildInstances()
     m_childInstances.clear();
 }
 
+void ComponentInstance::updateChildInstancesForResize()
+{
+    if (!m_sourceVariant) {
+        return;
+    }
+    
+    // Calculate scale factors based on the instance size vs variant size
+    qreal scaleX = width() / m_sourceVariant->width();
+    qreal scaleY = height() / m_sourceVariant->height();
+    
+    // Get the element model to find source elements
+    Application* app = Application::instance();
+    if (!app || !app->activeCanvas() || !app->activeCanvas()->elementModel()) {
+        return;
+    }
+    
+    ElementModel* elementModel = app->activeCanvas()->elementModel();
+    
+    // Only update direct children of the ComponentInstance (first level children of the variant)
+    for (auto it = m_childInstances.begin(); it != m_childInstances.end(); ++it) {
+        const QString& sourceId = it.key();
+        CanvasElement* instanceElement = it.value();
+        
+        // Find the source element
+        Element* sourceElement = elementModel->getElementById(sourceId);
+        CanvasElement* canvasSource = qobject_cast<CanvasElement*>(sourceElement);
+        
+        if (instanceElement && canvasSource) {
+            // Only update if this is a direct child of the variant
+            if (canvasSource->getParentElementId() == m_sourceVariant->getId()) {
+                // Calculate the source element's position relative to the variant
+                qreal sourceRelX = canvasSource->x() - m_sourceVariant->x();
+                qreal sourceRelY = canvasSource->y() - m_sourceVariant->y();
+                
+                // Apply scaling to position and size
+                instanceElement->setX(x() + sourceRelX * scaleX);
+                instanceElement->setY(y() + sourceRelY * scaleY);
+                instanceElement->setWidth(canvasSource->width() * scaleX);
+                instanceElement->setHeight(canvasSource->height() * scaleY);
+                
+                qDebug() << "ComponentInstance::updateChildInstancesForResize - Updated direct child" 
+                         << instanceElement->getId() << "to" << instanceElement->width() << "x" << instanceElement->height();
+            }
+        }
+    }
+}
+
 CanvasElement* ComponentInstance::createInstanceOfElement(CanvasElement* sourceElement, CanvasElement* parent)
 {
     if (!sourceElement) {
@@ -291,6 +342,9 @@ CanvasElement* ComponentInstance::createInstanceOfElement(CanvasElement* sourceE
         // Disable mouse events for child instances
         instance->setMouseEventsEnabled(false);
         
+        // Hide from element list
+        instance->setShowInElementList(false);
+        
         // Sync initial properties
         syncElementProperties(instance, sourceElement);
     }
@@ -323,31 +377,8 @@ void ComponentInstance::syncElementProperties(CanvasElement* target, CanvasEleme
         target->setY(y() + relY);
     }
     
-    // Sync size
-    target->setWidth(source->width());
-    target->setHeight(source->height());
-    
-    // Sync type-specific properties
-    if (Frame* targetFrame = qobject_cast<Frame*>(target)) {
-        if (Frame* sourceFrame = qobject_cast<Frame*>(source)) {
-            targetFrame->setFillColor(sourceFrame->fillColor());
-            targetFrame->setBorderColor(sourceFrame->borderColor());
-            targetFrame->setBorderWidth(sourceFrame->borderWidth());
-            targetFrame->setBorderRadius(sourceFrame->borderRadius());
-            targetFrame->setOverflow(sourceFrame->overflow());
-        }
-    } else if (Text* targetText = qobject_cast<Text*>(target)) {
-        if (Text* sourceText = qobject_cast<Text*>(source)) {
-            targetText->setText(sourceText->text());
-            targetText->setFont(sourceText->font());
-            targetText->setColor(sourceText->color());
-        }
-    } else if (Html* targetHtml = qobject_cast<Html*>(target)) {
-        if (Html* sourceHtml = qobject_cast<Html*>(source)) {
-            targetHtml->setHtml(sourceHtml->html());
-            targetHtml->setUrl(sourceHtml->url());
-        }
-    }
+    // Use utility function to copy properties (including size)
+    DesignElement::copyElementProperties(target, source, true);
 }
 
 void ComponentInstance::connectToSourceElement(CanvasElement* instanceElement, CanvasElement* sourceElement)
@@ -364,6 +395,8 @@ void ComponentInstance::connectToSourceElement(CanvasElement* instanceElement, C
     // List of properties to track
     static const QStringList propertiesToTrack = {
         "x", "y", "width", "height",
+        "left", "right", "top", "bottom",
+        "leftAnchored", "rightAnchored", "topAnchored", "bottomAnchored",
         "fillColor", "borderColor", "borderWidth", "borderRadius", "overflow",
         "text", "font", "color",
         "html", "url"
@@ -413,5 +446,45 @@ void ComponentInstance::onInstanceChildPropertyChanged()
     if (instanceElement) {
         // Re-sync properties
         syncElementProperties(instanceElement, sourceElement);
+    }
+}
+
+void ComponentInstance::setWidth(qreal width)
+{
+    qreal oldWidth = this->width();
+    
+    // Call base class implementation
+    CanvasElement::setWidth(width);
+    
+    // Update child instances to scale proportionally
+    if (!qFuzzyCompare(oldWidth, width) && m_sourceVariant && oldWidth > 0) {
+        updateChildInstancesForResize();
+    }
+}
+
+void ComponentInstance::setHeight(qreal height)
+{
+    qreal oldHeight = this->height();
+    
+    // Call base class implementation
+    CanvasElement::setHeight(height);
+    
+    // Update child instances to scale proportionally
+    if (!qFuzzyCompare(oldHeight, height) && m_sourceVariant && oldHeight > 0) {
+        updateChildInstancesForResize();
+    }
+}
+
+void ComponentInstance::setRect(const QRectF &rect)
+{
+    QRectF oldRect(x(), y(), width(), height());
+    
+    // Call base class implementation
+    CanvasElement::setRect(rect);
+    
+    // Update child instances if size changed
+    if (!qFuzzyCompare(oldRect.width(), rect.width()) || 
+        !qFuzzyCompare(oldRect.height(), rect.height())) {
+        updateChildInstancesForResize();
     }
 }

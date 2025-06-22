@@ -127,12 +127,6 @@ Window {
             elementModel: Application.activeCanvas ? Application.activeCanvas.elementModel : null
             selectionManager: Application.activeCanvas ? Application.activeCanvas.selectionManager : null
             
-            onCanvasTypeChanged: (canvasType) => {
-                // Update the view mode instead of canvas type
-                if (Application.activeCanvas) {
-                    Application.activeCanvas.viewMode = canvasType
-                }
-            }
         }
     }
 }

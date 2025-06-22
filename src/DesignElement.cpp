@@ -10,6 +10,7 @@
 #include "Html.h"
 #include "UniqueIdGenerator.h"
 #include "ElementModel.h"
+#include "SelectionManager.h"
 #include <QCoreApplication>
 #include <QDebug>
 #include <QHash>
@@ -446,6 +447,7 @@ Component* DesignElement::createComponent() {
     }
     
     ElementModel* elementModel = app->activeCanvas()->elementModel();
+    SelectionManager* selectionManager = app->activeCanvas()->selectionManager();
     
     // Create a new Component
     QString componentId = UniqueIdGenerator::generate16DigitId();
@@ -471,6 +473,25 @@ Component* DesignElement::createComponent() {
     // Copy this element and all its children recursively
     CanvasElement* copiedElement = copyElementRecursively(this, variantFrame, elementModel, oldToNewIdMap);
     
+    // Set up the copied element to be anchored to all edges of the variant frame
+    if (copiedElement) {
+        if (DesignElement* designElement = qobject_cast<DesignElement*>(copiedElement)) {
+            // Set margins to 0 and enable all anchors
+            designElement->setLeft(0);
+            designElement->setRight(0);
+            designElement->setTop(0);
+            designElement->setBottom(0);
+            
+            designElement->setLeftAnchored(true);
+            designElement->setRightAnchored(true);
+            designElement->setTopAnchored(true);
+            designElement->setBottomAnchored(true);
+            
+            qDebug() << "ComponentInstance: Set anchors for copied element" << designElement->getId()
+                     << "to fill variant frame";
+        }
+    }
+    
     // Add the component to the element model first
     elementModel->addElement(component);
     
@@ -478,14 +499,35 @@ Component* DesignElement::createComponent() {
     QString instanceId = UniqueIdGenerator::generate16DigitId();
     ComponentInstance* instance = new ComponentInstance(instanceId, this->parent());
     
-    // Position the instance offset from the original element (20px right, 20px down)
-    instance->setRect(QRectF(x() + 20, y() + 20, width(), height()));
+    // Position the instance at the same location as the original element
+    instance->setRect(QRectF(x(), y(), width(), height()));
     
     // Add the instance to the element model
     elementModel->addElement(instance);
     
     // Set the instance to reference this component after both are in the model
     instance->setInstanceOf(componentId);
+    
+    // Clear selection first
+    if (selectionManager) {
+        selectionManager->clearSelection();
+    }
+    
+    // Get all children of this element recursively
+    QList<Element*> childrenToDelete = elementModel->getChildrenRecursive(this->getId());
+    
+    // Select the new instance
+    if (selectionManager) {
+        selectionManager->selectElement(instance);
+    }
+    
+    // Delete all children first (in reverse order to handle nested children properly)
+    for (int i = childrenToDelete.size() - 1; i >= 0; --i) {
+        elementModel->removeElement(childrenToDelete[i]->getId());
+    }
+    
+    // Finally delete the original element itself
+    elementModel->removeElement(this->getId());
     
     return component;
 }
@@ -510,21 +552,25 @@ CanvasElement* DesignElement::copyElementRecursively(CanvasElement* sourceElemen
         // Calculate relative position to the root element being copied
         qreal relX = 0;
         qreal relY = 0;
+        qreal width = frame->width();
+        qreal height = frame->height();
         
         // If this is not the root element being copied
         if (sourceElement != this) {
             // Calculate position relative to the root element
             relX = sourceElement->x() - this->x();
             relY = sourceElement->y() - this->y();
+        } else {
+            // This is the root element - it should fill the variant frame
+            width = parentInVariant->width();
+            height = parentInVariant->height();
         }
         
         // Set position relative to parent in variant
-        frameCopy->setRect(QRectF(relX, relY, frame->width(), frame->height()));
-        frameCopy->setFillColor(frame->fillColor());
-        frameCopy->setBorderColor(frame->borderColor());
-        frameCopy->setBorderWidth(frame->borderWidth());
-        frameCopy->setBorderRadius(frame->borderRadius());
-        frameCopy->setOverflow(frame->overflow());
+        frameCopy->setRect(QRectF(relX, relY, width, height));
+        
+        // Use utility function to copy all properties
+        copyElementProperties(frameCopy, frame, false);
         
         copiedElement = frameCopy;
     } else if (Text* text = qobject_cast<Text*>(sourceElement)) {
@@ -540,9 +586,9 @@ CanvasElement* DesignElement::copyElementRecursively(CanvasElement* sourceElemen
         }
         
         textCopy->setRect(QRectF(relX, relY, text->width(), text->height()));
-        textCopy->setText(text->text());
-        textCopy->setFont(text->font());
-        textCopy->setColor(text->color());
+        
+        // Use utility function to copy all properties
+        copyElementProperties(textCopy, text, false);
         
         copiedElement = textCopy;
     } else if (Html* html = qobject_cast<Html*>(sourceElement)) {
@@ -558,8 +604,9 @@ CanvasElement* DesignElement::copyElementRecursively(CanvasElement* sourceElemen
         }
         
         htmlCopy->setRect(QRectF(relX, relY, html->width(), html->height()));
-        htmlCopy->setHtml(html->html());
-        htmlCopy->setUrl(html->url());
+        
+        // Use utility function to copy all properties
+        copyElementProperties(htmlCopy, html, false);
         
         copiedElement = htmlCopy;
     }
@@ -592,4 +639,57 @@ CanvasElement* DesignElement::copyElementRecursively(CanvasElement* sourceElemen
     }
     
     return copiedElement;
+}
+
+void DesignElement::copyElementProperties(CanvasElement* target, CanvasElement* source, bool copyGeometry)
+{
+    if (!target || !source) {
+        return;
+    }
+    
+    // Copy geometry if requested
+    if (copyGeometry) {
+        target->setWidth(source->width());
+        target->setHeight(source->height());
+        // Note: Position (x, y) is handled differently in each context, so not copied here
+    }
+    
+    // Copy anchor properties for DesignElements
+    if (DesignElement* targetDesign = qobject_cast<DesignElement*>(target)) {
+        if (DesignElement* sourceDesign = qobject_cast<DesignElement*>(source)) {
+            // Copy anchor values
+            targetDesign->setLeft(sourceDesign->left());
+            targetDesign->setRight(sourceDesign->right());
+            targetDesign->setTop(sourceDesign->top());
+            targetDesign->setBottom(sourceDesign->bottom());
+            
+            // Copy anchor states
+            targetDesign->setLeftAnchored(sourceDesign->leftAnchored());
+            targetDesign->setRightAnchored(sourceDesign->rightAnchored());
+            targetDesign->setTopAnchored(sourceDesign->topAnchored());
+            targetDesign->setBottomAnchored(sourceDesign->bottomAnchored());
+        }
+    }
+    
+    // Copy type-specific properties
+    if (Frame* targetFrame = qobject_cast<Frame*>(target)) {
+        if (Frame* sourceFrame = qobject_cast<Frame*>(source)) {
+            targetFrame->setFillColor(sourceFrame->fillColor());
+            targetFrame->setBorderColor(sourceFrame->borderColor());
+            targetFrame->setBorderWidth(sourceFrame->borderWidth());
+            targetFrame->setBorderRadius(sourceFrame->borderRadius());
+            targetFrame->setOverflow(sourceFrame->overflow());
+        }
+    } else if (Text* targetText = qobject_cast<Text*>(target)) {
+        if (Text* sourceText = qobject_cast<Text*>(source)) {
+            targetText->setText(sourceText->text());
+            targetText->setFont(sourceText->font());
+            targetText->setColor(sourceText->color());
+        }
+    } else if (Html* targetHtml = qobject_cast<Html*>(target)) {
+        if (Html* sourceHtml = qobject_cast<Html*>(source)) {
+            targetHtml->setHtml(sourceHtml->html());
+            targetHtml->setUrl(sourceHtml->url());
+        }
+    }
 }
