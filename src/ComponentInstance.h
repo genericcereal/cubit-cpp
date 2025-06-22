@@ -1,12 +1,12 @@
 #pragma once
-#include "CanvasElement.h"
+#include "DesignElement.h"
 #include <QMetaProperty>
 
 class Component;
 class Frame;
 Q_DECLARE_OPAQUE_POINTER(Frame*)
 
-class ComponentInstance : public CanvasElement
+class ComponentInstance : public DesignElement
 {
     Q_OBJECT
     Q_PROPERTY(QString instanceOf READ instanceOf WRITE setInstanceOf NOTIFY instanceOfChanged)
@@ -25,6 +25,11 @@ public:
     
     // Override to identify this as a visual element
     virtual bool isVisual() const override { return true; }
+    
+    // Override size setters to propagate changes to the variant
+    virtual void setWidth(qreal width) override;
+    virtual void setHeight(qreal height) override;
+    virtual void setRect(const QRectF &rect) override;
     
 signals:
     void instanceOfChanged();
@@ -45,6 +50,7 @@ private:
     void syncPropertiesFromVariant();
     void createChildInstances();
     void clearChildInstances();
+    void updateChildInstancesForResize();
     CanvasElement* createInstanceOfElement(CanvasElement* sourceElement, CanvasElement* parent);
     void syncElementProperties(CanvasElement* target, CanvasElement* source);
     void connectToSourceElement(CanvasElement* instanceElement, CanvasElement* sourceElement);

@@ -97,7 +97,7 @@ Item {
             
             property string elementId: model.element ? model.element.elementId : ""
             
-            visible: (model.elementType !== "Node" && model.elementType !== "Edge") && parentExpanded
+            visible: (model.elementType !== "Node" && model.elementType !== "Edge") && parentExpanded && (model.element ? model.element.showInElementList : true)
             
             // Expand/collapse box positioned absolutely
             Rectangle {
@@ -282,6 +282,9 @@ Item {
                     
                     // Skip Node and Edge elements
                     if (element.elementType === "Node" || element.elementType === "Edge") continue
+                    
+                    // Skip elements that shouldn't be shown in the list
+                    if (!element.showInElementList) continue
                     
                     // Record the item position
                     itemPositions[element.elementId] = {

@@ -11,6 +11,9 @@
 #include "DesignElement.h"
 #include "ScriptExecutor.h"
 
+class Component;
+Q_DECLARE_OPAQUE_POINTER(Component*)
+
 class Project : public QObject {
     Q_OBJECT
     Q_PROPERTY(CanvasController* controller READ controller CONSTANT)
@@ -20,7 +23,7 @@ class Project : public QObject {
     Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
     Q_PROPERTY(QString id READ id CONSTANT)
     Q_PROPERTY(QString viewMode READ viewMode WRITE setViewMode NOTIFY viewModeChanged)
-    Q_PROPERTY(DesignElement* editingElement READ editingElement NOTIFY editingElementChanged)
+    Q_PROPERTY(QObject* editingElement READ editingElement NOTIFY editingElementChanged)
     Q_PROPERTY(Scripts* activeScripts READ activeScripts NOTIFY activeScriptsChanged)
 
 public:
@@ -35,13 +38,14 @@ public:
     QString name() const;
     QString id() const;
     QString viewMode() const;
-    DesignElement* editingElement() const;
+    QObject* editingElement() const;
     Scripts* activeScripts() const;
 
     // Property setters
     void setName(const QString& name);
     void setViewMode(const QString& viewMode);
-    void setEditingElement(DesignElement* element);
+    Q_INVOKABLE void setEditingElement(DesignElement* element, const QString& viewMode = QString());
+    Q_INVOKABLE void setEditingComponent(Component* component, const QString& viewMode = QString());
 
     // Initialize the canvas components
     void initialize();
@@ -64,7 +68,7 @@ private:
     QString m_name;
     QString m_id;
     QString m_viewMode;
-    DesignElement* m_editingElement = nullptr;
+    QObject* m_editingElement = nullptr; // Can be DesignElement* or Component*
     
     void updateActiveScripts();
     void loadScriptsIntoElementModel();

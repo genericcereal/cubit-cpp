@@ -11,8 +11,17 @@ Rectangle {
     property var elementModel
     property var selectionManager
     property string currentCanvasType: Application.activeCanvas ? Application.activeCanvas.viewMode : "design"
+    property var editingElement: Application.activeCanvas ? Application.activeCanvas.editingElement : null
     
-    signal canvasTypeChanged(string canvasType)
+    // Helper to get the currently selected element for script editing
+    function getSelectedElementForScripts() {
+        if (!Application.activeCanvas || !Application.activeCanvas.selectionManager) return null
+        var selectedElements = Application.activeCanvas.selectionManager.selectedElements
+        if (selectedElements && selectedElements.length === 1) {
+            return selectedElements[0]
+        }
+        return null
+    }
     
     ColumnLayout {
         anchors.fill: parent
@@ -71,7 +80,22 @@ Rectangle {
                             Button {
                                 id: canvasTypeButton
                                 Layout.fillWidth: true
-                                text: root.currentCanvasType === "design" ? "Design Canvas" : "Script Canvas"
+                                text: {
+                                    if (root.currentCanvasType === "design") {
+                                        return "Design Canvas"
+                                    } else {
+                                        // Check if we have an editing element (DesignElement, ComponentInstance, or Component)
+                                        if (root.editingElement && root.editingElement.name) {
+                                            return root.editingElement.name + " Scripts"
+                                        }
+                                        // Check if we have a selected element
+                                        var selectedElement = root.getSelectedElementForScripts()
+                                        if (selectedElement && selectedElement.name) {
+                                            return selectedElement.name + " Scripts"
+                                        }
+                                        return "Script Canvas"
+                                    }
+                                }
                                 font.pixelSize: 14
                                 
                                 background: Rectangle {
@@ -83,8 +107,27 @@ Rectangle {
                                 }
                                 
                                 onClicked: {
-                                    root.currentCanvasType = root.currentCanvasType === "design" ? "script" : "design"
-                                    root.canvasTypeChanged(root.currentCanvasType)
+                                    if (Application.activeCanvas) {
+                                        var newMode = root.currentCanvasType === "design" ? "script" : "design"
+                                        console.log("Canvas toggle clicked, switching to:", newMode)
+                                        
+                                        if (newMode === "script") {
+                                            // When switching to script mode, check if we have a selected design element
+                                            var selectionManager = Application.activeCanvas.selectionManager
+                                            console.log("Selection manager:", selectionManager)
+                                            console.log("Has visual selection:", selectionManager.hasVisualSelection)
+                                            console.log("Selection count:", selectionManager.selectionCount)
+                                            
+                                            // For now, just switch to script mode
+                                            // The C++ code will handle setting editing element based on selection
+                                            Application.activeCanvas.setEditingElement(null, "script")
+                                        } else {
+                                            // Switching back to design mode
+                                            Application.activeCanvas.setEditingElement(null, "design")
+                                        }
+                                        
+                                        root.currentCanvasType = newMode
+                                    }
                                 }
                             }
                         }

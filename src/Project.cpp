@@ -6,6 +6,7 @@
 #include "ScriptExecutor.h"
 #include "Node.h"
 #include "Edge.h"
+#include "Component.h"
 
 Project::Project(const QString& id, const QString& name, QObject *parent)
     : QObject(parent)
@@ -61,40 +62,13 @@ void Project::setViewMode(const QString& viewMode) {
     if (m_viewMode != viewMode) {
         m_viewMode = viewMode;
         
-        // When switching to script mode, check if we have a selected design element
+        // Handle mode-specific logic
         if (viewMode == "script") {
-            if (m_selectionManager) {
-                auto selectedElements = m_selectionManager->selectedElements();
-                qDebug() << "Project: Switching to script mode, selected elements:" << selectedElements.size();
-                if (selectedElements.size() == 1) {
-                    auto element = selectedElements.first();
-                    if (element && element->isVisual()) {
-                        CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
-                        if (canvasElement && canvasElement->isDesignElement()) {
-                            qDebug() << "Project: Setting editing element to" << element->getId();
-                            setEditingElement(qobject_cast<DesignElement*>(element));
-                        } else {
-                            qDebug() << "Project: Element is not a design element";
-                            setEditingElement(nullptr);
-                        }
-                    } else {
-                        qDebug() << "Project: Element is not visual";
-                        setEditingElement(nullptr);
-                    }
-                } else {
-                    qDebug() << "Project: Not exactly one element selected";
-                    setEditingElement(nullptr);
-                }
-            }
-            
             // Load scripts into ElementModel
             loadScriptsIntoElementModel();
         } else if (viewMode == "design") {
             // Save any changes back to scripts (either editing element's or canvas's)
             saveElementModelToScripts();
-            
-            // Clear editing element when switching back to design mode
-            setEditingElement(nullptr);
             
             // Clear script elements from ElementModel
             clearScriptElementsFromModel();
@@ -184,24 +158,78 @@ void Project::initialize() {
     });
 }
 
-DesignElement* Project::editingElement() const {
+QObject* Project::editingElement() const {
     return m_editingElement;
 }
 
 Scripts* Project::activeScripts() const {
-    // If we're editing a design element's scripts, return those
-    // Otherwise return the canvas's global scripts
-    if (m_editingElement && m_editingElement->scripts()) {
-        return m_editingElement->scripts();
+    if (m_editingElement) {
+        // Check if it's a Component
+        if (Component* component = qobject_cast<Component*>(m_editingElement)) {
+            if (component->scripts()) {
+                return component->scripts();
+            }
+        }
+        // Check if it's a DesignElement
+        else if (DesignElement* designElement = qobject_cast<DesignElement*>(m_editingElement)) {
+            if (designElement->scripts()) {
+                return designElement->scripts();
+            }
+        }
     }
+    // Otherwise return the canvas's global scripts
     return m_scripts.get();
 }
 
-void Project::setEditingElement(DesignElement* element) {
+void Project::setEditingElement(DesignElement* element, const QString& viewMode) {
+    // If switching to script mode and element is null, try to auto-detect from selection
+    if (viewMode == "script" && !element && m_selectionManager) {
+        auto selectedElements = m_selectionManager->selectedElements();
+        qDebug() << "Project: Auto-detecting editing element, selected elements:" << selectedElements.size();
+        
+        if (selectedElements.size() == 1) {
+            auto selectedElement = selectedElements.first();
+            
+            // Check if it's a Component
+            if (Component* component = qobject_cast<Component*>(selectedElement)) {
+                qDebug() << "Project: Auto-detected Component:" << component->getId();
+                setEditingComponent(component, viewMode);
+                return;
+            }
+            
+            // Check if it's a visual design element
+            if (selectedElement && selectedElement->isVisual()) {
+                CanvasElement* canvasElement = qobject_cast<CanvasElement*>(selectedElement);
+                if (canvasElement && canvasElement->isDesignElement()) {
+                    element = qobject_cast<DesignElement*>(selectedElement);
+                    qDebug() << "Project: Auto-detected editing element:" << (element ? element->getId() : "null");
+                }
+            }
+        }
+    }
+    
     if (m_editingElement != element) {
         m_editingElement = element;
         emit editingElementChanged();
         updateActiveScripts();
+    }
+    
+    // If a viewMode is specified, switch to that mode
+    if (!viewMode.isEmpty() && m_viewMode != viewMode) {
+        setViewMode(viewMode);
+    }
+}
+
+void Project::setEditingComponent(Component* component, const QString& viewMode) {
+    if (m_editingElement != component) {
+        m_editingElement = component;
+        emit editingElementChanged();
+        updateActiveScripts();
+    }
+    
+    // If a viewMode is specified, switch to that mode
+    if (!viewMode.isEmpty() && m_viewMode != viewMode) {
+        setViewMode(viewMode);
     }
 }
 

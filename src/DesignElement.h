@@ -82,6 +82,9 @@ public:
     // Create a component from this design element
     Q_INVOKABLE class Component* createComponent();
     
+    // Static utility to copy properties between elements
+    static void copyElementProperties(CanvasElement* target, CanvasElement* source, bool copyGeometry = false);
+    
 signals:
     void scriptsChanged();
     void leftChanged();
