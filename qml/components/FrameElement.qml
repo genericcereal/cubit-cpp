@@ -39,7 +39,14 @@ Item {
             anchors.margins: frameRect.border.width
             
             // Apply clipping based on overflow mode
-            clip: frameElement ? frameElement.overflow !== 2 : false  // clip for Hidden (0) and Scroll (1) modes
+            clip: {
+                if (element && element.elementType === "ComponentInstance") {
+                    console.log("ComponentInstance clipping check - frameElement:", frameElement, 
+                               "overflow:", frameElement ? frameElement.overflow : "null",
+                               "should clip:", frameElement ? frameElement.overflow !== 2 : false)
+                }
+                return frameElement ? frameElement.overflow !== 2 : false  // clip for Hidden (0) and Scroll (1) modes
+            }
             
             // Render child elements
             Repeater {
@@ -57,11 +64,21 @@ Item {
                     x: childElement && active ? childElement.x - root.element.x : 0
                     y: childElement && active ? childElement.y - root.element.y : 0
                     
+                    Component.onCompleted: {
+                        if (active && root.element.elementType === "ComponentInstance") {
+                            console.log("ComponentInstance child - parentId:", childParentId, 
+                                       "parent elementId:", root.element.elementId,
+                                       "child type:", childElementType,
+                                       "child showInList:", childElement.showInElementList)
+                        }
+                    }
+                    
                     source: {
                         if (!active || !childElement || !childElementType) return ""
                         switch(childElementType) {
                             case "Frame": return "FrameElement.qml"
                             case "ComponentVariant": return "FrameElement.qml"
+                            case "ComponentInstance": return "FrameElement.qml"
                             case "Text": return "TextElement.qml"
                             default: return ""
                         }

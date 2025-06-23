@@ -31,6 +31,7 @@ Item {
                 switch(elementType) {
                     case "Frame": return frameComponent
                     case "ComponentVariant": return frameComponent
+                    case "ComponentInstance": return frameComponent
                     case "Text": return textComponent
                     default: return null
                 }

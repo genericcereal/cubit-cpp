@@ -1,12 +1,12 @@
 #pragma once
-#include "DesignElement.h"
+#include "Frame.h"
 #include <QMetaProperty>
 
 class Component;
 class ComponentVariant;
 Q_DECLARE_OPAQUE_POINTER(ComponentVariant*)
 
-class ComponentInstance : public DesignElement
+class ComponentInstance : public Frame
 {
     Q_OBJECT
     Q_PROPERTY(QString instanceOf READ instanceOf WRITE setInstanceOf NOTIFY instanceOfChanged)
