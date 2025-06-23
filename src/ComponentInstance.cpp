@@ -8,8 +8,30 @@
 #include "Application.h"
 #include "ElementModel.h"
 #include "UniqueIdGenerator.h"
+#include "PropertySyncer.h"
+#include "PropertyCopier.h"
 #include <QCoreApplication>
 #include <QDebug>
+
+// Define static property lists
+const QStringList ComponentInstance::s_variantPropertiesToSync = {
+    "width",
+    "height",
+    "fillColor",
+    "borderColor",
+    "borderWidth",
+    "borderRadius",
+    "overflow"
+};
+
+const QStringList ComponentInstance::s_childPropertiesToTrack = {
+    "x", "y", "width", "height",
+    "left", "right", "top", "bottom",
+    "leftAnchored", "rightAnchored", "topAnchored", "bottomAnchored",
+    "fillColor", "borderColor", "borderWidth", "borderRadius", "overflow",
+    "text", "font", "color",
+    "html", "url"
+};
 
 ComponentInstance::ComponentInstance(const QString &id, QObject *parent)
     : Frame(id, parent)
@@ -38,11 +60,6 @@ ComponentInstance::~ComponentInstance()
     m_childInstances.clear();
     
     // Clear connections
-    for (auto& connections : m_childConnections.values()) {
-        for (const auto& connection : connections) {
-            disconnect(connection);
-        }
-    }
     m_childConnections.clear();
     
     disconnectFromVariant();
@@ -88,9 +105,8 @@ void ComponentInstance::connectToComponent()
     }
     
     // Connect to component's variants changed signal
-    auto connection = connect(m_component, &Component::variantsChanged,
-                            this, &ComponentInstance::onComponentVariantsChanged);
-    m_componentConnections.append(connection);
+    m_componentConnections.add(connect(m_component, &Component::variantsChanged,
+                            this, &ComponentInstance::onComponentVariantsChanged));
     
     // Connect to the first variant if available
     connectToVariant();
@@ -98,9 +114,6 @@ void ComponentInstance::connectToComponent()
 
 void ComponentInstance::disconnectFromComponent()
 {
-    for (const auto& connection : m_componentConnections) {
-        disconnect(connection);
-    }
     m_componentConnections.clear();
     m_component = nullptr;
 }
@@ -126,36 +139,8 @@ void ComponentInstance::connectToVariant()
     createChildInstances();
     
     // Connect to all property change signals from the variant
-    const QMetaObject* metaObj = m_sourceVariant->metaObject();
-    
-    // List of properties to sync (excluding position)
-    static const QStringList propertiesToSync = {
-        "fillColor",
-        "borderColor", 
-        "borderWidth",
-        "borderRadius",
-        "overflow",
-        "width",
-        "height"
-    };
-    
-    for (const QString& propertyName : propertiesToSync) {
-        int propertyIndex = metaObj->indexOfProperty(propertyName.toUtf8().constData());
-        if (propertyIndex >= 0) {
-            QMetaProperty property = metaObj->property(propertyIndex);
-            if (property.hasNotifySignal()) {
-                QMetaMethod notifySignal = property.notifySignal();
-                QMetaMethod slot = metaObject()->method(
-                    metaObject()->indexOfSlot("onSourceVariantPropertyChanged()"));
-                
-                auto connection = connect(m_sourceVariant, notifySignal,
-                                        this, slot, Qt::UniqueConnection);
-                if (connection) {
-                    m_variantConnections.append(connection);
-                }
-            }
-        }
-    }
+    PropertySyncer::sync(m_sourceVariant, this, s_variantPropertiesToSync, 
+                        "onSourceVariantPropertyChanged()", m_variantConnections);
     
     emit sourceVariantChanged();
 }
@@ -168,9 +153,6 @@ void ComponentInstance::disconnectFromVariant()
         clearChildInstances();
     }
     
-    for (const auto& connection : m_variantConnections) {
-        disconnect(connection);
-    }
     m_variantConnections.clear();
     m_sourceVariant = nullptr;
     emit sourceVariantChanged();
@@ -182,23 +164,12 @@ void ComponentInstance::syncPropertiesFromVariant()
         return;
     }
     
-    // Sync size properties
-    setWidth(m_sourceVariant->width());
-    setHeight(m_sourceVariant->height());
+    // Use PropertyCopier to sync properties
+    PropertyCopier::copyProperties(m_sourceVariant, this, s_variantPropertiesToSync);
     
-    // Sync visual properties from the ComponentVariant (which is a Frame)
-    if (ComponentVariant* variant = qobject_cast<ComponentVariant*>(m_sourceVariant)) {
-        setFillColor(variant->fillColor());
-        setBorderColor(variant->borderColor());
-        setBorderWidth(variant->borderWidth());
-        setBorderRadius(variant->borderRadius());
-        
-        // Debug overflow sync
-        OverflowMode variantOverflow = variant->overflow();
-        qDebug() << "ComponentInstance::syncPropertiesFromVariant - variant overflow:" << variantOverflow;
-        setOverflow(variantOverflow);
-        qDebug() << "ComponentInstance::syncPropertiesFromVariant - instance" << getId() << "overflow after set:" << overflow();
-    }
+    // Debug overflow sync
+    qDebug() << "ComponentInstance::syncPropertiesFromVariant - instance" << getId() 
+             << "overflow after sync:" << overflow();
     
     // Note: We don't sync position (x, y) as instances maintain their own position
 }
@@ -270,11 +241,6 @@ void ComponentInstance::createChildInstances()
 void ComponentInstance::clearChildInstances()
 {
     // Clear connections first
-    for (auto& connections : m_childConnections.values()) {
-        for (const auto& connection : connections) {
-            disconnect(connection);
-        }
-    }
     m_childConnections.clear();
     
     // During shutdown, Qt's parent-child system will handle cleanup
@@ -407,40 +373,9 @@ void ComponentInstance::connectToSourceElement(CanvasElement* instanceElement, C
         return;
     }
     
-    QList<QMetaObject::Connection> connections;
-    
     // Connect to property changes
-    const QMetaObject* metaObj = sourceElement->metaObject();
-    
-    // List of properties to track
-    static const QStringList propertiesToTrack = {
-        "x", "y", "width", "height",
-        "left", "right", "top", "bottom",
-        "leftAnchored", "rightAnchored", "topAnchored", "bottomAnchored",
-        "fillColor", "borderColor", "borderWidth", "borderRadius", "overflow",
-        "text", "font", "color",
-        "html", "url"
-    };
-    
-    for (const QString& propertyName : propertiesToTrack) {
-        int propertyIndex = metaObj->indexOfProperty(propertyName.toUtf8().constData());
-        if (propertyIndex >= 0) {
-            QMetaProperty property = metaObj->property(propertyIndex);
-            if (property.hasNotifySignal()) {
-                QMetaMethod notifySignal = property.notifySignal();
-                QMetaMethod slot = metaObject()->method(
-                    metaObject()->indexOfSlot("onInstanceChildPropertyChanged()"));
-                
-                auto connection = connect(sourceElement, notifySignal,
-                                        this, slot, Qt::UniqueConnection);
-                if (connection) {
-                    connections.append(connection);
-                }
-            }
-        }
-    }
-    
-    m_childConnections[instanceElement] = connections;
+    PropertySyncer::sync(sourceElement, this, s_childPropertiesToTrack,
+                        "onInstanceChildPropertyChanged()", m_childConnections[instanceElement]);
 }
 
 void ComponentInstance::onVariantChildAdded()

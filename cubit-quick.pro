@@ -90,6 +90,9 @@ HEADERS += \
     src/Component.h \
     src/ComponentInstance.h \
     src/ComponentVariant.h \
+    src/ConnectionManager.h \
+    src/PropertySyncer.h \
+    src/PropertyCopier.h \
     src/Node.h \
     src/Edge.h \
     src/CanvasController.h \

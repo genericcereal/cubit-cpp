@@ -1,6 +1,7 @@
 #pragma once
 #include "Frame.h"
 #include <QMetaProperty>
+#include "ConnectionManager.h"
 
 class Component;
 class ComponentVariant;
@@ -55,12 +56,16 @@ private:
     void syncElementProperties(CanvasElement* target, CanvasElement* source);
     void connectToSourceElement(CanvasElement* instanceElement, CanvasElement* sourceElement);
     
+    // Static property lists for consistency
+    static const QStringList s_variantPropertiesToSync;
+    static const QStringList s_childPropertiesToTrack;
+    
     QString m_instanceOf;  // The ID of the Component this is an instance of
     Component* m_component = nullptr;
     ComponentVariant* m_sourceVariant = nullptr;
-    QList<QMetaObject::Connection> m_variantConnections;
-    QList<QMetaObject::Connection> m_componentConnections;
+    ConnectionManager m_variantConnections;
+    ConnectionManager m_componentConnections;
     QHash<QString, CanvasElement*> m_childInstances; // Maps source element ID to instance
-    QHash<CanvasElement*, QList<QMetaObject::Connection>> m_childConnections; // Connections per child
+    QHash<CanvasElement*, ConnectionManager> m_childConnections; // Connections per child
     bool m_isDestructing = false; // Flag to indicate we're in the destructor
 };

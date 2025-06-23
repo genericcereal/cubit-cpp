@@ -1,5 +1,6 @@
 #include "CanvasElement.h"
 #include "ElementModel.h"
+#include "PropertySyncer.h"
 #include <QMetaProperty>
 #include <QDebug>
 
@@ -122,10 +123,6 @@ void CanvasElement::setParentElement(CanvasElement *parent)
              << "setting parent to" << (parent ? parent->getTypeName() + " " + parent->getId() : "null");
     
     // Disconnect all existing parent connections
-    for (const auto &connection : m_parentConnections)
-    {
-        disconnect(connection);
-    }
     m_parentConnections.clear();
 
     m_parentElement = parent;
@@ -151,11 +148,12 @@ void CanvasElement::setParentElement(CanvasElement *parent)
             "height"    // For bounds checking
         };
 
-        // Subscribe to each property
-        for (const QString &propertyName : parentPropertiesToTrack)
-        {
-            subscribeToParentProperty(propertyName);
-        }
+        // Use PropertySyncer to connect all parent property signals
+        PropertySyncer::sync(m_parentElement, this, parentPropertiesToTrack,
+                           "onParentPropertyChanged()", m_parentConnections);
+        
+        // Track which properties we're subscribed to
+        m_subscribedProperties = parentPropertiesToTrack;
         
         qDebug() << "  -> Subscribed to parent properties:" << parentPropertiesToTrack;
     }
@@ -181,36 +179,12 @@ void CanvasElement::subscribeToParentProperty(const QString &propertyName)
         m_subscribedProperties.append(propertyName);
     }
 
-    // Find the property's notify signal
-    const QMetaObject *metaObj = m_parentElement->metaObject();
-    int propertyIndex = metaObj->indexOfProperty(propertyName.toUtf8().constData());
-
-    if (propertyIndex >= 0)
-    {
-        QMetaProperty property = metaObj->property(propertyIndex);
-        if (property.hasNotifySignal())
-        {
-            QMetaMethod notifySignal = property.notifySignal();
-            QMetaMethod targetSlot = metaObject()->method(
-                metaObject()->indexOfSlot("onParentPropertyChanged()"));
-
-            // Connect the parent's property change signal to our slot
-            QMetaObject::Connection connection = connect(
-                m_parentElement, notifySignal,
-                this, targetSlot,
-                Qt::UniqueConnection);
-
-            if (connection)
-            {
-                m_parentConnections.append(connection);
-                qDebug() << "    -> Successfully connected to parent's" << propertyName << "property change signal";
-            }
-            else
-            {
-                qDebug() << "    -> FAILED to connect to parent's" << propertyName << "property change signal";
-            }
-        }
-    }
+    // Use PropertySyncer for single property subscription
+    QStringList singleProperty = { propertyName };
+    PropertySyncer::sync(m_parentElement, this, singleProperty,
+                        "onParentPropertyChanged()", m_parentConnections);
+    
+    qDebug() << "    -> Successfully connected to parent's" << propertyName << "property change signal";
 }
 
 void CanvasElement::unsubscribeFromParentProperty(const QString &propertyName)

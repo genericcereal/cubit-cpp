@@ -5,6 +5,7 @@
 #include <QRectF>
 #include <QMetaObject>
 #include <QStringList>
+#include "ConnectionManager.h"
 
 class CanvasElement : public Element {
     Q_OBJECT
@@ -98,7 +99,7 @@ private:
     // Parent element tracking
     CanvasElement* m_parentElement = nullptr;
     QStringList m_subscribedProperties;
-    QList<QMetaObject::Connection> m_parentConnections;
+    ConnectionManager m_parentConnections;
     
     // Parent position tracking for relative positioning
     QPointF m_lastParentPosition;
