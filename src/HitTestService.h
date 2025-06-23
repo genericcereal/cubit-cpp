@@ -17,7 +17,8 @@ class HitTestService : public QObject {
 public:
     enum class CanvasType {
         Design,
-        Script
+        Script,
+        Variant
     };
     Q_ENUM(CanvasType)
     

@@ -19,9 +19,11 @@ bool SelectionManager::hasVisualSelection() const
     // Check if any selected element is visual
     for (Element* element : m_selectedElements) {
         if (element && element->isVisual()) {
+            qDebug() << "hasVisualSelection: Found visual element" << element->getTypeName() << element->getId();
             return true;
         }
     }
+    qDebug() << "hasVisualSelection: No visual elements found in" << m_selectedElements.size() << "selected elements";
     return false;
 }
 

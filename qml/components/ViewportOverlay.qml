@@ -147,18 +147,21 @@ Item {
     readonly property real selectionBoundingWidth: selectionManager?.boundingWidth ?? 0
     readonly property real selectionBoundingHeight: selectionManager?.boundingHeight ?? 0
     
-    // Controls that follow selected elements (only for design canvas)
+    // Controls that follow selected elements (for design and variant canvases)
     DesignControls {
         id: selectionControls
         visible: {
-            // Controls only visible on design canvas
-            if (canvasType !== "design") {
+            // Controls visible on design and variant canvases
+            if (canvasType !== "design" && canvasType !== "variant") {
+                console.log("Controls hidden: canvasType is", canvasType)
                 return false
             }
             // Only show controls if there are visual elements selected
             if (selectionManager && selectionManager.hasVisualSelection) {
+                console.log("Controls visible: hasVisualSelection is true, canvasType:", canvasType)
                 return true
             }
+            console.log("Controls hidden: hasVisualSelection is", selectionManager?.hasVisualSelection ?? "null", "canvasType:", canvasType, "selectionCount:", selectionManager?.selectionCount ?? 0)
             return false
         }
         
@@ -455,11 +458,11 @@ Item {
         }
     }
     
-    // Hover badge that shows dimensions during resize or rotation angle during rotate (only for design canvas)
+    // Hover badge that shows dimensions during resize or rotation angle during rotate (for design and variant canvases)
     Loader {
         id: hoverBadgeLoader
         parent: root
-        active: canvasType === "design"
+        active: canvasType === "design" || canvasType === "variant"
         sourceComponent: selectionControls.hoverBadge
         
         onLoaded: {

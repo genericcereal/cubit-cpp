@@ -283,10 +283,67 @@ bool HitTestService::shouldTestElement(Element* element) const
         return element->getType() == Element::NodeType || 
                element->getType() == Element::EdgeType;
     }
-    // For design canvas, skip nodes and edges
+    // For design canvas, skip nodes, edges, and component variants
     else if (m_canvasType == CanvasType::Design) {
-        return element->getType() != Element::NodeType && 
-               element->getType() != Element::EdgeType;
+        Element::ElementType type = element->getType();
+        if (type == Element::NodeType || 
+            type == Element::EdgeType ||
+            type == Element::ComponentVariantType) {
+            return false;
+        }
+        
+        // Also skip descendants of ComponentVariants
+        if (element->hasParent() && m_elementModel) {
+            QString parentId = element->getParentElementId();
+            Element* parent = m_elementModel->getElementById(parentId);
+            
+            while (parent) {
+                if (parent->getType() == Element::ComponentVariantType) {
+                    return false;
+                }
+                
+                // Check if parent has a parent
+                if (parent->hasParent()) {
+                    parentId = parent->getParentElementId();
+                    parent = m_elementModel->getElementById(parentId);
+                } else {
+                    parent = nullptr;
+                }
+            }
+        }
+        
+        return true;
+    }
+    // For variant canvas, only test component variants and their descendants
+    else if (m_canvasType == CanvasType::Variant) {
+        Element::ElementType type = element->getType();
+        
+        // Test if it's a ComponentVariant
+        if (type == Element::ComponentVariantType) {
+            return true;
+        }
+        
+        // Test if it's a descendant of a ComponentVariant
+        if (element->hasParent() && m_elementModel) {
+            QString parentId = element->getParentElementId();
+            Element* parent = m_elementModel->getElementById(parentId);
+            
+            while (parent) {
+                if (parent->getType() == Element::ComponentVariantType) {
+                    return true;
+                }
+                
+                // Check if parent has a parent
+                if (parent->hasParent()) {
+                    parentId = parent->getParentElementId();
+                    parent = m_elementModel->getElementById(parentId);
+                } else {
+                    parent = nullptr;
+                }
+            }
+        }
+        
+        return false;
     }
     
     return true;

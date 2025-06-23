@@ -26,7 +26,20 @@ Window {
             Loader {
                 id: canvasLoader
                 anchors.fill: parent
-                sourceComponent: Application.activeCanvas && Application.activeCanvas.viewMode === "design" ? designCanvasComponent : scriptCanvasComponent
+                sourceComponent: {
+                    if (!Application.activeCanvas) return null
+                    
+                    switch (Application.activeCanvas.viewMode) {
+                        case "design":
+                            return designCanvasComponent
+                        case "script":
+                            return scriptCanvasComponent
+                        case "variant":
+                            return variantCanvasComponent
+                        default:
+                            return designCanvasComponent
+                    }
+                }
                 
                 property alias canvasView: canvasLoader.item
                 
@@ -37,7 +50,7 @@ Window {
                             item.selectionManager = Application.activeCanvas.selectionManager
                             item.elementModel = Application.activeCanvas.elementModel
                         }
-                        // Set viewportControls reference for DesignCanvas
+                        // Set viewportControls reference for DesignCanvas and VariantCanvas
                         if (item.hasOwnProperty("viewportControls")) {
                             item.viewportControls = viewportOverlay.selectionControls
                         }
@@ -55,6 +68,13 @@ Window {
             Component {
                 id: scriptCanvasComponent
                 ScriptCanvas {
+                    // Properties will be set by Loader.onLoaded
+                }
+            }
+            
+            Component {
+                id: variantCanvasComponent
+                VariantCanvas {
                     // Properties will be set by Loader.onLoaded
                 }
             }

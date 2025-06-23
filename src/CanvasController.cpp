@@ -98,13 +98,23 @@ void CanvasController::initializeModeHandlers()
 
 void CanvasController::updateSubcontrollersCanvasType()
 {
-    auto creationType = (m_canvasType == CanvasType::Design) 
-        ? CreationManager::CanvasType::Design 
-        : CreationManager::CanvasType::Script;
+    CreationManager::CanvasType creationType;
+    HitTestService::CanvasType hitTestType;
     
-    auto hitTestType = (m_canvasType == CanvasType::Design)
-        ? HitTestService::CanvasType::Design
-        : HitTestService::CanvasType::Script;
+    switch (m_canvasType) {
+        case CanvasType::Design:
+            creationType = CreationManager::CanvasType::Design;
+            hitTestType = HitTestService::CanvasType::Design;
+            break;
+        case CanvasType::Script:
+            creationType = CreationManager::CanvasType::Script;
+            hitTestType = HitTestService::CanvasType::Script;
+            break;
+        case CanvasType::Variant:
+            creationType = CreationManager::CanvasType::Design;  // Variant uses design creation
+            hitTestType = HitTestService::CanvasType::Variant;
+            break;
+    }
     
     m_creationManager->setCanvasType(creationType);
     m_hitTestService->setCanvasType(hitTestType);
