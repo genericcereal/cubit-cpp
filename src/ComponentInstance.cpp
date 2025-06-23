@@ -12,7 +12,7 @@
 #include <QDebug>
 
 ComponentInstance::ComponentInstance(const QString &id, QObject *parent)
-    : DesignElement(id, parent)
+    : Frame(id, parent)
 {
     // Set the element type directly (it's protected, not private)
     elementType = ComponentInstanceType;
@@ -20,6 +20,10 @@ ComponentInstance::ComponentInstance(const QString &id, QObject *parent)
     // Set the name to "Instance" + last 4 digits of ID
     QString last4 = id.right(4);
     setName("Instance" + last4);
+    
+    // Set overflow to Hidden by default to test clipping
+    setOverflow(Hidden);
+    qDebug() << "ComponentInstance constructor - set overflow to Hidden for" << id;
 }
 
 ComponentInstance::~ComponentInstance()
@@ -182,10 +186,21 @@ void ComponentInstance::syncPropertiesFromVariant()
     setWidth(m_sourceVariant->width());
     setHeight(m_sourceVariant->height());
     
+    // Sync visual properties from the ComponentVariant (which is a Frame)
+    if (ComponentVariant* variant = qobject_cast<ComponentVariant*>(m_sourceVariant)) {
+        setFillColor(variant->fillColor());
+        setBorderColor(variant->borderColor());
+        setBorderWidth(variant->borderWidth());
+        setBorderRadius(variant->borderRadius());
+        
+        // Debug overflow sync
+        OverflowMode variantOverflow = variant->overflow();
+        qDebug() << "ComponentInstance::syncPropertiesFromVariant - variant overflow:" << variantOverflow;
+        setOverflow(variantOverflow);
+        qDebug() << "ComponentInstance::syncPropertiesFromVariant - instance" << getId() << "overflow after set:" << overflow();
+    }
+    
     // Note: We don't sync position (x, y) as instances maintain their own position
-    // We also don't sync other Frame-specific properties yet since ComponentInstance
-    // doesn't have those properties. In the future, we might want to add rendering
-    // support for these visual properties.
 }
 
 void ComponentInstance::onSourceVariantPropertyChanged()
@@ -235,6 +250,12 @@ void ComponentInstance::createChildInstances()
             CanvasElement* childInstance = createInstanceOfElement(canvasChild, instanceParent);
             if (childInstance) {
                 m_childInstances[canvasChild->getId()] = childInstance;
+                
+                // Debug parent-child relationship
+                qDebug() << "ComponentInstance::createChildInstances - Created child" << childInstance->getId()
+                         << "type:" << childInstance->getTypeName()
+                         << "parent:" << (instanceParent ? instanceParent->getId() : "null")
+                         << "parentId:" << childInstance->getParentElementId();
                 
                 // Add to element model
                 elementModel->addElement(childInstance);
@@ -336,9 +357,7 @@ CanvasElement* ComponentInstance::createInstanceOfElement(CanvasElement* sourceE
     if (instance) {
         // Set parent relationship
         instance->setParentElement(parent);
-        if (parent != this) {
-            instance->setParentElementId(parent->getId());
-        }
+        instance->setParentElementId(parent->getId());
         
         // Disable mouse events for child instances
         instance->setMouseEventsEnabled(false);
