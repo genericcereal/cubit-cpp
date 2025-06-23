@@ -72,6 +72,14 @@ void Project::setViewMode(const QString& viewMode) {
             
             // Clear script elements from ElementModel
             clearScriptElementsFromModel();
+        } else if (viewMode == "variant") {
+            // Variant mode: similar to design mode but for component variants
+            // Save any changes back to scripts if coming from script mode
+            if (m_viewMode == "script") {
+                saveElementModelToScripts();
+                clearScriptElementsFromModel();
+            }
+            // Variant canvas will show component variants
         }
         
         // Clear selection when switching view modes
@@ -81,7 +89,15 @@ void Project::setViewMode(const QString& viewMode) {
         
         // Update the canvas controller's canvas type
         if (m_controller) {
-            m_controller->setCanvasType(viewMode == "design" ? CanvasController::CanvasType::Design : CanvasController::CanvasType::Script);
+            CanvasController::CanvasType canvasType;
+            if (viewMode == "script") {
+                canvasType = CanvasController::CanvasType::Script;
+            } else if (viewMode == "variant") {
+                canvasType = CanvasController::CanvasType::Variant;
+            } else {
+                canvasType = CanvasController::CanvasType::Design;
+            }
+            m_controller->setCanvasType(canvasType);
         }
         
         // Reset to select mode

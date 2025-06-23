@@ -83,6 +83,8 @@ Rectangle {
                                 text: {
                                     if (root.currentCanvasType === "design") {
                                         return "Design Canvas"
+                                    } else if (root.currentCanvasType === "variant") {
+                                        return "Variant Canvas"
                                     } else {
                                         // Check if we have an editing element (DesignElement, ComponentInstance, or Component)
                                         if (root.editingElement && root.editingElement.name) {
@@ -108,7 +110,16 @@ Rectangle {
                                 
                                 onClicked: {
                                     if (Application.activeCanvas) {
-                                        var newMode = root.currentCanvasType === "design" ? "script" : "design"
+                                        var newMode
+                                        if (root.currentCanvasType === "design") {
+                                            newMode = "script"
+                                        } else if (root.currentCanvasType === "script") {
+                                            newMode = "design"
+                                        } else {
+                                            // From variant, go back to design
+                                            newMode = "design"
+                                        }
+                                        
                                         console.log("Canvas toggle clicked, switching to:", newMode)
                                         
                                         if (newMode === "script") {
@@ -123,10 +134,50 @@ Rectangle {
                                             Application.activeCanvas.setEditingElement(null, "script")
                                         } else {
                                             // Switching back to design mode
-                                            Application.activeCanvas.setEditingElement(null, "design")
+                                            Application.activeCanvas.setEditingElement(null, newMode)
                                         }
                                         
                                         root.currentCanvasType = newMode
+                                    }
+                                }
+                            }
+                            
+                            // Variant Canvas button - only visible when a component is selected
+                            Button {
+                                id: variantButton
+                                visible: {
+                                    // Show when a component is selected
+                                    var selectedElements = root.selectionManager ? root.selectionManager.selectedElements : []
+                                    if (selectedElements && selectedElements.length === 1) {
+                                        var element = selectedElements[0]
+                                        // Check if the selected element is a Component
+                                        return element && element.elementType === "Component"
+                                    }
+                                    return false
+                                }
+                                Layout.preferredWidth: 100
+                                text: "Variants"
+                                font.pixelSize: 14
+                                
+                                background: Rectangle {
+                                    color: variantButton.pressed ? "#e0e0e0" : (variantButton.hovered ? "#f0f0f0" : "#ffffff")
+                                    border.color: "#d0d0d0"
+                                    border.width: 1
+                                    radius: 4
+                                    antialiasing: true
+                                }
+                                
+                                onClicked: {
+                                    if (Application.activeCanvas) {
+                                        // Get the selected component
+                                        var selectedElements = root.selectionManager ? root.selectionManager.selectedElements : []
+                                        if (selectedElements && selectedElements.length === 1) {
+                                            var component = selectedElements[0]
+                                            if (component && component.elementType === "Component") {
+                                                // Set the component as the editing element
+                                                Application.activeCanvas.setEditingComponent(component, "variant")
+                                            }
+                                        }
                                     }
                                 }
                             }

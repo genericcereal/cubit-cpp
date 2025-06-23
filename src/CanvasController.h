@@ -34,7 +34,8 @@ public:
     // Enum for canvas types
     enum class CanvasType {
         Design,
-        Script
+        Script,
+        Variant
     };
     Q_ENUM(CanvasType)
     

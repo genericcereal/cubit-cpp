@@ -9,7 +9,25 @@ Item {
     required property real canvasMinX
     required property real canvasMinY
     
-    // Element rendering - only render root elements (no parent)
+    Component.onCompleted: {
+        console.log("VariantElementLayer loaded")
+        console.log("ElementModel:", elementModel)
+        console.log("ElementModel row count:", elementModel ? elementModel.rowCount() : 0)
+        
+        // Debug: List all elements to see what's in the model
+        if (elementModel) {
+            for (var i = 0; i < elementModel.rowCount(); i++) {
+                var idx = elementModel.index(i, 0)
+                var element = elementModel.data(idx, 256) // ElementRole
+                var elementType = elementModel.data(idx, 257) // ElementTypeRole
+                if (element) {
+                    console.log("Element", i, ":", element.elementId, "type:", elementType, "parentId:", element.parentId)
+                }
+            }
+        }
+    }
+    
+    // Element rendering - show ALL ComponentVariants for now
     Repeater {
         id: elementRepeater
         model: root.elementModel
@@ -17,10 +35,10 @@ Item {
         delegate: Loader {
             property var element: model.element
             property string elementType: model.elementType
-            property string elementParentId: element ? element.parentId : ""
             
-            // Only render elements without a parent (root elements) and exclude ComponentVariant
-            active: elementParentId === "" && elementType !== "ComponentVariant"
+            
+            // Only render ComponentVariants as root elements for now
+            active: elementType === "ComponentVariant" && element.parentId === ""
             
             // Position elements relative to canvas origin
             x: element && active ? element.x - root.canvasMinX : 0
@@ -28,12 +46,13 @@ Item {
             
             sourceComponent: {
                 if (!active || !element || !elementType) return null
-                switch(elementType) {
-                    case "Frame": return frameComponent
-                    case "ComponentVariant": return frameComponent
-                    case "Text": return textComponent
-                    default: return null
+                
+                // ComponentVariant inherits from Frame, so use frameComponent
+                if (elementType === "ComponentVariant") {
+                    return frameComponent
                 }
+                
+                return null
             }
             
             onLoaded: {
