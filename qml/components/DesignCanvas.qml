@@ -11,6 +11,38 @@ BaseCanvas {
     // Property to access the viewport overlay's controls
     property var viewportControls: null
     
+    // Helper function to check if elementA is a descendant of elementB
+    function isDescendantOf(elementA, elementB) {
+        if (!elementA || !elementB) return false
+        
+        var current = elementA
+        var maxDepth = 100 // Prevent infinite loops
+        var depth = 0
+        
+        while (current && current.parentId && depth < maxDepth) {
+            if (current.parentId === elementB.elementId) {
+                return true
+            }
+            // Find the parent element
+            current = elementModel.getElementById(current.parentId)
+            depth++
+        }
+        
+        return false
+    }
+    
+    // Helper function to check if an element is a child of any selected element
+    function isChildOfSelected(element, selectedElements) {
+        if (!element) return false
+        
+        for (var i = 0; i < selectedElements.length; i++) {
+            if (isDescendantOf(element, selectedElements[i])) {
+                return true
+            }
+        }
+        return false
+    }
+    
     // Update parentId of selected elements when hovering ONLY during controls drag
     onHoveredElementChanged: {
         if (!selectionManager || selectionManager.selectionCount === 0) {
@@ -29,17 +61,40 @@ BaseCanvas {
         for (var i = 0; i < selectedElements.length; i++) {
             var element = selectedElements[i]
             if (element) {
+                // Guard 4: Don't change parentId of children of selected elements
+                // (they should move with their parent, not be reparented)
+                if (isChildOfSelected(element, selectedElements)) {
+                    continue
+                }
+                
                 if (hoveredElement) {
-                    // Don't set an element as its own parent
-                    if (hoveredElement.elementId !== element.elementId) {
+                    // Guard 1: Don't set an element as its own parent
+                    if (hoveredElement.elementId === element.elementId) {
+                        continue
+                    }
+                    
+                    // Guard 2: Don't set parent if it would create a circular dependency (element can't be parented to its own child)
+                    if (isDescendantOf(hoveredElement, element)) {
+                        continue
+                    }
+                    
+                    // Guard 3: Don't parent to children of any selected element
+                    if (isChildOfSelected(hoveredElement, selectedElements)) {
+                        continue
+                    }
+                    
+                    // Only update if parentId actually changes
+                    if (element.parentId !== hoveredElement.elementId) {
                         // Set parentId to the hovered element's ID
                         // console.log("Setting parentId of", element.elementId, "to", hoveredElement.elementId)
                         element.parentId = hoveredElement.elementId
                     }
                 } else {
-                    // Clear parentId when no element is hovered
-                    // console.log("Clearing parentId of", element.elementId)
-                    element.parentId = ""
+                    // Clear parentId when no element is hovered (only if not already empty)
+                    if (element.parentId !== "") {
+                        // console.log("Clearing parentId of", element.elementId)
+                        element.parentId = ""
+                    }
                 }
             }
         }
