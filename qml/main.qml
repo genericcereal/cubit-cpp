@@ -31,11 +31,10 @@ Window {
                     
                     switch (Application.activeCanvas.viewMode) {
                         case "design":
+                        case "variant":
                             return designCanvasComponent
                         case "script":
                             return scriptCanvasComponent
-                        case "variant":
-                            return variantCanvasComponent
                         default:
                             return designCanvasComponent
                     }
@@ -50,7 +49,7 @@ Window {
                             item.selectionManager = Application.activeCanvas.selectionManager
                             item.elementModel = Application.activeCanvas.elementModel
                         }
-                        // Set viewportControls reference for DesignCanvas and VariantCanvas
+                        // Set viewportControls reference for DesignCanvas
                         if (item.hasOwnProperty("viewportControls")) {
                             item.viewportControls = viewportOverlay.selectionControls
                         }
@@ -72,12 +71,6 @@ Window {
                 }
             }
             
-            Component {
-                id: variantCanvasComponent
-                VariantCanvas {
-                    // Properties will be set by Loader.onLoaded
-                }
-            }
             
             // Viewport overlay for non-scaling UI elements
             ViewportOverlay {

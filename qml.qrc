@@ -8,9 +8,7 @@
         <file>qml/components/BaseCanvas.qml</file>
         <file>qml/components/CanvasBackground.qml</file>
         <file>qml/components/DesignCanvas.qml</file>
-        <file>qml/components/VariantCanvas.qml</file>
         <file>qml/components/DesignElementLayer.qml</file>
-        <file>qml/components/VariantElementLayer.qml</file>
         <file>qml/components/DesignScriptExecutorOverlay.qml</file>
         <file>qml/components/ScriptCanvas.qml</file>
         <file>qml/components/NodeCatalog.qml</file>

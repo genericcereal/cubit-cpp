@@ -6,7 +6,7 @@ import "."
 BaseCanvas {
     id: root
     
-    canvasType: "design"
+    canvasType: Application.activeCanvas && Application.activeCanvas.viewMode === "variant" ? "variant" : "design"
     
     // Property to access the viewport overlay's controls
     property var viewportControls: null
@@ -46,6 +46,11 @@ BaseCanvas {
     // Update parentId of selected elements when hovering ONLY during controls drag
     onHoveredElementChanged: {
         if (!selectionManager || selectionManager.selectionCount === 0) {
+            return
+        }
+        
+        // Don't allow parenting in variant mode
+        if (Application.activeCanvas && Application.activeCanvas.viewMode === "variant") {
             return
         }
         

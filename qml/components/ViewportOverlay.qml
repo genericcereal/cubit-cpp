@@ -153,15 +153,12 @@ Item {
         visible: {
             // Controls visible on design and variant canvases
             if (canvasType !== "design" && canvasType !== "variant") {
-                console.log("Controls hidden: canvasType is", canvasType)
                 return false
             }
             // Only show controls if there are visual elements selected
             if (selectionManager && selectionManager.hasVisualSelection) {
-                console.log("Controls visible: hasVisualSelection is true, canvasType:", canvasType)
                 return true
             }
-            console.log("Controls hidden: hasVisualSelection is", selectionManager?.hasVisualSelection ?? "null", "canvasType:", canvasType, "selectionCount:", selectionManager?.selectionCount ?? 0)
             return false
         }
         
@@ -385,6 +382,23 @@ Item {
                     width: element.width,
                     height: element.height
                 })
+                
+                // Also capture children of this element
+                if (canvasView && canvasView.elementModel) {
+                    var children = canvasView.elementModel.getChildrenRecursive(element.elementId)
+                    for (var j = 0; j < children.length; j++) {
+                        var child = children[j]
+                        if (child && child.isVisual) {
+                            states.push({
+                                element: child,
+                                x: child.x,
+                                y: child.y,
+                                width: child.width,
+                                height: child.height
+                            })
+                        }
+                    }
+                }
             }
             initialElementStates = states
         }
@@ -415,41 +429,59 @@ Item {
                 var flipX = scaleX < 0
                 var flipY = scaleY < 0
                 
+                // Create a set of selected element IDs for quick lookup
+                var selectedIds = {}
+                for (var j = 0; j < selectedElements.length; j++) {
+                    selectedIds[selectedElements[j].elementId] = true
+                }
+                
                 for (var i = 0; i < initialElementStates.length; i++) {
                     var state = initialElementStates[i]
+                    var isDirectlySelected = selectedIds[state.element.elementId] === true
                     
                     // Calculate relative position within initial control bounds
                     var relX = state.x - initialControlX
                     var relY = state.y - initialControlY
                     
-                    // Apply scaling with minimum size constraint
-                    var newWidth = Math.max(1, state.width * absScaleX)
-                    var newHeight = Math.max(1, state.height * absScaleY)
-                    
-                    // Calculate new position
-                    var newX, newY
-                    
-                    if (flipX) {
-                        // Flip horizontally: mirror around the center
-                        newX = controlX + Math.abs(controlWidth) - (relX + state.width) * absScaleX
+                    if (isDirectlySelected) {
+                        // For directly selected elements, apply scaling
+                        var newWidth = Math.max(1, state.width * absScaleX)
+                        var newHeight = Math.max(1, state.height * absScaleY)
+                        
+                        // Calculate new position
+                        var newX, newY
+                        
+                        if (flipX) {
+                            // Flip horizontally: mirror around the center
+                            newX = controlX + Math.abs(controlWidth) - (relX + state.width) * absScaleX
+                        } else {
+                            // Normal positioning
+                            newX = controlX + relX * absScaleX
+                        }
+                        
+                        if (flipY) {
+                            // Flip vertically: mirror around the center
+                            newY = controlY + Math.abs(controlHeight) - (relY + state.height) * absScaleY
+                        } else {
+                            // Normal positioning
+                            newY = controlY + relY * absScaleY
+                        }
+                        
+                        // Update element
+                        state.element.x = newX
+                        state.element.y = newY
+                        state.element.width = newWidth
+                        state.element.height = newHeight
                     } else {
-                        // Normal positioning
-                        newX = controlX + relX * absScaleX
+                        // For child elements, maintain size and adjust position to stay relative to parent's left edge
+                        // Only update position if parent moved (due to resize from left/top)
+                        var deltaX = controlX - initialControlX
+                        var deltaY = controlY - initialControlY
+                        
+                        state.element.x = state.x + deltaX
+                        state.element.y = state.y + deltaY
+                        // Don't change width/height for children
                     }
-                    
-                    if (flipY) {
-                        // Flip vertically: mirror around the center
-                        newY = controlY + Math.abs(controlHeight) - (relY + state.height) * absScaleY
-                    } else {
-                        // Normal positioning
-                        newY = controlY + relY * absScaleY
-                    }
-                    
-                    // Update element
-                    state.element.x = newX
-                    state.element.y = newY
-                    state.element.width = newWidth
-                    state.element.height = newHeight
                 }
             }
             

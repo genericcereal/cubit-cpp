@@ -69,6 +69,9 @@ private:
     // Helper to filter elements based on canvas type
     bool shouldTestElement(Element* element) const;
     
+    // Helper to check if element is in any component's variants array
+    bool isInAnyComponentVariants(Element* element) const;
+    
     // Get bounds for the quadtree based on all elements
     QRectF calculateBounds() const;
     

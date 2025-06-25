@@ -4,6 +4,9 @@
 #include "../Html.h"
 #include "../ElementModel.h"
 #include "../SelectionManager.h"
+#include "../Application.h"
+#include "../Project.h"
+#include "../Component.h"
 #include <QDebug>
 
 CreateDesignElementCommand::CreateDesignElementCommand(ElementModel* model, SelectionManager* selectionManager,
@@ -64,6 +67,20 @@ void CreateDesignElementCommand::execute()
 
     qDebug() << "CreateDesignElementCommand::execute() - Type:" << m_elementType;
 
+    // Check if we're in variant mode
+    Application* app = Application::instance();
+    Project* activeCanvas = app ? app->activeCanvas() : nullptr;
+    bool isVariantMode = activeCanvas && activeCanvas->viewMode() == "variant";
+    Component* editingComponent = nullptr;
+    
+    if (isVariantMode && activeCanvas) {
+        QObject* editingElement = activeCanvas->editingElement();
+        editingComponent = qobject_cast<Component*>(editingElement);
+        if (!editingComponent) {
+            qWarning() << "CreateDesignElementCommand: In variant mode but editing element is not a Component";
+        }
+    }
+
     // Create elements on first execution
     if (!m_frame) {
         m_frameId = m_elementModel->generateId();
@@ -111,15 +128,35 @@ void CreateDesignElementCommand::execute()
         }
     }
 
-    // Add elements to model
-    if (m_frame) {
-        m_elementModel->addElement(m_frame);
-    }
-    if (m_textElement) {
-        m_elementModel->addElement(m_textElement);
-    }
-    if (m_htmlElement) {
-        m_elementModel->addElement(m_htmlElement);
+    // Add elements to appropriate container
+    if (isVariantMode && editingComponent) {
+        // In variant mode, add to the Component's variants array
+        if (m_frame) {
+            editingComponent->addVariant(m_frame);
+            // Still add to model for visibility
+            m_elementModel->addElement(m_frame);
+        }
+        if (m_textElement) {
+            editingComponent->addVariant(m_textElement);
+            // Still add to model for visibility
+            m_elementModel->addElement(m_textElement);
+        }
+        if (m_htmlElement) {
+            editingComponent->addVariant(m_htmlElement);
+            // Still add to model for visibility
+            m_elementModel->addElement(m_htmlElement);
+        }
+    } else {
+        // Normal mode, just add to model
+        if (m_frame) {
+            m_elementModel->addElement(m_frame);
+        }
+        if (m_textElement) {
+            m_elementModel->addElement(m_textElement);
+        }
+        if (m_htmlElement) {
+            m_elementModel->addElement(m_htmlElement);
+        }
     }
 
     // Select the newly created element
@@ -138,6 +175,17 @@ void CreateDesignElementCommand::undo()
 {
     if (!m_elementModel) return;
 
+    // Check if we're in variant mode
+    Application* app = Application::instance();
+    Project* activeCanvas = app ? app->activeCanvas() : nullptr;
+    bool isVariantMode = activeCanvas && activeCanvas->viewMode() == "variant";
+    Component* editingComponent = nullptr;
+    
+    if (isVariantMode && activeCanvas) {
+        QObject* editingElement = activeCanvas->editingElement();
+        editingComponent = qobject_cast<Component*>(editingElement);
+    }
+
     // Clear selection if any created element is selected
     if (m_selectionManager && m_selectionManager->hasSelection()) {
         auto selectedElements = m_selectionManager->selectedElements();
@@ -151,11 +199,20 @@ void CreateDesignElementCommand::undo()
     // Remove elements from model in reverse order (children first)
     if (m_textElement) {
         m_elementModel->removeElement(m_textElement->getId());
+        if (isVariantMode && editingComponent) {
+            editingComponent->removeVariant(m_textElement);
+        }
     }
     if (m_htmlElement) {
         m_elementModel->removeElement(m_htmlElement->getId());
+        if (isVariantMode && editingComponent) {
+            editingComponent->removeVariant(m_htmlElement);
+        }
     }
     if (m_frame) {
         m_elementModel->removeElement(m_frame->getId());
+        if (isVariantMode && editingComponent) {
+            editingComponent->removeVariant(m_frame);
+        }
     }
 }

@@ -79,6 +79,8 @@ void Project::setViewMode(const QString& viewMode) {
                 saveElementModelToScripts();
                 clearScriptElementsFromModel();
             }
+            // Log the editing element when switching to variant mode
+            qDebug() << "Switching to variant mode, editingElement:" << m_editingElement;
             // Variant canvas will show component variants
         }
         

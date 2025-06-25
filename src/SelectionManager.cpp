@@ -1,6 +1,10 @@
 #include "SelectionManager.h"
 #include "Element.h"
 #include "CanvasElement.h"
+#include "Component.h"
+#include "ElementModel.h"
+#include "Application.h"
+#include "Project.h"
 #include <limits>
 #include <QDebug>
 
@@ -19,11 +23,9 @@ bool SelectionManager::hasVisualSelection() const
     // Check if any selected element is visual
     for (Element* element : m_selectedElements) {
         if (element && element->isVisual()) {
-            qDebug() << "hasVisualSelection: Found visual element" << element->getTypeName() << element->getId();
             return true;
         }
     }
-    qDebug() << "hasVisualSelection: No visual elements found in" << m_selectedElements.size() << "selected elements";
     return false;
 }
 
@@ -35,6 +37,7 @@ void SelectionManager::selectElement(Element *element)
     updateElementSelection(element, true);
     expandBoundingBox(element);  // Incremental update
     emit elementSelected(element);
+    checkComponentVariantMembership();
     emit selectionChanged();
 }
 
@@ -49,6 +52,7 @@ void SelectionManager::deselectElement(Element *element)
     shrinkBoundingBox();
     
     emit elementDeselected(element);
+    checkComponentVariantMembership();
     emit selectionChanged();
 }
 
@@ -98,6 +102,7 @@ void SelectionManager::selectOnly(Element *element)
     }
     
     emit elementSelected(element);
+    checkComponentVariantMembership();
     emit selectionChanged();
 }
 
@@ -137,6 +142,7 @@ void SelectionManager::selectAll(const std::vector<Element*> &elements)
     }
     
     if (!m_selectedElements.isEmpty()) {
+        checkComponentVariantMembership();
         emit selectionChanged();
     }
 }
@@ -158,6 +164,7 @@ void SelectionManager::clearSelection()
     m_boundingWidth = 0;
     m_boundingHeight = 0;
     
+    checkComponentVariantMembership();
     emit selectionChanged();
 }
 
@@ -273,4 +280,52 @@ void SelectionManager::onElementGeometryChanged()
     // When selected elements move/resize, we need to recalculate
     recalculateBoundingBox();
     emit selectionChanged();
+}
+
+void SelectionManager::checkComponentVariantMembership()
+{
+    // Get the active canvas and element model
+    Application* app = Application::instance();
+    if (!app) return;
+    
+    Project* activeCanvas = app->activeCanvas();
+    if (!activeCanvas) return;
+    
+    ElementModel* elementModel = activeCanvas->elementModel();
+    if (!elementModel) return;
+    
+    // Check each selected element
+    for (Element* selectedElement : m_selectedElements) {
+        if (!selectedElement) continue;
+        
+        bool isInComponentVariant = false;
+        Component* parentComponent = nullptr;
+        
+        // Get all elements from the model
+        QList<Element*> allElements = elementModel->getAllElements();
+        
+        // Check each component in the model
+        for (Element* element : allElements) {
+            Component* component = qobject_cast<Component*>(element);
+            if (component) {
+                // Check if the selected element is in this component's variants
+                QList<Element*> variants = component->variants();
+                if (variants.contains(selectedElement)) {
+                    isInComponentVariant = true;
+                    parentComponent = component;
+                    break;
+                }
+            }
+        }
+        
+        // Log the result
+        if (isInComponentVariant && parentComponent) {
+            qDebug() << "SelectionManager: Selected element" << selectedElement->getTypeName() 
+                     << selectedElement->getId() << "is part of Component" 
+                     << parentComponent->getId() << "variants array";
+        } else {
+            qDebug() << "SelectionManager: Selected element" << selectedElement->getTypeName() 
+                     << selectedElement->getId() << "is NOT part of any component's variants array";
+        }
+    }
 }

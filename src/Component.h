@@ -4,23 +4,28 @@
 #include <QList>
 #include <memory>
 
-class ComponentVariant;
+class DesignElement;
+class Variable;
 
 class Component : public Element
 {
     Q_OBJECT
-    Q_PROPERTY(QList<ComponentVariant*> variants READ variants NOTIFY variantsChanged)
+    Q_PROPERTY(QList<Element*> variants READ variants NOTIFY variantsChanged)
     Q_PROPERTY(Scripts* scripts READ scripts NOTIFY scriptsChanged)
     
 public:
     explicit Component(const QString &id, QObject *parent = nullptr);
     virtual ~Component();
     
-    // Variants management
-    QList<ComponentVariant*> variants() const { return m_variants; }
-    void addVariant(ComponentVariant* variant);
-    void removeVariant(ComponentVariant* variant);
+    // Variants management - accepts DesignElements and Variables
+    QList<Element*> variants() const { return m_variants; }
+    void addVariant(Element* variant);
+    void removeVariant(Element* variant);
     void clearVariants();
+    
+    // Type-specific helpers
+    void addDesignElement(DesignElement* element);
+    void addVariable(Variable* variable);
     
     // Scripts management
     Scripts* scripts() const;
@@ -30,6 +35,6 @@ signals:
     void scriptsChanged();
     
 private:
-    QList<ComponentVariant*> m_variants;
+    QList<Element*> m_variants;
     std::unique_ptr<Scripts> m_scripts;
 };

@@ -60,4 +60,5 @@ private:
     void recalculateBoundingBox();
     void expandBoundingBox(Element *element);
     void shrinkBoundingBox();
+    void checkComponentVariantMembership();
 };
