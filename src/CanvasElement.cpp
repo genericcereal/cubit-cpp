@@ -48,7 +48,6 @@ void CanvasElement::setWidth(qreal w)
         canvasSize.setWidth(w);
         m_boundsValid = false;
         updateCachedBounds();
-        qDebug() << "CanvasElement::setWidth -" << this->getTypeName() << getId() << "resized from width:" << oldWidth << "to width:" << w;
         emit widthChanged();
         emit geometryChanged();
         emit elementChanged();
@@ -63,7 +62,6 @@ void CanvasElement::setHeight(qreal h)
         canvasSize.setHeight(h);
         m_boundsValid = false;
         updateCachedBounds();
-        qDebug() << "CanvasElement::setHeight -" << this->getTypeName() << getId() << "resized from height:" << oldHeight << "to height:" << h;
         emit heightChanged();
         emit geometryChanged();
         emit elementChanged();

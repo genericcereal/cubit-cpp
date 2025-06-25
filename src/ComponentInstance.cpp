@@ -124,13 +124,22 @@ void ComponentInstance::connectToVariant()
         return;
     }
     
-    QList<ComponentVariant*> variants = m_component->variants();
+    QList<Element*> variants = m_component->variants();
     if (variants.isEmpty()) {
         return;
     }
     
-    // Connect to the first variant
-    m_sourceVariant = variants.first();
+    // Connect to the first variant that is a CanvasElement (usually a ComponentVariant)
+    for (Element* variant : variants) {
+        if (qobject_cast<CanvasElement*>(variant)) {
+            m_sourceVariant = variant;
+            break;
+        }
+    }
+    
+    if (!m_sourceVariant) {
+        return;
+    }
     
     // Sync initial properties
     syncPropertiesFromVariant();
@@ -255,9 +264,14 @@ void ComponentInstance::updateChildInstancesForResize()
         return;
     }
     
+    CanvasElement* sourceCanvas = qobject_cast<CanvasElement*>(m_sourceVariant);
+    if (!sourceCanvas) {
+        return;
+    }
+    
     // Calculate scale factors based on the instance size vs variant size
-    qreal scaleX = width() / m_sourceVariant->width();
-    qreal scaleY = height() / m_sourceVariant->height();
+    qreal scaleX = width() / sourceCanvas->width();
+    qreal scaleY = height() / sourceCanvas->height();
     
     // Get the element model to find source elements
     Application* app = Application::instance();
@@ -280,8 +294,8 @@ void ComponentInstance::updateChildInstancesForResize()
             // Only update if this is a direct child of the variant
             if (canvasSource->getParentElementId() == m_sourceVariant->getId()) {
                 // Calculate the source element's position relative to the variant
-                qreal sourceRelX = canvasSource->x() - m_sourceVariant->x();
-                qreal sourceRelY = canvasSource->y() - m_sourceVariant->y();
+                qreal sourceRelX = canvasSource->x() - sourceCanvas->x();
+                qreal sourceRelY = canvasSource->y() - sourceCanvas->y();
                 
                 // Apply scaling to position and size
                 instanceElement->setX(x() + sourceRelX * scaleX);
@@ -412,7 +426,8 @@ void ComponentInstance::setWidth(qreal width)
     CanvasElement::setWidth(width);
     
     // Update child instances to scale proportionally
-    if (!qFuzzyCompare(oldWidth, width) && m_sourceVariant && oldWidth > 0) {
+    CanvasElement* sourceCanvas = qobject_cast<CanvasElement*>(m_sourceVariant);
+    if (!qFuzzyCompare(oldWidth, width) && sourceCanvas && oldWidth > 0) {
         updateChildInstancesForResize();
     }
 }
@@ -425,7 +440,8 @@ void ComponentInstance::setHeight(qreal height)
     CanvasElement::setHeight(height);
     
     // Update child instances to scale proportionally
-    if (!qFuzzyCompare(oldHeight, height) && m_sourceVariant && oldHeight > 0) {
+    CanvasElement* sourceCanvas = qobject_cast<CanvasElement*>(m_sourceVariant);
+    if (!qFuzzyCompare(oldHeight, height) && sourceCanvas && oldHeight > 0) {
         updateChildInstancesForResize();
     }
 }

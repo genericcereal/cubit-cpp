@@ -3,6 +3,7 @@
 #include "CanvasElement.h"
 #include "ElementModel.h"
 #include "QuadTree.h"
+#include "Component.h"
 #include <QElapsedTimer>
 
 HitTestService::HitTestService(QObject *parent)
@@ -266,6 +267,26 @@ QRectF HitTestService::calculateBounds() const
     return bounds;
 }
 
+bool HitTestService::isInAnyComponentVariants(Element* element) const
+{
+    if (!element || !m_elementModel) return false;
+    
+    // Check all elements to find Components
+    QList<Element*> allElements = m_elementModel->getAllElements();
+    for (Element* el : allElements) {
+        Component* component = qobject_cast<Component*>(el);
+        if (component) {
+            // Check if element is in this component's variants
+            const QList<Element*>& variants = component->variants();
+            if (variants.contains(element)) {
+                return true;
+            }
+        }
+    }
+    
+    return false;
+}
+
 bool HitTestService::shouldTestElement(Element* element) const
 {
     if (!element) return false;
@@ -283,67 +304,35 @@ bool HitTestService::shouldTestElement(Element* element) const
         return element->getType() == Element::NodeType || 
                element->getType() == Element::EdgeType;
     }
-    // For design canvas, skip nodes, edges, and component variants
+    // For design canvas, skip nodes, edges, and elements in any component's variants
     else if (m_canvasType == CanvasType::Design) {
         Element::ElementType type = element->getType();
         if (type == Element::NodeType || 
-            type == Element::EdgeType ||
-            type == Element::ComponentVariantType) {
+            type == Element::EdgeType) {
             return false;
         }
         
-        // Also skip descendants of ComponentVariants
-        if (element->hasParent() && m_elementModel) {
-            QString parentId = element->getParentElementId();
-            Element* parent = m_elementModel->getElementById(parentId);
-            
-            while (parent) {
-                if (parent->getType() == Element::ComponentVariantType) {
-                    return false;
-                }
-                
-                // Check if parent has a parent
-                if (parent->hasParent()) {
-                    parentId = parent->getParentElementId();
-                    parent = m_elementModel->getElementById(parentId);
-                } else {
-                    parent = nullptr;
-                }
-            }
+        // Skip elements that are in any component's variants array
+        if (isInAnyComponentVariants(element)) {
+            return false;
         }
         
         return true;
     }
-    // For variant canvas, only test component variants and their descendants
+    // For variant canvas, we need to only test elements in the editing component's variants
+    // The actual filtering of which elements to show is done in QML based on the editing component
+    // Here we just need to allow design elements (Frame, Text, Html) but not script elements
     else if (m_canvasType == CanvasType::Variant) {
         Element::ElementType type = element->getType();
         
-        // Test if it's a ComponentVariant
-        if (type == Element::ComponentVariantType) {
-            return true;
+        // Skip nodes and edges in variant mode
+        if (type == Element::NodeType || 
+            type == Element::EdgeType) {
+            return false;
         }
         
-        // Test if it's a descendant of a ComponentVariant
-        if (element->hasParent() && m_elementModel) {
-            QString parentId = element->getParentElementId();
-            Element* parent = m_elementModel->getElementById(parentId);
-            
-            while (parent) {
-                if (parent->getType() == Element::ComponentVariantType) {
-                    return true;
-                }
-                
-                // Check if parent has a parent
-                if (parent->hasParent()) {
-                    parentId = parent->getParentElementId();
-                    parent = m_elementModel->getElementById(parentId);
-                } else {
-                    parent = nullptr;
-                }
-            }
-        }
-        
-        return false;
+        // Allow all design elements - the QML layer will filter based on component variants
+        return true;
     }
     
     return true;

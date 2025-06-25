@@ -11,6 +11,9 @@
 #include "SelectionManager.h"
 #include "Config.h"
 #include "HandleType.h"
+#include "Application.h"
+#include "Project.h"
+#include "Component.h"
 #include <QDebug>
 #include <QtMath>
 
@@ -28,6 +31,20 @@ Element* CreationManager::createElement(const QString& type, qreal x, qreal y, q
     if (m_canvasType != CanvasType::Design) {
         qDebug() << "Cannot create elements on script canvas";
         return nullptr;
+    }
+    
+    // Check if we're in variant mode
+    Application* app = Application::instance();
+    Project* activeCanvas = app ? app->activeCanvas() : nullptr;
+    bool isVariantMode = activeCanvas && activeCanvas->viewMode() == "variant";
+    Component* editingComponent = nullptr;
+    
+    if (isVariantMode && activeCanvas) {
+        QObject* editingElement = activeCanvas->editingElement();
+        editingComponent = qobject_cast<Component*>(editingElement);
+        if (!editingComponent) {
+            qWarning() << "CreationManager: In variant mode but editing element is not a Component";
+        }
     }
     
     QString id = m_elementModel->generateId();
@@ -57,7 +74,18 @@ Element* CreationManager::createElement(const QString& type, qreal x, qreal y, q
                 canvasElement->setRect(QRectF(x, y, width, height));
             }
         }
-        m_elementModel->addElement(element);
+        
+        // Add to appropriate container
+        if (isVariantMode && editingComponent) {
+            // In variant mode, add to the Component's variants array
+            editingComponent->addVariant(element);
+            // Still add to model for visibility
+            m_elementModel->addElement(element);
+        } else {
+            // Normal mode, just add to model
+            m_elementModel->addElement(element);
+        }
+        
         emit elementCreated(element);
         
         // Select the newly created element
