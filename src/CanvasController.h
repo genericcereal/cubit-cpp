@@ -53,6 +53,9 @@ public:
     CanvasType canvasType() const { return m_canvasType; }
     void setCanvasType(CanvasType type);
     
+    // Editing element management (for variant mode)
+    void setEditingElement(QObject* editingElement);
+    
     // Drag state (handled in QML now)
     bool isDragging() const { return false; }  // Always false since dragging is handled in QML
     

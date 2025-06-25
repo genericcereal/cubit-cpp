@@ -76,7 +76,8 @@ SOURCES += \
     src/ScriptFunctionRegistry.cpp \
     src/ScriptSerializer.cpp \
     src/SelectModeHandler.cpp \
-    src/CreationModeHandler.cpp
+    src/CreationModeHandler.cpp \
+    src/ElementFilterProxy.cpp
 
 HEADERS += \
     src/Element.h \
@@ -126,7 +127,8 @@ HEADERS += \
     src/ScriptSerializer.h \
     src/IModeHandler.h \
     src/SelectModeHandler.h \
-    src/CreationModeHandler.h
+    src/CreationModeHandler.h \
+    src/ElementFilterProxy.h
 
 RESOURCES += qml.qrc
 

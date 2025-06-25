@@ -26,6 +26,7 @@
 #include "Panels.h"
 #include "Scripts.h"
 #include "ScriptCompiler.h"
+#include "ElementFilterProxy.h"
 
 int main(int argc, char *argv[])
 {
@@ -66,6 +67,7 @@ int main(int argc, char *argv[])
     qmlRegisterType<Panels>("Cubit", 1, 0, "Panels");
     qmlRegisterType<Scripts>("Cubit", 1, 0, "Scripts");
     qmlRegisterType<ScriptCompiler>("Cubit", 1, 0, "ScriptCompiler");
+    qmlRegisterType<ElementFilterProxy>("Cubit", 1, 0, "ElementFilterProxy");
     
     // Register singleton ConsoleMessageRepository
     qmlRegisterSingletonType<ConsoleMessageRepository>("Cubit", 1, 0, "ConsoleMessageRepository",

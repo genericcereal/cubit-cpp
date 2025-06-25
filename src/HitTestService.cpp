@@ -1,9 +1,13 @@
 #include "HitTestService.h"
 #include "Element.h"
 #include "CanvasElement.h"
+#include "DesignElement.h"
+#include "ScriptElement.h"
 #include "ElementModel.h"
 #include "QuadTree.h"
 #include "Component.h"
+#include "ComponentVariant.h"
+#include "ComponentInstance.h"
 #include <QElapsedTimer>
 
 HitTestService::HitTestService(QObject *parent)
@@ -51,6 +55,18 @@ void HitTestService::setCanvasType(CanvasType type)
         m_canvasType = type;
         m_visualsCacheValid = false;  // Invalidate cache
         rebuildSpatialIndex();
+    }
+}
+
+void HitTestService::setEditingElement(QObject* editingElement)
+{
+    if (m_editingElement != editingElement) {
+        m_editingElement = editingElement;
+        m_visualsCacheValid = false;  // Invalidate cache
+        // In variant mode, we need to rebuild when editing element changes
+        if (m_canvasType == CanvasType::Variant) {
+            rebuildSpatialIndex();
+        }
     }
 }
 
@@ -291,6 +307,12 @@ bool HitTestService::shouldTestElement(Element* element) const
 {
     if (!element) return false;
     
+    // Special handling for Component elements - they should never be hit-testable on canvas
+    // Components only appear in the ElementList, not as visual elements on canvas
+    if (qobject_cast<Component*>(element)) {
+        return false;
+    }
+    
     // Check if mouse events are disabled for this element
     if (element->isVisual()) {
         CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
@@ -299,16 +321,35 @@ bool HitTestService::shouldTestElement(Element* element) const
         }
     }
     
-    // For script canvas, test nodes and edges
-    if (m_canvasType == CanvasType::Script) {
-        return element->getType() == Element::NodeType || 
-               element->getType() == Element::EdgeType;
+    // Non-visual elements (except Components which are already handled) are never hit-testable
+    if (!element->isVisual()) {
+        return false;
     }
-    // For design canvas, skip nodes, edges, and elements in any component's variants
-    else if (m_canvasType == CanvasType::Design) {
-        Element::ElementType type = element->getType();
-        if (type == Element::NodeType || 
-            type == Element::EdgeType) {
+    
+    // Check if it's a canvas element
+    CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+    if (!canvasElement) {
+        return false;
+    }
+    
+    // Apply view mode filtering (matching ElementFilterProxy logic)
+    if (m_canvasType == CanvasType::Design) {
+        // In design mode, test:
+        // 1. Design elements (Frame, Text, Html) that are NOT in any component's variants
+        // 2. ComponentInstance elements
+        
+        // Check if it's a ComponentInstance
+        if (qobject_cast<ComponentInstance*>(element)) {
+            return true;
+        }
+        
+        // For other elements, they must be design elements
+        if (!canvasElement->isDesignElement()) {
+            return false;
+        }
+        
+        // Check if this element is a ComponentVariant (should not be hit-testable in design mode)
+        if (qobject_cast<ComponentVariant*>(element)) {
             return false;
         }
         
@@ -319,23 +360,31 @@ bool HitTestService::shouldTestElement(Element* element) const
         
         return true;
     }
-    // For variant canvas, we need to only test elements in the editing component's variants
-    // The actual filtering of which elements to show is done in QML based on the editing component
-    // Here we just need to allow design elements (Frame, Text, Html) but not script elements
+    else if (m_canvasType == CanvasType::Script) {
+        // In script mode, only test script elements (nodes and edges)
+        return canvasElement->isScriptElement();
+    }
     else if (m_canvasType == CanvasType::Variant) {
-        Element::ElementType type = element->getType();
-        
-        // Skip nodes and edges in variant mode
-        if (type == Element::NodeType || 
-            type == Element::EdgeType) {
+        // In variant mode, only test elements that belong to the editing component's variants
+        if (!canvasElement->isDesignElement()) {
             return false;
         }
         
-        // Allow all design elements - the QML layer will filter based on component variants
-        return true;
+        // Check if we have an editing component
+        if (m_editingElement) {
+            Component* component = qobject_cast<Component*>(m_editingElement);
+            if (component) {
+                // Only test elements that are in this component's variants array
+                const QList<Element*>& variants = component->variants();
+                return variants.contains(element);
+            }
+        }
+        
+        // If no editing component, don't test any elements
+        return false;
     }
     
-    return true;
+    return false;
 }
 
 void HitTestService::rebuildVisualsCache() const
