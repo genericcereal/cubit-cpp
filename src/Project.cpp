@@ -230,6 +230,11 @@ void Project::setEditingElement(DesignElement* element, const QString& viewMode)
         m_editingElement = element;
         emit editingElementChanged();
         updateActiveScripts();
+        
+        // Update the canvas controller's hit test service
+        if (m_controller) {
+            m_controller->setEditingElement(m_editingElement);
+        }
     }
     
     // If a viewMode is specified, switch to that mode
@@ -243,6 +248,11 @@ void Project::setEditingComponent(Component* component, const QString& viewMode)
         m_editingElement = component;
         emit editingElementChanged();
         updateActiveScripts();
+        
+        // Update the canvas controller's hit test service
+        if (m_controller) {
+            m_controller->setEditingElement(m_editingElement);
+        }
     }
     
     // If a viewMode is specified, switch to that mode

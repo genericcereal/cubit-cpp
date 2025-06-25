@@ -1,6 +1,6 @@
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Layouts 1.15
+import QtQuick.Layouts
 import Cubit
 
 Item {
@@ -9,13 +9,21 @@ Item {
     property var elementModel
     property var selectionManager
     
+    // Create filtered proxy model
+    ElementFilterProxy {
+        id: filteredModel
+        sourceModel: root.elementModel
+        viewMode: Application.activeCanvas ? Application.activeCanvas.viewMode : "design"
+        editingElement: Application.activeCanvas ? Application.activeCanvas.editingElement : null
+    }
+    
     ScrollView {
         id: scrollView
         anchors.fill: parent
         
         ListView {
             id: listView
-            model: elementModel
+            model: filteredModel
             spacing: 1
         
         delegate: Rectangle {
@@ -33,8 +41,8 @@ Item {
                     level++
                     // Find parent element
                     var parentFound = false
-                    for (var i = 0; i < elementModel.rowCount(); i++) {
-                        var elem = elementModel.elementAt(i)
+                    for (var i = 0; i < root.elementModel.rowCount(); i++) {
+                        var elem = root.elementModel.elementAt(i)
                         if (elem && elem.elementId === currentElement.parentId) {
                             currentElement = elem
                             parentFound = true
@@ -48,8 +56,8 @@ Item {
             
             property bool hasChildren: {
                 if (!model.element) return false
-                for (var i = 0; i < elementModel.rowCount(); i++) {
-                    var child = elementModel.elementAt(i)
+                for (var i = 0; i < root.elementModel.rowCount(); i++) {
+                    var child = root.elementModel.elementAt(i)
                     if (child && child.parentId === model.element.elementId) {
                         return true
                     }
@@ -69,8 +77,8 @@ Item {
                 while (currentElement && currentElement.parentId) {
                     // Find parent element
                     var parentFound = false
-                    for (var i = 0; i < elementModel.rowCount(); i++) {
-                        var elem = elementModel.elementAt(i)
+                    for (var i = 0; i < root.elementModel.rowCount(); i++) {
+                        var elem = root.elementModel.elementAt(i)
                         if (elem && elem.elementId === currentElement.parentId) {
                             ancestors.push(elem.elementId)
                             currentElement = elem
@@ -97,7 +105,7 @@ Item {
             
             property string elementId: model.element ? model.element.elementId : ""
             
-            visible: (model.elementType !== "Node" && model.elementType !== "Edge") && parentExpanded && (model.element ? model.element.showInElementList : true)
+            visible: parentExpanded && (model.element ? model.element.showInElementList : true)
             
             // Expand/collapse box positioned absolutely
             Rectangle {
@@ -276,12 +284,9 @@ Item {
                 var itemPositions = {}
                 
                 // First pass: record positions of all visible items
-                for (var i = 0; i < root.elementModel.rowCount(); i++) {
-                    var element = root.elementModel.elementAt(i)
+                for (var i = 0; i < filteredModel.rowCount(); i++) {
+                    var element = filteredModel.elementAt(i)
                     if (!element) continue
-                    
-                    // Skip Node and Edge elements
-                    if (element.elementType === "Node" || element.elementType === "Edge") continue
                     
                     // Skip elements that shouldn't be shown in the list
                     if (!element.showInElementList) continue
@@ -333,7 +338,7 @@ Item {
             
             // Repaint when model changes
             Connections {
-                target: root.elementModel
+                target: filteredModel
                 function onDataChanged() { 
                     treeLinesOverlay.repaintLines()
                 }
@@ -348,9 +353,9 @@ Item {
         // Initial paint
         Component.onCompleted: {
             // Initialize all elements as expanded by default
-            for (var i = 0; i < root.elementModel.rowCount(); i++) {
-                var element = root.elementModel.elementAt(i)
-                if (element && element.elementType !== "Node" && element.elementType !== "Edge") {
+            for (var i = 0; i < filteredModel.rowCount(); i++) {
+                var element = filteredModel.elementAt(i)
+                if (element) {
                     expandedStates[element.elementId] = true
                 }
             }

@@ -149,6 +149,13 @@ void CanvasController::setCanvasType(CanvasType type)
     }
 }
 
+void CanvasController::setEditingElement(QObject* editingElement)
+{
+    if (m_hitTestService) {
+        m_hitTestService->setEditingElement(editingElement);
+    }
+}
+
 
 
 Element* CanvasController::hitTest(qreal x, qreal y)

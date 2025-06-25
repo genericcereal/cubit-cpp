@@ -27,6 +27,7 @@ public:
     
     void setElementModel(ElementModel* elementModel);
     void setCanvasType(CanvasType type);
+    void setEditingElement(QObject* editingElement);
     
     // Hit testing
     Element* hitTest(const QPointF& point) const;
@@ -62,11 +63,14 @@ private slots:
 private:
     ElementModel* m_elementModel = nullptr;
     CanvasType m_canvasType = CanvasType::Design;
+    QObject* m_editingElement = nullptr;
     mutable std::unique_ptr<QuadTree> m_quadTree;
     bool m_useQuadTree = true;
     bool m_needsRebuild = false;
     
     // Helper to filter elements based on canvas type
+    // This filtering logic should match ElementFilterProxy to ensure consistent behavior
+    // between what's displayed and what's hit-testable
     bool shouldTestElement(Element* element) const;
     
     // Helper to check if element is in any component's variants array
