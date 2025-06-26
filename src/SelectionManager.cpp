@@ -298,9 +298,6 @@ void SelectionManager::checkComponentVariantMembership()
     for (Element* selectedElement : m_selectedElements) {
         if (!selectedElement) continue;
         
-        bool isInComponentVariant = false;
-        Component* parentComponent = nullptr;
-        
         // Get all elements from the model
         QList<Element*> allElements = elementModel->getAllElements();
         
@@ -311,21 +308,10 @@ void SelectionManager::checkComponentVariantMembership()
                 // Check if the selected element is in this component's variants
                 QList<Element*> variants = component->variants();
                 if (variants.contains(selectedElement)) {
-                    isInComponentVariant = true;
-                    parentComponent = component;
                     break;
                 }
             }
         }
         
-        // Log the result
-        if (isInComponentVariant && parentComponent) {
-            qDebug() << "SelectionManager: Selected element" << selectedElement->getTypeName() 
-                     << selectedElement->getId() << "is part of Component" 
-                     << parentComponent->getId() << "variants array";
-        } else {
-            qDebug() << "SelectionManager: Selected element" << selectedElement->getTypeName() 
-                     << selectedElement->getId() << "is NOT part of any component's variants array";
-        }
     }
 }

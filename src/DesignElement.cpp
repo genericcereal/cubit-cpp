@@ -31,14 +31,12 @@ Scripts* DesignElement::scripts() const {
 }
 
 void DesignElement::executeScriptEvent(const QString& eventName) {
-    qDebug() << "DesignElement::executeScriptEvent called for" << getId() << "event:" << eventName;
     
     if (!m_scripts) {
         qWarning() << "DesignElement: No scripts available";
         return;
     }
     
-    qDebug() << "DesignElement" << getId() << "has" << m_scripts->nodeCount() << "nodes," << m_scripts->edgeCount() << "edges";
     
     // Create a temporary script executor for this element
     ScriptExecutor executor(this);
@@ -223,9 +221,6 @@ void DesignElement::updateFromParentGeometry() {
         return;
     }
     
-    qDebug() << "DesignElement" << getId() << "updateFromParentGeometry called";
-    qDebug() << "  Anchors - L:" << m_leftAnchored << "R:" << m_rightAnchored 
-             << "T:" << m_topAnchored << "B:" << m_bottomAnchored;
     
     // Set flag to prevent circular updates
     m_updatingFromAnchors = true;
@@ -270,12 +265,9 @@ void DesignElement::updateFromParentGeometry() {
     // Apply changes
     if (!qFuzzyCompare(newX, x()) || !qFuzzyCompare(newY, y()) ||
         !qFuzzyCompare(newWidth, width()) || !qFuzzyCompare(newHeight, height())) {
-        qDebug() << "  Updating geometry from:" << QRectF(x(), y(), width(), height())
-                 << "to:" << QRectF(newX, newY, newWidth, newHeight);
         // Call base class methods directly to avoid triggering updateAnchorsFromGeometry
         CanvasElement::setRect(QRectF(newX, newY, newWidth, newHeight));
     } else {
-        qDebug() << "  No geometry change needed";
     }
     
     // Clear flag
@@ -387,7 +379,6 @@ void DesignElement::setParentElement(CanvasElement* parent) {
             emit topAnchoredChanged();
             emit bottomAnchoredChanged();
             
-            qDebug() << "DesignElement" << getId() << "unparented - cleared all anchors";
         }
         
         // Reset anchor position values
@@ -407,7 +398,6 @@ void DesignElement::onParentGeometryChanged() {
     // Prevent re-entry during updates
     if (m_updatingFromAnchors) return;
     
-    qDebug() << "Parent geometry changed for" << getId();
     
     CanvasElement* parent = parentElement();
     if (!parent) return;
@@ -424,7 +414,6 @@ void DesignElement::onParentGeometryChanged() {
         delta = currentParentPos - lastPos;
         
         if (!qFuzzyIsNull(delta.x()) || !qFuzzyIsNull(delta.y())) {
-            qDebug() << "  -> Parent moved by delta:" << delta;
             // Set flag to prevent circular updates
             m_updatingFromAnchors = true;
             // Always move child when parent moves

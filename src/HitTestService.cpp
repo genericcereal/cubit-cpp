@@ -297,6 +297,14 @@ bool HitTestService::isInAnyComponentVariants(Element* element) const
             if (variants.contains(element)) {
                 return true;
             }
+            
+            // Also check if element is a descendant of any variant
+            for (Element* variant : variants) {
+                QList<Element*> descendants = m_elementModel->getChildrenRecursive(variant->getId());
+                if (descendants.contains(element)) {
+                    return true;
+                }
+            }
         }
     }
     
@@ -374,9 +382,23 @@ bool HitTestService::shouldTestElement(Element* element) const
         if (m_editingElement) {
             Component* component = qobject_cast<Component*>(m_editingElement);
             if (component) {
-                // Only test elements that are in this component's variants array
+                // Test elements that are in this component's variants array or descendants of variants
                 const QList<Element*>& variants = component->variants();
-                return variants.contains(element);
+                
+                // Check if element is directly in variants
+                if (variants.contains(element)) {
+                    return true;
+                }
+                
+                // Check if element is a descendant of any variant
+                if (m_elementModel) {
+                    for (Element* variant : variants) {
+                        QList<Element*> descendants = m_elementModel->getChildrenRecursive(variant->getId());
+                        if (descendants.contains(element)) {
+                            return true;
+                        }
+                    }
+                }
             }
         }
         

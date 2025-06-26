@@ -79,7 +79,6 @@ Rectangle {
                     root.dragEnded(canvasPoint)
                 } else {
                     // It was a click, not a drag
-                    console.log("CanvasBackground clicked at canvas position:", canvasPoint.x, canvasPoint.y)
                     root.clicked(canvasPoint)
                 }
                 

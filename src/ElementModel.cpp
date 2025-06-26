@@ -88,10 +88,6 @@ void ElementModel::addElement(Element *element)
 {
     if (!element) return;
     
-    qDebug() << "ElementModel::addElement() - Type:" << element->getTypeName() 
-             << "ID:" << element->getId()
-             << "ParentId:" << element->getParentElementId()
-             << "Total elements after add:" << m_elements.size() + 1;
     
     // Set the element's parent to this model so it can find the model later
     element->setParent(this);

@@ -65,7 +65,6 @@ void CreateDesignElementCommand::execute()
 {
     if (!m_elementModel) return;
 
-    qDebug() << "CreateDesignElementCommand::execute() - Type:" << m_elementType;
 
     // Check if we're in variant mode
     Application* app = Application::instance();
