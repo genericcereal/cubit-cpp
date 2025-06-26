@@ -135,6 +135,29 @@ bool ElementFilterProxy::shouldShowElementInMode(Element* element) const {
             return false;
         }
         
+        // Check if this element has a ComponentVariant as an ancestor
+        if (ElementModel* model = qobject_cast<ElementModel*>(sourceModel())) {
+            Element* current = element;
+            int maxDepth = 100; // Prevent infinite loops
+            int depth = 0;
+            
+            while (current && !current->getParentElementId().isEmpty() && depth < maxDepth) {
+                // Find the parent element
+                Element* parent = model->getElementById(current->getParentElementId());
+                if (!parent) {
+                    break;
+                }
+                
+                // Check if the parent is a ComponentVariant
+                if (qobject_cast<ComponentVariant*>(parent)) {
+                    return false; // This element is a descendant of a ComponentVariant
+                }
+                
+                current = parent;
+                depth++;
+            }
+        }
+        
         // Check if this element is in any component's variants array
         if (sourceModel()) {
             int rowCount = sourceModel()->rowCount();

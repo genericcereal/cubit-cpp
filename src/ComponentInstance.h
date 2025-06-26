@@ -29,11 +29,6 @@ public:
     // Override to identify this as a visual element
     virtual bool isVisual() const override { return true; }
     
-    // Override size setters to propagate changes to the variant
-    virtual void setWidth(qreal width) override;
-    virtual void setHeight(qreal height) override;
-    virtual void setRect(const QRectF &rect) override;
-    
 signals:
     void instanceOfChanged();
     void sourceVariantChanged();
@@ -41,9 +36,11 @@ signals:
 private slots:
     void onSourceVariantPropertyChanged();
     void onComponentVariantsChanged();
-    void onVariantChildAdded();
-    void onVariantChildRemoved();
+    void onVariantChildAdded(Element* child);
+    void onVariantChildRemoved(Element* child);
     void onInstanceChildPropertyChanged();
+    void onElementAdded(Element* element);
+    void onElementParentChanged();
     
 private:
     void connectToComponent();
@@ -53,7 +50,6 @@ private:
     void syncPropertiesFromVariant();
     void createChildInstances();
     void clearChildInstances();
-    void updateChildInstancesForResize();
     CanvasElement* createInstanceOfElement(CanvasElement* sourceElement, CanvasElement* parent);
     void syncElementProperties(CanvasElement* target, CanvasElement* source);
     void connectToSourceElement(CanvasElement* instanceElement, CanvasElement* sourceElement);

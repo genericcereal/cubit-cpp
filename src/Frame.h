@@ -10,6 +10,7 @@ class Frame : public DesignElement {
     Q_PROPERTY(int borderWidth READ borderWidth WRITE setBorderWidth NOTIFY borderWidthChanged)
     Q_PROPERTY(int borderRadius READ borderRadius WRITE setBorderRadius NOTIFY borderRadiusChanged)
     Q_PROPERTY(OverflowMode overflow READ overflow WRITE setOverflow NOTIFY overflowChanged)
+    Q_PROPERTY(bool acceptsChildren READ acceptsChildren WRITE setAcceptsChildren NOTIFY acceptsChildrenChanged)
     
 public:
     enum OverflowMode {
@@ -35,6 +36,7 @@ public:
     int borderWidth() const { return m_borderWidth; }
     int borderRadius() const { return m_borderRadius; }
     OverflowMode overflow() const { return m_overflow; }
+    bool acceptsChildren() const { return m_acceptsChildren; }
     
     // Property setters
     void setFillColor(FillColor color);
@@ -42,6 +44,7 @@ public:
     void setBorderWidth(int width);
     void setBorderRadius(int radius);
     void setOverflow(OverflowMode mode);
+    void setAcceptsChildren(bool accepts);
     
 signals:
     void fillColorChanged();
@@ -49,6 +52,7 @@ signals:
     void borderWidthChanged();
     void borderRadiusChanged();
     void overflowChanged();
+    void acceptsChildrenChanged();
     
 private:
     FillColor m_fillColor;
@@ -56,4 +60,5 @@ private:
     int m_borderWidth;
     int m_borderRadius;
     OverflowMode m_overflow;
+    bool m_acceptsChildren;
 };

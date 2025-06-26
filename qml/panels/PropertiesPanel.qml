@@ -449,6 +449,67 @@ ScrollView {
             }
         }
         
+        // Component-specific properties (for frames inside component variants)
+        GroupBox {
+            Layout.fillWidth: true
+            Layout.margins: 10
+            title: "Component"
+            visible: {
+                if (!selectedElement || selectedElement.elementType !== "Frame" || !selectedElement.parentId) {
+                    return false
+                }
+                // Check if parent element is a ComponentVariant
+                if (!Application.activeCanvas) return false
+                var model = Application.activeCanvas.elementModel
+                if (!model) return false
+                
+                var parentElement = model.getElementById(selectedElement.parentId)
+                return parentElement && parentElement.elementType === "ComponentVariant"
+            }
+            
+            GridLayout {
+                anchors.fill: parent
+                columns: 2
+                columnSpacing: 10
+                rowSpacing: 5
+                
+                Label { text: "Accepts children:" }
+                CheckBox {
+                    Layout.fillWidth: true
+                    checked: false
+                    onToggled: {
+                        // For now, this doesn't do anything as requested
+                    }
+                }
+            }
+        }
+        
+        // Component Variant properties
+        GroupBox {
+            Layout.fillWidth: true
+            Layout.margins: 10
+            title: "Component Variant"
+            visible: selectedElement && selectedElement.elementType === "ComponentVariant"
+            
+            GridLayout {
+                anchors.fill: parent
+                columns: 2
+                columnSpacing: 10
+                rowSpacing: 5
+                
+                Label { text: "Accepts children:" }
+                CheckBox {
+                    Layout.fillWidth: true
+                    checked: selectedElement && selectedElement.elementType === "ComponentVariant" ? selectedElement.instancesAcceptChildren : true
+                    onToggled: {
+                        if (selectedElement && selectedElement.elementType === "ComponentVariant") {
+                            selectedElement.instancesAcceptChildren = checked
+                        }
+                    }
+                }
+            }
+        }
+        
         // Variable-specific properties
         GroupBox {
             Layout.fillWidth: true

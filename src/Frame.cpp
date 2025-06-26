@@ -7,6 +7,7 @@ Frame::Frame(const QString &id, QObject *parent)
     , m_borderWidth(1)
     , m_borderRadius(0)
     , m_overflow(Hidden)
+    , m_acceptsChildren(true)
 {
     // Set element type
     elementType = Element::FrameType;
@@ -71,6 +72,15 @@ void Frame::setOverflow(OverflowMode mode)
     if (m_overflow != mode) {
         m_overflow = mode;
         emit overflowChanged();
+        emit elementChanged();
+    }
+}
+
+void Frame::setAcceptsChildren(bool accepts)
+{
+    if (m_acceptsChildren != accepts) {
+        m_acceptsChildren = accepts;
+        emit acceptsChildrenChanged();
         emit elementChanged();
     }
 }

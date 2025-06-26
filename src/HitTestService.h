@@ -100,4 +100,8 @@ private:
     // Unified helper for finding all elements with custom predicate
     template<typename Pred>
     std::vector<Element*> findAll(const QPointF& pt, Pred shouldSkip) const;
+    
+    // Helper for finding the deepest nested element at a point
+    template<typename Pred>
+    Element* findDeepest(const QPointF& pt, Pred shouldSkip) const;
 };

@@ -151,6 +151,36 @@ void ComponentInstance::connectToVariant()
     PropertySyncer::sync(m_sourceVariant, this, s_variantPropertiesToSync, 
                         "onSourceVariantPropertyChanged()", m_variantConnections);
     
+    // Connect to instancesAcceptChildrenChanged signal if it's a ComponentVariant
+    if (ComponentVariant* variant = qobject_cast<ComponentVariant*>(m_sourceVariant)) {
+        m_variantConnections.add(
+            connect(variant, &ComponentVariant::instancesAcceptChildrenChanged,
+                    this, &ComponentInstance::onSourceVariantPropertyChanged)
+        );
+    }
+    
+    // Connect to ElementModel to track parent changes
+    Application* app = Application::instance();
+    if (app && app->activeCanvas() && app->activeCanvas()->elementModel()) {
+        ElementModel* elementModel = app->activeCanvas()->elementModel();
+        
+        // Connect to track when new elements are added that might be children
+        m_variantConnections.add(
+            connect(elementModel, &ElementModel::elementAdded,
+                    this, &ComponentInstance::onElementAdded)
+        );
+        
+        // Connect to existing elements to track parent changes
+        for (Element* element : elementModel->getAllElements()) {
+            if (element && element != m_sourceVariant) {
+                m_variantConnections.add(
+                    connect(element, &Element::parentIdChanged,
+                            this, &ComponentInstance::onElementParentChanged)
+                );
+            }
+        }
+    }
+    
     emit sourceVariantChanged();
 }
 
@@ -179,6 +209,11 @@ void ComponentInstance::syncPropertiesFromVariant()
     // Debug overflow sync
     qDebug() << "ComponentInstance::syncPropertiesFromVariant - instance" << getId() 
              << "overflow after sync:" << overflow();
+    
+    // Sync acceptsChildren based on variant's instancesAcceptChildren property
+    if (ComponentVariant* variant = qobject_cast<ComponentVariant*>(m_sourceVariant)) {
+        setAcceptsChildren(variant->instancesAcceptChildren());
+    }
     
     // Note: We don't sync position (x, y) as instances maintain their own position
 }
@@ -258,57 +293,6 @@ void ComponentInstance::clearChildInstances()
     m_childInstances.clear();
 }
 
-void ComponentInstance::updateChildInstancesForResize()
-{
-    if (!m_sourceVariant) {
-        return;
-    }
-    
-    CanvasElement* sourceCanvas = qobject_cast<CanvasElement*>(m_sourceVariant);
-    if (!sourceCanvas) {
-        return;
-    }
-    
-    // Calculate scale factors based on the instance size vs variant size
-    qreal scaleX = width() / sourceCanvas->width();
-    qreal scaleY = height() / sourceCanvas->height();
-    
-    // Get the element model to find source elements
-    Application* app = Application::instance();
-    if (!app || !app->activeCanvas() || !app->activeCanvas()->elementModel()) {
-        return;
-    }
-    
-    ElementModel* elementModel = app->activeCanvas()->elementModel();
-    
-    // Only update direct children of the ComponentInstance (first level children of the variant)
-    for (auto it = m_childInstances.begin(); it != m_childInstances.end(); ++it) {
-        const QString& sourceId = it.key();
-        CanvasElement* instanceElement = it.value();
-        
-        // Find the source element
-        Element* sourceElement = elementModel->getElementById(sourceId);
-        CanvasElement* canvasSource = qobject_cast<CanvasElement*>(sourceElement);
-        
-        if (instanceElement && canvasSource) {
-            // Only update if this is a direct child of the variant
-            if (canvasSource->getParentElementId() == m_sourceVariant->getId()) {
-                // Calculate the source element's position relative to the variant
-                qreal sourceRelX = canvasSource->x() - sourceCanvas->x();
-                qreal sourceRelY = canvasSource->y() - sourceCanvas->y();
-                
-                // Apply scaling to position and size
-                instanceElement->setX(x() + sourceRelX * scaleX);
-                instanceElement->setY(y() + sourceRelY * scaleY);
-                instanceElement->setWidth(canvasSource->width() * scaleX);
-                instanceElement->setHeight(canvasSource->height() * scaleY);
-                
-                qDebug() << "ComponentInstance::updateChildInstancesForResize - Updated direct child" 
-                         << instanceElement->getId() << "to" << instanceElement->width() << "x" << instanceElement->height();
-            }
-        }
-    }
-}
 
 CanvasElement* ComponentInstance::createInstanceOfElement(CanvasElement* sourceElement, CanvasElement* parent)
 {
@@ -339,8 +323,8 @@ CanvasElement* ComponentInstance::createInstanceOfElement(CanvasElement* sourceE
         instance->setParentElement(parent);
         instance->setParentElementId(parent->getId());
         
-        // Disable mouse events for child instances
-        instance->setMouseEventsEnabled(false);
+        // Enable mouse events for child instances so they can be hovered
+        instance->setMouseEventsEnabled(true);
         
         // Hide from element list
         instance->setShowInElementList(false);
@@ -392,14 +376,112 @@ void ComponentInstance::connectToSourceElement(CanvasElement* instanceElement, C
                         "onInstanceChildPropertyChanged()", m_childConnections[instanceElement]);
 }
 
-void ComponentInstance::onVariantChildAdded()
+void ComponentInstance::onVariantChildAdded(Element* child)
 {
-    // TODO: Handle dynamic addition of children to the variant
+    if (!child || !m_sourceVariant) {
+        return;
+    }
+    
+    // Check if we already have an instance for this child
+    if (m_childInstances.contains(child->getId())) {
+        return;
+    }
+    
+    CanvasElement* canvasChild = qobject_cast<CanvasElement*>(child);
+    if (!canvasChild) {
+        return;
+    }
+    
+    qDebug() << "ComponentInstance::onVariantChildAdded - Adding child" << child->getId() 
+             << "to instance" << getId();
+    
+    // Create an instance of the child element
+    CanvasElement* childInstance = createInstanceOfElement(canvasChild, this);
+    if (!childInstance) {
+        qWarning() << "ComponentInstance::onVariantChildAdded - Failed to create instance for" << child->getId();
+        return;
+    }
+    
+    // Store the mapping
+    m_childInstances[child->getId()] = childInstance;
+    
+    // Connect to property changes on the source child
+    connectToSourceElement(childInstance, canvasChild);
+    
+    // Add to element model
+    Application* app = Application::instance();
+    if (app && app->activeCanvas() && app->activeCanvas()->elementModel()) {
+        app->activeCanvas()->elementModel()->addElement(childInstance);
+    }
+    
+    // Handle nested children recursively
+    if (app && app->activeCanvas() && app->activeCanvas()->elementModel()) {
+        ElementModel* elementModel = app->activeCanvas()->elementModel();
+        QList<Element*> nestedChildren = elementModel->getChildrenRecursive(child->getId());
+        
+        for (Element* nestedChild : nestedChildren) {
+            if (CanvasElement* nestedCanvas = qobject_cast<CanvasElement*>(nestedChild)) {
+                CanvasElement* parentInstance = m_childInstances.value(nestedChild->getParentElementId());
+                if (parentInstance) {
+                    CanvasElement* nestedInstance = createInstanceOfElement(nestedCanvas, parentInstance);
+                    if (nestedInstance) {
+                        m_childInstances[nestedChild->getId()] = nestedInstance;
+                        connectToSourceElement(nestedInstance, nestedCanvas);
+                        elementModel->addElement(nestedInstance);
+                    }
+                }
+            }
+        }
+    }
 }
 
-void ComponentInstance::onVariantChildRemoved()
+void ComponentInstance::onVariantChildRemoved(Element* child)
 {
-    // TODO: Handle dynamic removal of children from the variant
+    if (!child) {
+        return;
+    }
+    
+    // Check if we have an instance for this child
+    CanvasElement* childInstance = m_childInstances.value(child->getId());
+    if (!childInstance) {
+        return;
+    }
+    
+    qDebug() << "ComponentInstance::onVariantChildRemoved - Removing child" << child->getId() 
+             << "from instance" << getId();
+    
+    // Get element model to remove nested children first
+    Application* app = Application::instance();
+    if (app && app->activeCanvas() && app->activeCanvas()->elementModel()) {
+        ElementModel* elementModel = app->activeCanvas()->elementModel();
+        
+        // Get all nested children instances that need to be removed
+        QList<Element*> nestedInstances = elementModel->getChildrenRecursive(childInstance->getId());
+        
+        // Remove nested instances in reverse order (deepest first)
+        for (int i = nestedInstances.size() - 1; i >= 0; --i) {
+            Element* nestedInstance = nestedInstances[i];
+            
+            // Remove from our tracking
+            for (auto it = m_childInstances.begin(); it != m_childInstances.end(); ) {
+                if (it.value() == nestedInstance) {
+                    // Disconnect connections for this child
+                    m_childConnections.remove(qobject_cast<CanvasElement*>(nestedInstance));
+                    it = m_childInstances.erase(it);
+                } else {
+                    ++it;
+                }
+            }
+            
+            // Remove from element model
+            elementModel->removeElement(nestedInstance->getId());
+        }
+        
+        // Now remove the direct child instance
+        m_childInstances.remove(child->getId());
+        m_childConnections.remove(childInstance);
+        elementModel->removeElement(childInstance->getId());
+    }
 }
 
 void ComponentInstance::onInstanceChildPropertyChanged()
@@ -418,44 +500,51 @@ void ComponentInstance::onInstanceChildPropertyChanged()
     }
 }
 
-void ComponentInstance::setWidth(qreal width)
+
+void ComponentInstance::onElementAdded(Element* element)
 {
-    qreal oldWidth = this->width();
+    qDebug() << "ComponentInstance::onElementAdded -" << element->getId() 
+             << "type:" << element->getTypeName()
+             << "parent:" << element->getParentElementId();
     
-    // Call base class implementation
-    CanvasElement::setWidth(width);
-    
-    // Update child instances to scale proportionally
-    CanvasElement* sourceCanvas = qobject_cast<CanvasElement*>(m_sourceVariant);
-    if (!qFuzzyCompare(oldWidth, width) && sourceCanvas && oldWidth > 0) {
-        updateChildInstancesForResize();
+    if (!element || element == m_sourceVariant || !m_sourceVariant) {
+        return;
     }
+    
+    // Check if it's already a child of our variant
+    if (element->getParentElementId() == m_sourceVariant->getId()) {
+        qDebug() << "ComponentInstance::onElementAdded - New element" << element->getId() 
+                 << "is already child of variant" << m_sourceVariant->getId();
+        onVariantChildAdded(element);
+    }
+    
+    // Connect to track future parent changes for this new element
+    m_variantConnections.add(
+        connect(element, &Element::parentIdChanged,
+                this, &ComponentInstance::onElementParentChanged)
+    );
 }
 
-void ComponentInstance::setHeight(qreal height)
+void ComponentInstance::onElementParentChanged()
 {
-    qreal oldHeight = this->height();
-    
-    // Call base class implementation
-    CanvasElement::setHeight(height);
-    
-    // Update child instances to scale proportionally
-    CanvasElement* sourceCanvas = qobject_cast<CanvasElement*>(m_sourceVariant);
-    if (!qFuzzyCompare(oldHeight, height) && sourceCanvas && oldHeight > 0) {
-        updateChildInstancesForResize();
+    Element* element = qobject_cast<Element*>(sender());
+    if (!element || !m_sourceVariant) {
+        return;
     }
-}
-
-void ComponentInstance::setRect(const QRectF &rect)
-{
-    QRectF oldRect(x(), y(), width(), height());
     
-    // Call base class implementation
-    CanvasElement::setRect(rect);
+    qDebug() << "ComponentInstance::onElementParentChanged for element" << element->getId()
+             << "new parent:" << element->getParentElementId()
+             << "our variant:" << m_sourceVariant->getId();
     
-    // Update child instances if size changed
-    if (!qFuzzyCompare(oldRect.width(), rect.width()) || 
-        !qFuzzyCompare(oldRect.height(), rect.height())) {
-        updateChildInstancesForResize();
+    if (element->getParentElementId() == m_sourceVariant->getId()) {
+        // Element was just parented to our variant
+        qDebug() << "Element parented to our variant, adding child";
+        onVariantChildAdded(element);
+    } else {
+        // Check if element was previously a child of our variant
+        if (m_childInstances.contains(element->getId())) {
+            qDebug() << "Element unparented from our variant, removing child";
+            onVariantChildRemoved(element);
+        }
     }
 }
