@@ -14,6 +14,9 @@ Item {
     property real controlHeight: 100
     property real controlRotation: 0
     
+    // Check if all selected elements are component-related
+    property bool allSelectedAreComponentRelated: false
+    
     // Control state
     property bool dragging: false
     property string dragMode: "" // "move", "resize-edge-0", "resize-edge-1", etc.
@@ -79,27 +82,72 @@ Item {
             cursorShape: dragging ? Qt.ClosedHandCursor : Qt.OpenHandCursor
             propagateComposedEvents: true
             
+            property bool isDragThresholdExceeded: false
+            property real dragThreshold: 3 // pixels
+            
             onPressed: (mouse) => {
-                root.dragging = true
-                root.dragMode = "move"
                 // Store mouse position in parent coordinates to handle rotation correctly
                 var mouseInParent = mapToItem(root.parent, mouse.x, mouse.y)
                 root.updateMousePosition(mouseInParent)
                 root.dragStartPoint = mouseInParent
                 root.dragStartControlPos = Qt.point(root.controlX, root.controlY)
+                isDragThresholdExceeded = false
                 mouse.accepted = true
             }
             
-            onReleased: {
+            onReleased: (mouse) => {
+                if (!isDragThresholdExceeded && root.parent && root.parent.selectedElements) {
+                    // This was a click, not a drag
+                    var mouseInParent = mapToItem(root.parent, mouse.x, mouse.y)
+                    
+                    // Convert to canvas coordinates for hit testing
+                    var canvasX = (mouseInParent.x + (root.parent.flickable?.contentX ?? 0)) / root.parent.zoomLevel + root.parent.canvasMinX
+                    var canvasY = (mouseInParent.y + (root.parent.flickable?.contentY ?? 0)) / root.parent.zoomLevel + root.parent.canvasMinY
+                    
+                    // Perform hit test
+                    var element = root.parent.controller?.hitTest(canvasX, canvasY) ?? null
+                    if (element && root.parent.selectionManager) {
+                        // Check if we clicked on a different element than what's selected
+                        var clickedDifferentElement = false
+                        if (root.parent.selectedElements.length === 1) {
+                            // Single selection - check if clicked element is different
+                            clickedDifferentElement = element.elementId !== root.parent.selectedElements[0].elementId
+                        } else if (root.parent.selectedElements.length > 1) {
+                            // Multiple selection - always select the clicked element
+                            clickedDifferentElement = true
+                        }
+                        
+                        if (clickedDifferentElement) {
+                            // Select only the element under the cursor
+                            root.parent.selectionManager.selectOnly(element)
+                        }
+                    }
+                }
+                
                 root.dragging = false
                 root.dragMode = ""
                 root.updateMousePosition(Qt.point(0, 0))
             }
             
             onPositionChanged: (mouse) => {
+                var mouseInParent = mapToItem(root.parent, mouse.x, mouse.y)
+                
+                // Check if drag threshold exceeded
+                if (!isDragThresholdExceeded) {
+                    var distance = Math.sqrt(
+                        Math.pow(mouseInParent.x - root.dragStartPoint.x, 2) + 
+                        Math.pow(mouseInParent.y - root.dragStartPoint.y, 2)
+                    )
+                    
+                    if (distance > dragThreshold) {
+                        isDragThresholdExceeded = true
+                        root.dragging = true
+                        root.dragMode = "move"
+                    }
+                }
+                
                 if (root.dragMode === "move") {
                     // Calculate delta in parent coordinates so movement follows mouse regardless of rotation
-                    var mouseInParent = mapToItem(root.parent, mouse.x, mouse.y)
                     root.updateMousePosition(mouseInParent)
                     var deltaX = mouseInParent.x - root.dragStartPoint.x
                     var deltaY = mouseInParent.y - root.dragStartPoint.y
@@ -121,7 +169,7 @@ Item {
         
         Rectangle {
             id: edgeBar
-            color: Config.controlBarColor
+            color: allSelectedAreComponentRelated ? Config.componentControlBarColor : Config.controlBarColor
             antialiasing: true
             
             // Position and size based on edge index
@@ -159,7 +207,7 @@ Item {
             
             // Decorative line through the middle of the bar
             Rectangle {
-                color: Config.controlBarLineColor
+                color: allSelectedAreComponentRelated ? Config.componentControlBarLineColor : Config.controlBarLineColor
                 anchors.centerIn: parent
                 width: {
                     switch(index) {
@@ -374,7 +422,7 @@ Item {
             id: rotationJoint
             width: 20
             height: 20
-            color: Config.controlRotationJointColor
+            color: allSelectedAreComponentRelated ? Config.componentControlRotationJointColor : Config.controlRotationJointColor
             antialiasing: true
             z: 1
             
@@ -454,7 +502,7 @@ Item {
             id: resizeJoint
             width: 10
             height: 10
-            color: Config.controlResizeJointColor
+            color: allSelectedAreComponentRelated ? Config.componentControlResizeJointColor : Config.controlResizeJointColor
             antialiasing: true
             z: 2
             
@@ -485,7 +533,7 @@ Item {
                 height: 10
                 radius: 5
                 color: Config.controlJointCircleFill
-                border.color: Config.controlJointCircleBorder
+                border.color: allSelectedAreComponentRelated ? Config.componentControlJointCircleBorder : Config.controlJointCircleBorder
                 border.width: 1
                 antialiasing: true
             }
@@ -689,8 +737,8 @@ Item {
                 width: hoverBadgeLabel.width + 16
                 height: hoverBadgeLabel.height + 8
                 radius: 4
-                color: Config.hoverBadgeBackgroundColor
-                border.color: Config.hoverBadgeBorderColor
+                color: root.allSelectedAreComponentRelated ? Config.componentHoverBadgeBackgroundColor : Config.hoverBadgeBackgroundColor
+                border.color: root.allSelectedAreComponentRelated ? Config.componentHoverBadgeBorderColor : Config.hoverBadgeBorderColor
                 border.width: 1
                 antialiasing: true
                 
@@ -708,4 +756,57 @@ Item {
     
     // Export the HoverBadge component for external use
     property alias hoverBadge: hoverBadgeComponent
+    
+    // Function to check if all selected elements are component-related
+    function updateComponentRelatedStatus() {
+        if (!parent || !parent.selectedElements || parent.selectedElements.length === 0) {
+            allSelectedAreComponentRelated = false
+            return
+        }
+        
+        var allComponent = true
+        for (var i = 0; i < parent.selectedElements.length; i++) {
+            var element = parent.selectedElements[i]
+            if (!element) {
+                allComponent = false
+                break
+            }
+            
+            // Check if element is a ComponentInstance or ComponentVariant
+            if (element.elementType !== "ComponentInstance" && element.elementType !== "ComponentVariant") {
+                // Check if it's a descendant of a ComponentInstance or ComponentVariant
+                var isDescendant = false
+                if (parent.canvasView && parent.canvasView.elementModel) {
+                    var currentId = element.parentId
+                    while (currentId && currentId !== "") {
+                        var parentElement = parent.canvasView.elementModel.getElementById(currentId)
+                        if (parentElement && (parentElement.elementType === "ComponentInstance" || parentElement.elementType === "ComponentVariant")) {
+                            isDescendant = true
+                            break
+                        }
+                        currentId = parentElement ? parentElement.parentId : ""
+                    }
+                }
+                
+                if (!isDescendant) {
+                    allComponent = false
+                    break
+                }
+            }
+        }
+        
+        allSelectedAreComponentRelated = allComponent
+    }
+    
+    // Monitor selection changes
+    Connections {
+        target: parent
+        function onSelectedElementsChanged() {
+            updateComponentRelatedStatus()
+        }
+    }
+    
+    Component.onCompleted: {
+        updateComponentRelatedStatus()
+    }
 }

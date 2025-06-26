@@ -74,9 +74,8 @@ Element* HitTestService::hitTest(const QPointF& point) const
 {
     if (!m_elementModel) return nullptr;
     
-    auto candidates = queryCandidates(point);
-    
-    Element* result = findTopmost(point, [this](Element* e) {
+    // Use findDeepest to get the most deeply nested element
+    Element* result = findDeepest(point, [this](Element* e) {
         bool skip = !shouldTestElement(e);
         return skip;
     });
@@ -88,9 +87,8 @@ Element* HitTestService::hitTestForHover(const QPointF& point) const
 {
     if (!m_elementModel) return nullptr;
     
-    auto candidates = queryCandidates(point);
-    
-    Element* result = findTopmost(point, [this](Element* e) {
+    // Use findDeepest to get the most deeply nested element for hover
+    Element* result = findDeepest(point, [this](Element* e) {
         if (!shouldTestElement(e)) {
             return true;
         }
@@ -510,4 +508,35 @@ std::vector<Element*> HitTestService::findAll(const QPointF& pt, Pred shouldSkip
     }
     
     return result;
+}
+
+template<typename Pred>
+Element* HitTestService::findDeepest(const QPointF& pt, Pred shouldSkip) const {
+    if (!m_elementModel) return nullptr;
+    
+    // Get all elements that contain the point
+    auto allAtPoint = findAll(pt, shouldSkip);
+    if (allAtPoint.empty()) return nullptr;
+    
+    // Find the deepest element (one that has no children containing the point)
+    Element* deepest = nullptr;
+    int maxDepth = -1;
+    
+    for (Element* e : allAtPoint) {
+        // Calculate depth of this element
+        int depth = 0;
+        Element* current = e;
+        while (current && !current->getParentElementId().isEmpty()) {
+            current = m_elementModel->getElementById(current->getParentElementId());
+            depth++;
+        }
+        
+        // Check if this is deeper than our current deepest
+        if (depth > maxDepth) {
+            maxDepth = depth;
+            deepest = e;
+        }
+    }
+    
+    return deepest;
 }

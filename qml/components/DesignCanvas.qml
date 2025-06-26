@@ -90,6 +90,11 @@ BaseCanvas {
                         continue
                     }
                     
+                    // Guard 4: Check if the hovered element accepts children
+                    if (hoveredElement.acceptsChildren === false) {
+                        continue
+                    }
+                    
                     // Only update if parentId actually changes
                     if (element.parentId !== hoveredElement.elementId) {
                         // Set parentId to the hovered element's ID

@@ -39,6 +39,13 @@ QtObject {
     readonly property color controlJointCircleFill: Qt.rgba(1, 1, 1, 1.0)    // White fill
     readonly property color controlJointCircleBorder: Qt.rgba(0, 0.4, 1, 1.0) // Blue border
     
+    // Component instance colors (purple)
+    readonly property color componentControlBarColor: Qt.rgba(0.5, 0, 0.5, 0.1)           // Purple with 10% opacity
+    readonly property color componentControlRotationJointColor: Qt.rgba(0.5, 0, 0.5, 0.1) // Purple with 10% opacity
+    readonly property color componentControlResizeJointColor: Qt.rgba(0.5, 0, 0.5, 0.1)   // Purple with 10% opacity
+    readonly property color componentControlBarLineColor: Qt.rgba(0.5, 0, 0.5, 1.0)       // Purple with 100% opacity
+    readonly property color componentControlJointCircleBorder: Qt.rgba(0.5, 0, 0.5, 1.0)  // Purple border
+    
     // Element creation preview
     readonly property color elementCreationPreviewColor: Qt.rgba(0, 0.4, 1, 0.1)  // Blue with 10% opacity
     readonly property string elementCreationPreviewBorderColor: "#0066cc"          // Blue border
@@ -48,6 +55,8 @@ QtObject {
     readonly property color hoverBadgeBackgroundColor: "#2196F3"  // Blue
     readonly property color hoverBadgeBorderColor: "#1976D2"      // Darker blue
     readonly property color hoverBadgeTextColor: "#FFFFFF"        // White
+    readonly property string componentHoverBadgeBackgroundColor: "#7B1FA2"  // Purple
+    readonly property string componentHoverBadgeBorderColor: "#6A1B9A"      // Darker purple
     
     // Sizes
     readonly property int defaultElementWidth: 200

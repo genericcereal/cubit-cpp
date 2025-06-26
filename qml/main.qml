@@ -51,7 +51,8 @@ Window {
                         }
                         // Set viewportControls reference for DesignCanvas
                         if (item.hasOwnProperty("viewportControls")) {
-                            item.viewportControls = viewportOverlay.selectionControls
+                            // Use Qt.binding to ensure the connection stays alive
+                            item.viewportControls = Qt.binding(function() { return viewportOverlay.selectionControls })
                         }
                     }
                 }
