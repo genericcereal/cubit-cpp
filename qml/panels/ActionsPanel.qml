@@ -23,12 +23,6 @@ Rectangle {
         return !Application.activeCanvas.activeScripts.isCompiled
     }
     
-    onCurrentModeChanged: {
-        // Only log mode changes in design mode
-        if (!isScriptMode) {
-            console.log("ActionsPanel currentMode changed to:", currentMode)
-        }
-    }
     
     RowLayout {
         anchors.fill: parent

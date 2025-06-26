@@ -14,11 +14,9 @@ void CanvasElement::setX(qreal x)
 {
     if (!qFuzzyCompare(canvasPosition.x(), x))
     {
-        qreal oldX = canvasPosition.x();
         canvasPosition.setX(x);
         m_boundsValid = false;
         updateCachedBounds();
-        qDebug() << "CanvasElement::setX -" << this->getTypeName() << getId() << "moved from x:" << oldX << "to x:" << x;
         emit xChanged();
         emit geometryChanged();
         emit elementChanged();
@@ -29,11 +27,9 @@ void CanvasElement::setY(qreal y)
 {
     if (!qFuzzyCompare(canvasPosition.y(), y))
     {
-        qreal oldY = canvasPosition.y();
         canvasPosition.setY(y);
         m_boundsValid = false;
         updateCachedBounds();
-        qDebug() << "CanvasElement::setY -" << this->getTypeName() << getId() << "moved from y:" << oldY << "to y:" << y;
         emit yChanged();
         emit geometryChanged();
         emit elementChanged();
@@ -44,7 +40,6 @@ void CanvasElement::setWidth(qreal w)
 {
     if (!qFuzzyCompare(canvasSize.width(), w))
     {
-        qreal oldWidth = canvasSize.width();
         canvasSize.setWidth(w);
         m_boundsValid = false;
         updateCachedBounds();
@@ -58,7 +53,6 @@ void CanvasElement::setHeight(qreal h)
 {
     if (!qFuzzyCompare(canvasSize.height(), h))
     {
-        qreal oldHeight = canvasSize.height();
         canvasSize.setHeight(h);
         m_boundsValid = false;
         updateCachedBounds();
@@ -117,8 +111,6 @@ void CanvasElement::setParentElement(CanvasElement *parent)
         return;
     }
     
-    qDebug() << "CanvasElement::setParentElement -" << this->getTypeName() << getId() 
-             << "setting parent to" << (parent ? parent->getTypeName() + " " + parent->getId() : "null");
     
     // Disconnect all existing parent connections
     m_parentConnections.clear();
@@ -134,8 +126,6 @@ void CanvasElement::setParentElement(CanvasElement *parent)
         m_lastParentPosition = QPointF(m_parentElement->x(), m_parentElement->y());
         m_trackingParentPosition = true;
         
-        qDebug() << "  -> Element is NOT a design element. Tracking parent position enabled.";
-        qDebug() << "  -> Initial parent position:" << m_lastParentPosition;
         
         // Define the properties we want to track from parent
         static const QStringList parentPropertiesToTrack = {
@@ -153,14 +143,10 @@ void CanvasElement::setParentElement(CanvasElement *parent)
         // Track which properties we're subscribed to
         m_subscribedProperties = parentPropertiesToTrack;
         
-        qDebug() << "  -> Subscribed to parent properties:" << parentPropertiesToTrack;
     }
     else
     {
         m_trackingParentPosition = false;
-        if (m_parentElement && isDesignElement()) {
-            qDebug() << "  -> Element is a design element. Using DesignElement's parent tracking.";
-        }
     }
 }
 
@@ -182,7 +168,6 @@ void CanvasElement::subscribeToParentProperty(const QString &propertyName)
     PropertySyncer::sync(m_parentElement, this, singleProperty,
                         "onParentPropertyChanged()", m_parentConnections);
     
-    qDebug() << "    -> Successfully connected to parent's" << propertyName << "property change signal";
 }
 
 void CanvasElement::unsubscribeFromParentProperty(const QString &propertyName)
@@ -226,15 +211,10 @@ void CanvasElement::onParentPropertyChanged()
                 QPointF currentParentPos(m_parentElement->x(), m_parentElement->y());
                 QPointF delta = currentParentPos - m_lastParentPosition;
                 
-                qDebug() << "CanvasElement::onParentPropertyChanged -" << this->getTypeName() << getId() 
-                         << "detected parent" << m_parentElement->getTypeName() << m_parentElement->getId()
-                         << "moved. Delta x:" << delta.x() << "y:" << delta.y();
                 
                 // Move this element by the same delta
                 if (!qFuzzyIsNull(delta.x()) || !qFuzzyIsNull(delta.y()))
                 {
-                    qDebug() << "  -> Moving child from (" << x() << "," << y() << ") to (" 
-                             << (x() + delta.x()) << "," << (y() + delta.y()) << ")";
                     setX(x() + delta.x());
                     setY(y() + delta.y());
                     m_lastParentPosition = currentParentPos;

@@ -115,7 +115,6 @@ Window {
                     target: Application.activeCanvas ? Application.activeCanvas.controller : null
                     function onModeChanged() {
                         if (Application.activeCanvas && Application.activeCanvas.controller) {
-                            console.log("ActionsPanel Connections: mode changed to", Application.activeCanvas.controller.mode)
                             actionsPanel.currentMode = Application.activeCanvas.controller.mode
                         }
                     }

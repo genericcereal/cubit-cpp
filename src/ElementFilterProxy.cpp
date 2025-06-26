@@ -5,6 +5,7 @@
 #include "Component.h"
 #include "ComponentVariant.h"
 #include "ComponentInstance.h"
+#include "ElementModel.h"
 #include <QDebug>
 
 ElementFilterProxy::ElementFilterProxy(QObject *parent)
@@ -165,11 +166,19 @@ bool ElementFilterProxy::shouldShowElementInMode(Element* element) const {
         }
         
         if (Component* component = qobject_cast<Component*>(m_editingElement)) {
-            // Check if this element is in the component's variants array
+            // Check if this element is in the component's variants array or is a descendant of a variant
             const auto& variants = component->variants();
             for (Element* variant : variants) {
                 if (variant == element) {
                     return true;
+                }
+                
+                // Also show descendants of variants
+                if (ElementModel* model = qobject_cast<ElementModel*>(sourceModel())) {
+                    QList<Element*> descendants = model->getChildrenRecursive(variant->getId());
+                    if (descendants.contains(element)) {
+                        return true;
+                    }
                 }
             }
         }

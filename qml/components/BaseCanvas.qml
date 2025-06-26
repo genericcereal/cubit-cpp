@@ -83,8 +83,9 @@ Item {
             if (root.canvasType === "script" && root.isEdgePreview) {
                 return false
             }
-            // Disable for design canvas creation modes
-            if (root.canvasType === "design" && controller && controller.mode !== CanvasController.Select) {
+            // Disable for design/variant canvas creation modes
+            if ((root.canvasType === "design" || root.canvasType === "variant") && 
+                controller && controller.mode !== CanvasController.Select) {
                 return false
             }
             return true
@@ -130,6 +131,15 @@ Item {
             id: panArea
             anchors.fill: parent
             acceptedButtons: Qt.MiddleButton
+            
+            // Disable middle-button panning during creation modes
+            enabled: {
+                if ((root.canvasType === "design" || root.canvasType === "variant") && 
+                    controller && controller.mode !== CanvasController.Select) {
+                    return false
+                }
+                return true
+            }
             
             property bool isPanning: false
             property point lastPanPosition

@@ -122,7 +122,6 @@ void CanvasController::updateSubcontrollersCanvasType()
 
 void CanvasController::setMode(Mode mode)
 {
-    qDebug() << "CanvasController::setMode called - current:" << static_cast<int>(m_mode) << "new:" << static_cast<int>(mode);
     if (m_mode != mode) {
         m_mode = mode;
         
@@ -135,7 +134,6 @@ void CanvasController::setMode(Mode mode)
             qWarning() << "No handler found for mode:" << static_cast<int>(mode);
         }
         
-        qDebug() << "Mode changed, emitting signal";
         emit modeChanged();
     }
 }

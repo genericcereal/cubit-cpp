@@ -49,10 +49,7 @@ BaseCanvas {
             return
         }
         
-        // Don't allow parenting in variant mode
-        if (Application.activeCanvas && Application.activeCanvas.viewMode === "variant") {
-            return
-        }
+        // Removed variant mode restriction - parenting is now allowed in variant mode
         
         // Only update parentId if the viewport controls are actively dragging
         if (!viewportControls || !viewportControls.dragging) {
@@ -69,6 +66,11 @@ BaseCanvas {
                 // Guard 4: Don't change parentId of children of selected elements
                 // (they should move with their parent, not be reparented)
                 if (isChildOfSelected(element, selectedElements)) {
+                    continue
+                }
+                
+                // Guard 5: ComponentVariants shouldn't have parents
+                if (element.elementType === "ComponentVariant") {
                     continue
                 }
                 
@@ -190,7 +192,6 @@ BaseCanvas {
     
     // Implement behavior by overriding handler functions
     function handleDragStart(pt) {
-        console.log("DesignCanvas.handleDragStart:", pt.x, pt.y, "mode:", controller.mode)
         if (controller.mode !== CanvasController.Select) {
             // In creation modes, start creating element at drag start position
             controller.handleMousePress(pt.x, pt.y)
@@ -221,19 +222,18 @@ BaseCanvas {
     }
     
     function handleClick(pt) {
-        console.log("DesignCanvas.handleClick:", pt.x, pt.y, "mode:", controller.mode)
-        if (controller.mode === CanvasController.Select) {
+        if (root.controller.mode === CanvasController.Select) {
             // In select mode, handle click for selection
-            controller.handleMousePress(pt.x, pt.y)
-            controller.handleMouseRelease(pt.x, pt.y)
+            root.controller.handleMousePress(pt.x, pt.y)
+            root.controller.handleMouseRelease(pt.x, pt.y)
         }
         // In creation modes, don't create on click - require drag
     }
     
     function handleHover(pt) {
         // Track hover for design elements (use hitTestForHover to exclude selected elements)
-        if (controller.mode === CanvasController.Select) {
-            hoveredElement = controller.hitTestForHover(pt.x, pt.y)
+        if (root.controller.mode === CanvasController.Select) {
+            hoveredElement = root.controller.hitTestForHover(pt.x, pt.y)
         } else {
             hoveredElement = null
         }
