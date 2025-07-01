@@ -1,6 +1,9 @@
 #pragma once
 #include "DesignElement.h"
 #include <QColor>
+#include <memory>
+
+class FlexLayoutEngine;
 
 class Frame : public DesignElement {
     Q_OBJECT
@@ -11,6 +14,12 @@ class Frame : public DesignElement {
     Q_PROPERTY(int borderRadius READ borderRadius WRITE setBorderRadius NOTIFY borderRadiusChanged)
     Q_PROPERTY(OverflowMode overflow READ overflow WRITE setOverflow NOTIFY overflowChanged)
     Q_PROPERTY(bool acceptsChildren READ acceptsChildren WRITE setAcceptsChildren NOTIFY acceptsChildrenChanged)
+    Q_PROPERTY(bool flex READ flex WRITE setFlex NOTIFY flexChanged)
+    Q_PROPERTY(LayoutOrientation orientation READ orientation WRITE setOrientation NOTIFY orientationChanged)
+    Q_PROPERTY(qreal gap READ gap WRITE setGap NOTIFY gapChanged)
+    Q_PROPERTY(PositionType position READ position WRITE setPosition NOTIFY positionChanged)
+    Q_PROPERTY(JustifyContent justify READ justify WRITE setJustify NOTIFY justifyChanged)
+    Q_PROPERTY(AlignItems align READ align WRITE setAlign NOTIFY alignChanged)
     
 public:
     enum OverflowMode {
@@ -20,6 +29,19 @@ public:
     };
     Q_ENUM(OverflowMode)
     
+    enum LayoutOrientation {
+        Row,
+        Column
+    };
+    Q_ENUM(LayoutOrientation)
+    
+    enum PositionType {
+        Relative,
+        Absolute,
+        Fixed
+    };
+    Q_ENUM(PositionType)
+    
     enum FillColor {
         LightBlue,
         DarkBlue,
@@ -27,7 +49,27 @@ public:
         Red
     };
     Q_ENUM(FillColor)
+    
+    enum JustifyContent {
+        JustifyStart,
+        JustifyEnd,
+        JustifyCenter,
+        JustifySpaceBetween,
+        JustifySpaceAround,
+        JustifySpaceEvenly
+    };
+    Q_ENUM(JustifyContent)
+    
+    enum AlignItems {
+        AlignStart,
+        AlignEnd,
+        AlignCenter,
+        AlignBaseline,
+        AlignStretch
+    };
+    Q_ENUM(AlignItems)
     explicit Frame(const QString &id, QObject *parent = nullptr);
+    ~Frame();
     
     // Property getters
     FillColor fillColor() const { return m_fillColor; }
@@ -37,6 +79,12 @@ public:
     int borderRadius() const { return m_borderRadius; }
     OverflowMode overflow() const { return m_overflow; }
     bool acceptsChildren() const { return m_acceptsChildren; }
+    bool flex() const { return m_flex; }
+    LayoutOrientation orientation() const { return m_orientation; }
+    qreal gap() const { return m_gap; }
+    PositionType position() const { return m_position; }
+    JustifyContent justify() const { return m_justify; }
+    AlignItems align() const { return m_align; }
     
     // Property setters
     void setFillColor(FillColor color);
@@ -45,6 +93,17 @@ public:
     void setBorderRadius(int radius);
     void setOverflow(OverflowMode mode);
     void setAcceptsChildren(bool accepts);
+    void setFlex(bool flex);
+    void setOrientation(LayoutOrientation orientation);
+    void setGap(qreal gap);
+    void setPosition(PositionType position);
+    void setJustify(JustifyContent justify);
+    void setAlign(AlignItems align);
+    
+    // Override geometry setters to trigger layout
+    void setWidth(qreal w) override;
+    void setHeight(qreal h) override;
+    void setRect(const QRectF &rect) override;
     
 signals:
     void fillColorChanged();
@@ -53,6 +112,15 @@ signals:
     void borderRadiusChanged();
     void overflowChanged();
     void acceptsChildrenChanged();
+    void flexChanged();
+    void orientationChanged();
+    void gapChanged();
+    void positionChanged();
+    void justifyChanged();
+    void alignChanged();
+    
+public slots:
+    void layoutChildren();
     
 private:
     FillColor m_fillColor;
@@ -61,4 +129,19 @@ private:
     int m_borderRadius;
     OverflowMode m_overflow;
     bool m_acceptsChildren;
+    bool m_flex;
+    LayoutOrientation m_orientation;
+    qreal m_gap;
+    PositionType m_position;
+    JustifyContent m_justify;
+    AlignItems m_align;
+    
+    // Layout engine
+    std::unique_ptr<class FlexLayoutEngine> m_layoutEngine;
+    
+    // Helper to trigger layout
+    void triggerLayout();
+    
+    // Setup connections to element model
+    void setupElementModelConnections();
 };

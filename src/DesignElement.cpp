@@ -366,6 +366,12 @@ void DesignElement::setParentElement(CanvasElement* parent) {
         
         // Initialize anchor values when parent is set
         updateAnchorsFromGeometry();
+        
+        // Trigger layout on parent if it's a Frame with flex
+        Frame* parentFrame = qobject_cast<Frame*>(parent);
+        if (parentFrame && parentFrame->flex()) {
+            parentFrame->layoutChildren();
+        }
     } else {
         // Element is being unparented - clear all anchor settings
         if (m_leftAnchored || m_rightAnchored || m_topAnchored || m_bottomAnchored) {
