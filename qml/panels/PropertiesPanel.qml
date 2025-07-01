@@ -122,6 +122,35 @@ ScrollView {
                 columnSpacing: 10
                 rowSpacing: 5
                 
+                // Position type for Frame elements
+                Label { 
+                    text: "Position:" 
+                    visible: selectedElement && selectedElement.elementType === "Frame"
+                }
+                ComboBox {
+                    Layout.fillWidth: true
+                    visible: selectedElement && selectedElement.elementType === "Frame"
+                    model: ["Relative", "Absolute", "Fixed"]
+                    currentIndex: {
+                        if (selectedElement && selectedElement.elementType === "Frame") {
+                            // Map Frame.PositionType enum values to combo box indices
+                            switch (selectedElement.position) {
+                                case 0: return 0  // Relative
+                                case 1: return 1  // Absolute
+                                case 2: return 2  // Fixed
+                                default: return 1  // Default to Absolute
+                            }
+                        }
+                        return 1
+                    }
+                    onActivated: function(index) {
+                        if (selectedElement && selectedElement.elementType === "Frame") {
+                            // Map combo box index to Frame.PositionType enum value
+                            selectedElement.position = index
+                        }
+                    }
+                }
+                
                 // Show x/y when no parent, or left/top when parent exists
                 Label { 
                     text: selectedElement && selectedElement.isDesignElement && selectedElement.parentId ? "Left:" : "X:" 
@@ -142,7 +171,7 @@ ScrollView {
                             }
                             return Math.round(selectedElement.x)
                         }
-                        onValueModified: {
+                        onValueModified: function(value) {
                             if (!selectedElement) return
                             if (selectedElement.isDesignElement && selectedElement.parentId) {
                                 if (value !== Math.round(selectedElement.left)) {
@@ -201,7 +230,7 @@ ScrollView {
                             }
                             return Math.round(selectedElement.y)
                         }
-                        onValueModified: {
+                        onValueModified: function(value) {
                             if (!selectedElement) return
                             if (selectedElement.isDesignElement && selectedElement.parentId) {
                                 if (value !== Math.round(selectedElement.top)) {
@@ -257,7 +286,7 @@ ScrollView {
                         from: -9999
                         to: 9999
                         value: selectedElement ? Math.round(selectedElement.right) : 0
-                        onValueModified: {
+                        onValueModified: function(value) {
                             if (selectedElement && value !== Math.round(selectedElement.right)) {
                                 selectedElement.right = value
                             }
@@ -305,7 +334,7 @@ ScrollView {
                         from: -9999
                         to: 9999
                         value: selectedElement ? Math.round(selectedElement.bottom) : 0
-                        onValueModified: {
+                        onValueModified: function(value) {
                             if (selectedElement && value !== Math.round(selectedElement.bottom)) {
                                 selectedElement.bottom = value
                             }
@@ -338,30 +367,52 @@ ScrollView {
                 }
                 
                 Label { text: "Width:" }
-                SpinBox {
-                    id: widthSpinBox
+                RowLayout {
                     Layout.fillWidth: true
-                    from: 1
-                    to: 9999
-                    value: selectedElement ? Math.round(selectedElement.width) : 0
-                    onValueModified: {
-                        if (selectedElement && value !== Math.round(selectedElement.width)) {
-                            selectedElement.width = value
+                    spacing: 5
+                    
+                    SpinBox {
+                        id: widthSpinBox
+                        Layout.fillWidth: true
+                        from: 1
+                        to: 9999
+                        value: selectedElement ? Math.round(selectedElement.width) : 0
+                        onValueModified: function(value) {
+                            if (selectedElement && value !== Math.round(selectedElement.width)) {
+                                selectedElement.width = value
+                            }
                         }
+                    }
+                    
+                    ComboBox {
+                        Layout.preferredWidth: 80
+                        model: ["fixed", "relative", "fill"]
+                        currentIndex: 0
                     }
                 }
                 
                 Label { text: "Height:" }
-                SpinBox {
-                    id: heightSpinBox
+                RowLayout {
                     Layout.fillWidth: true
-                    from: 1
-                    to: 9999
-                    value: selectedElement ? Math.round(selectedElement.height) : 0
-                    onValueModified: {
-                        if (selectedElement && value !== Math.round(selectedElement.height)) {
-                            selectedElement.height = value
+                    spacing: 5
+                    
+                    SpinBox {
+                        id: heightSpinBox
+                        Layout.fillWidth: true
+                        from: 1
+                        to: 9999
+                        value: selectedElement ? Math.round(selectedElement.height) : 0
+                        onValueModified: function(value) {
+                            if (selectedElement && value !== Math.round(selectedElement.height)) {
+                                selectedElement.height = value
+                            }
                         }
+                    }
+                    
+                    ComboBox {
+                        Layout.preferredWidth: 80
+                        model: ["fixed", "relative", "fill"]
+                        currentIndex: 0
                     }
                 }
             }
@@ -397,7 +448,7 @@ ScrollView {
                         }
                         return 0
                     }
-                    onActivated: {
+                    onActivated: function(index) {
                         if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "ComponentVariant")) {
                             // Map combo box index to Frame.FillColor enum value
                             selectedElement.fillColor = index
@@ -421,7 +472,7 @@ ScrollView {
                         }
                         return 0
                     }
-                    onActivated: {
+                    onActivated: function(index) {
                         if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "ComponentVariant")) {
                             // Map combo box index to Frame.OverflowMode enum value
                             selectedElement.overflow = index
@@ -445,6 +496,145 @@ ScrollView {
                     to: 20
                     value: selectedElement && selectedElement.borderWidth !== undefined ? selectedElement.borderWidth : 0
                     onValueChanged: if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "ComponentVariant")) selectedElement.borderWidth = value
+                }
+            }
+        }
+        
+        // Flex Layout checkbox for Frame
+        CheckBox {
+            id: flexCheckBox
+            Layout.fillWidth: true
+            Layout.margins: 10
+            Layout.leftMargin: 10
+            Layout.bottomMargin: 0
+            text: "Flex Layout"
+            visible: selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "ComponentVariant")
+            checked: selectedElement && selectedElement.flex !== undefined ? selectedElement.flex : false
+            onToggled: {
+                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "ComponentVariant")) {
+                    selectedElement.flex = checked
+                }
+            }
+        }
+        
+        // Flex Layout properties GroupBox
+        GroupBox {
+            Layout.fillWidth: true
+            Layout.leftMargin: 10
+            Layout.rightMargin: 10
+            Layout.topMargin: 5
+            Layout.bottomMargin: 10
+            title: ""
+            visible: selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "ComponentVariant") && flexCheckBox.checked
+            
+            GridLayout {
+                anchors.fill: parent
+                columns: 2
+                columnSpacing: 10
+                rowSpacing: 5
+                
+                Label { text: "Orientation:" }
+                ComboBox {
+                    Layout.fillWidth: true
+                    model: ["Row", "Column"]
+                    currentIndex: {
+                        if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "ComponentVariant")) {
+                            // Map Frame.LayoutOrientation enum values to combo box indices
+                            switch (selectedElement.orientation) {
+                                case 0: return 0  // Row
+                                case 1: return 1  // Column
+                                default: return 0
+                            }
+                        }
+                        return 0
+                    }
+                    onActivated: function(index) {
+                        if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "ComponentVariant")) {
+                            // Map combo box index to Frame.LayoutOrientation enum value
+                            selectedElement.orientation = index
+                        }
+                    }
+                }
+                
+                Label { text: "Gap:" }
+                SpinBox {
+                    Layout.fillWidth: true
+                    from: 0
+                    to: 100
+                    value: selectedElement && selectedElement.gap !== undefined ? Math.round(selectedElement.gap) : 0
+                    onValueChanged: {
+                        if (value !== undefined && selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "ComponentVariant")) {
+                            selectedElement.gap = value
+                        }
+                    }
+                }
+                
+                Label { text: "Justify:" }
+                ComboBox {
+                    Layout.fillWidth: true
+                    model: ["Start", "End", "Center", "Space Between", "Space Around", "Space Evenly"]
+                    currentIndex: {
+                        if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "ComponentVariant")) {
+                            // Map Frame.JustifyContent enum values to combo box indices
+                            switch (selectedElement.justify) {
+                                case 0: return 0  // JustifyStart
+                                case 1: return 1  // JustifyEnd
+                                case 2: return 2  // JustifyCenter
+                                case 3: return 3  // JustifySpaceBetween
+                                case 4: return 4  // JustifySpaceAround
+                                case 5: return 5  // JustifySpaceEvenly
+                                default: return 0
+                            }
+                        }
+                        return 0
+                    }
+                    onActivated: function(index) {
+                        if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "ComponentVariant")) {
+                            // Map combo box index to Frame.JustifyContent enum value
+                            selectedElement.justify = index
+                        }
+                    }
+                }
+                
+                Label { text: "Align:" }
+                ComboBox {
+                    Layout.fillWidth: true
+                    model: ["Start", "End", "Center", "Baseline", "Stretch"]
+                    currentIndex: {
+                        if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "ComponentVariant")) {
+                            // Map Frame.AlignItems enum values to combo box indices
+                            switch (selectedElement.align) {
+                                case 0: return 0  // AlignStart
+                                case 1: return 1  // AlignEnd
+                                case 2: return 2  // AlignCenter
+                                case 3: return 3  // AlignBaseline
+                                case 4: return 4  // AlignStretch
+                                default: return 0
+                            }
+                        }
+                        return 0
+                    }
+                    onActivated: function(index) {
+                        if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "ComponentVariant")) {
+                            // Map combo box index to Frame.AlignItems enum value
+                            selectedElement.align = index
+                        }
+                    }
+                }
+                
+                Label { text: "Wrap:" }
+                ComboBox {
+                    Layout.fillWidth: true
+                    model: ["Yes", "No"]
+                    currentIndex: 1  // Default to "No"
+                }
+                
+                Label { text: "Padding:" }
+                SpinBox {
+                    Layout.fillWidth: true
+                    from: 0
+                    to: 100
+                    value: 0
                 }
             }
         }

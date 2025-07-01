@@ -77,10 +77,12 @@ SOURCES += \
     src/ScriptSerializer.cpp \
     src/SelectModeHandler.cpp \
     src/CreationModeHandler.cpp \
-    src/ElementFilterProxy.cpp
+    src/ElementFilterProxy.cpp \
+    src/FlexLayoutEngine.cpp
 
 HEADERS += \
     src/Element.h \
+    src/FlexLayoutEngine.h \
     src/CanvasElement.h \
     src/DesignElement.h \
     src/ScriptElement.h \

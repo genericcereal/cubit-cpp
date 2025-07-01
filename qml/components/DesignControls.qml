@@ -29,6 +29,9 @@ Item {
     // Signal to notify about mouse position during drag
     signal mouseDragged(point viewportPos)
     
+    // Signal to notify when resize operation starts
+    signal resizeStarted()
+    
     // Track if dimensions are flipped
     property bool widthFlipped: controlWidth < 0
     property bool heightFlipped: controlHeight < 0
@@ -237,6 +240,7 @@ Item {
                 onPressed: (mouse) => {
                     root.dragging = true
                     root.dragMode = "resize-edge-" + edgeIndex
+                    root.resizeStarted()
                     
                     // Initialize mouse position
                     var mouseInParent = mapToItem(root.parent, mouse.x, mouse.y)
@@ -550,6 +554,7 @@ Item {
                 onPressed: (mouse) => {
                     root.dragging = true
                     root.dragMode = "resize-corner-" + cornerIdx
+                    root.resizeStarted()
                     
                     // Initialize mouse position
                     var mouseInParent = mapToItem(root.parent, mouse.x, mouse.y)
