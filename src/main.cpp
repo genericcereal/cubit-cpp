@@ -32,9 +32,14 @@ int main(int argc, char *argv[])
 {
     QtWebEngineQuick::initialize();
 
+    // Enable high DPI scaling for better rendering quality
+    QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
+    QGuiApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+    QGuiApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
+
     // Enable antialiasing for smoother rendering
     QSurfaceFormat format = QSurfaceFormat::defaultFormat();
-    format.setSamples(4); // 4x MSAA
+    format.setSamples(8); // Increase to 8x MSAA
     QSurfaceFormat::setDefaultFormat(format);
 
     QGuiApplication app(argc, argv);

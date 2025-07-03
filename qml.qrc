@@ -26,6 +26,7 @@
         <file>qml/components/NodeSelectionBounds.qml</file>
         <file>qml/components/ViewportOverlay.qml</file>
         <file>qml/components/SelectionBox.qml</file>
+        <file>qml/components/SelectionBoundingBox.qml</file>
         <file>qml/components/DesignControls.qml</file>
         <file>qml/components/ElementLayer.qml</file>
         <file>qml/panels/DetailPanel.qml</file>
@@ -34,5 +35,6 @@
         <file>qml/panels/ActionsPanel.qml</file>
         <file>qml/panels/FPSMonitor.qml</file>
         <file>qml/panels/Console.qml</file>
+        <file>shaders/roundedmask.frag.qsb</file>
     </qresource>
 </RCC>

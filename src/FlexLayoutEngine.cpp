@@ -2,13 +2,26 @@
 #include "Element.h"
 #include "CanvasElement.h"
 #include "ElementModel.h"
+#include "Application.h"
 #include <QDebug>
 #include <QTimer>
 #include <limits>
+#include <cmath>
+
+// Helper function to round to nearest 0.5
+static qreal roundToHalf(qreal value)
+{
+    return std::round(value * 2.0) / 2.0;
+}
 
 FlexLayoutEngine::FlexLayoutEngine(QObject *parent)
     : QObject(parent)
 {
+    // Initialize the batch timer
+    m_layoutBatchTimer = new QTimer(this);
+    m_layoutBatchTimer->setSingleShot(true);
+    m_layoutBatchTimer->setInterval(0); // Process in next event loop iteration
+    connect(m_layoutBatchTimer, &QTimer::timeout, this, &FlexLayoutEngine::processPendingLayouts);
 }
 
 void FlexLayoutEngine::layoutChildren(Frame* parentFrame, ElementModel* elementModel, LayoutReason reason)
@@ -19,8 +32,6 @@ void FlexLayoutEngine::layoutChildren(Frame* parentFrame, ElementModel* elementM
     
     // Only apply flex layout if Frame has flex enabled
     if (!parentFrame->flex()) {
-        qDebug() << "FlexLayoutEngine::layoutChildren - Skipping layout for frame" << parentFrame->getId()
-                 << "flex:" << parentFrame->flex();
         // Clear stored margins when flex is disabled
         m_frameMargins.remove(parentFrame->getId());
         return;
@@ -85,32 +96,49 @@ void FlexLayoutEngine::layoutChildren(Frame* parentFrame, ElementModel* elementM
     // Calculate required size for parent frame
     QSizeF requiredSize = calculateRequiredSize(layoutChildren, parentFrame);
     
+    // Round required sizes to nearest 0.5
+    qreal roundedWidth = roundToHalf(requiredSize.width());
+    qreal roundedHeight = roundToHalf(requiredSize.height());
+    
     qDebug() << "FlexLayoutEngine - Parent" << parentFrame->getId() 
              << "current size:" << parentFrame->width() << "x" << parentFrame->height()
-             << "required size:" << requiredSize.width() << "x" << requiredSize.height();
+             << "calculated size:" << requiredSize.width() << "x" << requiredSize.height()
+             << "rounded size:" << roundedWidth << "x" << roundedHeight;
     
     // Update parent frame size if needed (allow both growing and shrinking)
-    // BUT only if the parent frame is not currently selected (being resized by user)
-    // If a child is selected and being resized, we SHOULD resize the parent to maintain margins
+    // BUT only if:
+    // 1. The parent frame is not currently selected (being resized by user) OR it's a gap change
+    // 2. The parent's width/height type is set to "fit content"
     bool sizeChanged = false;
-    const qreal tolerance = 0.01; // Small tolerance to avoid floating point comparison issues
+    const qreal tolerance = 0.25; // Tolerance of 0.25 since we round to nearest 0.5
     
     // Only prevent resize if the parent itself is selected AND this is not a gap change
     // Gap changes should always resize the parent to maintain margins
-    bool shouldResize = !parentFrame->isSelected() || reason == GapChanged;
+    bool canResize = !parentFrame->isSelected() || reason == GapChanged;
     
-    if (shouldResize) {
-        if (qAbs(requiredSize.width() - parentFrame->width()) > tolerance) {
-            qDebug() << "FlexLayoutEngine - Updating parent width from" << parentFrame->width() 
-                     << "to" << requiredSize.width();
-            parentFrame->setWidth(requiredSize.width());
-            sizeChanged = true;
+    if (canResize) {
+        // Check width type - only resize width if it's set to fit content
+        if (parentFrame->widthType() == Frame::SizeFitContent) {
+            if (qAbs(roundedWidth - parentFrame->width()) > tolerance) {
+                qDebug() << "FlexLayoutEngine - Updating parent width from" << parentFrame->width() 
+                         << "to" << roundedWidth << "(widthType is fit-content)";
+                parentFrame->setWidth(roundedWidth);
+                sizeChanged = true;
+            }
+        } else {
+            qDebug() << "FlexLayoutEngine - Skipping width resize because widthType is not fit-content";
         }
-        if (qAbs(requiredSize.height() - parentFrame->height()) > tolerance) {
-            qDebug() << "FlexLayoutEngine - Updating parent height from" << parentFrame->height() 
-                     << "to" << requiredSize.height();
-            parentFrame->setHeight(requiredSize.height());
-            sizeChanged = true;
+        
+        // Check height type - only resize height if it's set to fit content
+        if (parentFrame->heightType() == Frame::SizeFitContent) {
+            if (qAbs(roundedHeight - parentFrame->height()) > tolerance) {
+                qDebug() << "FlexLayoutEngine - Updating parent height from" << parentFrame->height() 
+                         << "to" << roundedHeight << "(heightType is fit-content)";
+                parentFrame->setHeight(roundedHeight);
+                sizeChanged = true;
+            }
+        } else {
+            qDebug() << "FlexLayoutEngine - Skipping height resize because heightType is not fit-content";
         }
     } else {
         qDebug() << "FlexLayoutEngine - Skipping parent resize because parent frame is selected";
@@ -121,8 +149,14 @@ void FlexLayoutEngine::layoutChildren(Frame* parentFrame, ElementModel* elementM
         containerBounds = QRectF(0, 0, parentFrame->width(), parentFrame->height());
     }
     
+    // Temporarily disconnect geometry signals to avoid triggering additional layouts
+    disconnectChildGeometrySignals(parentFrame);
+    
     // Perform layout
     calculateFlexLayout(layoutChildren, parentFrame, containerBounds);
+    
+    // Reconnect geometry signals after layout is complete
+    connectChildGeometrySignals(parentFrame, elementModel);
     
     // Guard will automatically reset m_isLayouting when function exits
 }
@@ -184,21 +218,25 @@ void FlexLayoutEngine::layoutRow(const QList<Element*>& children,
         if (!canvasChild) continue;
         
         // Set X position (relative to parent)
-        qreal absoluteX = parentFrame->x() + currentX;
-        qDebug() << "FlexLayoutEngine::layoutRow - Setting child" << canvasChild->getId() 
-                 << "X from" << canvasChild->x() << "to" << absoluteX;
-        canvasChild->setX(absoluteX);
+        qreal absoluteX = roundToHalf(parentFrame->x() + currentX);
+        if (!qFuzzyCompare(canvasChild->x(), absoluteX)) {
+            qDebug() << "FlexLayoutEngine::layoutRow - Setting child" << canvasChild->getId() 
+                     << "X from" << canvasChild->x() << "to" << absoluteX;
+            canvasChild->setX(absoluteX);
+        }
         
         // Calculate Y position based on align (relative to parent)
         qreal y = calculateCrossAxisPosition(containerBounds.height(),
                                            canvasChild->height(),
                                            parentFrame->align());
-        qreal absoluteY = parentFrame->y() + y;
-        qDebug() << "FlexLayoutEngine::layoutRow - Setting child" << canvasChild->getId() 
-                 << "Y from" << canvasChild->y() << "to" << absoluteY;
-        canvasChild->setY(absoluteY);
+        qreal absoluteY = roundToHalf(parentFrame->y() + y);
+        if (!qFuzzyCompare(canvasChild->y(), absoluteY)) {
+            qDebug() << "FlexLayoutEngine::layoutRow - Setting child" << canvasChild->getId() 
+                     << "Y from" << canvasChild->y() << "to" << absoluteY;
+            canvasChild->setY(absoluteY);
+        }
         
-        // Move to next position
+        // Move to next position based on child's actual width
         currentX += canvasChild->width();
         if (i < children.count() - 1) {
             currentX += gap;
@@ -250,17 +288,21 @@ void FlexLayoutEngine::layoutColumn(const QList<Element*>& children,
         if (!canvasChild) continue;
         
         // Set Y position (relative to parent)
-        qreal absoluteY = parentFrame->y() + currentY;
-        canvasChild->setY(absoluteY);
+        qreal absoluteY = roundToHalf(parentFrame->y() + currentY);
+        if (!qFuzzyCompare(canvasChild->y(), absoluteY)) {
+            canvasChild->setY(absoluteY);
+        }
         
         // Calculate X position based on align (relative to parent)
         qreal x = calculateCrossAxisPosition(containerBounds.width(),
                                            canvasChild->width(),
                                            parentFrame->align());
-        qreal absoluteX = parentFrame->x() + x;
-        canvasChild->setX(absoluteX);
+        qreal absoluteX = roundToHalf(parentFrame->x() + x);
+        if (!qFuzzyCompare(canvasChild->x(), absoluteX)) {
+            canvasChild->setX(absoluteX);
+        }
         
-        // Move to next position
+        // Move to next position based on child's actual height
         currentY += canvasChild->height();
         if (i < children.count() - 1) {
             currentY += gap;
@@ -382,9 +424,18 @@ void FlexLayoutEngine::connectChildGeometrySignals(Frame* parentFrame, ElementMo
                 
                 // Connect to geometry changes
                 QMetaObject::Connection conn = connect(canvasChild, &CanvasElement::geometryChanged,
-                                                     parentFrame, [parentFrame]() {
+                                                     this, [this, parentFrame, canvasChild]() {
                                                          if (parentFrame->flex()) {
-                                                             QTimer::singleShot(0, parentFrame, &Frame::layoutChildren);
+                                                             // Check if this child is currently selected (being resized)
+                                                             Application* app = Application::instance();
+                                                             if (app && app->activeCanvas() && app->activeCanvas()->selectionManager()) {
+                                                                 SelectionManager* selectionManager = app->activeCanvas()->selectionManager();
+                                                                 if (selectionManager->isSelected(canvasChild)) {
+                                                                     qDebug() << "FlexLayoutEngine - Skipping layout for selected child" << canvasChild->getId();
+                                                                     return; // Skip scheduling layout when child is being resized
+                                                                 }
+                                                             }
+                                                             scheduleLayout(parentFrame);
                                                          }
                                                      });
                 
@@ -395,9 +446,9 @@ void FlexLayoutEngine::connectChildGeometrySignals(Frame* parentFrame, ElementMo
                 if (childFrame) {
                     QString positionConnId = childId + "_position";
                     QMetaObject::Connection posConn = connect(childFrame, &Frame::positionChanged,
-                                                           parentFrame, [parentFrame]() {
+                                                           this, [this, parentFrame]() {
                                                                if (parentFrame->flex()) {
-                                                                   QTimer::singleShot(0, parentFrame, &Frame::layoutChildren);
+                                                                   scheduleLayout(parentFrame);
                                                                }
                                                            });
                     m_childConnections[positionConnId] = posConn;
@@ -533,4 +584,61 @@ QSizeF FlexLayoutEngine::calculateRequiredSize(const QList<Element*>& children,
     }
     
     return result;
+}
+
+void FlexLayoutEngine::scheduleLayout(Frame* parentFrame, LayoutReason reason)
+{
+    if (!parentFrame || !parentFrame->flex()) {
+        return;
+    }
+    
+    qDebug() << "FlexLayoutEngine::scheduleLayout - Scheduling layout for frame" << parentFrame->getId() 
+             << "reason:" << reason;
+    
+    // Add to pending layouts (update reason if more specific)
+    PendingLayout pending = { parentFrame, reason };
+    if (m_pendingLayoutFrames.contains(parentFrame)) {
+        // If we already have a pending layout, keep the most specific reason
+        if (reason != General) {
+            m_pendingLayoutFrames[parentFrame] = pending;
+        }
+        qDebug() << "FlexLayoutEngine::scheduleLayout - Frame already pending, updating reason";
+    } else {
+        m_pendingLayoutFrames[parentFrame] = pending;
+    }
+    
+    // Start the timer if not already running
+    if (!m_layoutBatchTimer->isActive()) {
+        m_layoutBatchTimer->start();
+        qDebug() << "FlexLayoutEngine::scheduleLayout - Starting batch timer";
+    } else {
+        qDebug() << "FlexLayoutEngine::scheduleLayout - Batch timer already active";
+    }
+}
+
+void FlexLayoutEngine::processPendingLayouts()
+{
+    qDebug() << "FlexLayoutEngine::processPendingLayouts - Processing" << m_pendingLayoutFrames.size() << "pending layouts";
+    
+    // Process all pending layout requests
+    QMap<Frame*, PendingLayout> pendingLayouts = m_pendingLayoutFrames;
+    m_pendingLayoutFrames.clear();
+    
+    // Get the application and element model
+    Application* app = Application::instance();
+    if (!app || !app->activeCanvas() || !app->activeCanvas()->elementModel()) {
+        return;
+    }
+    
+    ElementModel* elementModel = app->activeCanvas()->elementModel();
+    
+    // Layout each frame
+    for (auto it = pendingLayouts.begin(); it != pendingLayouts.end(); ++it) {
+        Frame* frame = it.key();
+        LayoutReason reason = it.value().reason;
+        if (frame && frame->flex()) {
+            qDebug() << "FlexLayoutEngine::processPendingLayouts - Laying out frame" << frame->getId() << "with reason" << reason;
+            layoutChildren(frame, elementModel, reason);
+        }
+    }
 }

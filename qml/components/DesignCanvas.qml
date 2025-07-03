@@ -95,6 +95,13 @@ BaseCanvas {
                         continue
                     }
                     
+                    // Guard 5: Don't parent relatively positioned elements to other relatively positioned elements
+                    if (element.elementType === "Frame" && hoveredElement.elementType === "Frame") {
+                        if (element.position === Frame.Relative && hoveredElement.position === Frame.Relative) {
+                            continue
+                        }
+                    }
+                    
                     // Only update if parentId actually changes
                     if (element.parentId !== hoveredElement.elementId) {
                         // Set parentId to the hovered element's ID

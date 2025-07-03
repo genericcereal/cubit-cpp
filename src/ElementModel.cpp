@@ -236,3 +236,24 @@ int ElementModel::findElementIndex(const QString &elementId) const
     }
     return -1;
 }
+
+void ElementModel::reorderElement(Element *element, int newIndex)
+{
+    if (!element) return;
+    
+    int currentIndex = m_elements.indexOf(element);
+    if (currentIndex < 0 || currentIndex == newIndex) return;
+    
+    // Clamp newIndex to valid range
+    newIndex = qBound(0, newIndex, m_elements.size() - 1);
+    
+    // Perform the reorder
+    beginResetModel();
+    m_elements.move(currentIndex, newIndex);
+    endResetModel();
+    
+    emit elementChanged();
+    
+    qDebug() << "ElementModel::reorderElement - Moved element" << element->getId() 
+             << "from index" << currentIndex << "to" << newIndex;
+}

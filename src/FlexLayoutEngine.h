@@ -5,6 +5,8 @@
 #include <QList>
 #include <QRectF>
 #include <QMap>
+#include <QTimer>
+#include <QSet>
 #include "Frame.h"
 
 class Element;
@@ -39,7 +41,13 @@ public:
     
     // Check if layout is in progress
     bool isLayouting() const { return m_isLayouting; }
+    
+    // Schedule a layout for a frame (batches multiple requests)
+    void scheduleLayout(Frame* parentFrame, LayoutReason reason = General);
                            
+private slots:
+    void processPendingLayouts();
+    
 private:
     // Helper methods
     QList<Element*> getDirectChildren(const QString& parentId, ElementModel* elementModel) const;
@@ -80,6 +88,14 @@ private:
     
     // Flag to prevent infinite layout loops
     mutable bool m_isLayouting = false;
+    
+    // Layout batching
+    QTimer* m_layoutBatchTimer = nullptr;
+    struct PendingLayout {
+        Frame* frame;
+        LayoutReason reason;
+    };
+    QMap<Frame*, PendingLayout> m_pendingLayoutFrames;
     
     // Track initial margins for each parent frame
     struct FrameMargins {

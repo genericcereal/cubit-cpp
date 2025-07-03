@@ -110,11 +110,12 @@ ScrollView {
             }
         }
         
+        // Position section - only for DesignElements with a parent
         GroupBox {
             Layout.fillWidth: true
             Layout.margins: 10
-            title: "Position & Size"
-            visible: selectedElement && selectedElement.isVisual
+            title: "Position"
+            visible: selectedElement && selectedElement.isDesignElement && selectedElement.parentId
             
             GridLayout {
                 anchors.fill: parent
@@ -151,36 +152,20 @@ ScrollView {
                     }
                 }
                 
-                // Show x/y when no parent, or left/top when parent exists
-                Label { 
-                    text: selectedElement && selectedElement.isDesignElement && selectedElement.parentId ? "Left:" : "X:" 
-                }
+                Label { text: "Left:" }
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: 5
                     
                     SpinBox {
-                        id: xSpinBox
+                        id: leftSpinBox
                         Layout.fillWidth: true
                         from: -9999
                         to: 9999
-                        value: {
-                            if (!selectedElement) return 0
-                            if (selectedElement.isDesignElement && selectedElement.parentId) {
-                                return Math.round(selectedElement.left)
-                            }
-                            return Math.round(selectedElement.x)
-                        }
+                        value: selectedDesignElement && selectedDesignElement.left !== undefined ? Math.round(selectedDesignElement.left) : 0
                         onValueModified: function(value) {
-                            if (!selectedElement) return
-                            if (selectedElement.isDesignElement && selectedElement.parentId) {
-                                if (value !== Math.round(selectedElement.left)) {
-                                    selectedElement.left = value
-                                }
-                            } else {
-                                if (value !== Math.round(selectedElement.x)) {
-                                    selectedElement.x = value
-                                }
+                            if (selectedDesignElement && selectedDesignElement.left !== undefined && value !== Math.round(selectedDesignElement.left)) {
+                                selectedDesignElement.left = value
                             }
                         }
                     }
@@ -190,9 +175,8 @@ ScrollView {
                         id: leftAnchorButton
                         Layout.preferredWidth: 30
                         Layout.preferredHeight: 30
-                        visible: selectedElement && selectedElement.isDesignElement && selectedElement.parentId
                         checkable: true
-                        checked: selectedElement && selectedElement.isDesignElement && selectedElement.leftAnchored
+                        checked: selectedDesignElement && selectedDesignElement.leftAnchored
                         text: "⚓"
                         font.pixelSize: 16
                         
@@ -204,42 +188,31 @@ ScrollView {
                         }
                         
                         onToggled: {
-                            if (selectedElement && selectedElement.isDesignElement) {
-                                selectedElement.leftAnchored = checked
+                            if (selectedDesignElement) {
+                                if (checked) {
+                                    // Set the anchor value to the spin box value before enabling
+                                    selectedDesignElement.left = leftSpinBox.value
+                                }
+                                selectedDesignElement.leftAnchored = checked
                             }
                         }
                     }
                 }
                 
-                Label { 
-                    text: selectedElement && selectedElement.isDesignElement && selectedElement.parentId ? "Top:" : "Y:" 
-                }
+                Label { text: "Top:" }
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: 5
                     
                     SpinBox {
-                        id: ySpinBox
+                        id: topSpinBox
                         Layout.fillWidth: true
                         from: -9999
                         to: 9999
-                        value: {
-                            if (!selectedElement) return 0
-                            if (selectedElement.isDesignElement && selectedElement.parentId) {
-                                return Math.round(selectedElement.top)
-                            }
-                            return Math.round(selectedElement.y)
-                        }
+                        value: selectedDesignElement && selectedDesignElement.top !== undefined ? Math.round(selectedDesignElement.top) : 0
                         onValueModified: function(value) {
-                            if (!selectedElement) return
-                            if (selectedElement.isDesignElement && selectedElement.parentId) {
-                                if (value !== Math.round(selectedElement.top)) {
-                                    selectedElement.top = value
-                                }
-                            } else {
-                                if (value !== Math.round(selectedElement.y)) {
-                                    selectedElement.y = value
-                                }
+                            if (selectedDesignElement && selectedDesignElement.top !== undefined && value !== Math.round(selectedDesignElement.top)) {
+                                selectedDesignElement.top = value
                             }
                         }
                     }
@@ -249,9 +222,8 @@ ScrollView {
                         id: topAnchorButton
                         Layout.preferredWidth: 30
                         Layout.preferredHeight: 30
-                        visible: selectedElement && selectedElement.isDesignElement && selectedElement.parentId
                         checkable: true
-                        checked: selectedElement && selectedElement.isDesignElement && selectedElement.topAnchored
+                        checked: selectedDesignElement && selectedDesignElement.topAnchored
                         text: "⚓"
                         font.pixelSize: 16
                         
@@ -263,32 +235,31 @@ ScrollView {
                         }
                         
                         onToggled: {
-                            if (selectedElement && selectedElement.isDesignElement) {
-                                selectedElement.topAnchored = checked
+                            if (selectedDesignElement) {
+                                if (checked) {
+                                    // Set the anchor value to the spin box value before enabling
+                                    selectedDesignElement.top = topSpinBox.value
+                                }
+                                selectedDesignElement.topAnchored = checked
                             }
                         }
                     }
                 }
                 
-                // Right anchor (only shown when element has parent)
-                Label { 
-                    text: "Right:" 
-                    visible: selectedElement && selectedElement.isDesignElement && selectedElement.parentId
-                }
+                Label { text: "Right:" }
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: 5
-                    visible: selectedElement && selectedElement.isDesignElement && selectedElement.parentId
                     
                     SpinBox {
                         id: rightSpinBox
                         Layout.fillWidth: true
                         from: -9999
                         to: 9999
-                        value: selectedElement ? Math.round(selectedElement.right) : 0
+                        value: selectedDesignElement && selectedDesignElement.right !== undefined ? Math.round(selectedDesignElement.right) : 0
                         onValueModified: function(value) {
-                            if (selectedElement && value !== Math.round(selectedElement.right)) {
-                                selectedElement.right = value
+                            if (selectedDesignElement && selectedDesignElement.right !== undefined && value !== Math.round(selectedDesignElement.right)) {
+                                selectedDesignElement.right = value
                             }
                         }
                     }
@@ -299,7 +270,7 @@ ScrollView {
                         Layout.preferredWidth: 30
                         Layout.preferredHeight: 30
                         checkable: true
-                        checked: selectedElement && selectedElement.isDesignElement && selectedElement.rightAnchored
+                        checked: selectedDesignElement && selectedDesignElement.rightAnchored
                         text: "⚓"
                         font.pixelSize: 16
                         
@@ -311,32 +282,31 @@ ScrollView {
                         }
                         
                         onToggled: {
-                            if (selectedElement && selectedElement.isDesignElement) {
-                                selectedElement.rightAnchored = checked
+                            if (selectedDesignElement) {
+                                if (checked) {
+                                    // Set the anchor value to the spin box value before enabling
+                                    selectedDesignElement.right = rightSpinBox.value
+                                }
+                                selectedDesignElement.rightAnchored = checked
                             }
                         }
                     }
                 }
                 
-                // Bottom anchor (only shown when element has parent)
-                Label { 
-                    text: "Bottom:" 
-                    visible: selectedElement && selectedElement.isDesignElement && selectedElement.parentId
-                }
+                Label { text: "Bottom:" }
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: 5
-                    visible: selectedElement && selectedElement.isDesignElement && selectedElement.parentId
                     
                     SpinBox {
                         id: bottomSpinBox
                         Layout.fillWidth: true
                         from: -9999
                         to: 9999
-                        value: selectedElement ? Math.round(selectedElement.bottom) : 0
+                        value: selectedDesignElement && selectedDesignElement.bottom !== undefined ? Math.round(selectedDesignElement.bottom) : 0
                         onValueModified: function(value) {
-                            if (selectedElement && value !== Math.round(selectedElement.bottom)) {
-                                selectedElement.bottom = value
+                            if (selectedDesignElement && selectedDesignElement.bottom !== undefined && value !== Math.round(selectedDesignElement.bottom)) {
+                                selectedDesignElement.bottom = value
                             }
                         }
                     }
@@ -347,7 +317,7 @@ ScrollView {
                         Layout.preferredWidth: 30
                         Layout.preferredHeight: 30
                         checkable: true
-                        checked: selectedElement && selectedElement.isDesignElement && selectedElement.bottomAnchored
+                        checked: selectedDesignElement && selectedDesignElement.bottomAnchored
                         text: "⚓"
                         font.pixelSize: 16
                         
@@ -359,9 +329,54 @@ ScrollView {
                         }
                         
                         onToggled: {
-                            if (selectedElement && selectedElement.isDesignElement) {
-                                selectedElement.bottomAnchored = checked
+                            if (selectedDesignElement) {
+                                if (checked) {
+                                    // Set the anchor value to the spin box value before enabling
+                                    selectedDesignElement.bottom = bottomSpinBox.value
+                                }
+                                selectedDesignElement.bottomAnchored = checked
                             }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Position & Size section - for elements without a parent
+        GroupBox {
+            Layout.fillWidth: true
+            Layout.margins: 10
+            title: "Position & Size"
+            visible: selectedElement && selectedElement.isVisual && !(selectedElement.isDesignElement && selectedElement.parentId)
+            
+            GridLayout {
+                anchors.fill: parent
+                columns: 2
+                columnSpacing: 10
+                rowSpacing: 5
+                
+                Label { text: "X:" }
+                SpinBox {
+                    Layout.fillWidth: true
+                    from: -9999
+                    to: 9999
+                    value: selectedElement ? Math.round(selectedElement.x) : 0
+                    onValueModified: function(value) {
+                        if (selectedElement && value !== Math.round(selectedElement.x)) {
+                            selectedElement.x = value
+                        }
+                    }
+                }
+                
+                Label { text: "Y:" }
+                SpinBox {
+                    Layout.fillWidth: true
+                    from: -9999
+                    to: 9999
+                    value: selectedElement ? Math.round(selectedElement.y) : 0
+                    onValueModified: function(value) {
+                        if (selectedElement && value !== Math.round(selectedElement.y)) {
+                            selectedElement.y = value
                         }
                     }
                 }
@@ -385,9 +400,27 @@ ScrollView {
                     }
                     
                     ComboBox {
-                        Layout.preferredWidth: 80
-                        model: ["fixed", "relative", "fill"]
-                        currentIndex: 0
+                        Layout.preferredWidth: 100
+                        model: ["fixed", "relative", "fill", "fit content", "viewport"]
+                        visible: selectedElement && selectedElement.elementType === "Frame"
+                        currentIndex: {
+                            if (selectedElement && selectedElement.elementType === "Frame") {
+                                switch (selectedElement.widthType) {
+                                    case 0: return 0  // SizeFixed
+                                    case 1: return 1  // SizeRelative
+                                    case 2: return 2  // SizeFill
+                                    case 3: return 3  // SizeFitContent
+                                    case 4: return 4  // SizeViewport
+                                    default: return 0
+                                }
+                            }
+                            return 0
+                        }
+                        onActivated: function(index) {
+                            if (selectedElement && selectedElement.elementType === "Frame") {
+                                selectedElement.widthType = index
+                            }
+                        }
                     }
                 }
                 
@@ -410,9 +443,128 @@ ScrollView {
                     }
                     
                     ComboBox {
-                        Layout.preferredWidth: 80
-                        model: ["fixed", "relative", "fill"]
-                        currentIndex: 0
+                        Layout.preferredWidth: 100
+                        model: ["fixed", "relative", "fill", "fit content", "viewport"]
+                        visible: selectedElement && selectedElement.elementType === "Frame"
+                        currentIndex: {
+                            if (selectedElement && selectedElement.elementType === "Frame") {
+                                switch (selectedElement.heightType) {
+                                    case 0: return 0  // SizeFixed
+                                    case 1: return 1  // SizeRelative
+                                    case 2: return 2  // SizeFill
+                                    case 3: return 3  // SizeFitContent
+                                    case 4: return 4  // SizeViewport
+                                    default: return 0
+                                }
+                            }
+                            return 0
+                        }
+                        onActivated: function(index) {
+                            if (selectedElement && selectedElement.elementType === "Frame") {
+                                selectedElement.heightType = index
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Size section - for DesignElements with a parent
+        GroupBox {
+            Layout.fillWidth: true
+            Layout.margins: 10
+            title: "Size"
+            visible: selectedElement && selectedElement.isDesignElement && selectedElement.parentId
+            
+            GridLayout {
+                anchors.fill: parent
+                columns: 2
+                columnSpacing: 10
+                rowSpacing: 5
+                
+                Label { text: "Width:" }
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 5
+                    
+                    SpinBox {
+                        id: widthSpinBoxSeparate
+                        Layout.fillWidth: true
+                        from: 1
+                        to: 9999
+                        value: selectedElement ? Math.round(selectedElement.width) : 0
+                        onValueModified: function(value) {
+                            if (selectedElement && value !== Math.round(selectedElement.width)) {
+                                selectedElement.width = value
+                            }
+                        }
+                    }
+                    
+                    ComboBox {
+                        Layout.preferredWidth: 100
+                        model: ["fixed", "relative", "fill", "fit content", "viewport"]
+                        visible: selectedElement && selectedElement.elementType === "Frame"
+                        currentIndex: {
+                            if (selectedElement && selectedElement.elementType === "Frame") {
+                                switch (selectedElement.widthType) {
+                                    case 0: return 0  // SizeFixed
+                                    case 1: return 1  // SizeRelative
+                                    case 2: return 2  // SizeFill
+                                    case 3: return 3  // SizeFitContent
+                                    case 4: return 4  // SizeViewport
+                                    default: return 0
+                                }
+                            }
+                            return 0
+                        }
+                        onActivated: function(index) {
+                            if (selectedElement && selectedElement.elementType === "Frame") {
+                                selectedElement.widthType = index
+                            }
+                        }
+                    }
+                }
+                
+                Label { text: "Height:" }
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 5
+                    
+                    SpinBox {
+                        id: heightSpinBoxSeparate
+                        Layout.fillWidth: true
+                        from: 1
+                        to: 9999
+                        value: selectedElement ? Math.round(selectedElement.height) : 0
+                        onValueModified: function(value) {
+                            if (selectedElement && value !== Math.round(selectedElement.height)) {
+                                selectedElement.height = value
+                            }
+                        }
+                    }
+                    
+                    ComboBox {
+                        Layout.preferredWidth: 100
+                        model: ["fixed", "relative", "fill", "fit content", "viewport"]
+                        visible: selectedElement && selectedElement.elementType === "Frame"
+                        currentIndex: {
+                            if (selectedElement && selectedElement.elementType === "Frame") {
+                                switch (selectedElement.heightType) {
+                                    case 0: return 0  // SizeFixed
+                                    case 1: return 1  // SizeRelative
+                                    case 2: return 2  // SizeFill
+                                    case 3: return 3  // SizeFitContent
+                                    case 4: return 4  // SizeViewport
+                                    default: return 0
+                                }
+                            }
+                            return 0
+                        }
+                        onActivated: function(index) {
+                            if (selectedElement && selectedElement.elementType === "Frame") {
+                                selectedElement.heightType = index
+                            }
+                        }
                     }
                 }
             }
