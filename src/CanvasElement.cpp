@@ -12,9 +12,10 @@ CanvasElement::CanvasElement(ElementType type, const QString &id, QObject *paren
 
 void CanvasElement::setX(qreal x)
 {
-    if (!qFuzzyCompare(canvasPosition.x(), x))
+    qreal roundedX = qRound(x);
+    if (!qFuzzyCompare(canvasPosition.x(), roundedX))
     {
-        canvasPosition.setX(x);
+        canvasPosition.setX(roundedX);
         m_boundsValid = false;
         updateCachedBounds();
         emit xChanged();
@@ -25,9 +26,10 @@ void CanvasElement::setX(qreal x)
 
 void CanvasElement::setY(qreal y)
 {
-    if (!qFuzzyCompare(canvasPosition.y(), y))
+    qreal roundedY = qRound(y);
+    if (!qFuzzyCompare(canvasPosition.y(), roundedY))
     {
-        canvasPosition.setY(y);
+        canvasPosition.setY(roundedY);
         m_boundsValid = false;
         updateCachedBounds();
         emit yChanged();
@@ -38,9 +40,10 @@ void CanvasElement::setY(qreal y)
 
 void CanvasElement::setWidth(qreal w)
 {
-    if (!qFuzzyCompare(canvasSize.width(), w))
+    qreal roundedW = qRound(w);
+    if (!qFuzzyCompare(canvasSize.width(), roundedW))
     {
-        canvasSize.setWidth(w);
+        canvasSize.setWidth(roundedW);
         m_boundsValid = false;
         updateCachedBounds();
         emit widthChanged();
@@ -51,9 +54,10 @@ void CanvasElement::setWidth(qreal w)
 
 void CanvasElement::setHeight(qreal h)
 {
-    if (!qFuzzyCompare(canvasSize.height(), h))
+    qreal roundedH = qRound(h);
+    if (!qFuzzyCompare(canvasSize.height(), roundedH))
     {
-        canvasSize.setHeight(h);
+        canvasSize.setHeight(roundedH);
         m_boundsValid = false;
         updateCachedBounds();
         emit heightChanged();
@@ -64,13 +68,14 @@ void CanvasElement::setHeight(qreal h)
 
 void CanvasElement::setRect(const QRectF &rect)
 {
-    bool posChanged = canvasPosition != rect.topLeft();
+    QPointF roundedPos(qRound(rect.x()), qRound(rect.y()));
+    bool posChanged = canvasPosition != roundedPos;
     bool sizeChanged = canvasSize != rect.size();
 
     if (posChanged || sizeChanged)
     {
-        canvasPosition = rect.topLeft();
-        canvasSize = rect.size();
+        canvasPosition = roundedPos;
+        canvasSize = QSizeF(qRound(rect.width()), qRound(rect.height()));
         m_boundsValid = false;
         updateCachedBounds();
 

@@ -38,6 +38,7 @@ QtObject {
     readonly property color controlBarLineColor: Qt.rgba(0, 0.4, 1, 1.0)     // Blue with 100% opacity
     readonly property color controlJointCircleFill: Qt.rgba(1, 1, 1, 1.0)    // White fill
     readonly property color controlJointCircleBorder: Qt.rgba(0, 0.4, 1, 1.0) // Blue border
+    readonly property color controlsBorderColor: Qt.rgba(0, 0, 0, 0.2)      // Black with 20% opacity for selection bounding box
     
     // Component instance colors (purple)
     readonly property color componentControlBarColor: Qt.rgba(0.5, 0, 0.5, 0.1)           // Purple with 10% opacity

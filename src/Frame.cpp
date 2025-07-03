@@ -3,6 +3,7 @@
 #include "ElementModel.h"
 #include "Application.h"
 #include "Project.h"
+#include "SelectionManager.h"
 #include <QTimer>
 #include <QDebug>
 
@@ -114,9 +115,20 @@ void Frame::setAcceptsChildren(bool accepts)
 void Frame::setFlex(bool flex)
 {
     if (m_flex != flex) {
+        bool oldCanResizeWidth = canResizeWidth();
+        bool oldCanResizeHeight = canResizeHeight();
+        
         m_flex = flex;
         emit flexChanged();
         emit elementChanged();
+        
+        // Emit canResize signals if the state changed
+        if (oldCanResizeWidth != canResizeWidth()) {
+            emit canResizeWidthChanged();
+        }
+        if (oldCanResizeHeight != canResizeHeight()) {
+            emit canResizeHeightChanged();
+        }
         
         // Immediately layout children if enabling flex
         if (flex) {
@@ -126,7 +138,7 @@ void Frame::setFlex(bool flex)
                 ElementModel* elementModel = app->activeCanvas()->elementModel();
                 m_layoutEngine->connectChildGeometrySignals(this, elementModel);
             }
-            layoutChildren();
+            m_layoutEngine->scheduleLayout(this);
         } else {
             // Disconnect child geometry signals when disabling flex
             m_layoutEngine->disconnectChildGeometrySignals(this);
@@ -141,8 +153,8 @@ void Frame::setOrientation(LayoutOrientation orientation)
         emit orientationChanged();
         emit elementChanged();
         
-        if (m_flex) {
-            layoutChildren();
+        if (m_flex && m_layoutEngine) {
+            m_layoutEngine->scheduleLayout(this);
         }
     }
 }
@@ -154,13 +166,9 @@ void Frame::setGap(qreal gap)
         emit gapChanged();
         emit elementChanged();
         
-        if (m_flex) {
+        if (m_flex && m_layoutEngine) {
             // Trigger layout with GapChanged reason to allow parent resize even if selected
-            Application* app = Application::instance();
-            if (app && app->activeCanvas() && app->activeCanvas()->elementModel()) {
-                m_layoutEngine->layoutChildren(this, app->activeCanvas()->elementModel(), 
-                                             FlexLayoutEngine::GapChanged);
-            }
+            m_layoutEngine->scheduleLayout(this, FlexLayoutEngine::GapChanged);
         }
     }
 }
@@ -190,14 +198,10 @@ void Frame::setJustify(JustifyContent justify)
         emit justifyChanged();
         emit elementChanged();
         
-        if (m_flex) {
+        if (m_flex && m_layoutEngine) {
             // When justify changes, we need to reposition children
             // but we should NOT resize the parent
-            Application* app = Application::instance();
-            if (app && app->activeCanvas() && app->activeCanvas()->elementModel()) {
-                m_layoutEngine->layoutChildren(this, app->activeCanvas()->elementModel(),
-                                             FlexLayoutEngine::JustifyChanged);
-            }
+            m_layoutEngine->scheduleLayout(this, FlexLayoutEngine::JustifyChanged);
         }
     }
 }
@@ -209,58 +213,128 @@ void Frame::setAlign(AlignItems align)
         emit alignChanged();
         emit elementChanged();
         
-        if (m_flex) {
+        if (m_flex && m_layoutEngine) {
             // When align changes, we need to reposition children
             // but we should NOT resize the parent
-            Application* app = Application::instance();
-            if (app && app->activeCanvas() && app->activeCanvas()->elementModel()) {
-                m_layoutEngine->layoutChildren(this, app->activeCanvas()->elementModel(),
-                                             FlexLayoutEngine::AlignChanged);
-            }
+            m_layoutEngine->scheduleLayout(this, FlexLayoutEngine::AlignChanged);
         }
     }
 }
 
-void Frame::layoutChildren()
+void Frame::setWidthType(SizeType type)
 {
-    // Get the element model from the application
-    Application* app = Application::instance();
-    if (!app || !app->activeCanvas()) {
-        qDebug() << "Frame::layoutChildren - No active canvas";
+    // Validate constraints
+    if (type == SizeRelative && !m_flex) {
+        qWarning() << "Cannot set width type to Relative when flex is disabled";
         return;
     }
     
-    ElementModel* elementModel = app->activeCanvas()->elementModel();
-    if (!elementModel) {
-        qDebug() << "Frame::layoutChildren - No element model";
+    if (type == SizeFill && parentElementId.isEmpty()) {
+        qWarning() << "Cannot set width type to Fill when frame has no parent";
         return;
     }
     
-    qDebug() << "Frame::layoutChildren - Laying out children for frame" << getId() 
-             << "flex:" << m_flex << "position:" << m_position;
+    // TODO: Check for children when type == SizeFitContent
     
-    // Use the layout engine to layout children
-    m_layoutEngine->layoutChildren(this, elementModel);
+    if (m_widthType != type) {
+        bool oldCanResize = canResizeWidth();
+        m_widthType = type;
+        emit widthTypeChanged();
+        emit elementChanged();
+        triggerLayout();
+        
+        if (oldCanResize != canResizeWidth()) {
+            emit canResizeWidthChanged();
+        }
+    }
+}
+
+void Frame::setHeightType(SizeType type)
+{
+    // Validate constraints
+    if (type == SizeRelative && !m_flex) {
+        qWarning() << "Cannot set height type to Relative when flex is disabled";
+        return;
+    }
+    
+    if (type == SizeFill && parentElementId.isEmpty()) {
+        qWarning() << "Cannot set height type to Fill when frame has no parent";
+        return;
+    }
+    
+    // TODO: Check for children when type == SizeFitContent
+    
+    if (m_heightType != type) {
+        bool oldCanResize = canResizeHeight();
+        m_heightType = type;
+        emit heightTypeChanged();
+        emit elementChanged();
+        triggerLayout();
+        
+        if (oldCanResize != canResizeHeight()) {
+            emit canResizeHeightChanged();
+        }
+    }
+}
+
+bool Frame::canResizeWidth() const
+{
+    // Cannot resize width if flex is enabled and width type is fit content
+    return !(m_flex && m_widthType == SizeFitContent);
+}
+
+bool Frame::canResizeHeight() const
+{
+    // Cannot resize height if flex is enabled and height type is fit content
+    return !(m_flex && m_heightType == SizeFitContent);
+}
+
+void Frame::setControlled(bool controlled)
+{
+    if (m_controlled != controlled) {
+        m_controlled = controlled;
+        emit controlledChanged();
+        emit elementChanged();
+    }
 }
 
 void Frame::triggerLayout()
 {
-    // Use a timer to batch layout updates
-    QTimer::singleShot(0, this, &Frame::layoutChildren);
+    // If we have flex enabled, schedule a layout through the layout engine
+    if (m_flex && m_layoutEngine) {
+        qDebug() << "Frame::triggerLayout - Called for frame" << getId();
+        m_layoutEngine->scheduleLayout(this);
+    }
 }
 
 void Frame::setWidth(qreal w)
 {
+    // Check if parent is currently laying out (in addition to our own layout engine)
+    bool parentIsLayouting = false;
+    if (parentElement()) {
+        Frame* parentFrame = qobject_cast<Frame*>(parentElement());
+        if (parentFrame && parentFrame->m_layoutEngine) {
+            parentIsLayouting = parentFrame->m_layoutEngine->isLayouting();
+        }
+    }
+    
+    // Check if width resizing is allowed (but allow if layout engine is doing it)
+    if (!canResizeWidth() && !parentIsLayouting && (!m_layoutEngine || !m_layoutEngine->isLayouting())) {
+        return;
+    }
+    
     DesignElement::setWidth(w);
     
-    // Only trigger layout if we're not already in a layout operation
-    if (!m_layoutEngine || !m_layoutEngine->isLayouting()) {
+    // Only trigger layout if neither we nor our parent are in a layout operation
+    if (!parentIsLayouting && (!m_layoutEngine || !m_layoutEngine->isLayouting())) {
         triggerLayout();
         
         // Also trigger layout on parent if it's a frame with flex
         if (parentElement() && m_position == Relative) {
             Frame* parentFrame = qobject_cast<Frame*>(parentElement());
-            if (parentFrame && parentFrame->flex()) {
+            // Check if parent is currently laying out its children
+            if (parentFrame && parentFrame->flex() && 
+                (!parentFrame->m_layoutEngine || !parentFrame->m_layoutEngine->isLayouting())) {
                 parentFrame->triggerLayout();
             }
         }
@@ -269,16 +343,32 @@ void Frame::setWidth(qreal w)
 
 void Frame::setHeight(qreal h)
 {
+    // Check if parent is currently laying out (in addition to our own layout engine)
+    bool parentIsLayouting = false;
+    if (parentElement()) {
+        Frame* parentFrame = qobject_cast<Frame*>(parentElement());
+        if (parentFrame && parentFrame->m_layoutEngine) {
+            parentIsLayouting = parentFrame->m_layoutEngine->isLayouting();
+        }
+    }
+    
+    // Check if height resizing is allowed (but allow if layout engine is doing it)
+    if (!canResizeHeight() && !parentIsLayouting && (!m_layoutEngine || !m_layoutEngine->isLayouting())) {
+        return;
+    }
+    
     DesignElement::setHeight(h);
     
-    // Only trigger layout if we're not already in a layout operation
-    if (!m_layoutEngine || !m_layoutEngine->isLayouting()) {
+    // Only trigger layout if neither we nor our parent are in a layout operation
+    if (!parentIsLayouting && (!m_layoutEngine || !m_layoutEngine->isLayouting())) {
         triggerLayout();
         
         // Also trigger layout on parent if it's a frame with flex
         if (parentElement() && m_position == Relative) {
             Frame* parentFrame = qobject_cast<Frame*>(parentElement());
-            if (parentFrame && parentFrame->flex()) {
+            // Check if parent is currently laying out its children
+            if (parentFrame && parentFrame->flex() && 
+                (!parentFrame->m_layoutEngine || !parentFrame->m_layoutEngine->isLayouting())) {
                 parentFrame->triggerLayout();
             }
         }
@@ -287,16 +377,40 @@ void Frame::setHeight(qreal h)
 
 void Frame::setRect(const QRectF &rect)
 {
-    DesignElement::setRect(rect);
+    // Check if parent is currently laying out (in addition to our own layout engine)
+    bool parentIsLayouting = false;
+    if (parentElement()) {
+        Frame* parentFrame = qobject_cast<Frame*>(parentElement());
+        if (parentFrame && parentFrame->m_layoutEngine) {
+            parentIsLayouting = parentFrame->m_layoutEngine->isLayouting();
+        }
+    }
     
-    // Only trigger layout if we're not already in a layout operation
-    if (!m_layoutEngine || !m_layoutEngine->isLayouting()) {
+    // Create a modified rect that respects resize restrictions (but allow if layout engine is doing it)
+    QRectF modifiedRect = rect;
+    
+    // If width resize is not allowed and layout engine is not doing it, keep the current width
+    if (!canResizeWidth() && !parentIsLayouting && (!m_layoutEngine || !m_layoutEngine->isLayouting())) {
+        modifiedRect.setWidth(width());
+    }
+    
+    // If height resize is not allowed and layout engine is not doing it, keep the current height
+    if (!canResizeHeight() && !parentIsLayouting && (!m_layoutEngine || !m_layoutEngine->isLayouting())) {
+        modifiedRect.setHeight(height());
+    }
+    
+    DesignElement::setRect(modifiedRect);
+    
+    // Only trigger layout if neither we nor our parent are in a layout operation
+    if (!parentIsLayouting && (!m_layoutEngine || !m_layoutEngine->isLayouting())) {
         triggerLayout();
         
         // Also trigger layout on parent if it's a frame with flex
         if (parentElement() && m_position == Relative) {
             Frame* parentFrame = qobject_cast<Frame*>(parentElement());
-            if (parentFrame && parentFrame->flex()) {
+            // Check if parent is currently laying out its children
+            if (parentFrame && parentFrame->flex() && 
+                (!parentFrame->m_layoutEngine || !parentFrame->m_layoutEngine->isLayouting())) {
                 parentFrame->triggerLayout();
             }
         }
@@ -336,8 +450,11 @@ void Frame::setupElementModelConnections()
         connect(app->activeCanvas()->elementModel(), &ElementModel::elementUpdated,
                 this, [this](Element* element) {
                     if (element && element->getParentElementId() == this->getId()) {
-                        // Trigger layout when child properties change
-                        triggerLayout();
+                        // Only trigger layout if we're not already laying out
+                        if (m_layoutEngine && !m_layoutEngine->isLayouting()) {
+                            // Trigger layout when child properties change
+                            triggerLayout();
+                        }
                     }
                 });
                 

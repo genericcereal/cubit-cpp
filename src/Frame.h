@@ -20,6 +20,11 @@ class Frame : public DesignElement {
     Q_PROPERTY(PositionType position READ position WRITE setPosition NOTIFY positionChanged)
     Q_PROPERTY(JustifyContent justify READ justify WRITE setJustify NOTIFY justifyChanged)
     Q_PROPERTY(AlignItems align READ align WRITE setAlign NOTIFY alignChanged)
+    Q_PROPERTY(SizeType widthType READ widthType WRITE setWidthType NOTIFY widthTypeChanged)
+    Q_PROPERTY(SizeType heightType READ heightType WRITE setHeightType NOTIFY heightTypeChanged)
+    Q_PROPERTY(bool canResizeWidth READ canResizeWidth NOTIFY canResizeWidthChanged)
+    Q_PROPERTY(bool canResizeHeight READ canResizeHeight NOTIFY canResizeHeightChanged)
+    Q_PROPERTY(bool controlled READ controlled WRITE setControlled NOTIFY controlledChanged)
     
 public:
     enum OverflowMode {
@@ -68,6 +73,16 @@ public:
         AlignStretch
     };
     Q_ENUM(AlignItems)
+    
+    enum SizeType {
+        SizeFixed,      // Default - uses fixed pixel values
+        SizeRelative,   // Percentage of parent (only when flex is enabled)
+        SizeFill,       // Fill available space (only when frame has a parent)
+        SizeFitContent, // Size to fit children (only when frame has children)
+        SizeViewport    // Percentage of viewport
+    };
+    Q_ENUM(SizeType)
+    
     explicit Frame(const QString &id, QObject *parent = nullptr);
     ~Frame();
     
@@ -85,6 +100,11 @@ public:
     PositionType position() const { return m_position; }
     JustifyContent justify() const { return m_justify; }
     AlignItems align() const { return m_align; }
+    SizeType widthType() const { return m_widthType; }
+    SizeType heightType() const { return m_heightType; }
+    bool canResizeWidth() const;
+    bool canResizeHeight() const;
+    bool controlled() const { return m_controlled; }
     
     // Property setters
     void setFillColor(FillColor color);
@@ -99,6 +119,9 @@ public:
     void setPosition(PositionType position);
     void setJustify(JustifyContent justify);
     void setAlign(AlignItems align);
+    void setWidthType(SizeType type);
+    void setHeightType(SizeType type);
+    void setControlled(bool controlled);
     
     // Override geometry setters to trigger layout
     void setWidth(qreal w) override;
@@ -118,9 +141,14 @@ signals:
     void positionChanged();
     void justifyChanged();
     void alignChanged();
+    void widthTypeChanged();
+    void heightTypeChanged();
+    void canResizeWidthChanged();
+    void canResizeHeightChanged();
+    void controlledChanged();
     
 public slots:
-    void layoutChildren();
+    void triggerLayout();
     
 private:
     FillColor m_fillColor;
@@ -135,12 +163,12 @@ private:
     PositionType m_position;
     JustifyContent m_justify;
     AlignItems m_align;
+    SizeType m_widthType = SizeFixed;
+    SizeType m_heightType = SizeFixed;
+    bool m_controlled = true; // Default to true
     
     // Layout engine
     std::unique_ptr<class FlexLayoutEngine> m_layoutEngine;
-    
-    // Helper to trigger layout
-    void triggerLayout();
     
     // Setup connections to element model
     void setupElementModelConnections();

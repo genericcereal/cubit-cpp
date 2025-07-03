@@ -21,7 +21,10 @@ Item {
     // Selection state
     property bool selected: element ? element.selected : false
     
-    // Frame visual representation
+    // Check if we need rounded corner clipping
+    property bool needsClipping: frameElement && frameElement.borderRadius > 0 && frameElement.overflow !== 2
+    
+    // Frame visual representation (background)
     Rectangle {
         id: frameRect
         anchors.fill: parent
@@ -31,6 +34,13 @@ Item {
         border.width: 0
         radius: frameElement ? frameElement.borderRadius : 0
         antialiasing: true
+    }
+    
+    // Content that needs to be masked
+    Item {
+        id: contentWrapper
+        anchors.fill: parent
+        visible: !needsClipping
         
         // Content container for child elements
         Item {
@@ -39,14 +49,7 @@ Item {
             anchors.margins: frameRect.border.width
             
             // Apply clipping based on overflow mode
-            clip: {
-                if (element && element.elementType === "ComponentInstance") {
-                    console.log("ComponentInstance clipping check - frameElement:", frameElement, 
-                               "overflow:", frameElement ? frameElement.overflow : "null",
-                               "should clip:", frameElement ? frameElement.overflow !== 2 : false)
-                }
-                return frameElement ? frameElement.overflow !== 2 : false  // clip for Hidden (0) and Scroll (1) modes
-            }
+            clip: frameElement ? frameElement.overflow !== 2 : false  // clip for Hidden (0) and Scroll (1) modes
             
             // Render child elements
             Repeater {
@@ -97,5 +100,44 @@ Item {
                 }
             }
         }
+    }
+    
+    // Mask shape for rounded corners
+    Rectangle {
+        id: mask
+        anchors.fill: parent
+        radius: frameElement ? frameElement.borderRadius : 0
+        visible: false
+        antialiasing: true
+        smooth: true
+        color: "white"
+    }
+    
+    // Shader effect sources
+    ShaderEffectSource {
+        id: contentSource
+        sourceItem: contentWrapper
+        hideSource: needsClipping
+        visible: false
+        live: true
+        recursive: true
+    }
+    
+    ShaderEffectSource {
+        id: maskSource
+        sourceItem: mask
+        hideSource: true
+        visible: false
+    }
+    
+    // Apply the mask using shader effect
+    ShaderEffect {
+        anchors.fill: parent
+        visible: needsClipping
+        
+        property variant source: contentSource
+        property variant maskSource: maskSource
+        
+        fragmentShader: "qrc:/shaders/roundedmask.frag.qsb"
     }
 }

@@ -129,6 +129,23 @@ Item {
         id: selectionBox
     }
     
+    // Selection bounding box for all selected elements (design and variant canvases)
+    SelectionBoundingBox {
+        id: selectionBoundingBox
+        visible: (canvasType === "design" || canvasType === "variant") && 
+                 selectionManager && 
+                 selectionManager.hasVisualSelection
+        canvasMinX: root.canvasMinX
+        canvasMinY: root.canvasMinY
+        zoomLevel: root.zoomLevel
+        flickable: root.flickable
+        boundingX: root.selectionBoundingX
+        boundingY: root.selectionBoundingY
+        boundingWidth: root.selectionBoundingWidth
+        boundingHeight: root.selectionBoundingHeight
+        z: -1  // Behind controls but above canvas
+    }
+    
     // Node selection bounds (only for script canvas)
     NodeSelectionBounds {
         id: nodeSelectionBounds
@@ -349,6 +366,14 @@ Item {
                     canvasView.isResizing = true
                 }
             } else {
+                // When dragging ends, sync controls with selection bounding box
+                if (selectionManager && selectionManager.hasVisualSelection) {
+                    controlX = selectionBoundingX
+                    controlY = selectionBoundingY
+                    controlWidth = selectionBoundingWidth
+                    controlHeight = selectionBoundingHeight
+                }
+                
                 initialElementStates = []
                 updateViewportPosition() // Ensure position is correct after drag
                 // Clear isResizing on the canvas when ending drag
@@ -373,6 +398,8 @@ Item {
             initialControlHeight = controlHeight
             
             var states = []
+            var parentElementsToCapture = {} // Track parent elements we need to capture
+            
             for (var i = 0; i < selectedElements.length; i++) {
                 var element = selectedElements[i]
                 states.push({
@@ -382,6 +409,13 @@ Item {
                     width: element.width,
                     height: element.height
                 })
+                
+                // Check if this is a relatively positioned child in a flex parent
+                // Only capture parent state during resize operations, not move operations
+                if (dragMode.startsWith("resize") && element.elementType === "Frame" && element.position === 0 && element.parentId) { // 0 = Relative
+                    // We'll need to capture the parent's state too for resize operations
+                    parentElementsToCapture[element.parentId] = true
+                }
                 
                 // Also capture children of this element
                 if (canvasView && canvasView.elementModel) {
@@ -400,6 +434,34 @@ Item {
                     }
                 }
             }
+            
+            // Now capture parent elements that we identified
+            if (canvasView && canvasView.elementModel) {
+                for (var parentId in parentElementsToCapture) {
+                    var parentElement = canvasView.elementModel.getElementById(parentId)
+                    if (parentElement && parentElement.elementType === "Frame" && parentElement.flex) {
+                        // Check if we haven't already captured this parent
+                        var alreadyCaptured = false
+                        for (var k = 0; k < states.length; k++) {
+                            if (states[k].element.elementId === parentId) {
+                                alreadyCaptured = true
+                                break
+                            }
+                        }
+                        
+                        if (!alreadyCaptured) {
+                            console.log("Capturing parent element state:", parentId)
+                            states.push({
+                                element: parentElement,
+                                x: parentElement.x,
+                                y: parentElement.y,
+                                width: parentElement.width,
+                                height: parentElement.height
+                            })
+                        }
+                    }
+                }
+            }
             initialElementStates = states
         }
         
@@ -413,6 +475,28 @@ Item {
                 
                 for (var i = 0; i < initialElementStates.length; i++) {
                     var state = initialElementStates[i]
+                    // Check if element is controlled
+                    if (state.element.elementType === "Frame" && !state.element.controlled) {
+                        continue // Skip uncontrolled frames
+                    }
+                    
+                    // Check if element is a relatively positioned child in a flex parent
+                    var isRelativeChildInFlexParent = false
+                    if (state.element.elementType === "Frame" && state.element.position === 0) { // 0 = Relative
+                        // Check if parent has flex enabled
+                        if (canvasView && canvasView.elementModel) {
+                            var parentElement = canvasView.elementModel.getElementById(state.element.parentId)
+                            if (parentElement && parentElement.elementType === "Frame" && parentElement.flex) {
+                                isRelativeChildInFlexParent = true
+                            }
+                        }
+                    }
+                    
+                    // Skip moving relatively positioned children in flex parents
+                    if (isRelativeChildInFlexParent) {
+                        continue
+                    }
+                    
                     state.element.x = state.x + deltaX
                     state.element.y = state.y + deltaY
                 }
@@ -439,11 +523,30 @@ Item {
                     var state = initialElementStates[i]
                     var isDirectlySelected = selectedIds[state.element.elementId] === true
                     
+                    // Check if element is a Frame with controlled=false
+                    var isFrame = state.element.elementType === "Frame"
+                    if (isFrame && !state.element.controlled) {
+                        continue // Skip uncontrolled frames
+                    }
+                    
+                    // Check if element is a relatively positioned child in a flex parent
+                    var isRelativeChildInFlexParent = false
+                    var parentElement = null
+                    if (isFrame && state.element.position === 0) { // 0 = Relative
+                        // Check if parent has flex enabled
+                        if (canvasView && canvasView.elementModel) {
+                            parentElement = canvasView.elementModel.getElementById(state.element.parentId)
+                        }
+                        if (parentElement && parentElement.elementType === "Frame" && parentElement.flex) {
+                            isRelativeChildInFlexParent = true
+                        }
+                    }
+                    
                     // Calculate relative position within initial control bounds
                     var relX = state.x - initialControlX
                     var relY = state.y - initialControlY
                     
-                    if (isDirectlySelected) {
+                    if (isDirectlySelected && !isRelativeChildInFlexParent) {
                         // For directly selected elements, apply scaling
                         var newWidth = Math.max(1, state.width * absScaleX)
                         var newHeight = Math.max(1, state.height * absScaleY)
@@ -472,14 +575,71 @@ Item {
                         state.element.y = newY
                         state.element.width = newWidth
                         state.element.height = newHeight
+                    } else if (isDirectlySelected && isRelativeChildInFlexParent && parentElement) {
+                        // For relatively positioned children in flex parents, resize the child
+                        // Only resize the parent if its width/height type is set to "fit content"
+                        console.log("Resizing relative child:", state.element.elementId, "Parent:", parentElement.elementId)
+                        
+                        // Calculate the drag distance (difference between new and old control size)
+                        var widthDelta = controlWidth - initialControlWidth
+                        var heightDelta = controlHeight - initialControlHeight
+                        console.log("Resize deltas - width:", widthDelta, "height:", heightDelta)
+                        
+                        // First, resize the child by the drag distance
+                        var newChildWidth = Math.max(1, state.width + widthDelta)
+                        var newChildHeight = Math.max(1, state.height + heightDelta)
+                        console.log("Setting child size to:", newChildWidth, "x", newChildHeight)
+                        state.element.width = newChildWidth
+                        state.element.height = newChildHeight
+                        
+                        // Find the parent's initial state
+                        var parentInitialState = null
+                        for (var k = 0; k < initialElementStates.length; k++) {
+                            if (initialElementStates[k].element.elementId === parentElement.elementId) {
+                                parentInitialState = initialElementStates[k]
+                                break
+                            }
+                        }
+                        
+                        if (parentInitialState) {
+                            console.log("Found parent initial state - width:", parentInitialState.width, "height:", parentInitialState.height)
+                            console.log("Parent widthType:", parentElement.widthType, "heightType:", parentElement.heightType)
+                            
+                            // Only resize parent dimensions that are set to "fit content" (SizeFitContent = 3)
+                            var shouldResizeWidth = parentElement.widthType === 3 // SizeFitContent
+                            var shouldResizeHeight = parentElement.heightType === 3 // SizeFitContent
+                            
+                            if (shouldResizeWidth) {
+                                var newParentWidth = Math.max(1, parentInitialState.width + widthDelta)
+                                console.log("Setting parent width to:", newParentWidth, "(widthType is fit-content)")
+                                parentElement.width = newParentWidth
+                            } else {
+                                console.log("Not resizing parent width (widthType is not fit-content)")
+                            }
+                            
+                            if (shouldResizeHeight) {
+                                var newParentHeight = Math.max(1, parentInitialState.height + heightDelta)
+                                console.log("Setting parent height to:", newParentHeight, "(heightType is fit-content)")
+                                parentElement.height = newParentHeight
+                            } else {
+                                console.log("Not resizing parent height (heightType is not fit-content)")
+                            }
+                        } else {
+                            console.log("WARNING: Could not find parent initial state!")
+                        }
+                        
+                        // The flex layout engine will handle repositioning
                     } else {
                         // For child elements, maintain size and adjust position to stay relative to parent's left edge
                         // Only update position if parent moved (due to resize from left/top)
                         var deltaX = controlX - initialControlX
                         var deltaY = controlY - initialControlY
                         
-                        state.element.x = state.x + deltaX
-                        state.element.y = state.y + deltaY
+                        // Don't move elements with controlled=false
+                        if (!isRelativeChildInFlexParent) {
+                            state.element.x = state.x + deltaX
+                            state.element.y = state.y + deltaY
+                        }
                         // Don't change width/height for children
                     }
                 }

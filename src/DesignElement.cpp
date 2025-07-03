@@ -161,7 +161,7 @@ void DesignElement::setLeftAnchored(bool anchored) {
         
         // If enabling anchor, calculate the current left distance
         if (anchored && parentElement()) {
-            m_left = x() - parentElement()->x();
+            m_left = qRound(x() - parentElement()->x());
             emit leftChanged();
             qDebug() << "  Left distance:" << m_left;
         }
@@ -177,7 +177,7 @@ void DesignElement::setRightAnchored(bool anchored) {
         
         // If enabling anchor, calculate the current right distance
         if (anchored && parentElement()) {
-            m_right = parentElement()->x() + parentElement()->width() - (x() + width());
+            m_right = qRound(parentElement()->x() + parentElement()->width() - (x() + width()));
             emit rightChanged();
         }
         
@@ -192,7 +192,7 @@ void DesignElement::setTopAnchored(bool anchored) {
         
         // If enabling anchor, calculate the current top distance
         if (anchored && parentElement()) {
-            m_top = y() - parentElement()->y();
+            m_top = qRound(y() - parentElement()->y());
             emit topChanged();
         }
         
@@ -207,7 +207,7 @@ void DesignElement::setBottomAnchored(bool anchored) {
         
         // If enabling anchor, calculate the current bottom distance
         if (anchored && parentElement()) {
-            m_bottom = parentElement()->y() + parentElement()->height() - (y() + height());
+            m_bottom = qRound(parentElement()->y() + parentElement()->height() - (y() + height()));
             emit bottomChanged();
         }
         
@@ -287,12 +287,12 @@ void DesignElement::updateAnchorsFromGeometry() {
     qreal parentY = parent->y();
     
     // Update left/right values
-    m_left = x() - parentX;
-    m_right = parentX + parentWidth - (x() + width());
+    m_left = qRound(x() - parentX);
+    m_right = qRound(parentX + parentWidth - (x() + width()));
     
     // Update top/bottom values
-    m_top = y() - parentY;
-    m_bottom = parentY + parentHeight - (y() + height());
+    m_top = qRound(y() - parentY);
+    m_bottom = qRound(parentY + parentHeight - (y() + height()));
     
     // Emit signals for property changes
     emit leftChanged();
@@ -370,7 +370,7 @@ void DesignElement::setParentElement(CanvasElement* parent) {
         // Trigger layout on parent if it's a Frame with flex
         Frame* parentFrame = qobject_cast<Frame*>(parent);
         if (parentFrame && parentFrame->flex()) {
-            parentFrame->layoutChildren();
+            parentFrame->triggerLayout();
         }
     } else {
         // Element is being unparented - clear all anchor settings

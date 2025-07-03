@@ -20,6 +20,12 @@ Item {
     // Control state
     property bool dragging: false
     property string dragMode: "" // "move", "resize-edge-0", "resize-edge-1", etc.
+    property bool showResizeJoints: true
+    
+    onDraggingChanged: {
+        // Update resize joints visibility
+        showResizeJoints = !dragging
+    }
     property point dragStartPoint
     property point dragStartControlPos
     property size dragStartControlSize
@@ -159,6 +165,9 @@ Item {
                     root.controlX = root.dragStartControlPos.x + deltaX / root.parent.zoomLevel
                     root.controlY = root.dragStartControlPos.y + deltaY / root.parent.zoomLevel
                     
+                    // Check for reordering if dragging a position relative child in a flex parent
+                    checkForReordering(mouseInParent)
+                    
                     // Emit signal for hover detection
                     root.mouseDragged(mouseInParent)
                 }
@@ -179,7 +188,7 @@ Item {
             x: {
                 switch(index) {
                     case 0: return -5 // top
-                    case 1: return parent.width - 5 // right
+                    case 1: return Math.round(parent.width) - 5 // right
                     case 2: return -5 // bottom
                     case 3: return -5 // left
                 }
@@ -189,14 +198,14 @@ Item {
                 switch(index) {
                     case 0: return -5 // top
                     case 1: return -5 // right
-                    case 2: return parent.height - 5 // bottom
+                    case 2: return Math.round(parent.height) - 5 // bottom
                     case 3: return -5 // left
                 }
             }
             
             width: {
                 switch(index) {
-                    case 0: case 2: return parent.width + 10 // horizontal bars
+                    case 0: case 2: return Math.round(parent.width) + 10 // horizontal bars
                     case 1: case 3: return 10 // vertical bars
                 }
             }
@@ -204,32 +213,25 @@ Item {
             height: {
                 switch(index) {
                     case 0: case 2: return 10 // horizontal bars
-                    case 1: case 3: return parent.height + 10 // vertical bars
+                    case 1: case 3: return Math.round(parent.height) + 10 // vertical bars
                 }
             }
             
-            // Decorative line through the middle of the bar
-            Rectangle {
-                color: allSelectedAreComponentRelated ? Config.componentControlBarLineColor : Config.controlBarLineColor
-                anchors.centerIn: parent
-                width: {
-                    switch(index) {
-                        case 0: case 2: return parent.width - 4 // horizontal bars
-                        case 1: case 3: return 1 // vertical bars
-                    }
-                }
-                height: {
-                    switch(index) {
-                        case 0: case 2: return 1 // horizontal bars
-                        case 1: case 3: return parent.height - 4 // vertical bars
-                    }
-                }
-                antialiasing: true
-            }
             
             MouseArea {
                 anchors.fill: parent
-                cursorShape: root.getEdgeCursor(index)
+                cursorShape: {
+                    // Check if resize is allowed for this edge
+                    var resizeAllowed = true
+                    if (index === 0 || index === 2) {
+                        // Horizontal bars (top/bottom) - check height resize
+                        resizeAllowed = !flexHeightFitContent
+                    } else {
+                        // Vertical bars (left/right) - check width resize
+                        resizeAllowed = !flexWidthFitContent
+                    }
+                    return resizeAllowed ? root.getEdgeCursor(index) : Qt.ArrowCursor
+                }
                 
                 property int edgeIndex: index
                 property point anchorEdgePoint1  // First point of anchor edge in parent coords
@@ -238,6 +240,21 @@ Item {
                 property point draggedEdgePoint2 // Second point of dragged edge in parent coords
                 
                 onPressed: (mouse) => {
+                    // Check if resize is allowed for this edge
+                    var resizeAllowed = true
+                    if (edgeIndex === 0 || edgeIndex === 2) {
+                        // Horizontal bars (top/bottom) - check height resize
+                        resizeAllowed = !flexHeightFitContent
+                    } else {
+                        // Vertical bars (left/right) - check width resize
+                        resizeAllowed = !flexWidthFitContent
+                    }
+                    
+                    if (!resizeAllowed) {
+                        mouse.accepted = false
+                        return
+                    }
+                    
                     root.dragging = true
                     root.dragMode = "resize-edge-" + edgeIndex
                     root.resizeStarted()
@@ -429,12 +446,13 @@ Item {
             color: allSelectedAreComponentRelated ? Config.componentControlRotationJointColor : Config.controlRotationJointColor
             antialiasing: true
             z: 1
+            visible: true
             
             x: {
                 switch(index) {
                     case 0: return -15 // top-left: bottom-right corner at (5, 5) to overlap resize joint
-                    case 1: return parent.width - 5 // top-right: bottom-left corner at (parent.width - 5, 5) to overlap resize joint
-                    case 2: return parent.width - 5 // bottom-right: top-left corner at (parent.width - 5, parent.height - 5) to overlap resize joint
+                    case 1: return Math.round(parent.width) - 5 // top-right: bottom-left corner at (parent.width - 5, 5) to overlap resize joint
+                    case 2: return Math.round(parent.width) - 5 // bottom-right: top-left corner at (parent.width - 5, parent.height - 5) to overlap resize joint
                     case 3: return -15 // bottom-left: top-right corner at (5, parent.height - 5) to overlap resize joint
                 }
             }
@@ -443,8 +461,8 @@ Item {
                 switch(index) {
                     case 0: return -15 // top-left: bottom-right corner at (5, 5) to overlap resize joint
                     case 1: return -15 // top-right: bottom-left corner at (parent.width - 5, 5) to overlap resize joint
-                    case 2: return parent.height - 5 // bottom-right: top-left corner at (parent.width - 5, parent.height - 5) to overlap resize joint
-                    case 3: return parent.height - 5 // bottom-left: top-right corner at (5, parent.height - 5) to overlap resize joint
+                    case 2: return Math.round(parent.height) - 5 // bottom-right: top-left corner at (parent.width - 5, parent.height - 5) to overlap resize joint
+                    case 3: return Math.round(parent.height) - 5 // bottom-left: top-right corner at (5, parent.height - 5) to overlap resize joint
                 }
             }
             
@@ -498,9 +516,58 @@ Item {
         }
     }
     
+    // Check if all selected elements are frames with flex enabled and size types set to fit content
+    property bool showFlexResizeJoints: false
+    property bool flexWidthFitContent: false
+    property bool flexHeightFitContent: false
+    
+    function updateShowFlexResizeJoints() {
+        if (!parent || !parent.selectedElements || parent.selectedElements.length === 0) {
+            showFlexResizeJoints = false
+            flexWidthFitContent = false
+            flexHeightFitContent = false
+            return
+        }
+        
+        var allFlexWidthFitContent = true
+        var allFlexHeightFitContent = true
+        
+        for (var i = 0; i < parent.selectedElements.length; i++) {
+            var element = parent.selectedElements[i]
+            if (!element || element.elementType !== "Frame" || !element.flex) {
+                allFlexWidthFitContent = false
+                allFlexHeightFitContent = false
+                break
+            }
+            
+            // Check width type (3 = SizeFitContent)
+            if (element.widthType !== 3) {
+                allFlexWidthFitContent = false
+            }
+            
+            // Check height type (3 = SizeFitContent)
+            if (element.heightType !== 3) {
+                allFlexHeightFitContent = false
+            }
+        }
+        
+        flexWidthFitContent = allFlexWidthFitContent
+        flexHeightFitContent = allFlexHeightFitContent
+        showFlexResizeJoints = allFlexWidthFitContent || allFlexHeightFitContent
+    }
+    
     // Resize Joints (yellow, 10x10, on top)
     Repeater {
-        model: 4
+        model: {
+            // If both width and height are fit content, hide all resize joints
+            if (flexWidthFitContent && flexHeightFitContent) {
+                return 0
+            } else if (flexWidthFitContent || flexHeightFitContent) {
+                return 2
+            } else {
+                return 4
+            }
+        }
         
         Rectangle {
             id: resizeJoint
@@ -509,22 +576,41 @@ Item {
             color: allSelectedAreComponentRelated ? Config.componentControlResizeJointColor : Config.controlResizeJointColor
             antialiasing: true
             z: 2
+            visible: root.showResizeJoints
             
             x: {
-                switch(index) {
-                    case 0: return -5 // top-left
-                    case 1: return parent.width - 5 // top-right
-                    case 2: return parent.width - 5 // bottom-right
-                    case 3: return -5 // bottom-left
+                if (flexWidthFitContent && !flexHeightFitContent) {
+                    // Width fit content only - show top/bottom centered joints
+                    return Math.round(parent.width / 2) - 5
+                } else if (flexHeightFitContent && !flexWidthFitContent) {
+                    // Height fit content only - show left/right centered joints
+                    return index === 0 ? -5 : Math.round(parent.width) - 5
+                } else {
+                    // Normal corners
+                    switch(index) {
+                        case 0: return -5 // top-left
+                        case 1: return Math.round(parent.width) - 5 // top-right
+                        case 2: return Math.round(parent.width) - 5 // bottom-right
+                        case 3: return -5 // bottom-left
+                    }
                 }
             }
             
             y: {
-                switch(index) {
-                    case 0: return -5 // top-left
-                    case 1: return -5 // top-right
-                    case 2: return parent.height - 5 // bottom-right
-                    case 3: return parent.height - 5 // bottom-left
+                if (flexWidthFitContent && !flexHeightFitContent) {
+                    // Width fit content only - show top/bottom centered joints
+                    return index === 0 ? -5 : Math.round(parent.height) - 5
+                } else if (flexHeightFitContent && !flexWidthFitContent) {
+                    // Height fit content only - show left/right centered joints
+                    return Math.round(parent.height / 2) - 5
+                } else {
+                    // Normal corners
+                    switch(index) {
+                        case 0: return -5 // top-left
+                        case 1: return -5 // top-right
+                        case 2: return Math.round(parent.height) - 5 // bottom-right
+                        case 3: return Math.round(parent.height) - 5 // bottom-left
+                    }
                 }
             }
             
@@ -544,7 +630,23 @@ Item {
             
             MouseArea {
                 anchors.fill: parent
-                cursorShape: root.getCornerCursor(parent.cornerIndex)
+                cursorShape: {
+                    if (flexWidthFitContent && !flexHeightFitContent) {
+                        // Width fit content - vertical resize only
+                        return Qt.SizeVerCursor
+                    } else if (flexHeightFitContent && !flexWidthFitContent) {
+                        // Height fit content - horizontal resize only
+                        return Qt.SizeHorCursor
+                    } else {
+                        // Normal corner resize
+                        return root.getCornerCursor(parent.cornerIndex)
+                    }
+                }
+                
+                // When in fit content mode, don't handle events - let them pass through to the bar
+                propagateComposedEvents: flexWidthFitContent || flexHeightFitContent
+                
+                property bool shouldPropagateEvents: flexWidthFitContent || flexHeightFitContent
                 
                 property int cornerIdx: parent.cornerIndex
                 property point anchorCorner  // Opposite corner in parent coords
@@ -552,6 +654,12 @@ Item {
                 property point adjacentCorner2  // Adjacent corner 2 in parent coords
                 
                 onPressed: (mouse) => {
+                    // In fit content mode, don't handle the event
+                    if (shouldPropagateEvents) {
+                        mouse.accepted = false
+                        return
+                    }
+                    
                     root.dragging = true
                     root.dragMode = "resize-corner-" + cornerIdx
                     root.resizeStarted()
@@ -572,6 +680,11 @@ Item {
                     var parentCorners = []
                     for (var i = 0; i < 4; i++) {
                         parentCorners.push(root.mapToItem(root.parent, corners[i].x, corners[i].y))
+                    }
+                    
+                    // If we're in bar mode, we don't need corner logic
+                    if (!root.dragMode.startsWith("resize-corner-")) {
+                        return
                     }
                     
                     // Store the anchor corner (opposite) and adjacent corners
@@ -601,12 +714,22 @@ Item {
                     mouse.accepted = true
                 }
                 
-                onReleased: {
+                onReleased: (mouse) => {
+                    if (shouldPropagateEvents) {
+                        mouse.accepted = false
+                        return
+                    }
+                    
                     root.dragging = false
                     root.dragMode = ""
                 }
                 
                 onPositionChanged: (mouse) => {
+                    if (shouldPropagateEvents) {
+                        mouse.accepted = false
+                        return
+                    }
+                    
                     if (!root.dragMode.startsWith("resize-corner-")) return
                     
                     // Get mouse position in parent coordinates
@@ -731,8 +854,8 @@ Item {
             height: hoverBadgeBackground.height
             
             // Position the badge 5px right and 10px down from cursor
-            x: Math.min(mousePosition.x + 5, parent.width - width - 5)
-            y: Math.min(mousePosition.y + 10, parent.height - height - 5)
+            x: Math.round(Math.min(mousePosition.x + 5, parent.width - width - 5))
+            y: Math.round(Math.min(mousePosition.y + 10, parent.height - height - 5))
             
             // Use visible property directly from Item - no animation for instant appearance
             opacity: visible ? 1.0 : 0.0
@@ -808,10 +931,146 @@ Item {
         target: parent
         function onSelectedElementsChanged() {
             updateComponentRelatedStatus()
+            updateShowFlexResizeJoints()
+            setupElementConnections()
+        }
+    }
+    
+    // Keep track of connections to selected elements
+    property var elementConnections: []
+    
+    function setupElementConnections() {
+        // Clear existing connections
+        for (var i = 0; i < elementConnections.length; i++) {
+            elementConnections[i].destroy()
+        }
+        elementConnections = []
+        
+        // Create new connections for each selected element
+        if (parent && parent.selectedElements) {
+            for (var j = 0; j < parent.selectedElements.length; j++) {
+                var element = parent.selectedElements[j]
+                if (element && element.elementType === "Frame") {
+                    var conn = elementConnectionComponent.createObject(root, {target: element})
+                    elementConnections.push(conn)
+                }
+            }
+        }
+    }
+    
+    // Component for creating connections to frame elements
+    Component {
+        id: elementConnectionComponent
+        Connections {
+            function onFlexChanged() {
+                root.updateShowFlexResizeJoints()
+            }
+            function onWidthTypeChanged() {
+                root.updateShowFlexResizeJoints()
+            }
+            function onHeightTypeChanged() {
+                root.updateShowFlexResizeJoints()
+            }
         }
     }
     
     Component.onCompleted: {
         updateComponentRelatedStatus()
+        updateShowFlexResizeJoints()
+        setupElementConnections()
+    }
+    
+    // Function to check if we should reorder elements while dragging
+    function checkForReordering(mouseInParent) {
+        if (!parent || !parent.selectedElements || parent.selectedElements.length !== 1) {
+            return // Only handle single selection for now
+        }
+        
+        var draggedElement = parent.selectedElements[0]
+        if (!draggedElement || draggedElement.elementType !== "Frame" || draggedElement.position !== 0) {
+            return // Only reorder position relative frames
+        }
+        
+        // Check if parent has flex enabled
+        if (!parent.canvasView || !parent.canvasView.elementModel) {
+            return
+        }
+        
+        var parentElement = parent.canvasView.elementModel.getElementById(draggedElement.parentId)
+        if (!parentElement || parentElement.elementType !== "Frame" || !parentElement.flex) {
+            return // Parent must be a flex container
+        }
+        
+        // Convert mouse position to canvas coordinates
+        var canvasX = (mouseInParent.x + (parent.flickable?.contentX ?? 0)) / parent.zoomLevel + parent.canvasMinX
+        var canvasY = (mouseInParent.y + (parent.flickable?.contentY ?? 0)) / parent.zoomLevel + parent.canvasMinY
+        
+        // Get all siblings (children of the same parent)
+        var siblings = []
+        var allElements = parent.canvasView.elementModel.getAllElements()
+        for (var i = 0; i < allElements.length; i++) {
+            var element = allElements[i]
+            if (element.parentId === draggedElement.parentId && 
+                element.elementId !== draggedElement.elementId &&
+                element.elementType === "Frame" &&
+                element.position === 0) { // Only position relative siblings
+                siblings.push(element)
+            }
+        }
+        
+        if (siblings.length === 0) {
+            return // No siblings to reorder with
+        }
+        
+        // Find which sibling we're hovering over
+        var hoveredSibling = null
+        var hoveredIndex = -1
+        var draggedIndex = allElements.indexOf(draggedElement)
+        
+        for (var j = 0; j < siblings.length; j++) {
+            var sibling = siblings[j]
+            if (canvasX >= sibling.x && canvasX <= sibling.x + sibling.width &&
+                canvasY >= sibling.y && canvasY <= sibling.y + sibling.height) {
+                hoveredSibling = sibling
+                hoveredIndex = allElements.indexOf(sibling)
+                break
+            }
+        }
+        
+        if (!hoveredSibling || hoveredIndex === -1) {
+            return // Not hovering over a sibling
+        }
+        
+        // Determine the new index based on the layout direction and mouse position
+        var newIndex = hoveredIndex
+        
+        if (parentElement.orientation === 0) { // Row layout
+            // Check if mouse is in the right half of the hovered sibling
+            if (canvasX > hoveredSibling.x + hoveredSibling.width / 2) {
+                // Insert after the hovered sibling
+                newIndex = hoveredIndex > draggedIndex ? hoveredIndex : hoveredIndex + 1
+            } else {
+                // Insert before the hovered sibling
+                newIndex = hoveredIndex < draggedIndex ? hoveredIndex : hoveredIndex - 1
+            }
+        } else { // Column layout
+            // Check if mouse is in the bottom half of the hovered sibling
+            if (canvasY > hoveredSibling.y + hoveredSibling.height / 2) {
+                // Insert after the hovered sibling
+                newIndex = hoveredIndex > draggedIndex ? hoveredIndex : hoveredIndex + 1
+            } else {
+                // Insert before the hovered sibling
+                newIndex = hoveredIndex < draggedIndex ? hoveredIndex : hoveredIndex - 1
+            }
+        }
+        
+        // Perform the reorder if the index changed
+        if (newIndex !== draggedIndex && newIndex >= 0 && newIndex < allElements.length) {
+            parent.canvasView.elementModel.reorderElement(draggedElement, newIndex)
+            
+            // Trigger layout update on the parent frame
+            // The Frame's own layout engine will handle the update
+            parentElement.triggerLayout()
+        }
     }
 }

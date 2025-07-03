@@ -38,6 +38,7 @@ public:
     Q_INVOKABLE QList<Element*> getAllElements() const { return m_elements; }
     Q_INVOKABLE QList<Element*> getChildrenRecursive(const QString &parentId) const;
     Q_INVOKABLE void clear();
+    Q_INVOKABLE void reorderElement(Element *element, int newIndex);
     
     // ID generation
     Q_INVOKABLE QString generateId();
