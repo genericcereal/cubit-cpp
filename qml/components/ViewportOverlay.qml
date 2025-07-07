@@ -190,6 +190,18 @@ Item {
             enabled: !selectionControls.dragging  // Disable during drag for performance
             
             function onSelectedElementsChanged() {
+                // Exit edit mode for any text elements that were being edited
+                if (canvasView && canvasView.elementModel) {
+                    var allElements = canvasView.elementModel.getAllElements()
+                    for (var i = 0; i < allElements.length; i++) {
+                        var element = allElements[i]
+                        if (element.elementType === "Text" && element.isEditing) {
+                            // This will trigger the save through the Connections in TextElement.qml
+                            element.isEditing = false
+                        }
+                    }
+                }
+                
                 if (selectedElements.length > 0) {
                     // Defer initialization to ensure bounding box is updated
                     Qt.callLater(selectionControls.initializeFromSelection)

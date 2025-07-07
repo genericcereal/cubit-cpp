@@ -13,6 +13,9 @@ Rectangle {
     property string currentCanvasType: Application.activeCanvas ? Application.activeCanvas.viewMode : "design"
     property var editingElement: Application.activeCanvas ? Application.activeCanvas.editingElement : null
     
+    // Expose the properties panel for external connections
+    property alias propertiesPanel: propertiesPanel
+    
     // Helper to get the currently selected element for script editing
     function getSelectedElementForScripts() {
         if (!Application.activeCanvas || !Application.activeCanvas.selectionManager) return null
@@ -270,6 +273,7 @@ Rectangle {
                                 
                                 // Properties panel
                                 PropertiesPanel {
+                                    id: propertiesPanel
                                     Layout.fillWidth: true
                                     Layout.fillHeight: true
                                     selectionManager: root.selectionManager

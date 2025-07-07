@@ -17,7 +17,7 @@
 const QStringList ComponentInstance::s_variantPropertiesToSync = {
     "width",
     "height",
-    "fillColor",
+    "fill",
     "borderColor",
     "borderWidth",
     "borderRadius",
@@ -28,8 +28,8 @@ const QStringList ComponentInstance::s_childPropertiesToTrack = {
     "x", "y", "width", "height",
     "left", "right", "top", "bottom",
     "leftAnchored", "rightAnchored", "topAnchored", "bottomAnchored",
-    "fillColor", "borderColor", "borderWidth", "borderRadius", "overflow",
-    "text", "font", "color",
+    "fill", "borderColor", "borderWidth", "borderRadius", "overflow",
+    "content", "font", "color",
     "html", "url"
 };
 

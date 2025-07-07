@@ -468,7 +468,7 @@ Component* DesignElement::createComponent() {
         variantFrame->setRect(QRectF(0, 0, width(), height()));
         
         // Copy all style properties from the source frame
-        variantFrame->setFillColor(sourceFrame->fillColor());
+        variantFrame->setFill(sourceFrame->fill());
         variantFrame->setBorderColor(sourceFrame->borderColor());
         variantFrame->setBorderWidth(sourceFrame->borderWidth());
         variantFrame->setBorderRadius(sourceFrame->borderRadius());
@@ -667,7 +667,7 @@ void DesignElement::copyElementProperties(CanvasElement* target, CanvasElement* 
     // Copy type-specific properties
     if (Frame* targetFrame = qobject_cast<Frame*>(target)) {
         if (Frame* sourceFrame = qobject_cast<Frame*>(source)) {
-            targetFrame->setFillColor(sourceFrame->fillColor());
+            targetFrame->setFill(sourceFrame->fill());
             targetFrame->setBorderColor(sourceFrame->borderColor());
             targetFrame->setBorderWidth(sourceFrame->borderWidth());
             targetFrame->setBorderRadius(sourceFrame->borderRadius());
@@ -675,7 +675,7 @@ void DesignElement::copyElementProperties(CanvasElement* target, CanvasElement* 
         }
     } else if (Text* targetText = qobject_cast<Text*>(target)) {
         if (Text* sourceText = qobject_cast<Text*>(source)) {
-            targetText->setText(sourceText->text());
+            targetText->setContent(sourceText->content());
             targetText->setFont(sourceText->font());
             targetText->setColor(sourceText->color());
         }

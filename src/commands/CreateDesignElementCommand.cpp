@@ -99,9 +99,9 @@ void CreateDesignElementCommand::execute()
             
             // Set initial text if provided
             if (m_initialPayload.isValid() && m_initialPayload.canConvert<QString>()) {
-                m_textElement->setText(m_initialPayload.toString());
+                m_textElement->setContent(m_initialPayload.toString());
             } else {
-                m_textElement->setText("Text");
+                m_textElement->setContent("Text");
             }
             break;
             
