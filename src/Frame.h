@@ -7,8 +7,8 @@ class FlexLayoutEngine;
 
 class Frame : public DesignElement {
     Q_OBJECT
-    Q_PROPERTY(FillColor fillColor READ fillColor WRITE setFillColor NOTIFY fillColorChanged)
-    Q_PROPERTY(QColor fill READ fill NOTIFY fillColorChanged)
+    Q_PROPERTY(QColor fill READ fill WRITE setFill NOTIFY fillChanged)
+    Q_PROPERTY(ColorFormat colorFormat READ colorFormat WRITE setColorFormat NOTIFY colorFormatChanged)
     Q_PROPERTY(QColor borderColor READ borderColor WRITE setBorderColor NOTIFY borderColorChanged)
     Q_PROPERTY(int borderWidth READ borderWidth WRITE setBorderWidth NOTIFY borderWidthChanged)
     Q_PROPERTY(int borderRadius READ borderRadius WRITE setBorderRadius NOTIFY borderRadiusChanged)
@@ -27,6 +27,13 @@ class Frame : public DesignElement {
     Q_PROPERTY(bool controlled READ controlled WRITE setControlled NOTIFY controlledChanged)
     
 public:
+    enum ColorFormat {
+        RGB,
+        HEX,
+        HSL
+    };
+    Q_ENUM(ColorFormat)
+    
     enum OverflowMode {
         Hidden,
         Scroll,
@@ -47,13 +54,6 @@ public:
     };
     Q_ENUM(PositionType)
     
-    enum FillColor {
-        LightBlue,
-        DarkBlue,
-        Green,
-        Red
-    };
-    Q_ENUM(FillColor)
     
     enum JustifyContent {
         JustifyStart,
@@ -87,8 +87,8 @@ public:
     ~Frame();
     
     // Property getters
-    FillColor fillColor() const { return m_fillColor; }
-    QColor fill() const;
+    QColor fill() const { return m_fill; }
+    ColorFormat colorFormat() const { return m_colorFormat; }
     QColor borderColor() const { return m_borderColor; }
     int borderWidth() const { return m_borderWidth; }
     int borderRadius() const { return m_borderRadius; }
@@ -107,7 +107,8 @@ public:
     bool controlled() const { return m_controlled; }
     
     // Property setters
-    void setFillColor(FillColor color);
+    void setFill(const QColor &color);
+    void setColorFormat(ColorFormat format);
     void setBorderColor(const QColor &color);
     void setBorderWidth(int width);
     void setBorderRadius(int radius);
@@ -129,7 +130,8 @@ public:
     void setRect(const QRectF &rect) override;
     
 signals:
-    void fillColorChanged();
+    void fillChanged();
+    void colorFormatChanged();
     void borderColorChanged();
     void borderWidthChanged();
     void borderRadiusChanged();
@@ -151,7 +153,8 @@ public slots:
     void triggerLayout();
     
 private:
-    FillColor m_fillColor;
+    QColor m_fill;
+    ColorFormat m_colorFormat = HEX; // Default to HEX
     QColor m_borderColor;
     int m_borderWidth;
     int m_borderRadius;

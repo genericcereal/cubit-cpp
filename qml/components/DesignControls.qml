@@ -1,4 +1,5 @@
 import QtQuick
+import Cubit 1.0
 import Cubit.UI 1.0
 
 Item {
@@ -136,6 +137,61 @@ Item {
                 root.dragging = false
                 root.dragMode = ""
                 root.updateMousePosition(Qt.point(0, 0))
+            }
+            
+            onDoubleClicked: (mouse) => {
+                ConsoleMessageRepository.addOutput("Controls double-clicked")
+                
+                // Access ViewportOverlay through root.parent
+                var viewportOverlay = root.parent
+                
+                // Check if we have a single element selected
+                if (viewportOverlay && viewportOverlay.selectedElements && viewportOverlay.selectedElements.length === 1) {
+                    var element = viewportOverlay.selectedElements[0]
+                    ConsoleMessageRepository.addOutput("Selected element type: " + element.elementType + " (ID: " + element.elementId + ")")
+                    
+                    // Check if it's a Text element directly selected
+                    if (element && element.elementType === "Text") {
+                        ConsoleMessageRepository.addOutput("Text element directly selected - triggering edit mode")
+                        element.isEditing = true
+                        mouse.accepted = true
+                        return
+                    } else if (element && element.elementType === "Frame") {
+                        ConsoleMessageRepository.addOutput("Frame selected, checking for Text children...")
+                        
+                        // Check if this frame has any text children
+                        if (viewportOverlay.canvasView && viewportOverlay.canvasView.elementModel) {
+                            var allElements = viewportOverlay.canvasView.elementModel.getAllElements()
+                            var textChildrenFound = 0
+                            
+                            for (var i = 0; i < allElements.length; i++) {
+                                var child = allElements[i]
+                                if (child.parentId === element.elementId && child.elementType === "Text") {
+                                    textChildrenFound++
+                                    ConsoleMessageRepository.addOutput("Found Text child: " + child.name + " (ID: " + child.elementId + ")")
+                                    // Trigger edit mode for the first text child found
+                                    child.isEditing = true
+                                    mouse.accepted = true
+                                    return
+                                }
+                            }
+                            
+                            if (textChildrenFound === 0) {
+                                ConsoleMessageRepository.addOutput("No Text children found in this Frame")
+                            }
+                        } else {
+                            ConsoleMessageRepository.addOutput("Unable to access elementModel")
+                        }
+                    } else {
+                        ConsoleMessageRepository.addOutput("Selected element is neither Frame nor Text")
+                    }
+                } else if (viewportOverlay && viewportOverlay.selectedElements) {
+                    ConsoleMessageRepository.addOutput("Multiple elements selected: " + viewportOverlay.selectedElements.length)
+                } else {
+                    ConsoleMessageRepository.addOutput("No elements selected or unable to access selection")
+                }
+                
+                mouse.accepted = true
             }
             
             onPositionChanged: (mouse) => {

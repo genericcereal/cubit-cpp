@@ -9,7 +9,7 @@
 
 Frame::Frame(const QString &id, QObject *parent)
     : DesignElement(id, parent)
-    , m_fillColor(LightBlue)
+    , m_fill(173, 216, 230) // Default light blue
     , m_borderColor(Qt::black)
     , m_borderWidth(1)
     , m_borderRadius(0)
@@ -42,27 +42,21 @@ Frame::~Frame()
     }
 }
 
-QColor Frame::fill() const
+
+void Frame::setFill(const QColor &color)
 {
-    switch (m_fillColor) {
-        case LightBlue:
-            return QColor(173, 216, 230); // Light blue
-        case DarkBlue:
-            return QColor(0, 0, 139); // Dark blue
-        case Green:
-            return QColor(0, 128, 0); // Green
-        case Red:
-            return QColor(255, 0, 0); // Red
-        default:
-            return QColor(173, 216, 230); // Default to light blue
+    if (m_fill != color) {
+        m_fill = color;
+        emit fillChanged();
+        emit elementChanged();
     }
 }
 
-void Frame::setFillColor(FillColor color)
+void Frame::setColorFormat(ColorFormat format)
 {
-    if (m_fillColor != color) {
-        m_fillColor = color;
-        emit fillColorChanged();
+    if (m_colorFormat != format) {
+        m_colorFormat = format;
+        emit colorFormatChanged();
         emit elementChanged();
     }
 }

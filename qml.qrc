@@ -15,6 +15,10 @@
         <file>qml/components/NodeCatalogPopup.qml</file>
         <file>qml/components/PortTypeConfig.qml</file>
         <file>qml/components/PortInput.qml</file>
+        <file>qml/components/PropertyPopover.qml</file>
+        <file>qml/components/HueSlider.qml</file>
+        <file>qml/components/ShadeSelector.qml</file>
+        <file>qml/components/OpacitySlider.qml</file>
         <file>qml/components/DesignElement.qml</file>
         <file>qml/components/ElementRenderer.qml</file>
         <file>qml/components/FrameElement.qml</file>
@@ -35,6 +39,7 @@
         <file>qml/panels/ActionsPanel.qml</file>
         <file>qml/panels/FPSMonitor.qml</file>
         <file>qml/panels/Console.qml</file>
+        <file>qml/panels/PropertyPopoverPanel.qml</file>
         <file>shaders/roundedmask.frag.qsb</file>
     </qresource>
 </RCC>

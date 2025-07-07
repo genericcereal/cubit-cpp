@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Cubit
+import "../components"
 
 ScrollView {
     id: root
@@ -12,6 +13,9 @@ ScrollView {
     
     // Helper property to access DesignElement-specific properties
     property var selectedDesignElement: selectedElement && selectedElement.isDesignElement ? selectedElement : null
+    
+    // Signal emitted when PropertyPopover is clicked
+    signal panelSelectorClicked(var selector, string type)
     
     ColumnLayout {
         width: root.width
@@ -584,27 +588,45 @@ ScrollView {
                 rowSpacing: 5
                 
                 Label { text: "Fill:" }
-                ComboBox {
+                PropertyPopover {
+                    id: fillSelector
                     Layout.fillWidth: true
-                    model: ["Light Blue", "Dark Blue", "Green", "Red"]
-                    currentIndex: {
+                    
+                    elementFillColor: selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "ComponentVariant") ? selectedElement.fill : "#add8e6"
+                    text: {
                         if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "ComponentVariant")) {
-                            // Map Frame.FillColor enum values to combo box indices
-                            switch (selectedElement.fillColor) {
-                                case 0: return 0  // LightBlue
-                                case 1: return 1  // DarkBlue
-                                case 2: return 2  // Green
-                                case 3: return 3  // Red
-                                default: return 0
+                            var color = selectedElement.fill
+                            var format = selectedElement.colorFormat !== undefined ? selectedElement.colorFormat : 1 // Default to HEX
+                            
+                            switch (format) {
+                                case 0: // RGB (Frame.RGB)
+                                    var r = Math.round(color.r * 255)
+                                    var g = Math.round(color.g * 255)
+                                    var b = Math.round(color.b * 255)
+                                    return "rgb(" + r + ", " + g + ", " + b + ")"
+                                    
+                                case 1: // HEX (Frame.HEX)
+                                    var rh = Math.round(color.r * 255).toString(16).padStart(2, '0')
+                                    var gh = Math.round(color.g * 255).toString(16).padStart(2, '0')
+                                    var bh = Math.round(color.b * 255).toString(16).padStart(2, '0')
+                                    return "#" + rh + gh + bh
+                                    
+                                case 2: // HSL (Frame.HSL)
+                                    var h = Math.round(color.hslHue * 360)
+                                    var s = Math.round(color.hslSaturation * 100)
+                                    var l = Math.round(color.hslLightness * 100)
+                                    return "hsl(" + h + ", " + s + "%, " + l + "%)"
+                                    
+                                default:
+                                    return elementFillColor.toString()
                             }
                         }
-                        return 0
+                        return elementFillColor.toString()
                     }
-                    onActivated: function(index) {
-                        if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "ComponentVariant")) {
-                            // Map combo box index to Frame.FillColor enum value
-                            selectedElement.fillColor = index
-                        }
+                    
+                    onPanelRequested: {
+                        // Pass both the selector and its type so parent knows what content to show
+                        root.panelSelectorClicked(fillSelector, "fill")
                     }
                 }
                 
@@ -648,6 +670,20 @@ ScrollView {
                     to: 20
                     value: selectedElement && selectedElement.borderWidth !== undefined ? selectedElement.borderWidth : 0
                     onValueChanged: if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "ComponentVariant")) selectedElement.borderWidth = value
+                }
+                
+                Label { text: "Style:" }
+                PropertyPopover {
+                    id: styleSelector
+                    Layout.fillWidth: true
+                    placeholderText: "Select style..."
+                    
+                    onPanelRequested: {
+                        // Panel will be shown/hidden by the parent component
+                        console.log("PropertyPopover clicked!")
+                        // Pass the selector item itself so parent can calculate position
+                        root.panelSelectorClicked(styleSelector, "style")
+                    }
                 }
             }
         }
@@ -787,6 +823,43 @@ ScrollView {
                     from: 0
                     to: 100
                     value: 0
+                }
+            }
+        }
+        
+        // Text-specific properties
+        GroupBox {
+            Layout.fillWidth: true
+            Layout.margins: 10
+            title: "Text"
+            visible: selectedElement && selectedElement.elementType === "Text"
+            
+            GridLayout {
+                anchors.fill: parent
+                columns: 2
+                columnSpacing: 10
+                rowSpacing: 5
+                
+                Label { text: "Content:" }
+                TextField {
+                    Layout.fillWidth: true
+                    text: selectedElement && selectedElement.content !== undefined ? selectedElement.content : ""
+                    onTextChanged: if (selectedElement && selectedElement.elementType === "Text") selectedElement.content = text
+                }
+                
+                Label { text: "Size:" }
+                SpinBox {
+                    Layout.fillWidth: true
+                    from: 8
+                    to: 144
+                    value: selectedElement && selectedElement.font ? selectedElement.font.pixelSize : 14
+                    onValueChanged: {
+                        if (selectedElement && selectedElement.elementType === "Text") {
+                            var newFont = selectedElement.font
+                            newFont.pixelSize = value
+                            selectedElement.font = newFont
+                        }
+                    }
                 }
             }
         }
