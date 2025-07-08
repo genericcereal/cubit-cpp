@@ -364,9 +364,11 @@ ScrollView {
                     Layout.fillWidth: true
                     from: -9999
                     to: 9999
-                    value: selectedElement ? Math.round(selectedElement.x) : 0
-                    onValueModified: function(value) {
-                        if (selectedElement && value !== Math.round(selectedElement.x)) {
+                    value: selectedElement && selectedElement.isVisual ? Math.round(selectedElement.x) : 0
+                    onValueModified: {
+                        if (!selectedElement || !selectedElement.isVisual) return
+                        if (value === undefined || isNaN(value)) return
+                        if (value !== Math.round(selectedElement.x)) {
                             selectedElement.x = value
                         }
                     }
@@ -377,9 +379,11 @@ ScrollView {
                     Layout.fillWidth: true
                     from: -9999
                     to: 9999
-                    value: selectedElement ? Math.round(selectedElement.y) : 0
-                    onValueModified: function(value) {
-                        if (selectedElement && value !== Math.round(selectedElement.y)) {
+                    value: selectedElement && selectedElement.isVisual ? Math.round(selectedElement.y) : 0
+                    onValueModified: {
+                        if (!selectedElement || !selectedElement.isVisual) return
+                        if (value === undefined || isNaN(value)) return
+                        if (value !== Math.round(selectedElement.y)) {
                             selectedElement.y = value
                         }
                     }
@@ -395,9 +399,11 @@ ScrollView {
                         Layout.fillWidth: true
                         from: 1
                         to: 9999
-                        value: selectedElement ? Math.round(selectedElement.width) : 0
-                        onValueModified: function(value) {
-                            if (selectedElement && value !== Math.round(selectedElement.width)) {
+                        value: selectedElement && selectedElement.isVisual ? Math.round(selectedElement.width) : 0
+                        onValueModified: {
+                            if (!selectedElement || !selectedElement.isVisual) return
+                            if (value === undefined || isNaN(value)) return
+                            if (value !== Math.round(selectedElement.width)) {
                                 selectedElement.width = value
                             }
                         }
@@ -438,9 +444,11 @@ ScrollView {
                         Layout.fillWidth: true
                         from: 1
                         to: 9999
-                        value: selectedElement ? Math.round(selectedElement.height) : 0
-                        onValueModified: function(value) {
-                            if (selectedElement && value !== Math.round(selectedElement.height)) {
+                        value: selectedElement && selectedElement.isVisual ? Math.round(selectedElement.height) : 0
+                        onValueModified: {
+                            if (!selectedElement || !selectedElement.isVisual) return
+                            if (value === undefined || isNaN(value)) return
+                            if (value !== Math.round(selectedElement.height)) {
                                 selectedElement.height = value
                             }
                         }

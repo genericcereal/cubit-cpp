@@ -1,5 +1,6 @@
 #include "Project.h"
 #include "CanvasController.h"
+#include "DesignCanvas.h"
 #include "SelectionManager.h"
 #include "ElementModel.h"
 #include "Scripts.h"
@@ -7,6 +8,7 @@
 #include "Node.h"
 #include "Edge.h"
 #include "Component.h"
+#include "PrototypeController.h"
 
 Project::Project(const QString& id, const QString& name, QObject *parent)
     : QObject(parent)
@@ -37,6 +39,10 @@ ElementModel* Project::elementModel() const {
 
 Scripts* Project::scripts() const {
     return m_scripts.get();
+}
+
+PrototypeController* Project::prototypeController() const {
+    return m_prototypeController.get();
 }
 
 QString Project::name() const {
@@ -119,7 +125,11 @@ void Project::initialize() {
     m_scriptExecutor = std::make_unique<ScriptExecutor>(this);
     
     // Create the controller with its required dependencies
-    m_controller = std::make_unique<CanvasController>(*m_elementModel, *m_selectionManager, this);
+    // For now, always create DesignCanvas as it handles both design and variant modes
+    m_controller = std::make_unique<DesignCanvas>(*m_elementModel, *m_selectionManager, this);
+    
+    // Create the prototype controller
+    m_prototypeController = std::make_unique<PrototypeController>(*m_elementModel, *m_selectionManager, this);
     
     // Set up script executor
     m_scriptExecutor->setScripts(m_scripts.get());

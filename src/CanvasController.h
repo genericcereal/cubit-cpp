@@ -105,11 +105,13 @@ signals:
     void canUndoChanged();
     void canRedoChanged();
     
+protected:
+    ElementModel& m_elementModel;
+    SelectionManager& m_selectionManager;
+    
 private:
     Mode m_mode;
     CanvasType m_canvasType;
-    ElementModel& m_elementModel;
-    SelectionManager& m_selectionManager;
     
     // Subcontrollers
     std::unique_ptr<CreationManager> m_creationManager;

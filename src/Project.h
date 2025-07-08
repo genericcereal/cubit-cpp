@@ -10,6 +10,7 @@
 #include "Scripts.h"
 #include "DesignElement.h"
 #include "ScriptExecutor.h"
+#include "PrototypeController.h"
 
 class Component;
 Q_DECLARE_OPAQUE_POINTER(Component*)
@@ -20,6 +21,7 @@ class Project : public QObject {
     Q_PROPERTY(SelectionManager* selectionManager READ selectionManager CONSTANT)
     Q_PROPERTY(ElementModel* elementModel READ elementModel CONSTANT)
     Q_PROPERTY(Scripts* scripts READ scripts CONSTANT)
+    Q_PROPERTY(PrototypeController* prototypeController READ prototypeController CONSTANT)
     Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
     Q_PROPERTY(QString id READ id CONSTANT)
     Q_PROPERTY(QString viewMode READ viewMode WRITE setViewMode NOTIFY viewModeChanged)
@@ -35,6 +37,7 @@ public:
     SelectionManager* selectionManager() const;
     ElementModel* elementModel() const;
     Scripts* scripts() const;
+    PrototypeController* prototypeController() const;
     QString name() const;
     QString id() const;
     QString viewMode() const;
@@ -65,6 +68,7 @@ private:
     std::unique_ptr<ElementModel> m_elementModel;
     std::unique_ptr<Scripts> m_scripts;
     std::unique_ptr<ScriptExecutor> m_scriptExecutor;
+    std::unique_ptr<PrototypeController> m_prototypeController;
     QString m_name;
     QString m_id;
     QString m_viewMode;

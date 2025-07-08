@@ -696,4 +696,62 @@ Item {
             item.z = Config.zHoverBadge
         }
     }
+    
+    // Track if prototype animation has completed
+    property bool prototypeAnimationComplete: false
+    
+    // Access the prototype controller
+    property var prototypeController: Application.activeCanvas ? Application.activeCanvas.prototypeController : null
+    
+    onPrototypeControllerChanged: {
+        ConsoleMessageRepository.addOutput("ViewportOverlay: prototypeController changed to " + (prototypeController ? "valid controller" : "null"))
+    }
+    
+    // Connection to canvas view to track animation completion
+    Connections {
+        target: canvasView
+        function onMoveAnimationCompleted() {
+            // Only set to true if we're in prototyping mode
+            ConsoleMessageRepository.addOutput("Move animation completed")
+            if (prototypeController && prototypeController.isPrototyping) {
+                ConsoleMessageRepository.addOutput("Setting prototypeAnimationComplete to true")
+                root.prototypeAnimationComplete = true
+            }
+        }
+    }
+    
+    // Connection to prototype controller to track prototyping state changes
+    Connections {
+        target: prototypeController
+        function onIsPrototypingChanged() {
+            // Reset animation complete flag when prototyping state changes
+            if (!prototypeController.isPrototyping) {
+                root.prototypeAnimationComplete = false
+            }
+        }
+    }
+    
+    // Prototype viewable area - visible only when prototyping AND animation is complete
+    PrototypeViewableArea {
+        id: prototypeViewableArea
+        visible: {
+            var hasController = prototypeController !== null
+            var isPrototyping = hasController && prototypeController.isPrototyping
+            var animComplete = root.prototypeAnimationComplete
+            var shouldShow = hasController && isPrototyping && animComplete
+            
+            if (isPrototyping) {
+                ConsoleMessageRepository.addOutput("PrototypeViewableArea visibility check: " +
+                    "hasController=" + hasController + 
+                    ", isPrototyping=" + isPrototyping + 
+                    ", animComplete=" + animComplete + 
+                    ", shouldShow=" + shouldShow)
+            }
+            
+            return shouldShow
+        }
+        designCanvas: canvasView
+        flickable: root.flickable
+        prototypeController: root.prototypeController
+    }
 }
