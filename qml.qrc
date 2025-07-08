@@ -32,6 +32,7 @@
         <file>qml/components/SelectionBox.qml</file>
         <file>qml/components/SelectionBoundingBox.qml</file>
         <file>qml/components/DesignControls.qml</file>
+        <file>qml/components/PrototypeViewableArea.qml</file>
         <file>qml/components/ElementLayer.qml</file>
         <file>qml/panels/DetailPanel.qml</file>
         <file>qml/panels/ElementList.qml</file>

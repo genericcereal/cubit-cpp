@@ -50,6 +50,7 @@ SOURCES += \
     src/Node.cpp \
     src/Edge.cpp \
     src/CanvasController.cpp \
+    src/DesignCanvas.cpp \
     src/ElementModel.cpp \
     src/SelectionManager.cpp \
     src/ViewportCache.cpp \
@@ -78,7 +79,8 @@ SOURCES += \
     src/SelectModeHandler.cpp \
     src/CreationModeHandler.cpp \
     src/ElementFilterProxy.cpp \
-    src/FlexLayoutEngine.cpp
+    src/FlexLayoutEngine.cpp \
+    src/PrototypeController.cpp
 
 HEADERS += \
     src/Element.h \
@@ -99,6 +101,7 @@ HEADERS += \
     src/Node.h \
     src/Edge.h \
     src/CanvasController.h \
+    src/DesignCanvas.h \
     src/ElementModel.h \
     src/SelectionManager.h \
     src/Config.h \
@@ -130,7 +133,8 @@ HEADERS += \
     src/IModeHandler.h \
     src/SelectModeHandler.h \
     src/CreationModeHandler.h \
-    src/ElementFilterProxy.h
+    src/ElementFilterProxy.h \
+    src/PrototypeController.h
 
 RESOURCES += qml.qrc
 

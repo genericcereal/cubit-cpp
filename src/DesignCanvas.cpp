@@ -1,0 +1,149 @@
+#include "DesignCanvas.h"
+#include "Element.h"
+#include "DesignElement.h"
+#include "Frame.h"
+#include "SelectionManager.h"
+#include "ElementModel.h"
+#include <QDebug>
+
+DesignCanvas::DesignCanvas(ElementModel& model,
+                           SelectionManager& sel,
+                           QObject *parent)
+    : CanvasController(model, sel, parent)
+{
+    // Connect to selection changes to clear hover when needed
+    connect(&sel, &SelectionManager::selectionChanged,
+            this, &DesignCanvas::onSelectionChanged,
+            Qt::UniqueConnection);
+            
+    // Connect to mode changes to clear hover
+    connect(this, &CanvasController::modeChanged,
+            this, &DesignCanvas::onModeChanged,
+            Qt::UniqueConnection);
+}
+
+void DesignCanvas::setHoveredElement(QObject* element)
+{
+    if (m_hoveredElement != element) {
+        m_hoveredElement = element;
+        emit hoveredElementChanged();
+    }
+}
+
+void DesignCanvas::updateHover(qreal x, qreal y)
+{
+    // Update hover in select mode
+    if (mode() == Mode::Select) {
+        Element* element = hitTestForHover(x, y);
+        setHoveredElement(element);
+    } else {
+        // Clear hover in creation modes
+        setHoveredElement(nullptr);
+    }
+}
+
+bool DesignCanvas::isDescendantOf(QObject* elementA, QObject* elementB) const
+{
+    if (!elementA || !elementB) return false;
+    
+    Element* elemA = qobject_cast<Element*>(elementA);
+    Element* elemB = qobject_cast<Element*>(elementB);
+    if (!elemA || !elemB) return false;
+    
+    Element* current = elemA;
+    int maxDepth = 100; // Prevent infinite loops
+    int depth = 0;
+    
+    while (current && !current->getParentElementId().isEmpty() && depth < maxDepth) {
+        if (current->getParentElementId() == elemB->getId()) {
+            return true;
+        }
+        // Find the parent element
+        current = m_elementModel.getElementById(current->getParentElementId());
+        depth++;
+    }
+    
+    return false;
+}
+
+bool DesignCanvas::isChildOfSelected(QObject* element) const
+{
+    if (!element) return false;
+    
+    const QList<Element*>& selectedElements = m_selectionManager.selectedElements();
+    for (Element* selected : selectedElements) {
+        if (isDescendantOf(element, selected)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void DesignCanvas::updateParentingDuringDrag()
+{
+    if (m_selectionManager.selectionCount() == 0 || !m_hoveredElement) {
+        return;
+    }
+    
+    Element* hovered = qobject_cast<Element*>(m_hoveredElement);
+    if (!hovered) return;
+    
+    const QList<Element*>& selectedElements = m_selectionManager.selectedElements();
+    
+    for (Element* element : selectedElements) {
+        if (!element) continue;
+        
+        // Guard: Don't change parentId of children of selected elements
+        if (isChildOfSelected(element)) continue;
+        
+        // Guard: ComponentVariants shouldn't have parents
+        if (element->getTypeName() == "ComponentVariant") continue;
+        
+        // Guard: Don't set an element as its own parent
+        if (hovered->getId() == element->getId()) continue;
+        
+        // Guard: Don't create circular dependencies
+        if (isDescendantOf(hovered, element)) continue;
+        
+        // Guard: Don't parent to children of selected elements
+        if (isChildOfSelected(hovered)) continue;
+        
+        // Guard: Check if the hovered element accepts children
+        Frame* frameHovered = qobject_cast<Frame*>(hovered);
+        if (frameHovered && !frameHovered->acceptsChildren()) continue;
+        
+        // Guard: Don't parent relatively positioned elements to other relatively positioned elements
+        Frame* frameElement = qobject_cast<Frame*>(element);
+        if (frameElement && frameHovered) {
+            if (frameElement->position() == Frame::Relative && 
+                frameHovered->position() == Frame::Relative) {
+                continue;
+            }
+        }
+        
+        // Update parentId if it's different
+        if (element->getParentElementId() != hovered->getId()) {
+            element->setParentElementId(hovered->getId());
+        }
+    }
+}
+
+void DesignCanvas::onSelectionChanged()
+{
+    clearHoverIfSelected();
+}
+
+void DesignCanvas::onModeChanged()
+{
+    setHoveredElement(nullptr);
+}
+
+void DesignCanvas::clearHoverIfSelected()
+{
+    if (m_hoveredElement) {
+        Element* elem = qobject_cast<Element*>(m_hoveredElement);
+        if (elem && m_selectionManager.isSelected(elem)) {
+            setHoveredElement(nullptr);
+        }
+    }
+}

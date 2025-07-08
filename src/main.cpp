@@ -17,6 +17,7 @@
 #include "Node.h"
 #include "Edge.h"
 #include "CanvasController.h"
+#include "DesignCanvas.h"
 #include "ElementModel.h"
 #include "SelectionManager.h"
 #include "ViewportCache.h"
@@ -27,6 +28,7 @@
 #include "Scripts.h"
 #include "ScriptCompiler.h"
 #include "ElementFilterProxy.h"
+#include "PrototypeController.h"
 
 int main(int argc, char *argv[])
 {
@@ -34,8 +36,6 @@ int main(int argc, char *argv[])
 
     // Enable high DPI scaling for better rendering quality
     QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
-    QGuiApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
-    QGuiApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
 
     // Enable antialiasing for smoother rendering
     QSurfaceFormat format = QSurfaceFormat::defaultFormat();
@@ -65,6 +65,7 @@ int main(int argc, char *argv[])
     
     // Register singleton controllers
     qmlRegisterType<CanvasController>("Cubit", 1, 0, "CanvasController");
+    qmlRegisterType<DesignCanvas>("Cubit", 1, 0, "DesignCanvas");
     qmlRegisterType<ElementModel>("Cubit", 1, 0, "ElementModel");
     qmlRegisterType<SelectionManager>("Cubit", 1, 0, "SelectionManager");
     qmlRegisterType<ViewportCache>("Cubit", 1, 0, "ViewportCache");
@@ -73,6 +74,7 @@ int main(int argc, char *argv[])
     qmlRegisterType<Scripts>("Cubit", 1, 0, "Scripts");
     qmlRegisterType<ScriptCompiler>("Cubit", 1, 0, "ScriptCompiler");
     qmlRegisterType<ElementFilterProxy>("Cubit", 1, 0, "ElementFilterProxy");
+    qmlRegisterType<PrototypeController>("Cubit", 1, 0, "PrototypeController");
     
     // Register singleton ConsoleMessageRepository
     qmlRegisterSingletonType<ConsoleMessageRepository>("Cubit", 1, 0, "ConsoleMessageRepository",

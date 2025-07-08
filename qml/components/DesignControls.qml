@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls
 import Cubit 1.0
 import Cubit.UI 1.0
 
@@ -21,11 +22,17 @@ Item {
     // Control state
     property bool dragging: false
     property string dragMode: "" // "move", "resize-edge-0", "resize-edge-1", etc.
-    property bool showResizeJoints: true
-    
-    onDraggingChanged: {
-        // Update resize joints visibility
-        showResizeJoints = !dragging
+    property bool showResizeJoints: {
+        // Hide resize joints when dragging or when in prototyping mode
+        if (dragging) return false
+        
+        // Check if we're in prototyping mode
+        var viewportOverlay = root.parent
+        if (viewportOverlay && viewportOverlay.canvasView && viewportOverlay.canvasView.isPrototyping) {
+            return false
+        }
+        
+        return true
     }
     property point dragStartPoint
     property point dragStartControlPos
@@ -896,6 +903,243 @@ Item {
         }
     }
     
+    // BorderRadiusControl - circular control inside near top left resize joint
+    Rectangle {
+        id: borderRadiusControl
+        width: 10
+        height: 10
+        radius: 5
+        color: allSelectedAreComponentRelated ? Config.componentControlResizeJointColor : Config.controlResizeJointColor
+        antialiasing: true
+        z: 2
+        
+        // Only visible when:
+        // 1. A single element is selected
+        // 2. The selected element is a frame
+        // 3. Not dragging/resizing
+        visible: {
+            if (!parent || !parent.parent || !parent.parent.selectedElements) return false
+            if (parent.parent.selectedElements.length !== 1) return false
+            var element = parent.parent.selectedElements[0]
+            if (!element || element.elementType !== "Frame") return false
+            return root.showResizeJoints
+        }
+        
+        // Drag progress along diagonal (0 = top-left corner, 1 = center)
+        property real dragProgress: 0
+        
+        // Initialize drag progress based on frame's current border radius
+        Component.onCompleted: updateDragProgressFromFrame()
+        
+        Connections {
+            target: parent ? parent.parent : null
+            function onSelectedElementsChanged() {
+                updateDragProgressFromFrame()
+            }
+        }
+        
+        // Also watch for changes to the selected frame's properties
+        Connections {
+            target: {
+                if (!parent || !parent.parent || !parent.parent.selectedElements) return null
+                if (parent.parent.selectedElements.length !== 1) return null
+                var element = parent.parent.selectedElements[0]
+                if (!element || element.elementType !== "Frame") return null
+                return element
+            }
+            function onBorderRadiusChanged() {
+                updateDragProgressFromFrame()
+            }
+            function onWidthChanged() {
+                updateDragProgressFromFrame()
+            }
+            function onHeightChanged() {
+                updateDragProgressFromFrame()
+            }
+        }
+        
+        function updateDragProgressFromFrame() {
+            if (!parent || !parent.parent || !parent.parent.selectedElements) return
+            if (parent.parent.selectedElements.length !== 1) return
+            var element = parent.parent.selectedElements[0]
+            if (!element || element.elementType !== "Frame") return
+            
+            // Calculate progress from border radius
+            // Max radius is half the smaller dimension
+            var maxRadius = Math.min(element.width, element.height) / 2
+            if (maxRadius > 0) {
+                dragProgress = Math.min(1, element.borderRadius / maxRadius)
+            } else {
+                dragProgress = 0
+            }
+        }
+        
+        // Calculate position based on drag progress
+        // Start position: (8, 8)
+        // End position: (parent.width/2 - 5, parent.height/2 - 5) - center of controls
+        x: 8 + dragProgress * ((parent.width / 2 - 5) - 8)
+        y: 8 + dragProgress * ((parent.height / 2 - 5) - 8)
+        
+        MouseArea {
+            anchors.fill: parent
+            cursorShape: dragging ? Qt.ClosedHandCursor : Qt.PointingHandCursor
+            
+            property bool dragging: false
+            property point dragStartMouse
+            property real dragStartProgress
+            property real diagonalLength: Math.sqrt(Math.pow((parent.parent.width / 2 - 5) - 8, 2) + 
+                                                   Math.pow((parent.parent.height / 2 - 5) - 8, 2))
+            
+            onPressed: (mouse) => {
+                dragging = true
+                dragStartMouse = mapToItem(root, mouse.x, mouse.y)
+                dragStartProgress = borderRadiusControl.dragProgress
+                ConsoleMessageRepository.addOutput("BorderRadiusControl drag started")
+                mouse.accepted = true
+                
+                // Update frame border radius immediately when starting drag
+                updateFrameBorderRadius()
+            }
+            
+            onReleased: {
+                dragging = false
+                ConsoleMessageRepository.addOutput("BorderRadiusControl drag ended at progress: " + borderRadiusControl.dragProgress.toFixed(2))
+            }
+            
+            onPositionChanged: (mouse) => {
+                if (!dragging) return
+                
+                // Get current mouse position in parent coordinates
+                var currentMouse = mapToItem(root, mouse.x, mouse.y)
+                
+                // Calculate the diagonal vector (from top-left to center)
+                var diagonalX = (parent.parent.width / 2 - 5) - 8
+                var diagonalY = (parent.parent.height / 2 - 5) - 8
+                
+                // Calculate mouse delta
+                var deltaX = currentMouse.x - dragStartMouse.x
+                var deltaY = currentMouse.y - dragStartMouse.y
+                
+                // Project the mouse delta onto the diagonal vector
+                var dotProduct = deltaX * diagonalX + deltaY * diagonalY
+                var diagonalLengthSquared = diagonalX * diagonalX + diagonalY * diagonalY
+                
+                if (diagonalLengthSquared > 0) {
+                    var projectedDistance = dotProduct / Math.sqrt(diagonalLengthSquared)
+                    var progressDelta = projectedDistance / diagonalLength
+                    
+                    // Update progress, clamped between 0 and 1
+                    borderRadiusControl.dragProgress = Math.max(0, Math.min(1, dragStartProgress + progressDelta))
+                    
+                    // Update the frame's border radius
+                    updateFrameBorderRadius()
+                }
+            }
+        }
+    }
+    
+    // Square control outside the right control bar
+    Rectangle {
+        id: inlinePrototypePlay
+        width: 20
+        height: 20
+        color: allSelectedAreComponentRelated ? Config.componentControlResizeJointColor : Config.controlResizeJointColor
+        antialiasing: true
+        z: 2
+        
+        // Only visible when:
+        // 1. A single element is selected
+        // 2. The selected element is a frame
+        // 3. Not dragging
+        // 4. Not currently prototyping
+        visible: {
+            if (!parent || !parent.parent || !parent.parent.selectedElements) return false
+            if (parent.parent.selectedElements.length !== 1) return false
+            var element = parent.parent.selectedElements[0]
+            if (!element || element.elementType !== "Frame") return false
+            if (root.dragging) return false
+            // Hide when prototyping is active
+            var viewportOverlay = root.parent
+            if (viewportOverlay && viewportOverlay.prototypeController && viewportOverlay.prototypeController.isPrototyping) {
+                return false
+            }
+            return true
+        }
+        
+        // Position outside the right control bar
+        x: Math.round(parent.width) + 5  // 5px outside the right edge
+        y: Math.round(parent.height / 2) - 10  // Centered vertically
+        
+        // Display "P" for Play
+        Text {
+            anchors.centerIn: parent
+            text: "P"
+            font.pixelSize: 12
+            font.family: "Arial"
+            font.bold: true
+            color: "white"
+        }
+        
+        MouseArea {
+            anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
+            
+            onClicked: (mouse) => {
+                // Access the DesignCanvas through the viewport overlay
+                var viewportOverlay = root.parent
+                if (!viewportOverlay || !viewportOverlay.canvasView) {
+                    ConsoleMessageRepository.addError("Cannot access DesignCanvas from controls")
+                    return
+                }
+                
+                var designCanvas = viewportOverlay.canvasView
+                var prototypeController = viewportOverlay.prototypeController
+                
+                if (!prototypeController) {
+                    ConsoleMessageRepository.addError("PrototypeController not available")
+                    ConsoleMessageRepository.addOutput("viewportOverlay.prototypeController is: " + viewportOverlay.prototypeController)
+                    ConsoleMessageRepository.addOutput("Application.activeCanvas is: " + Application.activeCanvas)
+                    if (Application.activeCanvas) {
+                        ConsoleMessageRepository.addOutput("Application.activeCanvas.prototypeController is: " + Application.activeCanvas.prototypeController)
+                    }
+                    return
+                }
+                
+                // Check if we have a selected element (should be a frame)
+                if (!viewportOverlay.selectedElements || viewportOverlay.selectedElements.length !== 1) {
+                    ConsoleMessageRepository.addError("No single frame selected for prototyping")
+                    return
+                }
+                
+                var selectedFrame = viewportOverlay.selectedElements[0]
+                if (selectedFrame.elementType !== "Frame") {
+                    ConsoleMessageRepository.addError("Selected element is not a frame")
+                    return
+                }
+                
+                // Starting prototyping mode
+                
+                // 1) Store the current canvas position in the prototype controller
+                var currentCanvasCenter = Qt.point(
+                    viewportOverlay.flickable.contentX / designCanvas.zoom + designCanvas.canvasMinX + viewportOverlay.flickable.width / 2 / designCanvas.zoom,
+                    viewportOverlay.flickable.contentY / designCanvas.zoom + designCanvas.canvasMinY + viewportOverlay.flickable.height / 2 / designCanvas.zoom
+                )
+                
+                // 2) Start prototyping through the controller
+                prototypeController.startPrototyping(currentCanvasCenter, designCanvas.zoom)
+                
+                // 3) Move the canvas with animation to center on the selected frame
+                var frameCenter = Qt.point(
+                    selectedFrame.x + selectedFrame.width / 2,
+                    selectedFrame.y + selectedFrame.height / 2
+                )
+                designCanvas.moveToPoint(frameCenter, true)
+                
+                mouse.accepted = true
+            }
+        }
+    }
+    
     // HoverBadge component definition
     Component {
         id: hoverBadgeComponent
@@ -1034,6 +1278,24 @@ Item {
         updateComponentRelatedStatus()
         updateShowFlexResizeJoints()
         setupElementConnections()
+    }
+    
+    // Function to update frame border radius based on BorderRadiusControl position
+    function updateFrameBorderRadius() {
+        if (!parent || !parent.selectedElements || parent.selectedElements.length !== 1) return
+        var element = parent.selectedElements[0]
+        if (!element || element.elementType !== "Frame") return
+        
+        // Calculate the maximum possible radius (half of the smaller dimension)
+        var maxRadius = Math.min(element.width, element.height) / 2
+        
+        // Set border radius based on drag progress (0 to 1)
+        var newRadius = borderRadiusControl.dragProgress * maxRadius
+        
+        // Update the frame's border radius
+        element.borderRadius = newRadius
+        
+        ConsoleMessageRepository.addOutput("BorderRadius updated to: " + newRadius.toFixed(1) + " (max: " + maxRadius.toFixed(1) + ")")
     }
     
     // Function to check if we should reorder elements while dragging
