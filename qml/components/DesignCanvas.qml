@@ -12,6 +12,9 @@ BaseCanvas {
     // Property to access the viewport overlay's controls
     property var viewportControls: null
     
+    // Expose the element layer for viewport overlay
+    property alias elementLayer: elementLayer
+    
     // Signal emitted when move animation completes
     signal moveAnimationCompleted()
     
@@ -163,6 +166,10 @@ BaseCanvas {
         )
         
         if (isAnimated) {
+            // Set isAnimating to true when starting animation
+            if (root.controller) {
+                root.controller.isAnimating = true
+            }
             // Create animation for smooth movement
             moveAnimation.toX = targetPos.x
             moveAnimation.toY = targetPos.y
@@ -198,6 +205,10 @@ BaseCanvas {
         
         onStopped: {
             root.moveAnimationCompleted()
+            // Reset isAnimating when the move animation completes
+            if (root.controller) {
+                root.controller.isAnimating = false
+            }
         }
     }
 }

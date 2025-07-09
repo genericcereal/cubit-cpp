@@ -24,14 +24,28 @@ Item {
     property string dragMode: "" // "move", "resize-edge-0", "resize-edge-1", etc.
     property bool showResizeJoints: {
         // Hide resize joints when dragging or when in prototyping mode
-        if (dragging) return false
-        
-        // Check if we're in prototyping mode
-        var viewportOverlay = root.parent
-        if (viewportOverlay && viewportOverlay.canvasView && viewportOverlay.canvasView.isPrototyping) {
+        if (dragging) {
+            ConsoleMessageRepository.addOutput("showResizeJoints: false (dragging)")
             return false
         }
         
+        // Check if we're in prototyping mode
+        var viewportOverlay = root.parent
+        if (viewportOverlay && viewportOverlay.prototypeController && viewportOverlay.prototypeController.isPrototyping) {
+            ConsoleMessageRepository.addOutput("showResizeJoints: false (prototyping)")
+            return false
+        }
+        
+        // Check if animations are currently playing
+        if (viewportOverlay && viewportOverlay.canvasView) {
+            var controller = viewportOverlay.canvasView.controller
+            if (controller && controller.isAnimating) {
+                ConsoleMessageRepository.addOutput("showResizeJoints: false (animating)")
+                return false
+            }
+        }
+        
+        ConsoleMessageRepository.addOutput("showResizeJoints: true")
         return true
     }
     property point dragStartPoint
@@ -632,14 +646,11 @@ Item {
             }
         }
         
-        Rectangle {
-            id: resizeJoint
+        Item {
+            id: resizeJointContainer
             width: 10
             height: 10
-            color: allSelectedAreComponentRelated ? Config.componentControlResizeJointColor : Config.controlResizeJointColor
-            antialiasing: true
             z: 2
-            visible: root.showResizeJoints
             
             x: {
                 if (flexWidthFitContent && !flexHeightFitContent) {
@@ -679,16 +690,25 @@ Item {
             
             property int cornerIndex: index
             
-            // Decorative circle inside the resize joint
+            // Visual representation of the resize joint
             Rectangle {
-                anchors.centerIn: parent
-                width: 10
-                height: 10
-                radius: 5
-                color: Config.controlJointCircleFill
-                border.color: allSelectedAreComponentRelated ? Config.componentControlJointCircleBorder : Config.controlJointCircleBorder
-                border.width: 1
+                id: resizeJoint
+                anchors.fill: parent
+                color: allSelectedAreComponentRelated ? Config.componentControlResizeJointColor : Config.controlResizeJointColor
                 antialiasing: true
+                visible: root.showResizeJoints && !(root.dragging && root.dragMode.startsWith("resize-corner-"))
+                
+                // Decorative circle inside the resize joint
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: 10
+                    height: 10
+                    radius: 5
+                    color: Config.controlJointCircleFill
+                    border.color: allSelectedAreComponentRelated ? Config.componentControlJointCircleBorder : Config.controlJointCircleBorder
+                    border.width: 1
+                    antialiasing: true
+                }
             }
             
             MouseArea {
@@ -711,7 +731,7 @@ Item {
                 
                 property bool shouldPropagateEvents: flexWidthFitContent || flexHeightFitContent
                 
-                property int cornerIdx: parent.cornerIndex
+                property int cornerIdx: resizeJointContainer.cornerIndex
                 property point anchorCorner  // Opposite corner in parent coords
                 property point adjacentCorner1  // Adjacent corner 1 in parent coords
                 property point adjacentCorner2  // Adjacent corner 2 in parent coords
@@ -1128,12 +1148,28 @@ Item {
                 // 2) Start prototyping through the controller
                 prototypeController.startPrototyping(currentCanvasCenter, designCanvas.zoom)
                 
-                // 3) Move the canvas with animation to center on the selected frame
-                var frameCenter = Qt.point(
-                    selectedFrame.x + selectedFrame.width / 2,
-                    selectedFrame.y + selectedFrame.height / 2
-                )
-                designCanvas.moveToPoint(frameCenter, true)
+                // 3) Position the viewport so the PrototypeViewableArea top aligns with frame top
+                // Wait for frames to be positioned, then get the selected frame's new position
+                if (prototypeController.selectedFrameX >= 0) {
+                    // The selected frame is now positioned at (selectedFrameX, -350) - top edge at y=-350
+                    // The PrototypeViewableArea has a fixed top position
+                    
+                    // Calculate where the viewable area's top edge will be in viewport coordinates
+                    // Using fixed position calculation from PrototypeViewableArea
+                    var dropdownHeight = 50  // 30px dropdown + margins
+                    var viewableAreaTopInViewport = (viewportOverlay.flickable.height - 450) / 2 + dropdownHeight
+                    
+                    // We want the frame top (-350) to appear at viewableAreaTopInViewport
+                    // So we need to position the canvas such that y=-350 maps to that viewport position
+                    var targetCanvasY = -350 - (viewableAreaTopInViewport / designCanvas.zoom) + (viewportOverlay.flickable.height / 2 / designCanvas.zoom)
+                    
+                    var targetPoint = Qt.point(
+                        prototypeController.selectedFrameX,
+                        targetCanvasY
+                    )
+                    
+                    designCanvas.moveToPoint(targetPoint, false)
+                }
                 
                 mouse.accepted = true
             }
