@@ -4,6 +4,7 @@
 class DesignCanvas : public CanvasController {
     Q_OBJECT
     Q_PROPERTY(QObject* hoveredElement READ hoveredElement WRITE setHoveredElement NOTIFY hoveredElementChanged)
+    Q_PROPERTY(bool isAnimating READ isAnimating WRITE setIsAnimating NOTIFY isAnimatingChanged)
     
 public:
     explicit DesignCanvas(ElementModel& model,
@@ -15,6 +16,10 @@ public:
     QObject* hoveredElement() const { return m_hoveredElement; }
     void setHoveredElement(QObject* element);
     
+    // Animation state management
+    bool isAnimating() const { return m_isAnimating; }
+    void setIsAnimating(bool animating);
+    
     // Design-specific mouse handling
     Q_INVOKABLE void updateHover(qreal x, qreal y);
     
@@ -25,6 +30,7 @@ public:
     
 signals:
     void hoveredElementChanged();
+    void isAnimatingChanged();
     
 private slots:
     void onSelectionChanged();
@@ -32,6 +38,7 @@ private slots:
     
 private:
     QObject* m_hoveredElement = nullptr;
+    bool m_isAnimating = false;
     
     // Clear hover when appropriate
     void clearHoverIfSelected();

@@ -9,15 +9,19 @@ Item {
     width: viewableArea.width
     height: viewableArea.height + 50  // Extra height to accommodate dropdown above
     
-    // Position it in the center of the viewport by default
-    anchors.centerIn: parent
+    // Position with fixed top edge location
+    anchors.horizontalCenter: parent.horizontalCenter
+    y: {
+        // Calculate a fixed top position that won't change with mode
+        var dropdownHeight = 50  // 30px dropdown + margins
+        var fixedTopPosition = (parent.height - 450) / 2  // Use Web height (400) + dropdown as baseline
+        return fixedTopPosition
+    }
     
     Component.onCompleted: {
-        ConsoleMessageRepository.addOutput("PrototypeViewableArea created")
     }
     
     onVisibleChanged: {
-        ConsoleMessageRepository.addOutput("PrototypeViewableArea visible changed to: " + visible)
     }
     
     // Properties passed from ViewportOverlay
@@ -90,39 +94,33 @@ Item {
             cursorShape: Qt.PointingHandCursor
             
             onClicked: (mouse) => {
-                ConsoleMessageRepository.addOutput("Stop button clicked")
-                
                 if (!root.prototypeController) {
-                    ConsoleMessageRepository.addError("Cannot access PrototypeController from PrototypeViewableArea")
                     return
                 }
                 
                 if (!root.designCanvas) {
-                    ConsoleMessageRepository.addError("Cannot access DesignCanvas from PrototypeViewableArea")
                     return
                 }
                 
-                ConsoleMessageRepository.addOutput("Stopping prototype mode")
+                // Get the snapshot values from prototype controller BEFORE stopping
+                var startPos = root.prototypeController.getSnapshotCanvasPosition()
+                var startZoom = root.prototypeController.getSnapshotCanvasZoom()
                 
-                // Get the start position from prototype controller BEFORE stopping
-                var startPos = root.prototypeController.prototypingStartPosition
-                var startZoom = root.prototypeController.prototypingStartZoom
+                // First restore all element positions (without animation)
+                root.prototypeController.restoreElementPositionsFromSnapshot()
                 
-                // Animate back to the start position if we have one
+                // Stop prototyping mode through the controller BEFORE animating
+                root.prototypeController.stopPrototyping()
+                
+                // Then animate back to the canvas position if we have one
                 if (startPos && (startPos.x !== 0 || startPos.y !== 0)) {
                     // First restore the zoom level
                     root.designCanvas.zoom = startZoom
                     
-                    // Then move to the original position
-                    root.designCanvas.moveToPoint(startPos, true)
-                    
-                    ConsoleMessageRepository.addOutput("Prototyping mode stopped - returning to start position")
-                } else {
-                    ConsoleMessageRepository.addOutput("Prototyping mode stopped")
+                    // Then move to the original position without animation
+                    // The moveToPoint function will set isAnimating = false
+                    root.designCanvas.moveToPoint(startPos, false)
                 }
-                
-                // Stop prototyping mode through the controller AFTER we've used the position
-                root.prototypeController.stopPrototyping()
                 
                 mouse.accepted = true
             }

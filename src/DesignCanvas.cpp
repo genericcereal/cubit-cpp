@@ -30,6 +30,14 @@ void DesignCanvas::setHoveredElement(QObject* element)
     }
 }
 
+void DesignCanvas::setIsAnimating(bool animating)
+{
+    if (m_isAnimating != animating) {
+        m_isAnimating = animating;
+        emit isAnimatingChanged();
+    }
+}
+
 void DesignCanvas::updateHover(qreal x, qreal y)
 {
     // Update hover in select mode

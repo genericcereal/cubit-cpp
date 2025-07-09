@@ -139,6 +139,7 @@ Item {
         canvasMinY: root.canvasMinY
         zoomLevel: root.zoomLevel
         flickable: root.flickable
+        // Use selection bounds directly
         boundingX: root.selectionBoundingX
         boundingY: root.selectionBoundingY
         boundingWidth: root.selectionBoundingWidth
@@ -170,6 +171,10 @@ Item {
         visible: {
             // Controls visible on design and variant canvases
             if (canvasType !== "design" && canvasType !== "variant") {
+                return false
+            }
+            // Hide during animations
+            if (controller && controller.isAnimating) {
                 return false
             }
             // Only show controls if there are visual elements selected
@@ -216,7 +221,7 @@ Item {
             
             function onSelectionChanged() {
                 if (selectedElements.length > 0 && selectionControls.visible) {
-                    // Update control properties when selection bounds change
+                    // Use regular selection bounds
                     selectionControls.controlX = selectionBoundingX
                     selectionControls.controlY = selectionBoundingY
                     selectionControls.controlWidth = selectionBoundingWidth
@@ -224,6 +229,7 @@ Item {
                 }
             }
         }
+        
         
         // Additional connection for creation mode - always update during element creation
         Connections {
@@ -462,7 +468,7 @@ Item {
                         }
                         
                         if (!alreadyCaptured) {
-                            console.log("Capturing parent element state:", parentId)
+                            // Capturing parent element state
                             states.push({
                                 element: parentElement,
                                 x: parentElement.x,
@@ -697,56 +703,55 @@ Item {
         }
     }
     
-    // Track if prototype animation has completed
-    property bool prototypeAnimationComplete: false
-    
     // Access the prototype controller
     property var prototypeController: Application.activeCanvas ? Application.activeCanvas.prototypeController : null
     
     onPrototypeControllerChanged: {
         ConsoleMessageRepository.addOutput("ViewportOverlay: prototypeController changed to " + (prototypeController ? "valid controller" : "null"))
-    }
-    
-    // Connection to canvas view to track animation completion
-    Connections {
-        target: canvasView
-        function onMoveAnimationCompleted() {
-            // Only set to true if we're in prototyping mode
-            ConsoleMessageRepository.addOutput("Move animation completed")
-            if (prototypeController && prototypeController.isPrototyping) {
-                ConsoleMessageRepository.addOutput("Setting prototypeAnimationComplete to true")
-                root.prototypeAnimationComplete = true
-            }
+        
+        // Connect requestCanvasMove signal to the canvas moveToPoint function
+        if (prototypeController) {
+            prototypeController.requestCanvasMove.connect(function(canvasPoint, animated) {
+                if (canvasView && canvasView.moveToPoint) {
+                    // Adjust the Y coordinate to account for the viewable area's position
+                    // The prototype viewable area is positioned at a specific Y in the viewport
+                    // We need to offset the canvas point so the frame aligns with the viewable area
+                    var adjustedPoint = Qt.point(canvasPoint.x, canvasPoint.y)
+                    
+                    // Get the viewable area's actual position in viewport
+                    if (prototypeViewableArea && prototypeViewableArea.visible) {
+                        // The viewable area rectangle is at the bottom of its container
+                        // Container Y + dropdown height (50) = top of red viewable area
+                        var viewableAreaTopInViewport = prototypeViewableArea.y + 50
+                        
+                        // We want the canvas point (which is the frame's top edge) to appear
+                        // at the viewable area's top edge, not at the viewport center
+                        // So we need to calculate what canvas Y would put the frame top at the viewable area top
+                        
+                        // The moveToPoint function centers the given point in the viewport
+                        // So we need to offset the point so that when centered, the frame top aligns with viewable area top
+                        var viewportHeight = root.flickable.height
+                        var offsetFromViewportTop = viewableAreaTopInViewport
+                        var offsetFromViewportCenter = offsetFromViewportTop - (viewportHeight / 2)
+                        
+                        // Adjust the canvas point by this offset (in canvas coordinates)
+                        adjustedPoint.y = canvasPoint.y - (offsetFromViewportCenter / canvasView.zoom)
+                    }
+                    
+                    canvasView.moveToPoint(adjustedPoint, animated)
+                }
+            })
         }
     }
     
-    // Connection to prototype controller to track prototyping state changes
-    Connections {
-        target: prototypeController
-        function onIsPrototypingChanged() {
-            // Reset animation complete flag when prototyping state changes
-            if (!prototypeController.isPrototyping) {
-                root.prototypeAnimationComplete = false
-            }
-        }
-    }
-    
-    // Prototype viewable area - visible only when prototyping AND animation is complete
+    // Prototype viewable area - visible only when prototyping
     PrototypeViewableArea {
         id: prototypeViewableArea
         visible: {
             var hasController = prototypeController !== null
             var isPrototyping = hasController && prototypeController.isPrototyping
-            var animComplete = root.prototypeAnimationComplete
-            var shouldShow = hasController && isPrototyping && animComplete
-            
-            if (isPrototyping) {
-                ConsoleMessageRepository.addOutput("PrototypeViewableArea visibility check: " +
-                    "hasController=" + hasController + 
-                    ", isPrototyping=" + isPrototyping + 
-                    ", animComplete=" + animComplete + 
-                    ", shouldShow=" + shouldShow)
-            }
+            var isAnimating = controller && controller.isAnimating
+            var shouldShow = hasController && isPrototyping && !isAnimating
             
             return shouldShow
         }
