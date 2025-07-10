@@ -88,7 +88,4 @@ namespace Config {
     
     // Animation
     constexpr int ANIMATION_DURATION = 150;
-    
-    // Performance
-    constexpr int FPS_UPDATE_INTERVAL = 1000; // milliseconds
 }

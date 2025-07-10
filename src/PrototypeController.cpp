@@ -3,8 +3,10 @@
 #include "SelectionManager.h"
 #include "ConsoleMessageRepository.h"
 #include "CanvasElement.h"
+#include "DesignElement.h"
 #include <algorithm>
 #include <limits>
+#include <QTimer>
 
 PrototypeController::PrototypeController(ElementModel& model,
                                        SelectionManager& sel,
@@ -13,8 +15,8 @@ PrototypeController::PrototypeController(ElementModel& model,
     , m_elementModel(model)
     , m_selectionManager(sel)
 {
-    // Initialize default viewable area for Web mode
-    m_viewableArea = calculateViewportForMode("Web");
+    // Initialize default viewable area for web mode
+    m_viewableArea = calculateViewportForMode("web");
     
     // Monitor selection changes to update activeOuterFrame
     connect(&m_selectionManager, &SelectionManager::selectionChanged,
@@ -46,16 +48,41 @@ void PrototypeController::setPrototypeMode(const QString& mode) {
         // Store old viewable area height to calculate offset
         qreal oldViewableHeight = m_viewableArea.height();
         
+        // Calculate the new viewable area
+        QRectF newViewableArea = calculateViewportForMode(mode);
+        
         m_prototypeMode = mode;
         
         // Update viewable area based on new mode
-        m_viewableArea = calculateViewportForMode(mode);
+        m_viewableArea = newViewableArea;
         
         // If we're in prototyping mode, update the frame positions with the new viewable area
         if (m_isPrototyping) {
             // When changing modes, we need to maintain top edge alignment
             // Pass true to indicate this is a mode change
             setDeviceFrames(true, oldViewableHeight);
+            
+            // Compensate for the viewable area height change by adjusting canvas position
+            // When viewable area grows taller, we need to move canvas down to maintain top edge
+            // When viewable area shrinks, we need to move canvas up
+            if (!m_activeOuterFrame.isEmpty()) {
+                Element* element = m_elementModel.getElementById(m_activeOuterFrame);
+                if (element && element->isVisual()) {
+                    CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+                    if (canvasElement) {
+                        // Calculate the point to center in the viewport
+                        // X: Center of the frame horizontally
+                        // Y: Top edge of the frame (we want to align top edges)
+                        QPointF alignmentPoint(
+                            canvasElement->x() + canvasElement->width() / 2.0,
+                            canvasElement->y()  // Just the top edge, no offset
+                        );
+                        
+                        // Request the canvas to move to this point without animation
+                        emit requestCanvasMove(alignmentPoint, false);
+                    }
+                }
+            }
         }
         
         emit prototypeModeChanged();
@@ -106,6 +133,35 @@ void PrototypeController::restoreElementPositionsFromSnapshot() {
             }
         }
     }
+    
+    // Restore all constraint values
+    for (auto it = m_prototypingStartSnapshot->elementConstraints.constBegin();
+         it != m_prototypingStartSnapshot->elementConstraints.constEnd(); ++it) {
+        const QString& elementId = it.key();
+        const ConstraintValues& constraints = it.value();
+        
+        Element* element = m_elementModel.getElementById(elementId);
+        if (element && element->isVisual()) {
+            CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+            if (canvasElement && canvasElement->isDesignElement()) {
+                DesignElement* designElement = qobject_cast<DesignElement*>(canvasElement);
+                if (designElement) {
+                    // Restore constraint values
+                    designElement->setLeft(constraints.left);
+                    designElement->setRight(constraints.right);
+                    designElement->setTop(constraints.top);
+                    designElement->setBottom(constraints.bottom);
+                    designElement->setLeftAnchored(constraints.leftAnchored);
+                    designElement->setRightAnchored(constraints.rightAnchored);
+                    designElement->setTopAnchored(constraints.topAnchored);
+                    designElement->setBottomAnchored(constraints.bottomAnchored);
+                    
+                    // Trigger layout update
+                    designElement->updateFromParentGeometry();
+                }
+            }
+        }
+    }
 }
 
 void PrototypeController::startPrototyping(const QPointF& canvasCenter, qreal currentZoom) {
@@ -114,7 +170,7 @@ void PrototypeController::startPrototyping(const QPointF& canvasCenter, qreal cu
     m_prototypingStartSnapshot->canvasPosition = canvasCenter;
     m_prototypingStartSnapshot->canvasZoom = currentZoom;
     
-    // Capture all element positions
+    // Capture all element positions and constraints
     const auto elements = m_elementModel.getAllElements();
     for (Element* element : elements) {
         if (element && element->isVisual()) {
@@ -123,6 +179,23 @@ void PrototypeController::startPrototyping(const QPointF& canvasCenter, qreal cu
                 QRectF rect(canvasElement->x(), canvasElement->y(), 
                            canvasElement->width(), canvasElement->height());
                 m_prototypingStartSnapshot->elementPositions[element->getId()] = rect;
+                
+                // If it's a design element, also capture constraint values
+                if (canvasElement->isDesignElement()) {
+                    DesignElement* designElement = qobject_cast<DesignElement*>(canvasElement);
+                    if (designElement) {
+                        ConstraintValues constraints;
+                        constraints.left = designElement->left();
+                        constraints.right = designElement->right();
+                        constraints.top = designElement->top();
+                        constraints.bottom = designElement->bottom();
+                        constraints.leftAnchored = designElement->leftAnchored();
+                        constraints.rightAnchored = designElement->rightAnchored();
+                        constraints.topAnchored = designElement->topAnchored();
+                        constraints.bottomAnchored = designElement->bottomAnchored();
+                        m_prototypingStartSnapshot->elementConstraints[element->getId()] = constraints;
+                    }
+                }
             }
         }
     }
@@ -151,6 +224,35 @@ void PrototypeController::startPrototyping(const QPointF& canvasCenter, qreal cu
     // Check current selection to set initial activeOuterFrame
     onSelectionChanged();
     
+    // After initialization, if we have an active outer frame, request centering
+    if (!m_activeOuterFrame.isEmpty()) {
+        Element* element = m_elementModel.getElementById(m_activeOuterFrame);
+        if (element && element->isVisual()) {
+            CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+            if (canvasElement) {
+                // Calculate the point to center in the viewport
+                // X: Center of the frame horizontally
+                // Y: Top edge of the frame (we want to align top edges)
+                QPointF alignmentPoint(
+                    canvasElement->x() + canvasElement->width() / 2.0,
+                    canvasElement->y()  // Just the top edge, no offset
+                );
+                
+                ConsoleMessageRepository::instance()->addOutput(
+                    QString("PrototypeController::startPrototyping - Emitting initial requestCanvasMove: x=%1, y=%2")
+                    .arg(alignmentPoint.x())
+                    .arg(alignmentPoint.y())
+                );
+                
+                // Request the canvas to move to this point without animation
+                // Use QTimer::singleShot to ensure UI elements are fully positioned
+                QTimer::singleShot(0, this, [this, alignmentPoint]() {
+                    emit requestCanvasMove(alignmentPoint, false);
+                });
+            }
+        }
+    }
+    
     // Prototyping started
 }
 
@@ -171,10 +273,12 @@ void PrototypeController::stopPrototyping() {
 }
 
 QRectF PrototypeController::calculateViewportForMode(const QString& mode) const {
-    if (mode == "Mobile") {
-        return QRectF(0, 0, MOBILE_WIDTH, MOBILE_HEIGHT);
+    if (mode == "ios") {
+        return QRectF(0, 0, IOS_WIDTH, IOS_HEIGHT);
+    } else if (mode == "android") {
+        return QRectF(0, 0, ANDROID_WIDTH, ANDROID_HEIGHT);
     } else {
-        // Default to Web
+        // Default to web
         return QRectF(0, 0, WEB_WIDTH, WEB_HEIGHT);
     }
 }
@@ -251,18 +355,19 @@ void PrototypeController::setDeviceFrames(bool isModeChange, qreal oldViewableHe
     bool isInitialPositioning = topLevelFrames.isEmpty() ? false : 
         std::all_of(topLevelFrames.begin(), topLevelFrames.end(), 
                     [](const CanvasElement* frame) {
-                        return frame->y() != -350;  // Not yet positioned for prototyping
+                        return frame->y() != 0;  // Not yet positioned for prototyping
                     });
     
     for (CanvasElement* frame : topLevelFrames) {
         if (isInitialPositioning) {
             // Initial positioning - arrange frames horizontally
+            qreal originalWidth = frame->width();
             qreal originalHeight = frame->height();
             qreal finalHeight = originalHeight;
             
-            // Set position with top edge 350px above canvas axis
+            // Set position with top edge at y = 0 (will be aligned via canvas movement)
             frame->setX(currentX);
-            frame->setY(-350);  // Top edge at y = -350
+            frame->setY(0);  // Top edge at y = 0
             frame->setWidth(m_viewableArea.width());
             
             // Only adjust height if it's less than viewable area height
@@ -270,6 +375,15 @@ void PrototypeController::setDeviceFrames(bool isModeChange, qreal oldViewableHe
                 frame->setHeight(m_viewableArea.height());
                 finalHeight = m_viewableArea.height();
             }
+            
+            // Update child layouts for the new parent size
+            updateChildLayouts(frame);
+            
+            ConsoleMessageRepository::instance()->addOutput(
+                QString("PrototypeController::setDeviceFrames - Positioned frame %1 at y=%2")
+                .arg(frame->getId())
+                .arg(frame->y())
+            );
             
             // Track selected frame position and height
             if (frame->getId() == selectedFrameId) {
@@ -280,11 +394,10 @@ void PrototypeController::setDeviceFrames(bool isModeChange, qreal oldViewableHe
             // Move to next position
             currentX += m_viewableArea.width() + spacing;
         } else if (isModeChange) {
-            // Mode change - maintain top edge alignment
+            // Mode change - maintain top edge alignment and 150px spacing
             qreal originalWidth = frame->width();
             qreal originalHeight = frame->height();
             qreal topEdgeY = frame->y();  // Current top edge position
-            qreal centerX = frame->x() + originalWidth / 2.0;
             
             // Calculate new dimensions
             qreal newWidth = m_viewableArea.width();
@@ -298,20 +411,23 @@ void PrototypeController::setDeviceFrames(bool isModeChange, qreal oldViewableHe
                 newHeight = m_viewableArea.height();
             }
             
-            // Calculate new X position to maintain horizontal center
-            qreal newX = centerX - newWidth / 2.0;
-            
-            // Maintain the same top edge Y position
-            frame->setX(newX);
+            // Set new X position with proper spacing
+            frame->setX(currentX);
             frame->setY(topEdgeY);  // Keep the same top edge
             frame->setWidth(newWidth);
             frame->setHeight(newHeight);
             
+            // Update child layouts for the new parent size
+            updateChildLayouts(frame);
+            
             // Track selected frame position and height
             if (frame->getId() == selectedFrameId) {
-                m_selectedFrameX = centerX;  // Use the actual center
+                m_selectedFrameX = currentX + newWidth / 2.0;  // Center of the frame
                 m_selectedFrameHeight = newHeight;
             }
+            
+            // Move to next position with 150px spacing
+            currentX += newWidth + spacing;
         } else {
             // Subsequent calls (not mode change) - resize from center
             qreal originalWidth = frame->width();
@@ -339,6 +455,9 @@ void PrototypeController::setDeviceFrames(bool isModeChange, qreal oldViewableHe
             frame->setY(newY);
             frame->setWidth(newWidth);
             frame->setHeight(newHeight);
+            
+            // Update child layouts for the new parent size
+            updateChildLayouts(frame);
             
             // Track selected frame position and height
             if (frame->getId() == selectedFrameId) {
@@ -403,6 +522,13 @@ void PrototypeController::setActiveOuterFrame(const QString& frameId) {
         m_activeOuterFrame = frameId;
         emit activeOuterFrameChanged();
         
+        ConsoleMessageRepository::instance()->addOutput(
+            QString("PrototypeController::setActiveOuterFrame - frameId: %1, isPrototyping: %2, isInitializing: %3")
+            .arg(frameId.isEmpty() ? "empty" : frameId)
+            .arg(m_isPrototyping ? "true" : "false")
+            .arg(m_isInitializingPrototype ? "true" : "false")
+        );
+        
         // If we're in prototyping mode and have a valid frame, center it
         // But skip centering during initialization to allow setDeviceFrames to position correctly
         if (m_isPrototyping && !frameId.isEmpty() && !m_isInitializingPrototype) {
@@ -418,8 +544,14 @@ void PrototypeController::setActiveOuterFrame(const QString& frameId) {
                         canvasElement->y()  // Just the top edge, no offset
                     );
                     
-                    // Request the canvas to move to this point with animation
-                    emit requestCanvasMove(alignmentPoint, true);
+                    ConsoleMessageRepository::instance()->addOutput(
+                        QString("PrototypeController - Emitting requestCanvasMove: x=%1, y=%2")
+                        .arg(alignmentPoint.x())
+                        .arg(alignmentPoint.y())
+                    );
+                    
+                    // Request the canvas to move to this point without animation
+                    emit requestCanvasMove(alignmentPoint, false);
                 }
             }
         }
@@ -477,5 +609,31 @@ void PrototypeController::onSelectionChanged() {
     // Update activeOuterFrame if we found one
     if (!outermostFrameId.isEmpty()) {
         setActiveOuterFrame(outermostFrameId);
+    }
+}
+
+void PrototypeController::updateChildLayouts(CanvasElement* parent) {
+    // Get all child elements
+    const auto children = m_elementModel.getChildrenRecursive(parent->getId());
+    
+    for (Element* child : children) {
+        if (!child || !child->isVisual()) continue;
+        
+        // Cast to CanvasElement first to check if it's a design element
+        CanvasElement* canvasChild = qobject_cast<CanvasElement*>(child);
+        if (canvasChild && canvasChild->isDesignElement()) {
+            DesignElement* designElement = qobject_cast<DesignElement*>(canvasChild);
+            if (designElement) {
+                // For anchored constraints, we need to update the element's position/size
+                // based on the new parent size while keeping the constraint values fixed
+                
+                // The constraint values themselves should NOT be scaled - they represent
+                // fixed distances from the parent edges
+                
+                // Just trigger layout update to reposition the element based on the
+                // new parent size with the existing constraint values
+                designElement->updateFromParentGeometry();
+            }
+        }
     }
 }

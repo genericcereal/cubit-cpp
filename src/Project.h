@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QString>
+#include <QStringList>
 #include <memory>
 #include "CanvasController.h"
 #include "SelectionManager.h"
@@ -27,6 +28,7 @@ class Project : public QObject {
     Q_PROPERTY(QString viewMode READ viewMode WRITE setViewMode NOTIFY viewModeChanged)
     Q_PROPERTY(QObject* editingElement READ editingElement NOTIFY editingElementChanged)
     Q_PROPERTY(Scripts* activeScripts READ activeScripts NOTIFY activeScriptsChanged)
+    Q_PROPERTY(QStringList platforms READ platforms WRITE setPlatforms NOTIFY platformsChanged)
 
 public:
     explicit Project(const QString& id, const QString& name = QString(), QObject *parent = nullptr);
@@ -43,10 +45,12 @@ public:
     QString viewMode() const;
     QObject* editingElement() const;
     Scripts* activeScripts() const;
+    QStringList platforms() const;
 
     // Property setters
     void setName(const QString& name);
     void setViewMode(const QString& viewMode);
+    void setPlatforms(const QStringList& platforms);
     Q_INVOKABLE void setEditingElement(DesignElement* element, const QString& viewMode = QString());
     Q_INVOKABLE void setEditingComponent(Component* component, const QString& viewMode = QString());
 
@@ -61,6 +65,7 @@ signals:
     void viewModeChanged();
     void editingElementChanged();
     void activeScriptsChanged();
+    void platformsChanged();
 
 private:
     std::unique_ptr<CanvasController> m_controller;
@@ -73,6 +78,7 @@ private:
     QString m_id;
     QString m_viewMode;
     QObject* m_editingElement = nullptr; // Can be DesignElement* or Component*
+    QStringList m_platforms;
     
     void updateActiveScripts();
     void loadScriptsIntoElementModel();

@@ -19,6 +19,24 @@ Item {
     // Check if all selected elements are component-related
     property bool allSelectedAreComponentRelated: false
     
+    // Check if resizing is disabled
+    property bool isResizingDisabled: {
+        var viewportOverlay = root.parent
+        if (viewportOverlay && viewportOverlay.canvasView && viewportOverlay.canvasView.controller) {
+            return viewportOverlay.canvasView.controller.isDesignControlsResizingDisabled || false
+        }
+        return false
+    }
+    
+    // Check if movement is disabled
+    property bool isMovementDisabled: {
+        var viewportOverlay = root.parent
+        if (viewportOverlay && viewportOverlay.canvasView && viewportOverlay.canvasView.controller) {
+            return viewportOverlay.canvasView.controller.isDesignControlsMovementDisabled || false
+        }
+        return false
+    }
+    
     // Control state
     property bool dragging: false
     property string dragMode: "" // "move", "resize-edge-0", "resize-edge-1", etc.
@@ -227,8 +245,11 @@ Item {
                     
                     if (distance > dragThreshold) {
                         isDragThresholdExceeded = true
-                        root.dragging = true
-                        root.dragMode = "move"
+                        // Check if movement is allowed
+                        if (!root.isMovementDisabled) {
+                            root.dragging = true
+                            root.dragMode = "move"
+                        }
                     }
                 }
                 
@@ -317,6 +338,12 @@ Item {
                 property point draggedEdgePoint2 // Second point of dragged edge in parent coords
                 
                 onPressed: (mouse) => {
+                    // Check if resizing is globally disabled
+                    if (root.isResizingDisabled) {
+                        mouse.accepted = false
+                        return
+                    }
+                    
                     // Check if resize is allowed for this edge
                     var resizeAllowed = true
                     if (edgeIndex === 0 || edgeIndex === 2) {
@@ -551,6 +578,12 @@ Item {
                 property real startAngle
                 
                 onPressed: (mouse) => {
+                    // Check if resizing is globally disabled
+                    if (root.isResizingDisabled) {
+                        mouse.accepted = false
+                        return
+                    }
+                    
                     root.dragging = true
                     root.dragMode = "rotate"
                     // Calculate center of the control in parent coordinates
@@ -737,6 +770,12 @@ Item {
                 property point adjacentCorner2  // Adjacent corner 2 in parent coords
                 
                 onPressed: (mouse) => {
+                    // Check if resizing is globally disabled
+                    if (root.isResizingDisabled) {
+                        mouse.accepted = false
+                        return
+                    }
+                    
                     // In fit content mode, don't handle the event
                     if (shouldPropagateEvents) {
                         mouse.accepted = false
@@ -937,12 +976,22 @@ Item {
         // 1. A single element is selected
         // 2. The selected element is a frame
         // 3. Not dragging/resizing
+        // 4. Frame has no parent OR parent does not have a platform
         visible: {
             if (!parent || !parent.parent || !parent.parent.selectedElements) return false
             if (parent.parent.selectedElements.length !== 1) return false
             var element = parent.parent.selectedElements[0]
             if (!element || element.elementType !== "Frame") return false
-            return root.showResizeJoints
+            if (!root.showResizeJoints) return false
+            
+            // Hide if frame has no parent (top-level) and has a platform
+            if (!element.parentId || element.parentId === "") {
+                if (element.platform && element.platform !== "") {
+                    return false
+                }
+            }
+            
+            return true
         }
         
         // Drag progress along diagonal (0 = top-left corner, 1 = center)
@@ -1072,6 +1121,8 @@ Item {
         // 2. The selected element is a frame
         // 3. Not dragging
         // 4. Not currently prototyping
+        // 5. Frame has a platform defined (not empty/undefined)
+        // 6. None of the selected elements' ancestors have a platform defined
         visible: {
             if (!parent || !parent.parent || !parent.parent.selectedElements) return false
             if (parent.parent.selectedElements.length !== 1) return false
@@ -1083,6 +1134,22 @@ Item {
             if (viewportOverlay && viewportOverlay.prototypeController && viewportOverlay.prototypeController.isPrototyping) {
                 return false
             }
+            // Hide if platform is undefined/empty
+            if (!element.platform || element.platform === "") return false
+            
+            // Check if any ancestor has a platform defined
+            if (viewportOverlay && viewportOverlay.canvasView && viewportOverlay.canvasView.elementModel) {
+                var currentId = element.parentId
+                while (currentId && currentId !== "") {
+                    var parentElement = viewportOverlay.canvasView.elementModel.getElementById(currentId)
+                    if (parentElement && parentElement.elementType === "Frame" && parentElement.platform && parentElement.platform !== "") {
+                        // An ancestor has a platform defined, hide the button
+                        return false
+                    }
+                    currentId = parentElement ? parentElement.parentId : ""
+                }
+            }
+            
             return true
         }
         
@@ -1135,6 +1202,11 @@ Item {
                 if (selectedFrame.elementType !== "Frame") {
                     ConsoleMessageRepository.addError("Selected element is not a frame")
                     return
+                }
+                
+                // Set prototype mode based on frame's platform
+                if (selectedFrame.platform) {
+                    prototypeController.prototypeMode = selectedFrame.platform
                 }
                 
                 // Starting prototyping mode
@@ -1330,8 +1402,6 @@ Item {
         
         // Update the frame's border radius
         element.borderRadius = newRadius
-        
-        ConsoleMessageRepository.addOutput("BorderRadius updated to: " + newRadius.toFixed(1) + " (max: " + maxRadius.toFixed(1) + ")")
     }
     
     // Function to check if we should reorder elements while dragging

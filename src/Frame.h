@@ -25,8 +25,15 @@ class Frame : public DesignElement {
     Q_PROPERTY(bool canResizeWidth READ canResizeWidth NOTIFY canResizeWidthChanged)
     Q_PROPERTY(bool canResizeHeight READ canResizeHeight NOTIFY canResizeHeightChanged)
     Q_PROPERTY(bool controlled READ controlled WRITE setControlled NOTIFY controlledChanged)
+    Q_PROPERTY(Role role READ role WRITE setRole NOTIFY roleChanged)
+    Q_PROPERTY(QString platform READ platform WRITE setPlatform NOTIFY platformChanged)
     
 public:
+    enum Role {
+        undefined,
+        container
+    };
+    Q_ENUM(Role)
     enum ColorFormat {
         RGB,
         HEX,
@@ -105,6 +112,8 @@ public:
     bool canResizeWidth() const;
     bool canResizeHeight() const;
     bool controlled() const { return m_controlled; }
+    Role role() const { return m_role; }
+    QString platform() const { return m_platform; }
     
     // Property setters
     void setFill(const QColor &color);
@@ -123,6 +132,8 @@ public:
     void setWidthType(SizeType type);
     void setHeightType(SizeType type);
     void setControlled(bool controlled);
+    void setRole(Role role);
+    void setPlatform(const QString& platform);
     
     // Override geometry setters to trigger layout
     void setWidth(qreal w) override;
@@ -148,6 +159,8 @@ signals:
     void canResizeWidthChanged();
     void canResizeHeightChanged();
     void controlledChanged();
+    void roleChanged();
+    void platformChanged();
     
 public slots:
     void triggerLayout();
@@ -169,6 +182,8 @@ private:
     SizeType m_widthType = SizeFixed;
     SizeType m_heightType = SizeFixed;
     bool m_controlled = true; // Default to true
+    Role m_role = undefined;
+    QString m_platform; // Default to empty string (undefined)
     
     // Layout engine
     std::unique_ptr<class FlexLayoutEngine> m_layoutEngine;

@@ -15,6 +15,7 @@ Project::Project(const QString& id, const QString& name, QObject *parent)
     , m_name(name.isEmpty() ? "Untitled Canvas" : name)
     , m_id(id)
     , m_viewMode("design")
+    , m_platforms()
 {
 }
 
@@ -55,6 +56,10 @@ QString Project::id() const {
 
 QString Project::viewMode() const {
     return m_viewMode;
+}
+
+QStringList Project::platforms() const {
+    return m_platforms;
 }
 
 void Project::setName(const QString& name) {
@@ -117,6 +122,13 @@ void Project::setViewMode(const QString& viewMode) {
     }
 }
 
+void Project::setPlatforms(const QStringList& platforms) {
+    if (m_platforms != platforms) {
+        m_platforms = platforms;
+        emit platformsChanged();
+    }
+}
+
 void Project::initialize() {
     // Create the components that don't have dependencies first
     m_elementModel = std::make_unique<ElementModel>(this);
@@ -130,6 +142,21 @@ void Project::initialize() {
     
     // Create the prototype controller
     m_prototypeController = std::make_unique<PrototypeController>(*m_elementModel, *m_selectionManager, this);
+    
+    // Connect prototype controller's isPrototyping to design canvas disable flags
+    if (DesignCanvas* designCanvas = qobject_cast<DesignCanvas*>(m_controller.get())) {
+        connect(m_prototypeController.get(), &PrototypeController::isPrototypingChanged,
+                this, [designCanvas, this]() {
+                    bool isPrototyping = m_prototypeController->isPrototyping();
+                    designCanvas->setIsDesignControlsResizingDisabled(isPrototyping);
+                    designCanvas->setIsDesignControlsMovementDisabled(isPrototyping);
+                });
+        
+        // Set initial state in case prototyping is already active
+        bool isPrototyping = m_prototypeController->isPrototyping();
+        designCanvas->setIsDesignControlsResizingDisabled(isPrototyping);
+        designCanvas->setIsDesignControlsMovementDisabled(isPrototyping);
+    }
     
     // Set up script executor
     m_scriptExecutor->setScripts(m_scripts.get());

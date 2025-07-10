@@ -720,25 +720,35 @@ Item {
                     
                     // Get the viewable area's actual position in viewport
                     if (prototypeViewableArea && prototypeViewableArea.visible) {
-                        // The viewable area rectangle is at the bottom of its container
-                        // Container Y + dropdown height (50) = top of red viewable area
-                        var viewableAreaTopInViewport = prototypeViewableArea.y + 50
-                        
-                        // We want the canvas point (which is the frame's top edge) to appear
-                        // at the viewable area's top edge, not at the viewport center
-                        // So we need to calculate what canvas Y would put the frame top at the viewable area top
-                        
-                        // The moveToPoint function centers the given point in the viewport
-                        // So we need to offset the point so that when centered, the frame top aligns with viewable area top
+                        // The viewable area is now vertically centered in the viewport
                         var viewportHeight = root.flickable.height
-                        var offsetFromViewportTop = viewableAreaTopInViewport
-                        var offsetFromViewportCenter = offsetFromViewportTop - (viewportHeight / 2)
+                        var viewableAreaHeight = prototypeController.viewableArea.height
+                        var viewableAreaTopInViewport = (viewportHeight - viewableAreaHeight) / 2
                         
-                        // Adjust the canvas point by this offset (in canvas coordinates)
-                        adjustedPoint.y = canvasPoint.y - (offsetFromViewportCenter / canvasView.zoom)
+                        // We need to find what canvas point to pass to moveToPoint
+                        // so that the frame top appears at viewableAreaTopInViewport
+                        
+                        // Using the standard viewport formula: viewportY = (canvasY - canvasMinY) * zoom - contentY
+                        // We want: viewableAreaTopInViewport = (frameTopY - canvasMinY) * zoom - contentY
+                        // Solving for contentY: contentY = (frameTopY - canvasMinY) * zoom - viewableAreaTopInViewport
+                        
+                        // But moveToPoint sets contentY based on centering a canvas point
+                        // When point P is centered: contentY = (P - canvasMinY) * zoom - viewportHeight/2
+                        
+                        // Setting these equal:
+                        // (P - canvasMinY) * zoom - viewportHeight/2 = (frameTopY - canvasMinY) * zoom - viewableAreaTopInViewport
+                        // (P - canvasMinY) * zoom = (frameTopY - canvasMinY) * zoom - viewableAreaTopInViewport + viewportHeight/2
+                        // P = frameTopY + (viewportHeight/2 - viewableAreaTopInViewport) / zoom
+                        
+                        var frameTopY = canvasPoint.y  // This is the frame's top edge
+                        var offset = (viewportHeight/2 - viewableAreaTopInViewport) / canvasView.zoom
+                        
+                        // Calculate the adjustment to align frame top with viewable area top
+                        adjustedPoint.y = frameTopY + offset
                     }
                     
                     canvasView.moveToPoint(adjustedPoint, animated)
+                    
                 }
             })
         }

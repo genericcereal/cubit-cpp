@@ -7,12 +7,26 @@
 
 class ElementModel;
 class SelectionManager;
+class CanvasElement;
+
+// Structure to store constraint values
+struct ConstraintValues {
+    qreal left = 0;
+    qreal right = 0;
+    qreal top = 0;
+    qreal bottom = 0;
+    bool leftAnchored = false;
+    bool rightAnchored = false;
+    bool topAnchored = false;
+    bool bottomAnchored = false;
+};
 
 // Snapshot structure to capture canvas and element states
 struct PrototypeSnapshot {
     QPointF canvasPosition;
     qreal canvasZoom = 1.0;
     QHash<QString, QRectF> elementPositions; // elementId -> QRectF(x, y, width, height)
+    QHash<QString, ConstraintValues> elementConstraints; // elementId -> constraint values
 };
 
 class PrototypeController : public QObject {
@@ -42,7 +56,7 @@ public:
     QRectF viewableArea() const { return m_viewableArea; }
     void setViewableArea(const QRectF& area);
     
-    // Prototype mode (Web, Mobile, etc.)
+    // Prototype mode (ios, web, android)
     QString prototypeMode() const { return m_prototypeMode; }
     void setPrototypeMode(const QString& mode);
     
@@ -75,6 +89,7 @@ public:
     
 private:
     void setDeviceFrames(bool isModeChange = false, qreal oldViewableHeight = 0.0);
+    void updateChildLayouts(CanvasElement* parent);
     void onSelectionChanged();
     
 signals:
@@ -94,7 +109,7 @@ private:
     
     bool m_isPrototyping = false;
     QRectF m_viewableArea;
-    QString m_prototypeMode = "Web";
+    QString m_prototypeMode = "web";
     std::unique_ptr<PrototypeSnapshot> m_prototypingStartSnapshot;
     
     // Animated bounds tracking
@@ -111,9 +126,11 @@ private:
     QString m_activeOuterFrame;
     bool m_isInitializingPrototype = false;
     
-    // Default viewable area dimensions for different modes
-    static constexpr qreal WEB_WIDTH = 200.0;
+    // Default viewable area dimensions for different platforms
+    static constexpr qreal IOS_WIDTH = 200.0;
+    static constexpr qreal IOS_HEIGHT = 400.0;
+    static constexpr qreal WEB_WIDTH = 800.0;
     static constexpr qreal WEB_HEIGHT = 400.0;
-    static constexpr qreal MOBILE_WIDTH = 400.0;
-    static constexpr qreal MOBILE_HEIGHT = 800.0;
+    static constexpr qreal ANDROID_WIDTH = 200.0;
+    static constexpr qreal ANDROID_HEIGHT = 400.0;
 };
