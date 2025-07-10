@@ -3,7 +3,6 @@
 #include "ElementModel.h"
 #include "Frame.h"
 #include "Text.h"
-#include "Html.h"
 #include "Variable.h"
 #include <QDebug>
 
@@ -109,10 +108,9 @@ QString Node::value() const
                 qDebug() << "Node::value() - Found source element:" << sourceElement->getName() 
                          << "type:" << sourceElement->objectName();
                 
-                // Return the element ID for design elements (Frame, Text, Html)
+                // Return the element ID for design elements (Frame, Text)
                 if (qobject_cast<Frame*>(sourceElement) || 
-                    qobject_cast<Text*>(sourceElement) || 
-                    qobject_cast<Html*>(sourceElement)) {
+                    qobject_cast<Text*>(sourceElement)) {
                     QString id = sourceElement->getId();
                     qDebug() << "Node::value() - Returning element ID:" << id;
                     return id;

@@ -260,11 +260,8 @@ Element (base class)
     │   ├── Frame
     │   │   └── Properties: backgroundColor, borderColor, borderWidth, borderRadius, overflow
     │   │
-    │   ├── Text
-    │   │   └── Properties: text, font, color
-    │   │
-    │   └── Html
-    │       └── Properties: html, url
+    │   └── Text
+    │       └── Properties: text, font, color
     │
     └── ScriptElement (script canvas elements)
         ├── isScriptElement() returns true
@@ -280,10 +277,10 @@ Element (base class)
 
 1. **Element** is the base class containing only properties common to ALL elements
 2. **CanvasElement** extends Element with geometric properties for visual elements
-3. **DesignElement** extends CanvasElement for elements that belong on the design canvas (Frame, Text, Html)
+3. **DesignElement** extends CanvasElement for elements that belong on the design canvas (Frame, Text)
 4. **ScriptElement** extends CanvasElement for elements that belong on the script canvas (Node, Edge)
 5. **Variable** inherits directly from Element since it has no visual representation
-6. **Design elements** (Frame, Text, Html) inherit from DesignElement
+6. **Design elements** (Frame, Text) inherit from DesignElement
 7. **Script elements** (Node, Edge) inherit from ScriptElement
 
 #### Element Creation and Management:
@@ -442,7 +439,7 @@ ApplicationWindow {
 - `DesignElement` - Base class for design canvas elements (inherits from CanvasElement)
 - `ScriptElement` - Base class for script canvas elements (inherits from CanvasElement)
 - `Variable` - Non-visual data element
-- `Frame`, `Text`, `Html` - Visual design elements inheriting from DesignElement
+- `Frame`, `Text` - Visual design elements inheriting from DesignElement
 - `Node`, `Edge` - Visual script elements inheriting from ScriptElement
 
 **Controller Classes:**
@@ -477,7 +474,6 @@ qmlRegisterUncreatableType<ScriptElement>("Cubit", 1, 0, "ScriptElement", "Scrip
 // Concrete element types
 qmlRegisterType<Frame>("Cubit", 1, 0, "Frame");
 qmlRegisterType<Text>("Cubit", 1, 0, "TextElement");
-qmlRegisterType<Html>("Cubit", 1, 0, "Html");
 qmlRegisterType<Variable>("Cubit", 1, 0, "Variable");
 qmlRegisterType<Node>("Cubit", 1, 0, "Node");
 qmlRegisterType<Edge>("Cubit", 1, 0, "Edge");

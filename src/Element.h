@@ -17,7 +17,6 @@ public:
         FrameType,
         TextType,
         VariableType,
-        HtmlType,
         NodeType,
         EdgeType,
         ComponentType,

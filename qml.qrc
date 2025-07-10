@@ -23,7 +23,6 @@
         <file>qml/components/ElementRenderer.qml</file>
         <file>qml/components/FrameElement.qml</file>
         <file>qml/components/TextElement.qml</file>
-        <file>qml/components/HtmlElement.qml</file>
         <file>qml/components/NodeElement.qml</file>
         <file>qml/components/EdgeElement.qml</file>
         <file>qml/components/BezierEdge.qml</file>

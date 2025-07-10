@@ -3,7 +3,6 @@
 #include "CanvasElement.h"
 #include "Frame.h"
 #include "Text.h"
-#include "Html.h"
 #include "Variable.h"
 #include "Node.h"
 #include "Edge.h"
@@ -57,10 +56,6 @@ Element* CreationManager::createElement(const QString& type, qreal x, qreal y, q
     } else if (type == "text") {
         // For text creation preview, we'll use a Frame
         // The actual Text element will be created by the command
-        element = new Frame(id);
-    } else if (type == "html") {
-        // For HTML creation preview, we'll use a Frame
-        // The actual Html element will be created by the command
         element = new Frame(id);
     } else if (type == "variable") {
         element = new Variable(id);

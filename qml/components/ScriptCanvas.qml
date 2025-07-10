@@ -636,7 +636,7 @@ BaseCanvas {
                 
                 console.log("Creating node at position:", nodeX, nodeY)
                 
-                // Create Variable node for ALL element types (Frame, Text, Html, Variable)
+                // Create Variable node for ALL element types (Frame, Text, Variable)
                 var nodeData = {
                     x: nodeX,
                     y: nodeY,
