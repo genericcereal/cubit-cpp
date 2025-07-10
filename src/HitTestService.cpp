@@ -341,7 +341,7 @@ bool HitTestService::shouldTestElement(Element* element) const
     // Apply view mode filtering (matching ElementFilterProxy logic)
     if (m_canvasType == CanvasType::Design) {
         // In design mode, test:
-        // 1. Design elements (Frame, Text, Html) that are NOT in any component's variants
+        // 1. Design elements (Frame, Text) that are NOT in any component's variants
         // 2. ComponentInstance elements
         
         // Check if it's a ComponentInstance

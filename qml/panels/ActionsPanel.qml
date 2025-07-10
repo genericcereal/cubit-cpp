@@ -170,38 +170,6 @@ Rectangle {
             ToolTip.text: "Text Mode"
         }
         
-        ToolButton {
-            id: htmlButton
-            visible: !isScriptMode
-            Layout.fillHeight: true
-            Layout.preferredWidth: height
-            checkable: true
-            checked: currentMode === CanvasController.Html
-            
-            contentItem: Text {
-                text: "H"
-                color: parent.checked ? "#ffffff" : "#aaaaaa"
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-                font.pixelSize: 16
-            }
-            
-            background: Rectangle {
-                color: parent.checked ? "#0066cc" : "transparent"
-                radius: 4
-                antialiasing: true
-            }
-            
-            onClicked: {
-                if (!isScriptMode) {
-                    currentMode = CanvasController.Html
-                    root.modeChanged(CanvasController.Html)
-                }
-            }
-            
-            ToolTip.visible: hovered
-            ToolTip.text: "HTML Mode"
-        }
         
         ToolButton {
             id: variableButton

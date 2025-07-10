@@ -3,7 +3,6 @@
 #include "ComponentVariant.h"
 #include "Frame.h"
 #include "Text.h"
-#include "Html.h"
 #include "DesignElement.h"
 #include "Application.h"
 #include "ElementModel.h"
@@ -312,10 +311,6 @@ CanvasElement* ComponentInstance::createInstanceOfElement(CanvasElement* sourceE
         Text* textInstance = new Text(instanceId, parent);
         textInstance->setName("Instance of " + text->getName());
         instance = textInstance;
-    } else if (Html* html = qobject_cast<Html*>(sourceElement)) {
-        Html* htmlInstance = new Html(instanceId, parent);
-        htmlInstance->setName("Instance of " + html->getName());
-        instance = htmlInstance;
     }
     
     if (instance) {

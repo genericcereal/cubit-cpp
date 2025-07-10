@@ -28,7 +28,6 @@ Item {
                     case "Frame": return "FrameElement.qml"
                     case "ComponentInstance": return "FrameElement.qml"
                     case "Text": return "TextElement.qml"  
-                    case "Html": return "HtmlElement.qml"
                     default: return ""
                 }
             }

@@ -21,7 +21,7 @@ Component::~Component()
 void Component::addVariant(Element* variant)
 {
     if (variant && !m_variants.contains(variant)) {
-        // Accept DesignElements (Frame, Text, Html, ComponentVariant) and Variables
+        // Accept DesignElements (Frame, Text, ComponentVariant) and Variables
         CanvasElement* canvasElement = qobject_cast<CanvasElement*>(variant);
         if ((canvasElement && canvasElement->isDesignElement()) || qobject_cast<Variable*>(variant)) {
             m_variants.append(variant);

@@ -8,7 +8,6 @@
 #include "ComponentVariant.h"
 #include "Frame.h"
 #include "Text.h"
-#include "Html.h"
 #include "UniqueIdGenerator.h"
 #include "ElementModel.h"
 #include "SelectionManager.h"
@@ -588,20 +587,6 @@ CanvasElement* DesignElement::copyElementRecursively(CanvasElement* sourceElemen
         copyElementProperties(textCopy, text, false);
         
         copiedElement = textCopy;
-    } else if (Html* html = qobject_cast<Html*>(sourceElement)) {
-        Html* htmlCopy = new Html(newId, parentInVariant);
-        htmlCopy->setName("Copied " + html->getName());
-        
-        // For child elements, calculate relative position
-        qreal relX = sourceElement->x() - sourceElement->parentElement()->x();
-        qreal relY = sourceElement->y() - sourceElement->parentElement()->y();
-        
-        htmlCopy->setRect(QRectF(relX, relY, html->width(), html->height()));
-        
-        // Use utility function to copy all properties
-        copyElementProperties(htmlCopy, html, false);
-        
-        copiedElement = htmlCopy;
     }
     
     if (copiedElement) {
@@ -678,11 +663,6 @@ void DesignElement::copyElementProperties(CanvasElement* target, CanvasElement* 
             targetText->setContent(sourceText->content());
             targetText->setFont(sourceText->font());
             targetText->setColor(sourceText->color());
-        }
-    } else if (Html* targetHtml = qobject_cast<Html*>(target)) {
-        if (Html* sourceHtml = qobject_cast<Html*>(source)) {
-            targetHtml->setHtml(sourceHtml->html());
-            targetHtml->setUrl(sourceHtml->url());
         }
     }
 }

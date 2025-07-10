@@ -12,7 +12,6 @@ class SelectionManager;
 class DesignElement;
 class Frame;
 class Text;
-class Html;
 
 class CreateDesignElementCommand : public Command
 {
@@ -21,8 +20,7 @@ class CreateDesignElementCommand : public Command
 public:
     enum ElementType {
         FrameElement,
-        TextElement,
-        HtmlElement
+        TextElement
     };
     Q_ENUM(ElementType)
 
@@ -45,7 +43,6 @@ private:
     // Created elements
     QPointer<Frame> m_frame;
     QPointer<Text> m_textElement;
-    QPointer<Html> m_htmlElement;
     
     // IDs for the created elements
     QString m_frameId;

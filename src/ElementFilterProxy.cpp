@@ -116,7 +116,7 @@ bool ElementFilterProxy::shouldShowElementInMode(Element* element) const {
     
     if (m_viewMode == "design") {
         // In design mode, show:
-        // 1. Design elements (Frame, Text, Html) that are NOT in any component's variants
+        // 1. Design elements (Frame, Text) that are NOT in any component's variants
         // 2. ComponentInstance elements
         // Note: Component elements are already handled above
         

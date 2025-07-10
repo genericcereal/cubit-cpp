@@ -26,8 +26,7 @@ public:
     enum class Mode {
         Select,
         Frame,
-        Text,
-        Html
+        Text
     };
     Q_ENUM(Mode)
     

@@ -27,8 +27,8 @@ Item {
                 var elementType = element.elementType || "unknown";
 
 
-                // Only Frame, Text, and Html elements (DesignElements) can execute scripts
-                if (elementType === "Frame" || elementType === "Text" || elementType === "Html") {
+                // Only Frame and Text elements (DesignElements) can execute scripts
+                if (elementType === "Frame" || elementType === "Text") {
                     try {
                         element.executeScriptEvent("onEditorLoad");
                     } catch (e) {

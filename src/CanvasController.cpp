@@ -83,14 +83,6 @@ void CanvasController::initializeModeHandlers()
         &m_elementModel, &m_selectionManager,
         m_commandHistory.get(), setModeFunc);
     
-    // HTML mode
-    m_modeHandlers[Mode::Html] = std::make_unique<CreationModeHandler>(
-        CreationModeHandler::Config{
-            CreateDesignElementCommand::HtmlElement,
-            QVariant("<h1>HTML Content</h1>")  // Default HTML content
-        },
-        &m_elementModel, &m_selectionManager,
-        m_commandHistory.get(), setModeFunc);
     
     // Set initial handler
     m_currentHandler = m_modeHandlers[m_mode].get();
