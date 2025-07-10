@@ -24,6 +24,45 @@ Item {
     // Check if we need rounded corner clipping
     property bool needsClipping: frameElement && frameElement.borderRadius > 0 && frameElement.overflow !== 2
     
+    // Check if this is the active outer frame during prototyping
+    property bool isActiveOuterFrame: {
+        var prototypeController = Application.activeCanvas ? Application.activeCanvas.prototypeController : null
+        return prototypeController && 
+               prototypeController.isPrototyping && 
+               prototypeController.activeOuterFrame === element.elementId
+    }
+    
+    // Reset scroll tracking when prototyping stops
+    onIsActiveOuterFrameChanged: {
+        if (!isActiveOuterFrame) {
+            hasScrollStarted = false
+            framePositionWhenScrollStarted = 0
+        }
+    }
+    
+    // Track the frame position when scrolling started
+    property real framePositionWhenScrollStarted: 0
+    property bool hasScrollStarted: false
+    
+    // Monitor frame position changes
+    Connections {
+        target: root.element
+        enabled: root.isActiveOuterFrame
+        
+        function onYChanged() {
+            if (!root.isActiveOuterFrame) return
+            
+            var prototypeController = Application.activeCanvas.prototypeController
+            var initialPos = prototypeController.getSnapshotElementPosition(root.element.elementId)
+            
+            // Check if this is the first scroll movement
+            if (!root.hasScrollStarted && Math.abs(root.element.y - initialPos.y) > 5) {
+                root.hasScrollStarted = true
+                root.framePositionWhenScrollStarted = root.element.y
+            }
+        }
+    }
+    
     // Frame visual representation (background)
     Rectangle {
         id: frameRect
@@ -139,5 +178,92 @@ Item {
         property variant maskSource: maskSource
         
         fragmentShader: "qrc:/shaders/roundedmask.frag.qsb"
+    }
+    
+    // Opacity mask for parts outside the viewable area during prototyping
+    Item {
+        id: prototypeMask
+        anchors.fill: parent
+        visible: root.isActiveOuterFrame
+        
+        // Simple approach: The viewable area is always centered horizontally and starts at Y=0 of the frame
+        property real viewableX: {
+            if (!root.isActiveOuterFrame) return 0
+            var prototypeController = Application.activeCanvas.prototypeController
+            var viewableWidth = prototypeController.viewableArea.width
+            // Center the viewable area horizontally within the frame
+            return (root.width - viewableWidth) / 2
+        }
+        
+        property real viewableY: {
+            if (!root.isActiveOuterFrame) return 0
+            
+            if (!root.hasScrollStarted) {
+                // Before scrolling starts, viewable area is at the top of the frame
+                return 0
+            } else {
+                // After scrolling starts, calculate offset based on movement
+                var currentY = root.element.y
+                var scrollOffset = root.framePositionWhenScrollStarted - currentY
+                return Math.max(0, scrollOffset)
+            }
+        }
+        
+        property real viewableWidth: {
+            if (!root.isActiveOuterFrame) return 0
+            var prototypeController = Application.activeCanvas.prototypeController
+            return Math.min(prototypeController.viewableArea.width, root.width)
+        }
+        
+        property real viewableHeight: {
+            if (!root.isActiveOuterFrame) return 0
+            var prototypeController = Application.activeCanvas.prototypeController
+            var availableHeight = root.height - viewableY
+            return Math.min(prototypeController.viewableArea.height, availableHeight)
+        }
+        
+        // Top overlay (above viewable area)
+        Rectangle {
+            x: 0
+            y: 0
+            width: parent.width
+            height: prototypeMask.viewableY
+            color: "white"
+            opacity: 0.6
+            visible: height > 0
+        }
+        
+        // Left overlay
+        Rectangle {
+            x: 0
+            y: prototypeMask.viewableY
+            width: prototypeMask.viewableX
+            height: prototypeMask.viewableHeight
+            color: "white"
+            opacity: 0.6
+            visible: width > 0
+        }
+        
+        // Right overlay
+        Rectangle {
+            x: prototypeMask.viewableX + prototypeMask.viewableWidth
+            y: prototypeMask.viewableY
+            width: parent.width - x
+            height: prototypeMask.viewableHeight
+            color: "white"
+            opacity: 0.6
+            visible: width > 0
+        }
+        
+        // Bottom overlay
+        Rectangle {
+            x: 0
+            y: prototypeMask.viewableY + prototypeMask.viewableHeight
+            width: parent.width
+            height: parent.height - y
+            color: "white"
+            opacity: 0.6
+            visible: height > 0
+        }
     }
 }

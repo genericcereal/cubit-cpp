@@ -21,14 +21,90 @@ ScrollView {
         width: root.width
         spacing: 10
         
-        // No selection message
-        Label {
+        
+        // Platforms section when no element selected
+        GroupBox {
             Layout.fillWidth: true
-            Layout.margins: 20
-            text: "No element selected"
-            visible: !selectedElement
-            horizontalAlignment: Text.AlignHCenter
-            color: "#666666"
+            Layout.margins: 10
+            title: "Platforms"
+            visible: !selectedElement && Application.activeCanvas
+            
+            ColumnLayout {
+                anchors.fill: parent
+                spacing: 10
+                
+                RowLayout {
+                    Layout.fillWidth: true
+                    
+                    ComboBox {
+                        id: platformCombo
+                        Layout.fillWidth: true
+                        model: {
+                            if (!Application.activeCanvas) return []
+                            
+                            var allTargets = ["iOS", "Android", "web"]
+                            var currentPlatforms = Application.activeCanvas.platforms
+                            var availablePlatforms = []
+                            
+                            for (var i = 0; i < allTargets.length; i++) {
+                                if (currentPlatforms.indexOf(allTargets[i]) === -1) {
+                                    availablePlatforms.push(allTargets[i])
+                                }
+                            }
+                            
+                            return availablePlatforms
+                        }
+                        enabled: count > 0
+                    }
+                    
+                    Button {
+                        text: "Add"
+                        Layout.preferredWidth: 80
+                        enabled: platformCombo.count > 0
+                        onClicked: {
+                            if (Application.activeCanvas && platformCombo.currentText) {
+                                var platforms = Application.activeCanvas.platforms
+                                platforms.push(platformCombo.currentText)
+                                Application.activeCanvas.platforms = platforms
+                            }
+                        }
+                    }
+                }
+                
+                Label {
+                    visible: platformCombo.count === 0
+                    text: "All platforms added"
+                    color: "#666666"
+                    font.italic: true
+                }
+            }
+        }
+        
+        // Added platforms sections
+        Repeater {
+            model: Application.activeCanvas ? Application.activeCanvas.platforms : []
+            
+            GroupBox {
+                Layout.fillWidth: true
+                Layout.margins: 10
+                title: modelData
+                visible: !selectedElement && Application.activeCanvas
+                
+                Button {
+                    text: "Remove"
+                    anchors.centerIn: parent
+                    onClicked: {
+                        if (Application.activeCanvas) {
+                            var platforms = Application.activeCanvas.platforms
+                            var index = platforms.indexOf(modelData)
+                            if (index > -1) {
+                                platforms.splice(index, 1)
+                                Application.activeCanvas.platforms = platforms
+                            }
+                        }
+                    }
+                }
+            }
         }
         
         // Actions section for design elements
@@ -111,6 +187,58 @@ ScrollView {
                     color: "#666666"
                     visible: selectedElement && selectedElement.isDesignElement
                 }
+                
+                Label { 
+                    text: "Platform:" 
+                    visible: selectedElement && selectedElement.elementType === "Frame" && Application.activeCanvas && Application.activeCanvas.platforms.length > 0
+                }
+                ComboBox {
+                    Layout.fillWidth: true
+                    visible: selectedElement && selectedElement.elementType === "Frame" && Application.activeCanvas && Application.activeCanvas.platforms.length > 0
+                    model: {
+                        if (!Application.activeCanvas || !selectedElement || selectedElement.elementType !== "Frame") {
+                            return ["undefined"]
+                        }
+                        
+                        var platforms = ["undefined"]
+                        var canvasPlatforms = Application.activeCanvas.platforms
+                        for (var i = 0; i < canvasPlatforms.length; i++) {
+                            platforms.push(canvasPlatforms[i])
+                        }
+                        return platforms
+                    }
+                    currentIndex: {
+                        if (selectedElement && selectedElement.elementType === "Frame") {
+                            var platform = selectedElement.platform || "undefined"
+                            var index = model.indexOf(platform)
+                            return index >= 0 ? index : 0
+                        }
+                        return 0
+                    }
+                    onActivated: function(index) {
+                        if (selectedElement && selectedElement.elementType === "Frame") {
+                            var platform = model[index]
+                            selectedElement.platform = platform === "undefined" ? "" : platform
+                        }
+                    }
+                }
+                
+                Label { 
+                    text: "Role:" 
+                    visible: selectedElement && selectedElement.elementType === "Frame" && selectedElement.platform && selectedElement.platform !== ""
+                }
+                ComboBox {
+                    Layout.fillWidth: true
+                    visible: selectedElement && selectedElement.elementType === "Frame" && selectedElement.platform && selectedElement.platform !== ""
+                    model: ["container"]
+                    currentIndex: 0  // Always show container since it's the only option
+                    onActivated: function(index) {
+                        if (selectedElement && selectedElement.elementType === "Frame") {
+                            // Since we only have "container" option, always set role to container (value 1)
+                            selectedElement.role = 1  // container
+                        }
+                    }
+                }
             }
         }
         
@@ -127,30 +255,30 @@ ScrollView {
                 columnSpacing: 10
                 rowSpacing: 5
                 
-                // Position type for Frame elements
+                // Position type for Frame and Text elements
                 Label { 
                     text: "Position:" 
-                    visible: selectedElement && selectedElement.elementType === "Frame"
+                    visible: selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "Text")
                 }
                 ComboBox {
                     Layout.fillWidth: true
-                    visible: selectedElement && selectedElement.elementType === "Frame"
+                    visible: selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "Text")
                     model: ["Relative", "Absolute", "Fixed"]
                     currentIndex: {
-                        if (selectedElement && selectedElement.elementType === "Frame") {
-                            // Map Frame.PositionType enum values to combo box indices
+                        if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "Text")) {
+                            // Map PositionType enum values to combo box indices
                             switch (selectedElement.position) {
                                 case 0: return 0  // Relative
                                 case 1: return 1  // Absolute
                                 case 2: return 2  // Fixed
-                                default: return 1  // Default to Absolute
+                                default: return 0  // Default to Relative
                             }
                         }
-                        return 1
+                        return 0
                     }
                     onActivated: function(index) {
-                        if (selectedElement && selectedElement.elementType === "Frame") {
-                            // Map combo box index to Frame.PositionType enum value
+                        if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "Text")) {
+                            // Map combo box index to PositionType enum value
                             selectedElement.position = index
                         }
                     }

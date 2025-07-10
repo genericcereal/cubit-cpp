@@ -21,10 +21,10 @@ CanvasController::CanvasController(ElementModel& model,
                                    SelectionManager& sel,
                                    QObject *parent)
     : QObject(parent)
-    , m_mode(Mode::Select)
-    , m_canvasType(CanvasType::Design)
     , m_elementModel(model)
     , m_selectionManager(sel)
+    , m_mode(Mode::Select)
+    , m_canvasType(CanvasType::Design)
 {
     // Create subcontrollers
     m_creationManager = std::make_unique<CreationManager>(this);

@@ -292,6 +292,33 @@ void Frame::setControlled(bool controlled)
     }
 }
 
+void Frame::setRole(Role role)
+{
+    if (m_role != role) {
+        m_role = role;
+        emit roleChanged();
+        emit elementChanged();
+    }
+}
+
+void Frame::setPlatform(const QString& platform)
+{
+    if (m_platform != platform) {
+        m_platform = platform;
+        
+        // When platform is set (not undefined), automatically set role to container
+        if (!platform.isEmpty()) {
+            if (m_role != container) {
+                m_role = container;
+                emit roleChanged();
+            }
+        }
+        
+        emit platformChanged();
+        emit elementChanged();
+    }
+}
+
 void Frame::triggerLayout()
 {
     // If we have flex enabled, schedule a layout through the layout engine

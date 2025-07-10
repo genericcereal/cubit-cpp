@@ -47,6 +47,15 @@ void Text::setIsEditing(bool editing)
     }
 }
 
+void Text::setPosition(PositionType position)
+{
+    if (m_position != position) {
+        m_position = position;
+        emit positionChanged();
+        emit elementChanged();
+    }
+}
+
 void Text::exitEditMode()
 {
     // Simply exit edit mode - the TextField will handle saving via onIsEditingChanged

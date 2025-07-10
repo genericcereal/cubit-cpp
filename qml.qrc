@@ -38,9 +38,9 @@
         <file>qml/panels/ElementList.qml</file>
         <file>qml/panels/PropertiesPanel.qml</file>
         <file>qml/panels/ActionsPanel.qml</file>
-        <file>qml/panels/FPSMonitor.qml</file>
         <file>qml/panels/Console.qml</file>
         <file>qml/panels/PropertyPopoverPanel.qml</file>
+        <file>qml/panels/PrototypePanel.qml</file>
         <file>shaders/roundedmask.frag.qsb</file>
     </qresource>
 </RCC>

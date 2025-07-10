@@ -121,14 +121,20 @@ Window {
                     }
                 }
             }
-
-            FPSMonitor {
-                id: fpsMonitor
-                visible: Application.panels.fpsMonitorVisible
-                anchors.top: parent.top
+            
+            // Prototype Panel - positioned relative to canvas container
+            PrototypePanel {
+                id: prototypePanel
+                visible: Application.activeCanvas && 
+                         Application.activeCanvas.prototypeController && 
+                         Application.activeCanvas.prototypeController.isPrototyping
                 anchors.right: parent.right
-                anchors.margins: 10
+                anchors.top: parent.top
+                anchors.rightMargin: 10
+                anchors.topMargin: 20
+                canvasView: canvasLoader.item
             }
+
         }
 
         // Right Panel - Detail Panel

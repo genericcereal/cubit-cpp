@@ -38,6 +38,22 @@ void DesignCanvas::setIsAnimating(bool animating)
     }
 }
 
+void DesignCanvas::setIsDesignControlsResizingDisabled(bool disabled)
+{
+    if (m_isDesignControlsResizingDisabled != disabled) {
+        m_isDesignControlsResizingDisabled = disabled;
+        emit isDesignControlsResizingDisabledChanged();
+    }
+}
+
+void DesignCanvas::setIsDesignControlsMovementDisabled(bool disabled)
+{
+    if (m_isDesignControlsMovementDisabled != disabled) {
+        m_isDesignControlsMovementDisabled = disabled;
+        emit isDesignControlsMovementDisabledChanged();
+    }
+}
+
 void DesignCanvas::updateHover(qreal x, qreal y)
 {
     // Update hover in select mode
@@ -89,14 +105,33 @@ bool DesignCanvas::isChildOfSelected(QObject* element) const
 
 void DesignCanvas::updateParentingDuringDrag()
 {
-    if (m_selectionManager.selectionCount() == 0 || !m_hoveredElement) {
+    if (m_selectionManager.selectionCount() == 0) {
+        return;
+    }
+    
+    const QList<Element*>& selectedElements = m_selectionManager.selectedElements();
+    
+    // If no element is hovered, unparent the selected elements
+    if (!m_hoveredElement) {
+        for (Element* element : selectedElements) {
+            if (!element) continue;
+            
+            // Guard: Don't change parentId of children of selected elements
+            if (isChildOfSelected(element)) continue;
+            
+            // Guard: ComponentVariants shouldn't have parents
+            if (element->getTypeName() == "ComponentVariant") continue;
+            
+            // Unparent the element by setting parentId to empty string
+            if (!element->getParentElementId().isEmpty()) {
+                element->setParentElementId("");
+            }
+        }
         return;
     }
     
     Element* hovered = qobject_cast<Element*>(m_hoveredElement);
     if (!hovered) return;
-    
-    const QList<Element*>& selectedElements = m_selectionManager.selectedElements();
     
     for (Element* element : selectedElements) {
         if (!element) continue;
