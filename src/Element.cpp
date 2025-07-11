@@ -26,10 +26,12 @@ QString Element::getTypeName() const
             return "Edge";
         case ComponentType:
             return "Component";
-        case ComponentInstanceType:
-            return "ComponentInstance";
-        case ComponentVariantType:
-            return "ComponentVariant";
+        case FrameComponentInstanceType:
+            return "FrameComponentInstance";
+        case FrameComponentVariantType:
+            return "FrameComponentVariant";
+        case TextVariantType:
+            return "TextVariant";
         default:
             return "Unknown";
     }

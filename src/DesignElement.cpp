@@ -4,8 +4,10 @@
 #include "Application.h"
 #include "Project.h"
 #include "Component.h"
-#include "ComponentInstance.h"
-#include "ComponentVariant.h"
+#include "FrameComponentInstance.h"
+#include "FrameComponentVariant.h"
+#include "TextVariant.h"
+#include "TextComponentInstance.h"
 #include "Frame.h"
 #include "Text.h"
 #include "UniqueIdGenerator.h"
@@ -453,14 +455,15 @@ Component* DesignElement::createComponent() {
     
     // Create a ComponentVariant that is a copy of this element
     QString variantId = UniqueIdGenerator::generate16DigitId();
-    ComponentVariant* variantFrame = nullptr;
+    DesignElement* variant = nullptr;
     
     // Store the ID mapping for the root element
     oldToNewIdMap[this->getId()] = variantId;
     
-    // Only Frame elements can become ComponentVariants
+    // Create the appropriate variant type based on the source element
     if (Frame* sourceFrame = qobject_cast<Frame*>(this)) {
-        variantFrame = new ComponentVariant(variantId, this->parent());
+        // Frame elements become ComponentVariants
+        FrameComponentVariant* variantFrame = new FrameComponentVariant(variantId, this->parent());
         variantFrame->setName("Variant1");
         
         // Set the variant frame's position to 0,0 (relative to component)
@@ -475,17 +478,39 @@ Component* DesignElement::createComponent() {
         
         // Copy anchor properties
         copyElementProperties(variantFrame, sourceFrame, false);
+        
+        variant = variantFrame;
+        component->setComponentType("frame");
+    } else if (Text* sourceText = qobject_cast<Text*>(this)) {
+        // Text elements become TextVariants
+        TextVariant* variantText = new TextVariant(variantId, this->parent());
+        variantText->setName("Variant1");
+        
+        // Set the variant text's position to 0,0 (relative to component)
+        variantText->setRect(QRectF(0, 0, width(), height()));
+        
+        // Copy all text properties from the source text
+        variantText->setContent(sourceText->content());
+        variantText->setFont(sourceText->font());
+        variantText->setColor(sourceText->color());
+        variantText->setPosition(sourceText->position());
+        
+        // Copy anchor properties
+        copyElementProperties(variantText, sourceText, false);
+        
+        variant = variantText;
+        component->setComponentType("text");
     } else {
-        qWarning() << "DesignElement::createComponent - Only Frame elements can be converted to components";
+        qWarning() << "DesignElement::createComponent - Only Frame and Text elements can be converted to components";
         delete component;
         return nullptr;
     }
     
-    // Add the variant frame to the component
-    component->addVariant(variantFrame);
+    // Add the variant to the component
+    component->addVariant(variant);
     
-    // Add the variant frame to the element model
-    elementModel->addElement(variantFrame);
+    // Add the variant to the element model
+    elementModel->addElement(variant);
     
     // Now copy all children of this element to be children of the variant frame
     QList<Element*> children = elementModel->getChildrenRecursive(this->getId());
@@ -502,24 +527,36 @@ Component* DesignElement::createComponent() {
     
     // Recursively copy each direct child
     for (CanvasElement* child : directChildren) {
-        copyElementRecursively(child, variantFrame, elementModel, oldToNewIdMap);
+        copyElementRecursively(child, variant, elementModel, oldToNewIdMap);
     }
     
     // Add the component to the element model first
     elementModel->addElement(component);
     
-    // Create a ComponentInstance to represent this component on the canvas
+    // Create the appropriate instance type based on component type
     QString instanceId = UniqueIdGenerator::generate16DigitId();
-    ComponentInstance* instance = new ComponentInstance(instanceId, this->parent());
+    CanvasElement* instance = nullptr;
     
-    // Position the instance at the same location as the original element
-    instance->setRect(QRectF(x(), y(), width(), height()));
+    if (component->componentType() == "text") {
+        TextComponentInstance* textInstance = new TextComponentInstance(instanceId, this->parent());
+        textInstance->setRect(QRectF(x(), y(), width(), height()));
+        instance = textInstance;
+    } else {
+        // Default to frame-based ComponentInstance
+        FrameComponentInstance* frameInstance = new FrameComponentInstance(instanceId, this->parent());
+        frameInstance->setRect(QRectF(x(), y(), width(), height()));
+        instance = frameInstance;
+    }
     
     // Add the instance to the element model
     elementModel->addElement(instance);
     
     // Set the instance to reference this component after both are in the model
-    instance->setInstanceOf(componentId);
+    if (TextComponentInstance* textInstance = qobject_cast<TextComponentInstance*>(instance)) {
+        textInstance->setInstanceOf(componentId);
+    } else if (FrameComponentInstance* frameInstance = qobject_cast<FrameComponentInstance*>(instance)) {
+        frameInstance->setInstanceOf(componentId);
+    }
     
     // Clear selection first
     if (selectionManager) {

@@ -200,7 +200,11 @@ Item {
                     var allElements = canvasView.elementModel.getAllElements()
                     for (var i = 0; i < allElements.length; i++) {
                         var element = allElements[i]
-                        if (element.elementType === "Text" && element.isEditing) {
+                        // Check for all text-based elements that can be edited
+                        if ((element.elementType === "Text" || 
+                             element.elementType === "TextVariant" ||
+                             (element.elementType === "FrameComponentInstance" && element.hasOwnProperty('content'))) 
+                            && element.isEditing) {
                             // This will trigger the save through the Connections in TextElement.qml
                             element.isEditing = false
                         }

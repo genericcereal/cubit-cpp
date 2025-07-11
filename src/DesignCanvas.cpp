@@ -120,7 +120,7 @@ void DesignCanvas::updateParentingDuringDrag()
             if (isChildOfSelected(element)) continue;
             
             // Guard: ComponentVariants shouldn't have parents
-            if (element->getTypeName() == "ComponentVariant") continue;
+            if (element->getTypeName() == "FrameComponentVariant") continue;
             
             // Unparent the element by setting parentId to empty string
             if (!element->getParentElementId().isEmpty()) {
@@ -140,7 +140,7 @@ void DesignCanvas::updateParentingDuringDrag()
         if (isChildOfSelected(element)) continue;
         
         // Guard: ComponentVariants shouldn't have parents
-        if (element->getTypeName() == "ComponentVariant") continue;
+        if (element->getTypeName() == "FrameComponentVariant") continue;
         
         // Guard: Don't set an element as its own parent
         if (hovered->getId() == element->getId()) continue;

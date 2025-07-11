@@ -189,9 +189,10 @@ Item {
                     var element = viewportOverlay.selectedElements[0]
                     ConsoleMessageRepository.addOutput("Selected element type: " + element.elementType + " (ID: " + element.elementId + ")")
                     
-                    // Check if it's a Text element directly selected
-                    if (element && element.elementType === "Text") {
-                        ConsoleMessageRepository.addOutput("Text element directly selected - triggering edit mode")
+                    // Check if it's a Text element, TextVariant, or text-based ComponentInstance directly selected
+                    if (element && (element.elementType === "Text" || element.elementType === "TextVariant" || 
+                        (element.elementType === "FrameComponentInstance" && element.hasOwnProperty("content")))) {
+                        ConsoleMessageRepository.addOutput("Text-based element directly selected - triggering edit mode")
                         element.isEditing = true
                         mouse.accepted = true
                         return
@@ -1309,14 +1310,14 @@ Item {
             }
             
             // Check if element is a ComponentInstance or ComponentVariant
-            if (element.elementType !== "ComponentInstance" && element.elementType !== "ComponentVariant") {
+            if (element.elementType !== "FrameComponentInstance" && element.elementType !== "FrameComponentVariant") {
                 // Check if it's a descendant of a ComponentInstance or ComponentVariant
                 var isDescendant = false
                 if (parent.canvasView && parent.canvasView.elementModel) {
                     var currentId = element.parentId
                     while (currentId && currentId !== "") {
                         var parentElement = parent.canvasView.elementModel.getElementById(currentId)
-                        if (parentElement && (parentElement.elementType === "ComponentInstance" || parentElement.elementType === "ComponentVariant")) {
+                        if (parentElement && (parentElement.elementType === "FrameComponentInstance" || parentElement.elementType === "FrameComponentVariant")) {
                             isDescendant = true
                             break
                         }

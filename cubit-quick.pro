@@ -44,8 +44,10 @@ SOURCES += \
     src/Text.cpp \
     src/Variable.cpp \
     src/Component.cpp \
-    src/ComponentInstance.cpp \
-    src/ComponentVariant.cpp \
+    src/FrameComponentInstance.cpp \
+    src/FrameComponentVariant.cpp \
+    src/TextVariant.cpp \
+    src/TextComponentInstance.cpp \
     src/Node.cpp \
     src/Edge.cpp \
     src/CanvasController.cpp \
@@ -91,8 +93,10 @@ HEADERS += \
     src/Text.h \
     src/Variable.h \
     src/Component.h \
-    src/ComponentInstance.h \
-    src/ComponentVariant.h \
+    src/FrameComponentInstance.h \
+    src/FrameComponentVariant.h \
+    src/TextVariant.h \
+    src/TextComponentInstance.h \
     src/ConnectionManager.h \
     src/PropertySyncer.h \
     src/PropertyCopier.h \

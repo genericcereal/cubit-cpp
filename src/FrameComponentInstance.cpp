@@ -1,6 +1,6 @@
-#include "ComponentInstance.h"
+#include "FrameComponentInstance.h"
 #include "Component.h"
-#include "ComponentVariant.h"
+#include "FrameComponentVariant.h"
 #include "Frame.h"
 #include "Text.h"
 #include "DesignElement.h"
@@ -13,30 +13,58 @@
 #include <QDebug>
 
 // Define static property lists
-const QStringList ComponentInstance::s_variantPropertiesToSync = {
+const QStringList FrameComponentInstance::s_variantPropertiesToSync = {
+    // Geometry properties
     "width",
     "height",
+    // Frame appearance properties
     "fill",
+    "colorFormat",
     "borderColor",
     "borderWidth",
     "borderRadius",
-    "overflow"
+    "overflow",
+    "acceptsChildren",
+    // Flex layout properties
+    "flex",
+    "orientation",
+    "gap",
+    "position",
+    "justify",
+    "align",
+    "widthType",
+    "heightType",
+    // Other Frame properties
+    "controlled",
+    "role",
+    "platform"
 };
 
-const QStringList ComponentInstance::s_childPropertiesToTrack = {
+const QStringList FrameComponentInstance::s_childPropertiesToTrack = {
+    // Position and size
     "x", "y", "width", "height",
+    // Anchoring
     "left", "right", "top", "bottom",
     "leftAnchored", "rightAnchored", "topAnchored", "bottomAnchored",
-    "fill", "borderColor", "borderWidth", "borderRadius", "overflow",
+    // Frame appearance
+    "fill", "colorFormat", "borderColor", "borderWidth", "borderRadius", "overflow", 
+    "acceptsChildren",
+    // Flex layout
+    "flex", "orientation", "gap", "position", "justify", "align",
+    "widthType", "heightType",
+    // Other Frame properties
+    "controlled", "role", "platform",
+    // Text properties
     "content", "font", "color",
+    // WebView properties
     "html", "url"
 };
 
-ComponentInstance::ComponentInstance(const QString &id, QObject *parent)
+FrameComponentInstance::FrameComponentInstance(const QString &id, QObject *parent)
     : Frame(id, parent)
 {
     // Set the element type directly (it's protected, not private)
-    elementType = ComponentInstanceType;
+    elementType = FrameComponentInstanceType;
     
     // Set the name to "Instance" + last 4 digits of ID
     QString last4 = id.right(4);
@@ -47,7 +75,7 @@ ComponentInstance::ComponentInstance(const QString &id, QObject *parent)
     qDebug() << "ComponentInstance constructor - set overflow to Hidden for" << id;
 }
 
-ComponentInstance::~ComponentInstance()
+FrameComponentInstance::~FrameComponentInstance()
 {
     // Set flag to indicate we're destructing
     m_isDestructing = true;
@@ -65,7 +93,7 @@ ComponentInstance::~ComponentInstance()
     disconnectFromComponent();
 }
 
-void ComponentInstance::setInstanceOf(const QString &componentId)
+void FrameComponentInstance::setInstanceOf(const QString &componentId)
 {
     if (m_instanceOf != componentId) {
         m_instanceOf = componentId;
@@ -76,13 +104,13 @@ void ComponentInstance::setInstanceOf(const QString &componentId)
         
         // Defer connection to avoid issues during initialization
         // Connect to new component on the next event loop iteration
-        QMetaObject::invokeMethod(this, &ComponentInstance::connectToComponent, Qt::QueuedConnection);
+        QMetaObject::invokeMethod(this, &FrameComponentInstance::connectToComponent, Qt::QueuedConnection);
         
         emit instanceOfChanged();
     }
 }
 
-void ComponentInstance::connectToComponent()
+void FrameComponentInstance::connectToComponent()
 {
     if (m_instanceOf.isEmpty()) {
         return;
@@ -105,19 +133,19 @@ void ComponentInstance::connectToComponent()
     
     // Connect to component's variants changed signal
     m_componentConnections.add(connect(m_component, &Component::variantsChanged,
-                            this, &ComponentInstance::onComponentVariantsChanged));
+                            this, &FrameComponentInstance::onComponentVariantsChanged));
     
     // Connect to the first variant if available
     connectToVariant();
 }
 
-void ComponentInstance::disconnectFromComponent()
+void FrameComponentInstance::disconnectFromComponent()
 {
     m_componentConnections.clear();
     m_component = nullptr;
 }
 
-void ComponentInstance::connectToVariant()
+void FrameComponentInstance::connectToVariant()
 {
     if (!m_component) {
         return;
@@ -151,10 +179,10 @@ void ComponentInstance::connectToVariant()
                         "onSourceVariantPropertyChanged()", m_variantConnections);
     
     // Connect to instancesAcceptChildrenChanged signal if it's a ComponentVariant
-    if (ComponentVariant* variant = qobject_cast<ComponentVariant*>(m_sourceVariant)) {
+    if (FrameComponentVariant* variant = qobject_cast<FrameComponentVariant*>(m_sourceVariant)) {
         m_variantConnections.add(
-            connect(variant, &ComponentVariant::instancesAcceptChildrenChanged,
-                    this, &ComponentInstance::onSourceVariantPropertyChanged)
+            connect(variant, &FrameComponentVariant::instancesAcceptChildrenChanged,
+                    this, &FrameComponentInstance::onSourceVariantPropertyChanged)
         );
     }
     
@@ -166,7 +194,7 @@ void ComponentInstance::connectToVariant()
         // Connect to track when new elements are added that might be children
         m_variantConnections.add(
             connect(elementModel, &ElementModel::elementAdded,
-                    this, &ComponentInstance::onElementAdded)
+                    this, &FrameComponentInstance::onElementAdded)
         );
         
         // Connect to existing elements to track parent changes
@@ -174,7 +202,7 @@ void ComponentInstance::connectToVariant()
             if (element && element != m_sourceVariant) {
                 m_variantConnections.add(
                     connect(element, &Element::parentIdChanged,
-                            this, &ComponentInstance::onElementParentChanged)
+                            this, &FrameComponentInstance::onElementParentChanged)
                 );
             }
         }
@@ -183,7 +211,7 @@ void ComponentInstance::connectToVariant()
     emit sourceVariantChanged();
 }
 
-void ComponentInstance::disconnectFromVariant()
+void FrameComponentInstance::disconnectFromVariant()
 {
     // Clear child instances only if we're not in the destructor
     // During destruction, Qt's parent-child system handles cleanup automatically
@@ -196,41 +224,57 @@ void ComponentInstance::disconnectFromVariant()
     emit sourceVariantChanged();
 }
 
-void ComponentInstance::syncPropertiesFromVariant()
+void FrameComponentInstance::syncPropertiesFromVariant()
 {
     if (!m_sourceVariant) {
         return;
     }
     
-    // Use PropertyCopier to sync properties
-    PropertyCopier::copyProperties(m_sourceVariant, this, s_variantPropertiesToSync);
+    FrameComponentVariant* variant = qobject_cast<FrameComponentVariant*>(m_sourceVariant);
+    if (!variant) {
+        return;
+    }
+    
+    // Get the list of editable properties from the variant
+    QStringList editableProps = variant->editableProperties();
+    
+    // Only sync properties that:
+    // 1. Are in the variantPropertiesToSync list
+    // 2. Haven't been locally modified OR are not in the editable properties list
+    QStringList propsToSync;
+    for (const QString& prop : s_variantPropertiesToSync) {
+        if (!m_modifiedProperties.contains(prop) || !editableProps.contains(prop)) {
+            propsToSync.append(prop);
+        }
+    }
+    
+    // Use PropertyCopier to sync only the appropriate properties
+    PropertyCopier::copyProperties(m_sourceVariant, this, propsToSync);
     
     // Debug overflow sync
-    qDebug() << "ComponentInstance::syncPropertiesFromVariant - instance" << getId() 
+    qDebug() << "FrameComponentInstance::syncPropertiesFromVariant - instance" << getId() 
              << "overflow after sync:" << overflow();
     
-    // Sync acceptsChildren based on variant's instancesAcceptChildren property
-    if (ComponentVariant* variant = qobject_cast<ComponentVariant*>(m_sourceVariant)) {
-        setAcceptsChildren(variant->instancesAcceptChildren());
-    }
+    // Always sync acceptsChildren based on variant's instancesAcceptChildren property
+    setAcceptsChildren(variant->instancesAcceptChildren());
     
     // Note: We don't sync position (x, y) as instances maintain their own position
 }
 
-void ComponentInstance::onSourceVariantPropertyChanged()
+void FrameComponentInstance::onSourceVariantPropertyChanged()
 {
     // Re-sync properties when the source variant changes
     syncPropertiesFromVariant();
 }
 
-void ComponentInstance::onComponentVariantsChanged()
+void FrameComponentInstance::onComponentVariantsChanged()
 {
     // Re-connect to the first variant when the component's variants change
     disconnectFromVariant();
     connectToVariant();
 }
 
-void ComponentInstance::createChildInstances()
+void FrameComponentInstance::createChildInstances()
 {
     if (!m_sourceVariant) {
         return;
@@ -266,7 +310,7 @@ void ComponentInstance::createChildInstances()
                 m_childInstances[canvasChild->getId()] = childInstance;
                 
                 // Debug parent-child relationship
-                qDebug() << "ComponentInstance::createChildInstances - Created child" << childInstance->getId()
+                qDebug() << "FrameComponentInstance::createChildInstances - Created child" << childInstance->getId()
                          << "type:" << childInstance->getTypeName()
                          << "parent:" << (instanceParent ? instanceParent->getId() : "null")
                          << "parentId:" << childInstance->getParentElementId();
@@ -281,7 +325,7 @@ void ComponentInstance::createChildInstances()
     }
 }
 
-void ComponentInstance::clearChildInstances()
+void FrameComponentInstance::clearChildInstances()
 {
     // Clear connections first
     m_childConnections.clear();
@@ -293,7 +337,7 @@ void ComponentInstance::clearChildInstances()
 }
 
 
-CanvasElement* ComponentInstance::createInstanceOfElement(CanvasElement* sourceElement, CanvasElement* parent)
+CanvasElement* FrameComponentInstance::createInstanceOfElement(CanvasElement* sourceElement, CanvasElement* parent)
 {
     if (!sourceElement) {
         return nullptr;
@@ -331,7 +375,7 @@ CanvasElement* ComponentInstance::createInstanceOfElement(CanvasElement* sourceE
     return instance;
 }
 
-void ComponentInstance::syncElementProperties(CanvasElement* target, CanvasElement* source)
+void FrameComponentInstance::syncElementProperties(CanvasElement* target, CanvasElement* source)
 {
     if (!target || !source) {
         return;
@@ -360,7 +404,7 @@ void ComponentInstance::syncElementProperties(CanvasElement* target, CanvasEleme
     DesignElement::copyElementProperties(target, source, true);
 }
 
-void ComponentInstance::connectToSourceElement(CanvasElement* instanceElement, CanvasElement* sourceElement)
+void FrameComponentInstance::connectToSourceElement(CanvasElement* instanceElement, CanvasElement* sourceElement)
 {
     if (!instanceElement || !sourceElement) {
         return;
@@ -371,7 +415,7 @@ void ComponentInstance::connectToSourceElement(CanvasElement* instanceElement, C
                         "onInstanceChildPropertyChanged()", m_childConnections[instanceElement]);
 }
 
-void ComponentInstance::onVariantChildAdded(Element* child)
+void FrameComponentInstance::onVariantChildAdded(Element* child)
 {
     if (!child || !m_sourceVariant) {
         return;
@@ -387,13 +431,13 @@ void ComponentInstance::onVariantChildAdded(Element* child)
         return;
     }
     
-    qDebug() << "ComponentInstance::onVariantChildAdded - Adding child" << child->getId() 
+    qDebug() << "FrameComponentInstance::onVariantChildAdded - Adding child" << child->getId() 
              << "to instance" << getId();
     
     // Create an instance of the child element
     CanvasElement* childInstance = createInstanceOfElement(canvasChild, this);
     if (!childInstance) {
-        qWarning() << "ComponentInstance::onVariantChildAdded - Failed to create instance for" << child->getId();
+        qWarning() << "FrameComponentInstance::onVariantChildAdded - Failed to create instance for" << child->getId();
         return;
     }
     
@@ -430,7 +474,7 @@ void ComponentInstance::onVariantChildAdded(Element* child)
     }
 }
 
-void ComponentInstance::onVariantChildRemoved(Element* child)
+void FrameComponentInstance::onVariantChildRemoved(Element* child)
 {
     if (!child) {
         return;
@@ -442,7 +486,7 @@ void ComponentInstance::onVariantChildRemoved(Element* child)
         return;
     }
     
-    qDebug() << "ComponentInstance::onVariantChildRemoved - Removing child" << child->getId() 
+    qDebug() << "FrameComponentInstance::onVariantChildRemoved - Removing child" << child->getId() 
              << "from instance" << getId();
     
     // Get element model to remove nested children first
@@ -479,7 +523,7 @@ void ComponentInstance::onVariantChildRemoved(Element* child)
     }
 }
 
-void ComponentInstance::onInstanceChildPropertyChanged()
+void FrameComponentInstance::onInstanceChildPropertyChanged()
 {
     // Find which source element triggered this
     CanvasElement* sourceElement = qobject_cast<CanvasElement*>(sender());
@@ -496,9 +540,9 @@ void ComponentInstance::onInstanceChildPropertyChanged()
 }
 
 
-void ComponentInstance::onElementAdded(Element* element)
+void FrameComponentInstance::onElementAdded(Element* element)
 {
-    qDebug() << "ComponentInstance::onElementAdded -" << element->getId() 
+    qDebug() << "FrameComponentInstance::onElementAdded -" << element->getId() 
              << "type:" << element->getTypeName()
              << "parent:" << element->getParentElementId();
     
@@ -508,7 +552,7 @@ void ComponentInstance::onElementAdded(Element* element)
     
     // Check if it's already a child of our variant
     if (element->getParentElementId() == m_sourceVariant->getId()) {
-        qDebug() << "ComponentInstance::onElementAdded - New element" << element->getId() 
+        qDebug() << "FrameComponentInstance::onElementAdded - New element" << element->getId() 
                  << "is already child of variant" << m_sourceVariant->getId();
         onVariantChildAdded(element);
     }
@@ -516,18 +560,18 @@ void ComponentInstance::onElementAdded(Element* element)
     // Connect to track future parent changes for this new element
     m_variantConnections.add(
         connect(element, &Element::parentIdChanged,
-                this, &ComponentInstance::onElementParentChanged)
+                this, &FrameComponentInstance::onElementParentChanged)
     );
 }
 
-void ComponentInstance::onElementParentChanged()
+void FrameComponentInstance::onElementParentChanged()
 {
     Element* element = qobject_cast<Element*>(sender());
     if (!element || !m_sourceVariant) {
         return;
     }
     
-    qDebug() << "ComponentInstance::onElementParentChanged for element" << element->getId()
+    qDebug() << "FrameComponentInstance::onElementParentChanged for element" << element->getId()
              << "new parent:" << element->getParentElementId()
              << "our variant:" << m_sourceVariant->getId();
     
@@ -542,4 +586,91 @@ void ComponentInstance::onElementParentChanged()
             onVariantChildRemoved(element);
         }
     }
+}
+
+QStringList FrameComponentInstance::getEditableProperties() const
+{
+    if (FrameComponentVariant* variant = qobject_cast<FrameComponentVariant*>(m_sourceVariant)) {
+        return variant->editableProperties();
+    }
+    return QStringList();
+}
+
+// Override Frame property setters to track modifications
+void FrameComponentInstance::setFill(const QColor &color)
+{
+    m_modifiedProperties.insert("fill");
+    Frame::setFill(color);
+}
+
+void FrameComponentInstance::setBorderColor(const QColor &color)
+{
+    m_modifiedProperties.insert("borderColor");
+    Frame::setBorderColor(color);
+}
+
+void FrameComponentInstance::setBorderWidth(int width)
+{
+    m_modifiedProperties.insert("borderWidth");
+    Frame::setBorderWidth(width);
+}
+
+void FrameComponentInstance::setBorderRadius(int radius)
+{
+    m_modifiedProperties.insert("borderRadius");
+    Frame::setBorderRadius(radius);
+}
+
+void FrameComponentInstance::setOverflow(OverflowMode mode)
+{
+    m_modifiedProperties.insert("overflow");
+    Frame::setOverflow(mode);
+}
+
+void FrameComponentInstance::setFlex(bool flex)
+{
+    m_modifiedProperties.insert("flex");
+    Frame::setFlex(flex);
+}
+
+void FrameComponentInstance::setOrientation(LayoutOrientation orientation)
+{
+    m_modifiedProperties.insert("orientation");
+    Frame::setOrientation(orientation);
+}
+
+void FrameComponentInstance::setGap(qreal gap)
+{
+    m_modifiedProperties.insert("gap");
+    Frame::setGap(gap);
+}
+
+void FrameComponentInstance::setPosition(PositionType position)
+{
+    m_modifiedProperties.insert("position");
+    Frame::setPosition(position);
+}
+
+void FrameComponentInstance::setJustify(JustifyContent justify)
+{
+    m_modifiedProperties.insert("justify");
+    Frame::setJustify(justify);
+}
+
+void FrameComponentInstance::setAlign(AlignItems align)
+{
+    m_modifiedProperties.insert("align");
+    Frame::setAlign(align);
+}
+
+void FrameComponentInstance::setWidthType(SizeType type)
+{
+    m_modifiedProperties.insert("widthType");
+    Frame::setWidthType(type);
+}
+
+void FrameComponentInstance::setHeightType(SizeType type)
+{
+    m_modifiedProperties.insert("heightType");
+    Frame::setHeightType(type);
 }

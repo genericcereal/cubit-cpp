@@ -38,9 +38,12 @@ Item {
                 if (!active || !element || !elementType) return null
                 switch(elementType) {
                     case "Frame": return frameComponent
-                    case "ComponentVariant": return frameComponent
-                    case "ComponentInstance": return frameComponent
+                    case "FrameComponentVariant": return frameComponent
+                    case "FrameComponentInstance": 
+                        // Check if it's a text-based instance by checking for content property
+                        return element.hasOwnProperty('content') ? textComponent : frameComponent
                     case "Text": return textComponent
+                    case "TextVariant": return textComponent
                     default: return null
                 }
             }

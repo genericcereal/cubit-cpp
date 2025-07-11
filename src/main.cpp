@@ -11,8 +11,10 @@
 #include "Text.h"
 #include "Variable.h"
 #include "Component.h"
-#include "ComponentInstance.h"
-#include "ComponentVariant.h"
+#include "FrameComponentInstance.h"
+#include "FrameComponentVariant.h"
+#include "TextVariant.h"
+#include "TextComponentInstance.h"
 #include "Node.h"
 #include "Edge.h"
 #include "CanvasController.h"
@@ -56,8 +58,10 @@ int main(int argc, char *argv[])
     qmlRegisterType<Text>("Cubit", 1, 0, "TextElement");  // Rename to avoid conflict with QML Text
     qmlRegisterType<Variable>("Cubit", 1, 0, "Variable");
     qmlRegisterType<Component>("Cubit", 1, 0, "ComponentElement");
-    qmlRegisterType<ComponentInstance>("Cubit", 1, 0, "ComponentInstance");
-    qmlRegisterType<ComponentVariant>("Cubit", 1, 0, "ComponentVariant");
+    qmlRegisterType<FrameComponentInstance>("Cubit", 1, 0, "FrameComponentInstance");
+    qmlRegisterType<FrameComponentVariant>("Cubit", 1, 0, "FrameComponentVariant");
+    qmlRegisterType<TextVariant>("Cubit", 1, 0, "TextVariant");
+    qmlRegisterType<TextComponentInstance>("Cubit", 1, 0, "TextComponentInstance");
     qmlRegisterType<Node>("Cubit", 1, 0, "Node");
     qmlRegisterType<Edge>("Cubit", 1, 0, "Edge");
     

@@ -20,8 +20,9 @@ public:
         NodeType,
         EdgeType,
         ComponentType,
-        ComponentInstanceType,
-        ComponentVariantType
+        FrameComponentInstanceType,
+        FrameComponentVariantType,
+        TextVariantType
     };
     Q_ENUM(ElementType)
 

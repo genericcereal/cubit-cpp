@@ -14,8 +14,29 @@ ScrollView {
     // Helper property to access DesignElement-specific properties
     property var selectedDesignElement: selectedElement && selectedElement.isDesignElement ? selectedElement : null
     
+    // Helper property to get editable properties for ComponentInstance
+    property var editableProperties: {
+        if (selectedElement && selectedElement.elementType === "FrameComponentInstance") {
+            return selectedElement.getEditableProperties()
+        }
+        return []
+    }
+    
     // Signal emitted when PropertyPopover is clicked
     signal panelSelectorClicked(var selector, string type)
+    
+    // Helper function to check if a property should be visible
+    function isPropertyVisible(propertyName) {
+        if (!selectedElement) return false
+        
+        // For ComponentInstance, check if property is in editableProperties
+        if (selectedElement.elementType === "FrameComponentInstance") {
+            return editableProperties.indexOf(propertyName) !== -1
+        }
+        
+        // For Frame and ComponentVariant, all properties are visible
+        return selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant"
+    }
     
     ColumnLayout {
         width: root.width
@@ -190,13 +211,13 @@ ScrollView {
                 
                 Label { 
                     text: "Platform:" 
-                    visible: selectedElement && selectedElement.elementType === "Frame" && Application.activeCanvas && Application.activeCanvas.platforms.length > 0
+                    visible: selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || (selectedElement.elementType === "FrameComponentInstance" && isPropertyVisible("platform"))) && Application.activeCanvas && Application.activeCanvas.platforms.length > 0
                 }
                 ComboBox {
                     Layout.fillWidth: true
-                    visible: selectedElement && selectedElement.elementType === "Frame" && Application.activeCanvas && Application.activeCanvas.platforms.length > 0
+                    visible: selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || (selectedElement.elementType === "FrameComponentInstance" && isPropertyVisible("platform"))) && Application.activeCanvas && Application.activeCanvas.platforms.length > 0
                     model: {
-                        if (!Application.activeCanvas || !selectedElement || selectedElement.elementType !== "Frame") {
+                        if (!Application.activeCanvas || !selectedElement || (selectedElement.elementType !== "Frame" && selectedElement.elementType !== "ComponentVariant" && selectedElement.elementType !== "ComponentInstance")) {
                             return ["undefined"]
                         }
                         
@@ -208,7 +229,7 @@ ScrollView {
                         return platforms
                     }
                     currentIndex: {
-                        if (selectedElement && selectedElement.elementType === "Frame") {
+                        if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
                             var platform = selectedElement.platform || "undefined"
                             var index = model.indexOf(platform)
                             return index >= 0 ? index : 0
@@ -216,7 +237,7 @@ ScrollView {
                         return 0
                     }
                     onActivated: function(index) {
-                        if (selectedElement && selectedElement.elementType === "Frame") {
+                        if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
                             var platform = model[index]
                             selectedElement.platform = platform === "undefined" ? "" : platform
                         }
@@ -225,15 +246,15 @@ ScrollView {
                 
                 Label { 
                     text: "Role:" 
-                    visible: selectedElement && selectedElement.elementType === "Frame" && selectedElement.platform && selectedElement.platform !== ""
+                    visible: selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || (selectedElement.elementType === "FrameComponentInstance" && isPropertyVisible("role"))) && selectedElement.platform && selectedElement.platform !== ""
                 }
                 ComboBox {
                     Layout.fillWidth: true
-                    visible: selectedElement && selectedElement.elementType === "Frame" && selectedElement.platform && selectedElement.platform !== ""
+                    visible: selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || (selectedElement.elementType === "FrameComponentInstance" && isPropertyVisible("role"))) && selectedElement.platform && selectedElement.platform !== ""
                     model: ["container"]
                     currentIndex: 0  // Always show container since it's the only option
                     onActivated: function(index) {
-                        if (selectedElement && selectedElement.elementType === "Frame") {
+                        if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
                             // Since we only have "container" option, always set role to container (value 1)
                             selectedElement.role = 1  // container
                         }
@@ -540,9 +561,9 @@ ScrollView {
                     ComboBox {
                         Layout.preferredWidth: 100
                         model: ["fixed", "relative", "fill", "fit content", "viewport"]
-                        visible: selectedElement && selectedElement.elementType === "Frame"
+                        visible: selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentInstance")
                         currentIndex: {
-                            if (selectedElement && selectedElement.elementType === "Frame") {
+                            if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentInstance")) {
                                 switch (selectedElement.widthType) {
                                     case 0: return 0  // SizeFixed
                                     case 1: return 1  // SizeRelative
@@ -555,7 +576,7 @@ ScrollView {
                             return 0
                         }
                         onActivated: function(index) {
-                            if (selectedElement && selectedElement.elementType === "Frame") {
+                            if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentInstance")) {
                                 selectedElement.widthType = index
                             }
                         }
@@ -585,9 +606,9 @@ ScrollView {
                     ComboBox {
                         Layout.preferredWidth: 100
                         model: ["fixed", "relative", "fill", "fit content", "viewport"]
-                        visible: selectedElement && selectedElement.elementType === "Frame"
+                        visible: selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentInstance")
                         currentIndex: {
-                            if (selectedElement && selectedElement.elementType === "Frame") {
+                            if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentInstance")) {
                                 switch (selectedElement.heightType) {
                                     case 0: return 0  // SizeFixed
                                     case 1: return 1  // SizeRelative
@@ -600,7 +621,7 @@ ScrollView {
                             return 0
                         }
                         onActivated: function(index) {
-                            if (selectedElement && selectedElement.elementType === "Frame") {
+                            if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentInstance")) {
                                 selectedElement.heightType = index
                             }
                         }
@@ -643,9 +664,9 @@ ScrollView {
                     ComboBox {
                         Layout.preferredWidth: 100
                         model: ["fixed", "relative", "fill", "fit content", "viewport"]
-                        visible: selectedElement && selectedElement.elementType === "Frame"
+                        visible: selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentInstance")
                         currentIndex: {
-                            if (selectedElement && selectedElement.elementType === "Frame") {
+                            if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentInstance")) {
                                 switch (selectedElement.widthType) {
                                     case 0: return 0  // SizeFixed
                                     case 1: return 1  // SizeRelative
@@ -658,7 +679,7 @@ ScrollView {
                             return 0
                         }
                         onActivated: function(index) {
-                            if (selectedElement && selectedElement.elementType === "Frame") {
+                            if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentInstance")) {
                                 selectedElement.widthType = index
                             }
                         }
@@ -686,9 +707,9 @@ ScrollView {
                     ComboBox {
                         Layout.preferredWidth: 100
                         model: ["fixed", "relative", "fill", "fit content", "viewport"]
-                        visible: selectedElement && selectedElement.elementType === "Frame"
+                        visible: selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentInstance")
                         currentIndex: {
-                            if (selectedElement && selectedElement.elementType === "Frame") {
+                            if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentInstance")) {
                                 switch (selectedElement.heightType) {
                                     case 0: return 0  // SizeFixed
                                     case 1: return 1  // SizeRelative
@@ -701,7 +722,7 @@ ScrollView {
                             return 0
                         }
                         onActivated: function(index) {
-                            if (selectedElement && selectedElement.elementType === "Frame") {
+                            if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentInstance")) {
                                 selectedElement.heightType = index
                             }
                         }
@@ -714,8 +735,8 @@ ScrollView {
         GroupBox {
             Layout.fillWidth: true
             Layout.margins: 10
-            title: selectedElement && selectedElement.elementType === "ComponentVariant" ? "Variant Style" : "Frame"
-            visible: selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "ComponentVariant")
+            title: selectedElement && selectedElement.elementType === "FrameComponentVariant" ? "Variant Style" : "Frame"
+            visible: selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || (selectedElement.elementType === "FrameComponentInstance" && selectedElement.hasOwnProperty("fill")))
             
             GridLayout {
                 anchors.fill: parent
@@ -723,14 +744,18 @@ ScrollView {
                 columnSpacing: 10
                 rowSpacing: 5
                 
-                Label { text: "Fill:" }
+                Label { 
+                    text: "Fill:" 
+                    visible: isPropertyVisible("fill")
+                }
                 PropertyPopover {
                     id: fillSelector
                     Layout.fillWidth: true
+                    visible: isPropertyVisible("fill")
                     
-                    elementFillColor: selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "ComponentVariant") ? selectedElement.fill : "#add8e6"
+                    elementFillColor: selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || (selectedElement.elementType === "FrameComponentInstance" && selectedElement.hasOwnProperty("fill"))) && selectedElement.fill !== undefined ? selectedElement.fill : "#add8e6"
                     text: {
-                        if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "ComponentVariant")) {
+                        if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance") && selectedElement.fill !== undefined) {
                             var color = selectedElement.fill
                             var format = selectedElement.colorFormat !== undefined ? selectedElement.colorFormat : 1 // Default to HEX
                             
@@ -766,12 +791,16 @@ ScrollView {
                     }
                 }
                 
-                Label { text: "Overflow:" }
+                Label { 
+                    text: "Overflow:" 
+                    visible: isPropertyVisible("overflow")
+                }
                 ComboBox {
                     Layout.fillWidth: true
+                    visible: isPropertyVisible("overflow")
                     model: ["Hidden", "Scroll", "Visible"]
                     currentIndex: {
-                        if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "ComponentVariant")) {
+                        if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
                             // Map Frame.OverflowMode enum values to combo box indices
                             switch (selectedElement.overflow) {
                                 case 0: return 0  // Hidden
@@ -783,35 +812,47 @@ ScrollView {
                         return 0
                     }
                     onActivated: function(index) {
-                        if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "ComponentVariant")) {
+                        if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
                             // Map combo box index to Frame.OverflowMode enum value
                             selectedElement.overflow = index
                         }
                     }
                 }
                 
-                Label { text: "Border Radius:" }
+                Label { 
+                    text: "Border Radius:" 
+                    visible: isPropertyVisible("borderRadius")
+                }
                 SpinBox {
                     Layout.fillWidth: true
+                    visible: isPropertyVisible("borderRadius")
                     from: 0
                     to: 100
                     value: selectedElement && selectedElement.borderRadius !== undefined ? selectedElement.borderRadius : 0
-                    onValueChanged: if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "ComponentVariant")) selectedElement.borderRadius = value
+                    onValueChanged: if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) selectedElement.borderRadius = value
                 }
                 
-                Label { text: "Border Width:" }
+                Label { 
+                    text: "Border Width:" 
+                    visible: isPropertyVisible("borderWidth")
+                }
                 SpinBox {
                     Layout.fillWidth: true
+                    visible: isPropertyVisible("borderWidth")
                     from: 0
                     to: 20
                     value: selectedElement && selectedElement.borderWidth !== undefined ? selectedElement.borderWidth : 0
-                    onValueChanged: if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "ComponentVariant")) selectedElement.borderWidth = value
+                    onValueChanged: if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) selectedElement.borderWidth = value
                 }
                 
-                Label { text: "Style:" }
+                Label { 
+                    text: "Style:" 
+                    visible: isPropertyVisible("borderColor")
+                }
                 PropertyPopover {
                     id: styleSelector
                     Layout.fillWidth: true
+                    visible: isPropertyVisible("borderColor")
                     placeholderText: "Select style..."
                     
                     onPanelRequested: {
@@ -832,10 +873,10 @@ ScrollView {
             Layout.leftMargin: 10
             Layout.bottomMargin: 0
             text: "Flex Layout"
-            visible: selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "ComponentVariant")
+            visible: selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || (selectedElement.elementType === "FrameComponentInstance" && isPropertyVisible("flex") && selectedElement.hasOwnProperty("flex")))
             checked: selectedElement && selectedElement.flex !== undefined ? selectedElement.flex : false
             onToggled: {
-                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "ComponentVariant")) {
+                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || (selectedElement.elementType === "FrameComponentInstance" && selectedElement.hasOwnProperty("flex")))) {
                     selectedElement.flex = checked
                 }
             }
@@ -849,7 +890,7 @@ ScrollView {
             Layout.topMargin: 5
             Layout.bottomMargin: 10
             title: ""
-            visible: selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "ComponentVariant") && flexCheckBox.checked
+            visible: selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || (selectedElement.elementType === "FrameComponentInstance" && isPropertyVisible("flex") && selectedElement.hasOwnProperty("flex"))) && flexCheckBox.checked
             
             GridLayout {
                 anchors.fill: parent
@@ -857,12 +898,16 @@ ScrollView {
                 columnSpacing: 10
                 rowSpacing: 5
                 
-                Label { text: "Orientation:" }
+                Label { 
+                    text: "Orientation:" 
+                    visible: isPropertyVisible("orientation")
+                }
                 ComboBox {
                     Layout.fillWidth: true
+                    visible: isPropertyVisible("orientation")
                     model: ["Row", "Column"]
                     currentIndex: {
-                        if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "ComponentVariant")) {
+                        if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
                             // Map Frame.LayoutOrientation enum values to combo box indices
                             switch (selectedElement.orientation) {
                                 case 0: return 0  // Row
@@ -873,32 +918,40 @@ ScrollView {
                         return 0
                     }
                     onActivated: function(index) {
-                        if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "ComponentVariant")) {
+                        if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
                             // Map combo box index to Frame.LayoutOrientation enum value
                             selectedElement.orientation = index
                         }
                     }
                 }
                 
-                Label { text: "Gap:" }
+                Label { 
+                    text: "Gap:" 
+                    visible: isPropertyVisible("gap")
+                }
                 SpinBox {
                     Layout.fillWidth: true
+                    visible: isPropertyVisible("gap")
                     from: 0
                     to: 100
                     value: selectedElement && selectedElement.gap !== undefined ? Math.round(selectedElement.gap) : 0
                     onValueChanged: {
-                        if (value !== undefined && selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "ComponentVariant")) {
+                        if (value !== undefined && selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
                             selectedElement.gap = value
                         }
                     }
                 }
                 
-                Label { text: "Justify:" }
+                Label { 
+                    text: "Justify:" 
+                    visible: isPropertyVisible("justify")
+                }
                 ComboBox {
                     Layout.fillWidth: true
+                    visible: isPropertyVisible("justify")
                     model: ["Start", "End", "Center", "Space Between", "Space Around", "Space Evenly"]
                     currentIndex: {
-                        if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "ComponentVariant")) {
+                        if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
                             // Map Frame.JustifyContent enum values to combo box indices
                             switch (selectedElement.justify) {
                                 case 0: return 0  // JustifyStart
@@ -913,19 +966,23 @@ ScrollView {
                         return 0
                     }
                     onActivated: function(index) {
-                        if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "ComponentVariant")) {
+                        if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
                             // Map combo box index to Frame.JustifyContent enum value
                             selectedElement.justify = index
                         }
                     }
                 }
                 
-                Label { text: "Align:" }
+                Label { 
+                    text: "Align:" 
+                    visible: isPropertyVisible("align")
+                }
                 ComboBox {
                     Layout.fillWidth: true
+                    visible: isPropertyVisible("align")
                     model: ["Start", "End", "Center", "Baseline", "Stretch"]
                     currentIndex: {
-                        if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "ComponentVariant")) {
+                        if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
                             // Map Frame.AlignItems enum values to combo box indices
                             switch (selectedElement.align) {
                                 case 0: return 0  // AlignStart
@@ -939,7 +996,7 @@ ScrollView {
                         return 0
                     }
                     onActivated: function(index) {
-                        if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "ComponentVariant")) {
+                        if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
                             // Map combo box index to Frame.AlignItems enum value
                             selectedElement.align = index
                         }
@@ -968,7 +1025,7 @@ ScrollView {
             Layout.fillWidth: true
             Layout.margins: 10
             title: "Text"
-            visible: selectedElement && selectedElement.elementType === "Text"
+            visible: selectedElement && (selectedElement.elementType === "Text" || selectedElement.elementType === "TextVariant" || (selectedElement.elementType === "FrameComponentInstance" && selectedElement.hasOwnProperty("content")))
             
             GridLayout {
                 anchors.fill: parent
@@ -980,7 +1037,7 @@ ScrollView {
                 TextField {
                     Layout.fillWidth: true
                     text: selectedElement && selectedElement.content !== undefined ? selectedElement.content : ""
-                    onTextChanged: if (selectedElement && selectedElement.elementType === "Text") selectedElement.content = text
+                    onTextChanged: if (selectedElement && selectedElement.content !== undefined) selectedElement.content = text
                 }
                 
                 Label { text: "Size:" }
@@ -990,7 +1047,7 @@ ScrollView {
                     to: 144
                     value: selectedElement && selectedElement.font ? selectedElement.font.pixelSize : 14
                     onValueChanged: {
-                        if (selectedElement && selectedElement.elementType === "Text") {
+                        if (selectedElement && selectedElement.font !== undefined) {
                             var newFont = selectedElement.font
                             newFont.pixelSize = value
                             selectedElement.font = newFont
@@ -1040,7 +1097,7 @@ ScrollView {
             Layout.fillWidth: true
             Layout.margins: 10
             title: "Component Variant"
-            visible: selectedElement && selectedElement.elementType === "ComponentVariant"
+            visible: selectedElement && selectedElement.elementType === "FrameComponentVariant"
             
             GridLayout {
                 anchors.fill: parent
@@ -1051,9 +1108,9 @@ ScrollView {
                 Label { text: "Accepts children:" }
                 CheckBox {
                     Layout.fillWidth: true
-                    checked: selectedElement && selectedElement.elementType === "ComponentVariant" ? selectedElement.instancesAcceptChildren : true
+                    checked: selectedElement && selectedElement.elementType === "FrameComponentVariant" ? selectedElement.instancesAcceptChildren : true
                     onToggled: {
-                        if (selectedElement && selectedElement.elementType === "ComponentVariant") {
+                        if (selectedElement && selectedElement.elementType === "FrameComponentVariant") {
                             selectedElement.instancesAcceptChildren = checked
                         }
                     }

@@ -195,7 +195,7 @@ Window {
                 ? Application.activeCanvas.selectionManager.selectedElements[0] : null
             
             property real currentHue: {
-                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "ComponentVariant")) {
+                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
                     var color = selectedElement.fill
                     return color.hslHue * 360  // Qt returns hue as 0-1, convert to 0-360
                 }
@@ -203,7 +203,7 @@ Window {
             }
             
             property real currentSaturation: {
-                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "ComponentVariant")) {
+                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
                     var color = selectedElement.fill
                     return color.hslSaturation
                 }
@@ -211,7 +211,7 @@ Window {
             }
             
             property real currentLightness: {
-                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "ComponentVariant")) {
+                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
                     var color = selectedElement.fill
                     return color.hslLightness
                 }
@@ -219,7 +219,7 @@ Window {
             }
             
             property real currentOpacity: {
-                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "ComponentVariant")) {
+                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
                     var color = selectedElement.fill
                     return color.a  // Alpha channel
                 }
@@ -304,7 +304,7 @@ Window {
                     id: colorInput
                     width: (parent.width - parent.spacing) * 0.65  // Take up more space for color
                     text: {
-                        if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "ComponentVariant")) {
+                        if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant")) {
                             var color = selectedElement.fill
                             
                             switch (colorTypeCombo.currentIndex) {
@@ -420,14 +420,14 @@ Window {
                     width: (parent.width - parent.spacing) * 0.65
                     model: ["RGB", "HEX", "HSL"]
                     currentIndex: {
-                        if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "ComponentVariant")) {
+                        if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant")) {
                             return selectedElement.colorFormat !== undefined ? selectedElement.colorFormat : 1
                         }
                         return 1  // Default to HEX
                     }
                     
                     onCurrentIndexChanged: {
-                        if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "ComponentVariant")) {
+                        if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
                             selectedElement.colorFormat = currentIndex
                         }
                     }
@@ -445,7 +445,7 @@ Window {
             }
             
             function updateColor() {
-                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "ComponentVariant")) {
+                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
                     // Create a new color with the selected hue, saturation, lightness and opacity
                     var newColor = Qt.hsla(shadeSelector.hue / 360, shadeSelector.saturation, shadeSelector.lightness, opacitySlider.alpha)
                     selectedElement.fill = newColor

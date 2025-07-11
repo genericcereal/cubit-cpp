@@ -8,6 +8,7 @@
 Component::Component(const QString &id, QObject *parent)
     : Element(ComponentType, id, parent)
     , m_scripts(std::make_unique<Scripts>(this))
+    , m_componentType("frame") // Default to "frame" type
 {
     // Set the name to "Component" + last 4 digits of ID
     QString last4 = id.right(4);
@@ -64,4 +65,12 @@ void Component::addVariable(Variable* variable)
 Scripts* Component::scripts() const
 {
     return m_scripts.get();
+}
+
+void Component::setComponentType(const QString &type)
+{
+    if (m_componentType != type) {
+        m_componentType = type;
+        emit componentTypeChanged();
+    }
 }
