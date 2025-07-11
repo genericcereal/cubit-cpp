@@ -9,7 +9,16 @@ Item {
     // The C++ Element object
     property var element
     property var elementModel
-    property TextElement textElement: element as TextElement
+    property var textElement: {
+        // Handle Text, TextVariant, and FrameComponentInstance that inherits from Text
+        if (element) {
+            // Check if it's a text-based element by checking if it has content property
+            if (element.hasOwnProperty('content')) {
+                return element
+            }
+        }
+        return null
+    }
     property real canvasMinX: 0
     property real canvasMinY: 0
     

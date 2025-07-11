@@ -4,20 +4,20 @@
 #include "ConnectionManager.h"
 
 class Component;
-class ComponentVariant;
+class FrameComponentVariant;
 class Element;
-Q_DECLARE_OPAQUE_POINTER(ComponentVariant*)
+Q_DECLARE_OPAQUE_POINTER(FrameComponentVariant*)
 Q_DECLARE_OPAQUE_POINTER(Element*)
 
-class ComponentInstance : public Frame
+class FrameComponentInstance : public Frame
 {
     Q_OBJECT
     Q_PROPERTY(QString instanceOf READ instanceOf WRITE setInstanceOf NOTIFY instanceOfChanged)
     Q_PROPERTY(Element* sourceVariant READ sourceVariant NOTIFY sourceVariantChanged)
     
 public:
-    explicit ComponentInstance(const QString &id, QObject *parent = nullptr);
-    virtual ~ComponentInstance();
+    explicit FrameComponentInstance(const QString &id, QObject *parent = nullptr);
+    virtual ~FrameComponentInstance();
     
     // Property getters
     QString instanceOf() const { return m_instanceOf; }
@@ -26,8 +26,26 @@ public:
     // Property setters
     void setInstanceOf(const QString &componentId);
     
+    // Get editable properties from source variant
+    Q_INVOKABLE QStringList getEditableProperties() const;
+    
     // Override to identify this as a visual element
     virtual bool isVisual() const override { return true; }
+    
+    // Override Frame property setters to track modifications
+    void setFill(const QColor &color);
+    void setBorderColor(const QColor &color);
+    void setBorderWidth(int width);
+    void setBorderRadius(int radius);
+    void setOverflow(OverflowMode mode);
+    void setFlex(bool flex);
+    void setOrientation(LayoutOrientation orientation);
+    void setGap(qreal gap);
+    void setPosition(PositionType position);
+    void setJustify(JustifyContent justify);
+    void setAlign(AlignItems align);
+    void setWidthType(SizeType type);
+    void setHeightType(SizeType type);
     
 signals:
     void instanceOfChanged();
@@ -66,4 +84,5 @@ private:
     QHash<QString, CanvasElement*> m_childInstances; // Maps source element ID to instance
     QHash<CanvasElement*, ConnectionManager> m_childConnections; // Connections per child
     bool m_isDestructing = false; // Flag to indicate we're in the destructor
+    QSet<QString> m_modifiedProperties; // Track which properties have been locally modified
 };

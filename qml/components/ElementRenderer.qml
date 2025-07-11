@@ -26,7 +26,7 @@ Item {
                 if (!active) return ""
                 switch(elementType) {
                     case "Frame": return "FrameElement.qml"
-                    case "ComponentInstance": return "FrameElement.qml"
+                    case "FrameComponentInstance": return "FrameElement.qml"
                     case "Text": return "TextElement.qml"  
                     default: return ""
                 }

@@ -107,8 +107,8 @@ Item {
                     y: childElement && active ? childElement.y - root.element.y : 0
                     
                     Component.onCompleted: {
-                        if (active && root.element.elementType === "ComponentInstance") {
-                            console.log("ComponentInstance child - parentId:", childParentId, 
+                        if (active && root.element.elementType === "FrameComponentInstance") {
+                            console.log("FrameComponentInstance child - parentId:", childParentId, 
                                        "parent elementId:", root.element.elementId,
                                        "child type:", childElementType,
                                        "child showInList:", childElement.showInElementList)
@@ -119,9 +119,12 @@ Item {
                         if (!active || !childElement || !childElementType) return ""
                         switch(childElementType) {
                             case "Frame": return "FrameElement.qml"
-                            case "ComponentVariant": return "FrameElement.qml"
-                            case "ComponentInstance": return "FrameElement.qml"
+                            case "FrameComponentVariant": return "FrameElement.qml"
+                            case "FrameComponentInstance":
+                                // Check if it's a text-based instance by checking for content property
+                                return childElement.hasOwnProperty('content') ? "TextElement.qml" : "FrameElement.qml"
                             case "Text": return "TextElement.qml"
+                            case "TextVariant": return "TextElement.qml"
                             default: return ""
                         }
                     }

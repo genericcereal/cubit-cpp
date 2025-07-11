@@ -6,8 +6,8 @@
 #include "ElementModel.h"
 #include "QuadTree.h"
 #include "Component.h"
-#include "ComponentVariant.h"
-#include "ComponentInstance.h"
+#include "FrameComponentVariant.h"
+#include "FrameComponentInstance.h"
 #include <QElapsedTimer>
 
 HitTestService::HitTestService(QObject *parent)
@@ -345,7 +345,7 @@ bool HitTestService::shouldTestElement(Element* element) const
         // 2. ComponentInstance elements
         
         // Check if it's a ComponentInstance
-        if (qobject_cast<ComponentInstance*>(element)) {
+        if (qobject_cast<FrameComponentInstance*>(element)) {
             return true;
         }
         
@@ -355,7 +355,7 @@ bool HitTestService::shouldTestElement(Element* element) const
         }
         
         // Check if this element is a ComponentVariant (should not be hit-testable in design mode)
-        if (qobject_cast<ComponentVariant*>(element)) {
+        if (qobject_cast<FrameComponentVariant*>(element)) {
             return false;
         }
         

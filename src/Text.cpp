@@ -1,4 +1,5 @@
 #include "Text.h"
+#include <QDebug>
 
 Text::Text(const QString &id, QObject *parent)
     : DesignElement(id, parent)
@@ -14,6 +15,7 @@ Text::Text(const QString &id, QObject *parent)
 void Text::setContent(const QString &content)
 {
     if (m_content != content) {
+        qDebug() << "Text::setContent -" << getTypeName() << getId() << "changing content from" << m_content << "to" << content;
         m_content = content;
         emit contentChanged();
         emit elementChanged();

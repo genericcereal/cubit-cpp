@@ -12,6 +12,7 @@ class Component : public Element
     Q_OBJECT
     Q_PROPERTY(QList<Element*> variants READ variants NOTIFY variantsChanged)
     Q_PROPERTY(Scripts* scripts READ scripts NOTIFY scriptsChanged)
+    Q_PROPERTY(QString componentType READ componentType WRITE setComponentType NOTIFY componentTypeChanged)
     
 public:
     explicit Component(const QString &id, QObject *parent = nullptr);
@@ -30,11 +31,17 @@ public:
     // Scripts management
     Scripts* scripts() const;
     
+    // Component type management
+    QString componentType() const { return m_componentType; }
+    void setComponentType(const QString &type);
+    
 signals:
     void variantsChanged();
     void scriptsChanged();
+    void componentTypeChanged();
     
 private:
     QList<Element*> m_variants;
     std::unique_ptr<Scripts> m_scripts;
+    QString m_componentType;
 };

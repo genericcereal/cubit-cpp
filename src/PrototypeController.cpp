@@ -302,7 +302,7 @@ void PrototypeController::setDeviceFrames(bool isModeChange, qreal oldViewableHe
         
         // Check if it's a Frame or ComponentInstance
         if (element->getType() != Element::FrameType && 
-            element->getType() != Element::ComponentInstanceType) continue;
+            element->getType() != Element::FrameComponentInstanceType) continue;
         
         // Check if it has no parent (top-level)
         if (!element->getParentElementId().isEmpty()) continue;
@@ -339,7 +339,7 @@ void PrototypeController::setDeviceFrames(bool isModeChange, qreal oldViewableHe
             Element* selectedElement = selectedElements.first();
             if (selectedElement && selectedElement->isVisual() &&
                 (selectedElement->getType() == Element::FrameType || 
-                 selectedElement->getType() == Element::ComponentInstanceType) &&
+                 selectedElement->getType() == Element::FrameComponentInstanceType) &&
                 selectedElement->getParentElementId().isEmpty()) {
                 selectedFrameId = selectedElement->getId();
             }
@@ -585,7 +585,7 @@ void PrototypeController::onSelectionChanged() {
         while (current) {
             // Check if current element is a top-level frame or component instance
             if ((current->getType() == Element::FrameType || 
-                 current->getType() == Element::ComponentInstanceType) &&
+                 current->getType() == Element::FrameComponentInstanceType) &&
                 current->getParentElementId().isEmpty()) {
                 topmostFrame = current;
                 break;
