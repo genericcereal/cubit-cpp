@@ -7,6 +7,7 @@
 
 TextComponentInstance::TextComponentInstance(const QString &id, QObject *parent)
     : Text(id, parent)
+    , ComponentInstance(id)
 {
     // Set element type
     elementType = Element::FrameComponentInstanceType;
@@ -55,7 +56,7 @@ void TextComponentInstance::setContent(const QString &content)
 void TextComponentInstance::setFont(const QFont &font)
 {
     Text::setFont(font);
-    m_modifiedProperties.insert("font");
+    // Don't track font as modified - always sync from variant
 }
 
 void TextComponentInstance::setColor(const QColor &color)
@@ -119,20 +120,14 @@ void TextComponentInstance::disconnectFromComponent()
 void TextComponentInstance::connectToVariant()
 {
     if (!m_component) {
-        qDebug() << "TextComponentInstance::connectToVariant - no component for instance" << getId();
         return;
     }
     
-    qDebug() << "TextComponentInstance::connectToVariant - connecting instance" << getId();
-    qDebug() << "  Component ID:" << m_component->getId();
-    
     // For now, just use the first variant
     QList<Element*> variants = m_component->variants();
-    qDebug() << "  Component has" << variants.size() << "variants";
     
     if (!variants.isEmpty()) {
         m_sourceVariant = variants.first();
-        qDebug() << "  Using variant" << m_sourceVariant->getId() << "type:" << m_sourceVariant->getTypeName();
         
         // Clear modified properties when connecting to a new variant
         m_modifiedProperties.clear();
@@ -144,39 +139,33 @@ void TextComponentInstance::connectToVariant()
         if (m_sourceVariant) {
             // For TextVariant, connect directly to contentChanged signal
             if (TextVariant* textVariant = qobject_cast<TextVariant*>(m_sourceVariant)) {
-                qDebug() << "  Connecting to TextVariant contentChanged signal";
                 // Note: Can't use Qt::UniqueConnection with lambdas, so we'll just use a regular connection
                 QMetaObject::Connection conn = connect(textVariant, &TextVariant::contentChanged,
                         this, [this, textVariant]() {
-                            qDebug() << "TextComponentInstance - received contentChanged signal from variant" << textVariant->getId();
-                            qDebug() << "  New content:" << textVariant->content();
-                            qDebug() << "  Current instance content:" << this->content();
                             setContent(textVariant->content());
-                            qDebug() << "  After update, instance content:" << this->content();
                         });
                 
                 if (conn) {
                     m_variantConnections.add(conn);
-                    qDebug() << "  Successfully connected contentChanged signal";
-                } else {
-                    qDebug() << "  FAILED to connect contentChanged signal";
                 }
                 
                 // Also connect other properties
-                m_variantConnections.add(
-                    connect(textVariant, &TextVariant::fontChanged,
-                            this, [this, textVariant]() {
-                                if (!m_modifiedProperties.contains("font")) {
-                                    setFont(textVariant->font());
-                                }
-                            }, Qt::UniqueConnection)
-                );
+                QMetaObject::Connection fontConn = connect(textVariant, &TextVariant::fontChanged,
+                        this, [this, textVariant]() {
+                            // Always update font from variant
+                            Text::setFont(textVariant->font());
+                        });
+                
+                if (fontConn) {
+                    m_variantConnections.add(fontConn);
+                }
                 
                 m_variantConnections.add(
                     connect(textVariant, &TextVariant::colorChanged,
                             this, [this, textVariant]() {
                                 if (!m_modifiedProperties.contains("color")) {
-                                    setColor(textVariant->color());
+                                    // Call the base class setColor directly to avoid marking as modified
+                                    Text::setColor(textVariant->color());
                                 }
                             }, Qt::UniqueConnection)
                 );
@@ -198,24 +187,17 @@ void TextComponentInstance::syncPropertiesFromVariant()
     if (!m_sourceVariant) return;
     
     if (TextVariant* textVariant = qobject_cast<TextVariant*>(m_sourceVariant)) {
-        qDebug() << "TextComponentInstance::syncPropertiesFromVariant - syncing from variant" << textVariant->getId();
-        qDebug() << "  Variant content:" << textVariant->content();
-        
         // Sync Text-specific properties
         // Always sync content from variant
         setContent(textVariant->content());
-        qDebug() << "  Set content to:" << content();
         if (!m_modifiedProperties.contains("font")) {
-            setFont(textVariant->font());
-            m_modifiedProperties.remove("font");
+            Text::setFont(textVariant->font());
         }
         if (!m_modifiedProperties.contains("color")) {
-            setColor(textVariant->color());
-            m_modifiedProperties.remove("color");
+            Text::setColor(textVariant->color());
         }
         if (!m_modifiedProperties.contains("position")) {
-            setPosition(textVariant->position());
-            m_modifiedProperties.remove("position");
+            Text::setPosition(textVariant->position());
         }
         
         // Sync geometry

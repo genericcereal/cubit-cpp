@@ -1,7 +1,9 @@
 #include "FrameComponentVariant.h"
+#include "FrameComponentInstance.h"
 
 FrameComponentVariant::FrameComponentVariant(const QString &id, QObject *parent)
     : Frame(id, parent)
+    , ComponentVariant(id)
     , m_instancesAcceptChildren(true)  // Default to true
 {
     // Override the element type set by Frame
@@ -9,6 +11,7 @@ FrameComponentVariant::FrameComponentVariant(const QString &id, QObject *parent)
     
     // Set a more appropriate name
     setName(QString("Variant %1").arg(id.right(4)));
+    setVariantName(QString("Variant %1").arg(id.right(4)));
     
     // Initialize default editable properties to include all Frame properties
     m_editableProperties = QStringList{
@@ -55,5 +58,26 @@ void FrameComponentVariant::setEditableProperties(const QStringList& properties)
         m_editableProperties = properties;
         emit editablePropertiesChanged();
         emit elementChanged();
+    }
+}
+
+void FrameComponentVariant::applyToInstance(ComponentInstance* instance)
+{
+    if (FrameComponentInstance* frameInstance = dynamic_cast<FrameComponentInstance*>(instance)) {
+        // Apply frame-specific properties to the instance
+        frameInstance->setFill(fill());
+        frameInstance->setBorderColor(borderColor());
+        frameInstance->setBorderWidth(borderWidth());
+        frameInstance->setBorderRadius(borderRadius());
+        frameInstance->setOverflow(overflow());
+        frameInstance->setFlex(flex());
+        frameInstance->setOrientation(orientation());
+        frameInstance->setGap(gap());
+        frameInstance->setPosition(position());
+        frameInstance->setJustify(justify());
+        frameInstance->setAlign(align());
+        frameInstance->setWidthType(widthType());
+        frameInstance->setHeightType(heightType());
+        frameInstance->setRect(QRectF(x(), y(), width(), height()));
     }
 }

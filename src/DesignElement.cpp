@@ -464,7 +464,7 @@ Component* DesignElement::createComponent() {
     if (Frame* sourceFrame = qobject_cast<Frame*>(this)) {
         // Frame elements become ComponentVariants
         FrameComponentVariant* variantFrame = new FrameComponentVariant(variantId, this->parent());
-        variantFrame->setName("Variant1");
+        variantFrame->setVariantName("Variant1");
         
         // Set the variant frame's position to 0,0 (relative to component)
         variantFrame->setRect(QRectF(0, 0, width(), height()));
@@ -484,7 +484,7 @@ Component* DesignElement::createComponent() {
     } else if (Text* sourceText = qobject_cast<Text*>(this)) {
         // Text elements become TextVariants
         TextVariant* variantText = new TextVariant(variantId, this->parent());
-        variantText->setName("Variant1");
+        variantText->setVariantName("Variant1");
         
         // Set the variant text's position to 0,0 (relative to component)
         variantText->setRect(QRectF(0, 0, width(), height()));

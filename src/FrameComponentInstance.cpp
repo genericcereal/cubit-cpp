@@ -62,6 +62,7 @@ const QStringList FrameComponentInstance::s_childPropertiesToTrack = {
 
 FrameComponentInstance::FrameComponentInstance(const QString &id, QObject *parent)
     : Frame(id, parent)
+    , ComponentInstance(id)
 {
     // Set the element type directly (it's protected, not private)
     elementType = FrameComponentInstanceType;

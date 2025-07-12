@@ -1,5 +1,6 @@
 #pragma once
 #include "Frame.h"
+#include "ComponentInstance.h"
 #include <QMetaProperty>
 #include "ConnectionManager.h"
 
@@ -9,7 +10,7 @@ class Element;
 Q_DECLARE_OPAQUE_POINTER(FrameComponentVariant*)
 Q_DECLARE_OPAQUE_POINTER(Element*)
 
-class FrameComponentInstance : public Frame
+class FrameComponentInstance : public Frame, public ComponentInstance
 {
     Q_OBJECT
     Q_PROPERTY(QString instanceOf READ instanceOf WRITE setInstanceOf NOTIFY instanceOfChanged)

@@ -2,9 +2,12 @@
 #define FRAMECOMPONENTVARIANT_H
 
 #include "Frame.h"
+#include "ComponentVariant.h"
 #include <QString>
 
-class FrameComponentVariant : public Frame
+class FrameComponentInstance;
+
+class FrameComponentVariant : public Frame, public ComponentVariant
 {
     Q_OBJECT
     Q_PROPERTY(bool instancesAcceptChildren READ instancesAcceptChildren WRITE setInstancesAcceptChildren NOTIFY instancesAcceptChildrenChanged)
@@ -21,6 +24,9 @@ public:
     // Property setters
     void setInstancesAcceptChildren(bool accept);
     void setEditableProperties(const QStringList& properties);
+    
+    // ComponentVariant interface
+    virtual void applyToInstance(ComponentInstance* instance) override;
 
 signals:
     void instancesAcceptChildrenChanged();
