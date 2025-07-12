@@ -15,7 +15,6 @@ Text::Text(const QString &id, QObject *parent)
 void Text::setContent(const QString &content)
 {
     if (m_content != content) {
-        qDebug() << "Text::setContent -" << getTypeName() << getId() << "changing content from" << m_content << "to" << content;
         m_content = content;
         emit contentChanged();
         emit elementChanged();
@@ -24,11 +23,11 @@ void Text::setContent(const QString &content)
 
 void Text::setFont(const QFont &font)
 {
-    if (m_font != font) {
-        m_font = font;
-        emit fontChanged();
-        emit elementChanged();
-    }
+    // Force emit fontChanged even if Qt thinks fonts are equal
+    // This ensures pixel size changes are propagated
+    m_font = font;
+    emit fontChanged();
+    emit elementChanged();
 }
 
 void Text::setColor(const QColor &color)

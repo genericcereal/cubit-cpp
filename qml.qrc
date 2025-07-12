@@ -4,6 +4,7 @@
         <file>qml/Config.qml</file>
         <file>qml/CanvasUtils.qml</file>
         <file>qml/CanvasUtils.js</file>
+        <file>qml/PropertyHelpers.js</file>
         <file>qml/qmldir</file>
         <file>qml/components/BaseCanvas.qml</file>
         <file>qml/components/CanvasBackground.qml</file>
@@ -36,6 +37,15 @@
         <file>qml/panels/DetailPanel.qml</file>
         <file>qml/panels/ElementList.qml</file>
         <file>qml/panels/PropertiesPanel.qml</file>
+        <file>qml/panels/PlatformsSection.qml</file>
+        <file>qml/panels/ActionsSection.qml</file>
+        <file>qml/panels/GeneralProperties.qml</file>
+        <file>qml/panels/PositionSection.qml</file>
+        <file>qml/panels/SizeSection.qml</file>
+        <file>qml/panels/FrameStyleSection.qml</file>
+        <file>qml/panels/FlexLayoutSection.qml</file>
+        <file>qml/panels/TextSection.qml</file>
+        <file>qml/panels/VariableSection.qml</file>
         <file>qml/panels/ActionsPanel.qml</file>
         <file>qml/panels/Console.qml</file>
         <file>qml/panels/PropertyPopoverPanel.qml</file>

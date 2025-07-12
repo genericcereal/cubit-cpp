@@ -44,6 +44,8 @@ SOURCES += \
     src/Text.cpp \
     src/Variable.cpp \
     src/Component.cpp \
+    src/ComponentInstance.cpp \
+    src/ComponentVariant.cpp \
     src/FrameComponentInstance.cpp \
     src/FrameComponentVariant.cpp \
     src/TextVariant.cpp \
@@ -93,6 +95,8 @@ HEADERS += \
     src/Text.h \
     src/Variable.h \
     src/Component.h \
+    src/ComponentInstance.h \
+    src/ComponentVariant.h \
     src/FrameComponentInstance.h \
     src/FrameComponentVariant.h \
     src/TextVariant.h \

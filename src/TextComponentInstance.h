@@ -1,5 +1,6 @@
 #pragma once
 #include "Text.h"
+#include "ComponentInstance.h"
 #include <QMetaProperty>
 #include "ConnectionManager.h"
 
@@ -7,7 +8,7 @@ class Component;
 class TextVariant;
 class Element;
 
-class TextComponentInstance : public Text
+class TextComponentInstance : public Text, public ComponentInstance
 {
     Q_OBJECT
     Q_PROPERTY(QString instanceOf READ instanceOf WRITE setInstanceOf NOTIFY instanceOfChanged)
