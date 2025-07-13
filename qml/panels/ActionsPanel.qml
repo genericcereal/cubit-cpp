@@ -70,6 +70,37 @@ Rectangle {
             ToolTip.text: "Compile"
         }
         
+        // Back to Design Canvas button
+        ToolButton {
+            id: backButton
+            visible: isScriptMode
+            Layout.fillHeight: true
+            Layout.preferredWidth: height
+            
+            contentItem: Text {
+                text: "B"
+                color: parent.hovered ? "#ffffff" : "#aaaaaa"
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                font.pixelSize: 16
+            }
+            
+            background: Rectangle {
+                color: parent.hovered ? Qt.rgba(0.4, 0.4, 0.4, 0.3) : "transparent"
+                radius: 4
+                antialiasing: true
+            }
+            
+            onClicked: {
+                if (Application.activeCanvas) {
+                    Application.activeCanvas.setEditingElement(null, "design")
+                }
+            }
+            
+            ToolTip.visible: hovered
+            ToolTip.text: "Back to Design Canvas"
+        }
+        
         // Design mode buttons
         ToolButton {
             id: selectButton

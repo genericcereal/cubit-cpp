@@ -21,7 +21,12 @@ Item {
     // Zoom configuration
     property real zoom: 1.0
     property real minZoom: 0.1
-    property real maxZoom: 5.0
+    property real maxZoom: 2.5
+    
+    // Debug zoom changes
+    onZoomChanged: {
+        console.log("BaseCanvas zoom changed to:", Math.round(zoom * 10) / 10)
+    }
     
     // Canvas type - to be overridden by subclasses
     property string canvasType: "base"
@@ -42,11 +47,31 @@ Item {
     default property alias contentData: contentLayer.data
     
     Component.onCompleted: {
-        centerViewAtOrigin()
+        // Delay centering until the flickable has a valid size
+        if (flick.width > 0 && flick.height > 0) {
+            centerViewAtOrigin()
+        } else {
+            // Wait for size to be available
+            centerTimer.start()
+        }
     }
     
-    // Center the view at canvas origin (0,0)
+    // Timer to retry centering when flickable gets sized
+    Timer {
+        id: centerTimer
+        interval: 16  // 60fps
+        repeat: true
+        onTriggered: {
+            if (flick.width > 0 && flick.height > 0) {
+                centerViewAtOrigin()
+                stop()
+            }
+        }
+    }
+    
+    // Center the view so that (0,0) is at the center of the viewport
     function centerViewAtOrigin() {
+        // Use the CanvasUtils function to center (0,0) in the viewport
         var centerPos = Utils.calculateCenterPosition(
             Qt.point(0, 0),
             flick.width,
@@ -58,6 +83,8 @@ Item {
         
         flick.contentX = centerPos.x
         flick.contentY = centerPos.y
+        console.log("BaseCanvas.centerViewAtOrigin - contentX:", flick.contentX, "contentY:", flick.contentY,
+                   "viewport size:", flick.width, "x", flick.height, "zoom:", zoom)
     }
     
     // Watch for mode changes (keeping for subclasses that might need it)
@@ -106,6 +133,7 @@ Item {
             height: root.canvasMaxY - root.canvasMinY
             scale: root.zoom
             transformOrigin: Item.TopLeft
+            
             
             // Content layer for subclasses
             Item {
@@ -220,26 +248,30 @@ Item {
                 if (wheel.modifiers & Qt.ControlModifier) {
                     var delta = wheel.angleDelta.y
                     if (Math.abs(delta) > 0) {
-                        var scaleFactor = delta > 0 ? 1.1 : 0.9
+                        var scaleFactor = delta > 0 ? 1.025 : 0.975
+                        
+                        // Get the mouse position in viewport coordinates
+                        var viewportPt = Qt.point(wheel.x, wheel.y)
+                        
+                        // Convert to canvas coordinates at current zoom
                         var canvasPt = Utils.viewportToCanvas(
-                            Qt.point(wheel.x, wheel.y),
+                            viewportPt,
                             flick.contentX, flick.contentY, root.zoom, 
                             root.canvasMinX, root.canvasMinY
                         )
                         
-                        // Store old zoom for calculations
-                        var oldZoom = root.zoom
-                        
                         // Calculate new zoom level
-                        root.zoom = Utils.clamp(oldZoom * scaleFactor, root.minZoom, root.maxZoom)
+                        var newZoom = Utils.clamp(root.zoom * scaleFactor, root.minZoom, root.maxZoom)
                         
-                        // Keep the zoom point stable in viewport
-                        var viewportX = (canvasPt.x - root.canvasMinX) * oldZoom - flick.contentX
-                        var viewportY = (canvasPt.y - root.canvasMinY) * oldZoom - flick.contentY
+                        // Calculate new content position to keep cursor point stable
+                        var newContentPos = Utils.calculateStableZoomPosition(
+                            canvasPt, viewportPt, root.canvasMinX, root.canvasMinY, newZoom
+                        )
                         
-                        // Recalculate content position to keep zoom point fixed
-                        flick.contentX = (canvasPt.x - root.canvasMinX) * root.zoom - viewportX
-                        flick.contentY = (canvasPt.y - root.canvasMinY) * root.zoom - viewportY
+                        // Apply zoom and new position
+                        root.zoom = newZoom
+                        flick.contentX = Math.round(newContentPos.x)
+                        flick.contentY = Math.round(newContentPos.y)
                         
                         wheel.accepted = true
                     }
@@ -255,34 +287,55 @@ Item {
             target: null  // We don't want it to directly modify anything
             
             property real startZoom: 1.0
+            property real initialZoom: 1.0  // The zoom when gesture truly starts
             property point startCentroid
+            property point startViewportCentroid  // Store the initial viewport position
+            property point startContentPos  // Store the initial content position
             
             onActiveChanged: {
                 if (active) {
-                    startZoom = root.zoom
+                    console.log("ZOOM START - root.zoom raw value:", root.zoom, "initial scale:", scale, "activeScale:", activeScale)
+                    // Round the start zoom to prevent accumulation errors
+                    startZoom = Math.round(root.zoom * 100) / 100  // Round to 2 decimal places
+                    startViewportCentroid = centroid.position
+                    startContentPos = Qt.point(flick.contentX, flick.contentY)
                     startCentroid = Utils.viewportToCanvas(
-                        centroid.position,
-                        flick.contentX, flick.contentY, root.zoom, 
+                        startViewportCentroid,
+                        startContentPos.x, startContentPos.y, root.zoom, 
                         root.canvasMinX, root.canvasMinY
                     )
+                    console.log("PinchHandler started - startZoom:", startZoom, "rounded:", Math.round(startZoom * 10) / 10, "startCentroid:", Math.round(startCentroid.x), Math.round(startCentroid.y), "startContentPos:", Math.round(startContentPos.x), Math.round(startContentPos.y))
+                } else {
+                    // Log when gesture ends
+                    console.log("ZOOM END - final zoom:", Math.round(root.zoom * 10) / 10, "final scale:", scale, "activeScale:", activeScale)
                 }
             }
             
             onScaleChanged: {
                 if (active && Math.abs(scale - 1.0) > 0.01) {
-                    // Store old zoom for calculations
-                    var oldZoom = root.zoom
+                    console.log("PinchHandler scale:", Math.round(scale * 10) / 10, "activeScale:", Math.round(activeScale * 10) / 10, "currentZoom:", Math.round(root.zoom * 10) / 10)
                     
-                    // Calculate new zoom level
-                    root.zoom = Utils.clamp(oldZoom * scale, root.minZoom, root.maxZoom)
+                    // Calculate new zoom level based on the active scale (scale change during this gesture)
+                    // activeScale represents the scale factor relative to when the gesture started
+                    var newZoom = Utils.clamp(startZoom * activeScale, root.minZoom, root.maxZoom)
                     
-                    // Keep the zoom point stable in viewport
-                    var viewportX = (startCentroid.x - root.canvasMinX) * startZoom - flick.contentX
-                    var viewportY = (startCentroid.y - root.canvasMinY) * startZoom - flick.contentY
+                    // Use the stored start viewport centroid for stable zoom
+                    // This prevents jumps caused by the centroid moving during the gesture
+                    var newContentPos = Utils.calculateStableZoomPosition(
+                        startCentroid, startViewportCentroid, root.canvasMinX, root.canvasMinY, newZoom
+                    )
                     
-                    // Recalculate content position to keep zoom point fixed
-                    flick.contentX = (startCentroid.x - root.canvasMinX) * root.zoom - viewportX
-                    flick.contentY = (startCentroid.y - root.canvasMinY) * root.zoom - viewportY
+                    // Debug the calculation
+                    console.log("Zoom calculation - startCentroid:", startCentroid.x, startCentroid.y, 
+                               "startViewport:", startViewportCentroid.x, startViewportCentroid.y,
+                               "newZoom:", newZoom, "minX/Y:", root.canvasMinX, root.canvasMinY)
+                    
+                    console.log("PinchHandler applying - newZoom:", Math.round(newZoom * 10) / 10, "newContentPos:", Math.round(newContentPos.x), Math.round(newContentPos.y))
+                    
+                    // Apply zoom and new position
+                    root.zoom = newZoom
+                    flick.contentX = Math.round(newContentPos.x)
+                    flick.contentY = Math.round(newContentPos.y)
                 }
             }
         }
@@ -301,6 +354,24 @@ Item {
     // Get content layer for backward compatibility
     function getContentLayer() {
         return contentLayer
+    }
+    
+    // Get current viewport state
+    function getViewportState() {
+        return {
+            contentX: flick.contentX,
+            contentY: flick.contentY,
+            zoom: root.zoom
+        }
+    }
+    
+    // Set viewport state
+    function setViewportState(state) {
+        if (state && state.contentX !== undefined && state.contentY !== undefined && state.zoom !== undefined) {
+            root.zoom = state.zoom
+            flick.contentX = state.contentX
+            flick.contentY = state.contentY
+        }
     }
     
     // Keyboard shortcuts

@@ -2,11 +2,10 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Cubit
+import "../components"
 
-GroupBox {
+PropertyGroup {
     id: root
-    Layout.fillWidth: true
-    Layout.margins: 10
     title: "Position"
     
     property var selectedElement
@@ -15,216 +14,188 @@ GroupBox {
     
     visible: selectedElement && selectedElement.isDesignElement && selectedElement.parentId
     
-    GridLayout {
-        anchors.fill: parent
-        columns: 2
-        columnSpacing: 10
-        rowSpacing: 5
-        
-        Label { 
-            text: "Position:" 
-            visible: selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "Text")
-        }
-        ComboBox {
-            Layout.fillWidth: true
-            visible: selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "Text")
-            model: ["Relative", "Absolute", "Fixed"]
-            currentIndex: {
+    property var positionProps: [
+        {
+            name: "Position",
+            type: "combobox",
+            getter: () => {
                 if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "Text")) {
                     switch (selectedElement.position) {
-                        case 0: return 0
-                        case 1: return 1
-                        case 2: return 2
-                        default: return 0
+                        case 0: return "Relative"
+                        case 1: return "Absolute"
+                        case 2: return "Fixed"
+                        default: return "Relative"
                     }
                 }
-                return 0
-            }
-            onActivated: function(index) {
+                return "Relative"
+            },
+            setter: v => {
                 if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "Text")) {
-                    selectedElement.position = index
+                    const index = ["Relative", "Absolute", "Fixed"].indexOf(v)
+                    selectedElement.position = index >= 0 ? index : 0
                 }
-            }
-        }
-        
-        Label { text: "Left:" }
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: 5
-            
-            SpinBox {
-                id: leftSpinBox
-                Layout.fillWidth: true
-                from: -9999
-                to: 9999
-                value: selectedDesignElement && selectedDesignElement.left !== undefined ? Math.round(selectedDesignElement.left) : 0
-                onValueModified: function(value) {
-                    if (selectedDesignElement && selectedDesignElement.left !== undefined && value !== Math.round(selectedDesignElement.left)) {
+            },
+            model: () => ["Relative", "Absolute", "Fixed"],
+            visible: () => selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "Text")
+        },
+        {
+            name: "Left",
+            type: "spinbox_anchor",
+            valueGetter: () => selectedDesignElement && selectedDesignElement.left !== undefined ? Math.round(selectedDesignElement.left) : 0,
+            valueSetter: v => {
+                if (selectedDesignElement && selectedDesignElement.left !== undefined) {
+                    selectedDesignElement.left = v
+                }
+            },
+            anchorGetter: () => selectedDesignElement && selectedDesignElement.leftAnchored,
+            anchorSetter: (checked, value) => {
+                if (selectedDesignElement) {
+                    if (checked) {
                         selectedDesignElement.left = value
                     }
+                    selectedDesignElement.leftAnchored = checked
                 }
             }
-            
-            Button {
-                id: leftAnchorButton
-                Layout.preferredWidth: 30
-                Layout.preferredHeight: 30
-                checkable: true
-                checked: selectedDesignElement && selectedDesignElement.leftAnchored
-                text: "⚓"
-                font.pixelSize: 16
-                
-                background: Rectangle {
-                    color: leftAnchorButton.checked ? "#4080ff" : (leftAnchorButton.hovered ? "#f0f0f0" : "#ffffff")
-                    border.color: leftAnchorButton.checked ? "#2060ff" : "#d0d0d0"
-                    border.width: 1
-                    radius: 4
+        },
+        {
+            name: "Top",
+            type: "spinbox_anchor",
+            valueGetter: () => selectedDesignElement && selectedDesignElement.top !== undefined ? Math.round(selectedDesignElement.top) : 0,
+            valueSetter: v => {
+                if (selectedDesignElement && selectedDesignElement.top !== undefined) {
+                    selectedDesignElement.top = v
                 }
-                
-                onToggled: {
-                    if (selectedDesignElement) {
-                        if (checked) {
-                            selectedDesignElement.left = leftSpinBox.value
-                        }
-                        selectedDesignElement.leftAnchored = checked
-                    }
-                }
-            }
-        }
-        
-        Label { text: "Top:" }
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: 5
-            
-            SpinBox {
-                id: topSpinBox
-                Layout.fillWidth: true
-                from: -9999
-                to: 9999
-                value: selectedDesignElement && selectedDesignElement.top !== undefined ? Math.round(selectedDesignElement.top) : 0
-                onValueModified: function(value) {
-                    if (selectedDesignElement && selectedDesignElement.top !== undefined && value !== Math.round(selectedDesignElement.top)) {
+            },
+            anchorGetter: () => selectedDesignElement && selectedDesignElement.topAnchored,
+            anchorSetter: (checked, value) => {
+                if (selectedDesignElement) {
+                    if (checked) {
                         selectedDesignElement.top = value
                     }
+                    selectedDesignElement.topAnchored = checked
                 }
             }
-            
-            Button {
-                id: topAnchorButton
-                Layout.preferredWidth: 30
-                Layout.preferredHeight: 30
-                checkable: true
-                checked: selectedDesignElement && selectedDesignElement.topAnchored
-                text: "⚓"
-                font.pixelSize: 16
-                
-                background: Rectangle {
-                    color: topAnchorButton.checked ? "#4080ff" : (topAnchorButton.hovered ? "#f0f0f0" : "#ffffff")
-                    border.color: topAnchorButton.checked ? "#2060ff" : "#d0d0d0"
-                    border.width: 1
-                    radius: 4
+        },
+        {
+            name: "Right",
+            type: "spinbox_anchor",
+            valueGetter: () => selectedDesignElement && selectedDesignElement.right !== undefined ? Math.round(selectedDesignElement.right) : 0,
+            valueSetter: v => {
+                if (selectedDesignElement && selectedDesignElement.right !== undefined) {
+                    selectedDesignElement.right = v
                 }
-                
-                onToggled: {
-                    if (selectedDesignElement) {
-                        if (checked) {
-                            selectedDesignElement.top = topSpinBox.value
-                        }
-                        selectedDesignElement.topAnchored = checked
-                    }
-                }
-            }
-        }
-        
-        Label { text: "Right:" }
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: 5
-            
-            SpinBox {
-                id: rightSpinBox
-                Layout.fillWidth: true
-                from: -9999
-                to: 9999
-                value: selectedDesignElement && selectedDesignElement.right !== undefined ? Math.round(selectedDesignElement.right) : 0
-                onValueModified: function(value) {
-                    if (selectedDesignElement && selectedDesignElement.right !== undefined && value !== Math.round(selectedDesignElement.right)) {
+            },
+            anchorGetter: () => selectedDesignElement && selectedDesignElement.rightAnchored,
+            anchorSetter: (checked, value) => {
+                if (selectedDesignElement) {
+                    if (checked) {
                         selectedDesignElement.right = value
                     }
+                    selectedDesignElement.rightAnchored = checked
                 }
             }
-            
-            Button {
-                id: rightAnchorButton
-                Layout.preferredWidth: 30
-                Layout.preferredHeight: 30
-                checkable: true
-                checked: selectedDesignElement && selectedDesignElement.rightAnchored
-                text: "⚓"
-                font.pixelSize: 16
-                
-                background: Rectangle {
-                    color: rightAnchorButton.checked ? "#4080ff" : (rightAnchorButton.hovered ? "#f0f0f0" : "#ffffff")
-                    border.color: rightAnchorButton.checked ? "#2060ff" : "#d0d0d0"
-                    border.width: 1
-                    radius: 4
+        },
+        {
+            name: "Bottom",
+            type: "spinbox_anchor",
+            valueGetter: () => selectedDesignElement && selectedDesignElement.bottom !== undefined ? Math.round(selectedDesignElement.bottom) : 0,
+            valueSetter: v => {
+                if (selectedDesignElement && selectedDesignElement.bottom !== undefined) {
+                    selectedDesignElement.bottom = v
                 }
-                
-                onToggled: {
-                    if (selectedDesignElement) {
-                        if (checked) {
-                            selectedDesignElement.right = rightSpinBox.value
-                        }
-                        selectedDesignElement.rightAnchored = checked
+            },
+            anchorGetter: () => selectedDesignElement && selectedDesignElement.bottomAnchored,
+            anchorSetter: (checked, value) => {
+                if (selectedDesignElement) {
+                    if (checked) {
+                        selectedDesignElement.bottom = value
                     }
+                    selectedDesignElement.bottomAnchored = checked
                 }
             }
         }
-        
-        Label { text: "Bottom:" }
+    ]
+    
+    Component {
+        id: comboBoxComp
+        ComboBox {
+            Layout.fillWidth: true
+        }
+    }
+    
+    Component {
+        id: spinBoxAnchorComp
         RowLayout {
             Layout.fillWidth: true
             spacing: 5
             
             SpinBox {
-                id: bottomSpinBox
+                id: spinBox
                 Layout.fillWidth: true
                 from: -9999
                 to: 9999
-                value: selectedDesignElement && selectedDesignElement.bottom !== undefined ? Math.round(selectedDesignElement.bottom) : 0
-                onValueModified: function(value) {
-                    if (selectedDesignElement && selectedDesignElement.bottom !== undefined && value !== Math.round(selectedDesignElement.bottom)) {
-                        selectedDesignElement.bottom = value
-                    }
-                }
             }
             
             Button {
-                id: bottomAnchorButton
+                id: anchorButton
                 Layout.preferredWidth: 30
                 Layout.preferredHeight: 30
                 checkable: true
-                checked: selectedDesignElement && selectedDesignElement.bottomAnchored
                 text: "⚓"
                 font.pixelSize: 16
-                
-                background: Rectangle {
-                    color: bottomAnchorButton.checked ? "#4080ff" : (bottomAnchorButton.hovered ? "#f0f0f0" : "#ffffff")
-                    border.color: bottomAnchorButton.checked ? "#2060ff" : "#d0d0d0"
-                    border.width: 1
-                    radius: 4
-                }
-                
-                onToggled: {
-                    if (selectedDesignElement) {
-                        if (checked) {
-                            selectedDesignElement.bottom = bottomSpinBox.value
-                        }
-                        selectedDesignElement.bottomAnchored = checked
-                    }
-                }
+                // Use native button styling - checked state will be handled by the native style
             }
         }
     }
+    
+    content: [
+        Repeater {
+            model: positionProps.filter(prop => !prop.visible || prop.visible())
+            
+            delegate: LabeledField {
+                label: modelData.name
+                visible: !modelData.visible || modelData.visible()
+                
+                delegate: [
+                    Loader {
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        sourceComponent: modelData.type === "combobox" ? comboBoxComp
+                                       : modelData.type === "spinbox_anchor" ? spinBoxAnchorComp
+                                       : null
+                        
+                        onLoaded: {
+                            if (modelData.type === "combobox") {
+                                item.model = Qt.binding(modelData.model)
+                                item.currentIndex = Qt.binding(function() {
+                                    var value = modelData.getter()
+                                    var index = item.model.indexOf(value)
+                                    return index >= 0 ? index : 0
+                                })
+                                item.activated.connect(function(index) {
+                                    var value = item.model[index]
+                                    modelData.setter(value)
+                                })
+                            } else if (modelData.type === "spinbox_anchor") {
+                                var spinBox = item.children[0]
+                                var anchorButton = item.children[1]
+                                
+                                spinBox.value = Qt.binding(modelData.valueGetter)
+                                spinBox.valueModified.connect(function() {
+                                    if (spinBox.value !== modelData.valueGetter()) {
+                                        modelData.valueSetter(spinBox.value)
+                                    }
+                                })
+                                
+                                anchorButton.checked = Qt.binding(modelData.anchorGetter)
+                                anchorButton.toggled.connect(function() {
+                                    modelData.anchorSetter(anchorButton.checked, spinBox.value)
+                                })
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ]
 }

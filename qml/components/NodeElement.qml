@@ -316,13 +316,6 @@ Item {
                             root.element.y = canvasPos.y - dragOffset.y
                         }
                         
-                        // Log every frame with frame count
-                        console.log("[Frame " + dragFrameCount + "] Node dragging:", 
-                                   root.element ? root.element.nodeTitle : "unknown node",
-                                   "viewport pos:", mouseInViewport.x.toFixed(2), mouseInViewport.y.toFixed(2),
-                                   "canvas pos:", canvasPos.x.toFixed(2), canvasPos.y.toFixed(2),
-                                   "zoom:", zoom.toFixed(2),
-                                   "node pos:", root.element ? root.element.x.toFixed(2) : "?", root.element ? root.element.y.toFixed(2) : "?")
                         
                         lastLoggedPos = Qt.point(mouse.x, mouse.y)
                     }
@@ -350,11 +343,6 @@ Item {
                     var totalDeltaX = root.element.x - startElementPos.x
                     var totalDeltaY = root.element.y - startElementPos.y
                     
-                    console.log("Node drag ended for:", root.element ? root.element.nodeTitle : "unknown node",
-                               "Final pos:", root.element.x.toFixed(2), root.element.y.toFixed(2),
-                               "Total frames:", dragFrameCount,
-                               "Total canvas movement:", totalDeltaX.toFixed(2), totalDeltaY.toFixed(2),
-                               "Zoom:", zoom.toFixed(2))
                 } else {
                     console.log("Node clicked (no drag) - sending release to controller at canvas pos:", 
                                canvasPos.x.toFixed(2), canvasPos.y.toFixed(2))

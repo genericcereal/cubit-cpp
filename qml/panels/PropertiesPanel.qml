@@ -31,11 +31,11 @@ ScrollView {
         width: root.width
         spacing: 10
         
-        PlatformsSection {
+        ActionsSection {
             selectedElement: root.selectedElement
         }
         
-        ActionsSection {
+        PlatformsSection {
             selectedElement: root.selectedElement
         }
         

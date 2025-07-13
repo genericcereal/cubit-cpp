@@ -5,6 +5,7 @@ import QtQuick.Layouts
 import Cubit 1.0
 import "panels"
 import "components"
+import "components/color-picker"
 
 Window {
     id: mainWindow
@@ -54,7 +55,42 @@ Window {
                             // Use Qt.binding to ensure the connection stays alive
                             item.viewportControls = Qt.binding(function() { return viewportOverlay.selectionControls })
                         }
+                        
+                        // Restore viewport state when switching back to design/variant canvas
+                        if ((Application.activeCanvas.viewMode === "design" || Application.activeCanvas.viewMode === "variant") && 
+                            Application.activeCanvas.controller) {
+                            var savedState = {
+                                contentX: Application.activeCanvas.controller.savedContentX,
+                                contentY: Application.activeCanvas.controller.savedContentY,
+                                zoom: Application.activeCanvas.controller.savedZoom
+                            }
+                            // Only restore if we have valid saved state
+                            if (savedState.zoom > 0) {
+                                item.setViewportState(savedState)
+                            }
+                        }
                     }
+                }
+            }
+            
+            // Connections to handle viewport state saving
+            Connections {
+                target: Application.activeCanvas
+                enabled: Application.activeCanvas !== null
+                
+                function onViewportStateShouldBeSaved() {
+                    // Save current viewport state from design/variant canvas
+                    if (canvasLoader.item && canvasLoader.item.getViewportState && 
+                        Application.activeCanvas.controller) {
+                        var state = canvasLoader.item.getViewportState()
+                        Application.activeCanvas.controller.savedContentX = state.contentX
+                        Application.activeCanvas.controller.savedContentY = state.contentY
+                        Application.activeCanvas.controller.savedZoom = state.zoom
+                    }
+                }
+                
+                function onViewportStateShouldBeRestored() {
+                    // The restoration happens in the Loader.onLoaded handler above
                 }
             }
             
@@ -187,14 +223,11 @@ Window {
     // Component for Fill selector
     Component {
         id: fillComponent
-        Item {
-            // Set implicit height based on content
-            implicitHeight: colorTypeRow.y + colorTypeRow.height + 10
-            
+        ColorPicker {
             property var selectedElement: Application.activeCanvas && Application.activeCanvas.selectionManager 
                 ? Application.activeCanvas.selectionManager.selectedElements[0] : null
             
-            property real currentHue: {
+            hue: {
                 if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
                     var color = selectedElement.fill
                     return color.hslHue * 360  // Qt returns hue as 0-1, convert to 0-360
@@ -202,7 +235,7 @@ Window {
                 return 200  // Default to light blue hue
             }
             
-            property real currentSaturation: {
+            saturation: {
                 if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
                     var color = selectedElement.fill
                     return color.hslSaturation
@@ -210,7 +243,7 @@ Window {
                 return 1.0
             }
             
-            property real currentLightness: {
+            lightness: {
                 if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
                     var color = selectedElement.fill
                     return color.hslLightness
@@ -218,7 +251,7 @@ Window {
                 return 0.5
             }
             
-            property real currentOpacity: {
+            alphaValue: {
                 if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
                     var color = selectedElement.fill
                     return color.a  // Alpha channel
@@ -226,230 +259,33 @@ Window {
                 return 1.0
             }
             
-            // Fill type selector
-            ComboBox {
-                id: fillTypeCombo
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.top: parent.top
-                anchors.topMargin: 10
-                width: parent.width - 20
-                model: ["Solid", "Linear", "Radial", "Conic", "Image"]
-                currentIndex: 0  // Default to Solid
-                
-                onCurrentIndexChanged: {
-                    // No functionality for now
+            colorFormat: {
+                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant")) {
+                    return selectedElement.colorFormat !== undefined ? selectedElement.colorFormat : 1
                 }
+                return 1  // Default to HEX
             }
             
-            ShadeSelector {
-                id: shadeSelector
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.top: fillTypeCombo.bottom
-                anchors.topMargin: 10
-                width: parent.width - 20
-                height: 100
-                
-                hue: currentHue
-                saturation: currentSaturation
-                lightness: currentLightness
-                
-                onShadeUpdated: function(newSaturation, newLightness) {
-                    updateColor()
-                }
-            }
+            fillType: 0  // Default to Solid for now
             
-            HueSlider {
-                id: hueSlider
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.top: shadeSelector.bottom
-                anchors.topMargin: 10
-                width: parent.width - 20
-                
-                hue: currentHue
-                // Always show full saturation and medium lightness for the hue gradient
-                saturation: 1.0
-                lightness: 0.5
-                
-                onHueUpdated: function(newHue) {
-                    shadeSelector.hue = newHue
-                    updateColor()
-                }
-            }
-            
-            OpacitySlider {
-                id: opacitySlider
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.top: hueSlider.bottom
-                anchors.topMargin: 10
-                width: parent.width - 20
-                
-                color: Qt.hsla(shadeSelector.hue / 360, shadeSelector.saturation, shadeSelector.lightness, 1.0)
-                alpha: currentOpacity
-                
-                onAlphaUpdated: function(newAlpha) {
-                    updateColor()
-                }
-            }
-            
-            // Row with color value and opacity percentage inputs
-            Row {
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.top: opacitySlider.bottom
-                anchors.topMargin: 10
-                width: parent.width - 20
-                spacing: 10
-                
-                // Color value input
-                TextField {
-                    id: colorInput
-                    width: (parent.width - parent.spacing) * 0.65  // Take up more space for color
-                    text: {
-                        if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant")) {
-                            var color = selectedElement.fill
-                            
-                            switch (colorTypeCombo.currentIndex) {
-                                case 0: // RGB
-                                    var r = Math.round(color.r * 255)
-                                    var g = Math.round(color.g * 255)
-                                    var b = Math.round(color.b * 255)
-                                    return "rgb(" + r + ", " + g + ", " + b + ")"
-                                    
-                                case 1: // HEX
-                                    var rh = Math.round(color.r * 255).toString(16).padStart(2, '0')
-                                    var gh = Math.round(color.g * 255).toString(16).padStart(2, '0')
-                                    var bh = Math.round(color.b * 255).toString(16).padStart(2, '0')
-                                    return "#" + rh + gh + bh
-                                    
-                                case 2: // HSL
-                                    var h = Math.round(color.hslHue * 360)
-                                    var s = Math.round(color.hslSaturation * 100)
-                                    var l = Math.round(color.hslLightness * 100)
-                                    return "hsl(" + h + ", " + s + "%, " + l + "%)"
-                                    
-                                default:
-                                    return "#000000"
-                            }
-                        }
-                        return colorTypeCombo.currentIndex === 1 ? "#000000" : (colorTypeCombo.currentIndex === 0 ? "rgb(0, 0, 0)" : "hsl(0, 0%, 0%)")
-                    }
-                    
-                    onAccepted: {
-                        var text = this.text.trim()
-                        
-                        if (colorTypeCombo.currentIndex === 0) { // RGB
-                            // Parse rgb(r, g, b) format
-                            var rgbMatch = text.match(/rgb\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/)
-                            if (rgbMatch) {
-                                var r = Math.max(0, Math.min(255, parseInt(rgbMatch[1]))) / 255
-                                var g = Math.max(0, Math.min(255, parseInt(rgbMatch[2]))) / 255
-                                var b = Math.max(0, Math.min(255, parseInt(rgbMatch[3]))) / 255
-                                
-                                var color = Qt.rgba(r, g, b, 1)
-                                shadeSelector.hue = color.hslHue * 360
-                                shadeSelector.saturation = color.hslSaturation
-                                shadeSelector.lightness = color.hslLightness
-                                updateColor()
-                            }
-                        } else if (colorTypeCombo.currentIndex === 1) { // HEX
-                            // Parse hex color input
-                            var hex = text
-                            if (hex.startsWith("#")) {
-                                hex = hex.substring(1)
-                            }
-                            if (hex.length === 6) {
-                                var r = parseInt(hex.substring(0, 2), 16) / 255
-                                var g = parseInt(hex.substring(2, 4), 16) / 255
-                                var b = parseInt(hex.substring(4, 6), 16) / 255
-                                
-                                var color = Qt.rgba(r, g, b, 1)
-                                shadeSelector.hue = color.hslHue * 360
-                                shadeSelector.saturation = color.hslSaturation
-                                shadeSelector.lightness = color.hslLightness
-                                updateColor()
-                            }
-                        } else if (colorTypeCombo.currentIndex === 2) { // HSL
-                            // Parse hsl(h, s%, l%) format
-                            var hslMatch = text.match(/hsl\s*\(\s*(\d+)\s*,\s*(\d+)%?\s*,\s*(\d+)%?\s*\)/)
-                            if (hslMatch) {
-                                var h = Math.max(0, Math.min(360, parseInt(hslMatch[1])))
-                                var s = Math.max(0, Math.min(100, parseInt(hslMatch[2]))) / 100
-                                var l = Math.max(0, Math.min(100, parseInt(hslMatch[3]))) / 100
-                                
-                                shadeSelector.hue = h
-                                shadeSelector.saturation = s
-                                shadeSelector.lightness = l
-                                updateColor()
-                            }
-                        }
-                    }
-                }
-                
-                // Opacity percentage input
-                TextField {
-                    id: opacityInput
-                    width: (parent.width - parent.spacing) * 0.35
-                    text: Math.round(opacitySlider.alpha * 100) + "%"
-                    
-                    onAccepted: {
-                        // Parse percentage input
-                        var value = text.trim()
-                        if (value.endsWith("%")) {
-                            value = value.substring(0, value.length - 1)
-                        }
-                        var percentage = parseFloat(value)
-                        if (!isNaN(percentage)) {
-                            opacitySlider.alpha = Math.max(0, Math.min(100, percentage)) / 100
-                            updateColor()
-                        }
-                    }
-                }
-            }
-            
-            // Row with color type selector and eye button
-            Row {
-                id: colorTypeRow
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.top: parent.children[parent.children.length - 2].bottom  // Reference the previous row
-                anchors.topMargin: 10
-                width: parent.width - 20
-                spacing: 10
-                
-                // Color type selector
-                ComboBox {
-                    id: colorTypeCombo
-                    width: (parent.width - parent.spacing) * 0.65
-                    model: ["RGB", "HEX", "HSL"]
-                    currentIndex: {
-                        if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant")) {
-                            return selectedElement.colorFormat !== undefined ? selectedElement.colorFormat : 1
-                        }
-                        return 1  // Default to HEX
-                    }
-                    
-                    onCurrentIndexChanged: {
-                        if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
-                            selectedElement.colorFormat = currentIndex
-                        }
-                    }
-                }
-                
-                // Eye button
-                Button {
-                    width: (parent.width - parent.spacing) * 0.35
-                    text: "Eye"
-                    
-                    onClicked: {
-                        // No functionality for now
-                    }
-                }
-            }
-            
-            function updateColor() {
+            onColorChanged: function(newColor) {
                 if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
-                    // Create a new color with the selected hue, saturation, lightness and opacity
-                    var newColor = Qt.hsla(shadeSelector.hue / 360, shadeSelector.saturation, shadeSelector.lightness, opacitySlider.alpha)
                     selectedElement.fill = newColor
                 }
+            }
+            
+            onColorFormatChanged: function(newFormat) {
+                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
+                    selectedElement.colorFormat = newFormat
+                }
+            }
+            
+            onFillTypeChanged: function(newType) {
+                // No functionality for now
+            }
+            
+            onEyeButtonClicked: {
+                // No functionality for now
             }
         }
     }

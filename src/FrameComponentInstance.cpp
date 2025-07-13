@@ -103,9 +103,8 @@ void FrameComponentInstance::setInstanceOf(const QString &componentId)
         disconnectFromVariant();
         disconnectFromComponent();
         
-        // Defer connection to avoid issues during initialization
-        // Connect to new component on the next event loop iteration
-        QMetaObject::invokeMethod(this, &FrameComponentInstance::connectToComponent, Qt::QueuedConnection);
+        // Connect immediately to ensure properties are available
+        connectToComponent();
         
         emit instanceOfChanged();
     }
