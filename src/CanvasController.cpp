@@ -289,4 +289,28 @@ void CanvasController::redo()
     }
 }
 
+void CanvasController::setSavedContentX(qreal x)
+{
+    if (m_savedContentX != x) {
+        m_savedContentX = x;
+        emit savedContentXChanged();
+    }
+}
+
+void CanvasController::setSavedContentY(qreal y)
+{
+    if (m_savedContentY != y) {
+        m_savedContentY = y;
+        emit savedContentYChanged();
+    }
+}
+
+void CanvasController::setSavedZoom(qreal zoom)
+{
+    if (m_savedZoom != zoom) {
+        m_savedZoom = zoom;
+        emit savedZoomChanged();
+    }
+}
+
 

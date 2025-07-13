@@ -130,7 +130,6 @@ QString Node::value() const
     }
     
     // Default: return the stored value
-    qDebug() << "Node::value() - Returning stored value:" << m_value;
     return m_value;
 }
 

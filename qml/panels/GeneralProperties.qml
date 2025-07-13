@@ -2,12 +2,11 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Cubit
+import "../components"
 import "../PropertyHelpers.js" as PropertyHelpers
 
-GroupBox {
+PropertyGroup {
     id: root
-    Layout.fillWidth: true
-    Layout.margins: 10
     title: "General"
     
     property var selectedElement
@@ -15,51 +14,45 @@ GroupBox {
     
     visible: selectedElement
     
-    
-    GridLayout {
-        anchors.fill: parent
-        columns: 2
-        columnSpacing: 10
-        rowSpacing: 5
-        
-        Label { text: "Name:" }
-        TextField {
-            Layout.fillWidth: true
-            text: selectedElement ? selectedElement.name : ""
-            onTextChanged: if (selectedElement) selectedElement.name = text
-        }
-        
-        Label { text: "Type:" }
-        Label {
-            text: selectedElement ? selectedElement.elementType : ""
-            color: "#666666"
-        }
-        
-        Label { text: "ID:" }
-        Label {
-            text: selectedElement ? selectedElement.elementId : ""
-            color: "#666666"
-        }
-        
-        Label { 
-            text: "Parent ID:" 
-            visible: selectedElement && selectedElement.isDesignElement
-        }
-        Label {
-            text: selectedElement && selectedElement.parentId ? selectedElement.parentId : "None"
-            color: "#666666"
-            visible: selectedElement && selectedElement.isDesignElement
-        }
-        
-        Label { 
-            text: "Platform:" 
-            visible: PropertyHelpers.canShowPlatform(selectedElement, editableProperties, Application)
-        }
-        ComboBox {
-            Layout.fillWidth: true
-            visible: PropertyHelpers.canShowPlatform(selectedElement, editableProperties, Application)
-            model: {
-                if (!Application.activeCanvas || !selectedElement || (selectedElement.elementType !== "Frame" && selectedElement.elementType !== "ComponentVariant" && selectedElement.elementType !== "ComponentInstance")) {
+    property var generalProps: [
+        { 
+            name: "Name", 
+            type: "text", 
+            getter: () => selectedElement ? selectedElement.name : "",
+            setter: v => { if (selectedElement) selectedElement.name = v }
+        },
+        { 
+            name: "Type", 
+            type: "label", 
+            getter: () => selectedElement ? selectedElement.elementType : ""
+        },
+        { 
+            name: "ID", 
+            type: "label", 
+            getter: () => selectedElement ? selectedElement.elementId : ""
+        },
+        { 
+            name: "Parent ID", 
+            type: "label", 
+            getter: () => selectedElement && selectedElement.parentId ? selectedElement.parentId : "None",
+            visible: () => selectedElement && selectedElement.isDesignElement
+        },
+        {
+            name: "Platform",
+            type: "combobox",
+            getter: () => {
+                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
+                    return selectedElement.platform || "undefined"
+                }
+                return "undefined"
+            },
+            setter: v => {
+                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
+                    selectedElement.platform = v === "undefined" ? "" : v
+                }
+            },
+            model: () => {
+                if (!Application.activeCanvas || !selectedElement || (selectedElement.elementType !== "Frame" && selectedElement.elementType !== "FrameComponentVariant" && selectedElement.elementType !== "FrameComponentInstance")) {
                     return ["undefined"]
                 }
                 
@@ -69,37 +62,85 @@ GroupBox {
                     platforms.push(canvasPlatforms[i])
                 }
                 return platforms
-            }
-            currentIndex: {
-                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
-                    var platform = selectedElement.platform || "undefined"
-                    var index = model.indexOf(platform)
-                    return index >= 0 ? index : 0
-                }
-                return 0
-            }
-            onActivated: function(index) {
-                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
-                    var platform = model[index]
-                    selectedElement.platform = platform === "undefined" ? "" : platform
-                }
-            }
-        }
-        
-        Label { 
-            text: "Role:" 
-            visible: PropertyHelpers.canShowRole(selectedElement, editableProperties)
-        }
-        ComboBox {
-            Layout.fillWidth: true
-            visible: PropertyHelpers.canShowRole(selectedElement, editableProperties)
-            model: ["container"]
-            currentIndex: 0
-            onActivated: function(index) {
+            },
+            visible: () => PropertyHelpers.canShowPlatform(selectedElement, editableProperties, Application)
+        },
+        {
+            name: "Role",
+            type: "combobox",
+            getter: () => "container",
+            setter: v => {
                 if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
                     selectedElement.role = 1
                 }
-            }
+            },
+            model: () => ["container"],
+            visible: () => PropertyHelpers.canShowRole(selectedElement, editableProperties)
+        }
+    ]
+    
+    Component {
+        id: textFieldComp
+        TextField {
+            Layout.fillWidth: true
         }
     }
+    
+    Component {
+        id: labelComp
+        Label {
+            color: "#666666"
+        }
+    }
+    
+    Component {
+        id: comboBoxComp
+        ComboBox {
+            Layout.fillWidth: true
+        }
+    }
+    
+    content: [
+        Repeater {
+            model: generalProps.filter(prop => !prop.visible || prop.visible())
+            
+            delegate: LabeledField {
+                label: modelData.name
+                visible: !modelData.visible || modelData.visible()
+                
+                delegate: [
+                    Loader {
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        sourceComponent: modelData.type === "text" ? textFieldComp
+                                       : modelData.type === "label" ? labelComp
+                                       : modelData.type === "combobox" ? comboBoxComp
+                                       : null
+                        
+                        onLoaded: {
+                            if (modelData.type === "text") {
+                                item.text = Qt.binding(modelData.getter)
+                                item.textChanged.connect(function() {
+                                    modelData.setter(item.text)
+                                })
+                            } else if (modelData.type === "label") {
+                                item.text = Qt.binding(modelData.getter)
+                            } else if (modelData.type === "combobox") {
+                                item.model = Qt.binding(modelData.model)
+                                item.currentIndex = Qt.binding(function() {
+                                    var value = modelData.getter()
+                                    var index = item.model.indexOf(value)
+                                    return index >= 0 ? index : 0
+                                })
+                                item.activated.connect(function(index) {
+                                    var value = item.model[index]
+                                    modelData.setter(value)
+                                })
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ]
 }

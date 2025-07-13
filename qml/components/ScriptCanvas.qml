@@ -65,7 +65,6 @@ BaseCanvas {
     
     // Function to force update all edges
     function updateAllEdges() {
-        console.log("updateAllEdges called - model count:", elementModel ? elementModel.rowCount() : 0)
         // Force all edge delegates to update by triggering a model refresh
         if (elementModel) {
             // This will cause all delegates to re-evaluate their bindings
@@ -197,19 +196,15 @@ BaseCanvas {
                     // Watch for source/target node changes and update positions
                     onSourceNodeChanged: {
                         if (sourceNode) {
-                            console.log("Edge source node changed to:", sourceNode.nodeTitle, "id:", sourceNode.elementId)
                             Qt.callLater(updateEdgePositions)
                         } else {
-                            console.log("Edge source node is null for edge:", edgeObj ? edgeObj.elementId : "unknown")
                         }
                     }
                     
                     onTargetNodeChanged: {
                         if (targetNode) {
-                            console.log("Edge target node changed to:", targetNode.nodeTitle, "id:", targetNode.elementId)
                             Qt.callLater(updateEdgePositions)
                         } else {
-                            console.log("Edge target node is null for edge:", edgeObj ? edgeObj.elementId : "unknown")
                         }
                     }
                     

@@ -1,45 +1,48 @@
 import QtQuick
 import QtQuick.Controls
 
-TextField {
+// Use a container Item to work with native styling
+Item {
     id: root
     
     property bool panelVisible: false
     property color elementFillColor: "#e0e0e0"
+    property alias text: textField.text
+    property alias placeholderText: textField.placeholderText
     signal panelRequested()
     
-    readOnly: true
-    placeholderText: "Click to select..."
-    leftPadding: 30 // Make room for the square box (16px box + 4px margin + 10px padding)
+    implicitHeight: textField.implicitHeight
+    implicitWidth: textField.implicitWidth
     
-    MouseArea {
-        anchors.fill: parent
-        cursorShape: Qt.PointingHandCursor
-        onClicked: {
-            root.panelRequested()
-            root.panelVisible = !root.panelVisible
-        }
+    // Color preview square
+    Rectangle {
+        id: squareBox
+        width: 16
+        height: 16
+        anchors.left: parent.left
+        anchors.leftMargin: 4
+        anchors.verticalCenter: parent.verticalCenter
+        color: root.elementFillColor
+        border.color: "#b0b0b0"
+        border.width: 1
+        radius: 0
+        z: 1 // Above the TextField
     }
     
-    // Style to match other inputs in PropertiesPanel
-    background: Rectangle {
-        color: root.enabled ? "#ffffff" : "#f0f0f0"
-        border.color: root.panelVisible ? "#4080ff" : (root.hovered ? "#a0a0a0" : "#d0d0d0")
-        border.width: 1
-        radius: 2
+    TextField {
+        id: textField
+        anchors.fill: parent
+        readOnly: true
+        placeholderText: "Click to select..."
+        leftPadding: 30 // Make room for the square box
         
-        // Square box on the left side
-        Rectangle {
-            id: squareBox
-            width: 16
-            height: 16
-            anchors.left: parent.left
-            anchors.leftMargin: 4  // Small spacing from left edge
-            anchors.verticalCenter: parent.verticalCenter
-            color: root.elementFillColor
-            border.color: "#b0b0b0"
-            border.width: 1
-            radius: 0
+        MouseArea {
+            anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+                root.panelRequested()
+                root.panelVisible = !root.panelVisible
+            }
         }
     }
 }

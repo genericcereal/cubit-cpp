@@ -17,9 +17,12 @@
         <file>qml/components/PortTypeConfig.qml</file>
         <file>qml/components/PortInput.qml</file>
         <file>qml/components/PropertyPopover.qml</file>
-        <file>qml/components/HueSlider.qml</file>
-        <file>qml/components/ShadeSelector.qml</file>
-        <file>qml/components/OpacitySlider.qml</file>
+        <file>qml/components/LabeledField.qml</file>
+        <file>qml/components/PropertyGroup.qml</file>
+        <file>qml/components/color-picker/ColorPicker.qml</file>
+        <file>qml/components/color-picker/HueSlider.qml</file>
+        <file>qml/components/color-picker/ShadeSelector.qml</file>
+        <file>qml/components/color-picker/OpacitySlider.qml</file>
         <file>qml/components/DesignElement.qml</file>
         <file>qml/components/ElementRenderer.qml</file>
         <file>qml/components/FrameElement.qml</file>

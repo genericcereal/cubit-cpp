@@ -20,6 +20,9 @@ class CanvasController : public QObject {
     Q_PROPERTY(bool isDragging READ isDragging NOTIFY isDraggingChanged)
     Q_PROPERTY(bool canUndo READ canUndo NOTIFY canUndoChanged)
     Q_PROPERTY(bool canRedo READ canRedo NOTIFY canRedoChanged)
+    Q_PROPERTY(qreal savedContentX READ savedContentX WRITE setSavedContentX NOTIFY savedContentXChanged)
+    Q_PROPERTY(qreal savedContentY READ savedContentY WRITE setSavedContentY NOTIFY savedContentYChanged)
+    Q_PROPERTY(qreal savedZoom READ savedZoom WRITE setSavedZoom NOTIFY savedZoomChanged)
     
 public:
     // Enum for canvas interaction modes
@@ -69,6 +72,14 @@ public:
     Q_INVOKABLE void undo();
     Q_INVOKABLE void redo();
     
+    // Viewport state management
+    qreal savedContentX() const { return m_savedContentX; }
+    qreal savedContentY() const { return m_savedContentY; }
+    qreal savedZoom() const { return m_savedZoom; }
+    void setSavedContentX(qreal x);
+    void setSavedContentY(qreal y);
+    void setSavedZoom(qreal zoom);
+    
     
 public slots:
     // Mouse handling
@@ -103,6 +114,9 @@ signals:
     void elementCreated(Element *element);
     void canUndoChanged();
     void canRedoChanged();
+    void savedContentXChanged();
+    void savedContentYChanged();
+    void savedZoomChanged();
     
 protected:
     ElementModel& m_elementModel;
@@ -121,6 +135,11 @@ private:
     // Mode handlers
     std::unordered_map<Mode, std::unique_ptr<IModeHandler>> m_modeHandlers;
     IModeHandler* m_currentHandler = nullptr;
+    
+    // Viewport state - initialize to invalid state so centerViewAtOrigin() is used on first load
+    qreal m_savedContentX = 0.0;
+    qreal m_savedContentY = 0.0;
+    qreal m_savedZoom = 0.0;  // Invalid zoom triggers centerViewAtOrigin() in main.qml
     
     
     // Initialize subcontrollers

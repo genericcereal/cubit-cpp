@@ -43,14 +43,12 @@ Item {
     property bool showResizeJoints: {
         // Hide resize joints when dragging or when in prototyping mode
         if (dragging) {
-            ConsoleMessageRepository.addOutput("showResizeJoints: false (dragging)")
             return false
         }
         
         // Check if we're in prototyping mode
         var viewportOverlay = root.parent
         if (viewportOverlay && viewportOverlay.prototypeController && viewportOverlay.prototypeController.isPrototyping) {
-            ConsoleMessageRepository.addOutput("showResizeJoints: false (prototyping)")
             return false
         }
         
@@ -58,12 +56,10 @@ Item {
         if (viewportOverlay && viewportOverlay.canvasView) {
             var controller = viewportOverlay.canvasView.controller
             if (controller && controller.isAnimating) {
-                ConsoleMessageRepository.addOutput("showResizeJoints: false (animating)")
                 return false
             }
         }
         
-        ConsoleMessageRepository.addOutput("showResizeJoints: true")
         return true
     }
     property point dragStartPoint

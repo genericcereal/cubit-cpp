@@ -322,8 +322,8 @@ void Scripts::loadInitialNodes() {
     onEditorLoadNode->setNodeType("Event");
     
     // Set position (centered in a reasonable default location)
-    onEditorLoadNode->setX(400);
-    onEditorLoadNode->setY(200);
+    onEditorLoadNode->setX(-100);
+    onEditorLoadNode->setY(0);
     onEditorLoadNode->setWidth(150);
     onEditorLoadNode->setHeight(80);
     

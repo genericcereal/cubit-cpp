@@ -66,6 +66,8 @@ signals:
     void editingElementChanged();
     void activeScriptsChanged();
     void platformsChanged();
+    void viewportStateShouldBeSaved();
+    void viewportStateShouldBeRestored();
 
 private:
     std::unique_ptr<CanvasController> m_controller;

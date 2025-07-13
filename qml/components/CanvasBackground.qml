@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import "../CanvasUtils.js" as Utils
 
 Rectangle {
     id: root
@@ -53,26 +54,53 @@ Rectangle {
                 var dy = Math.abs(mouse.y - root.dragStartPos.y)
                 if (dx > clickThreshold || dy > clickThreshold) {
                     root.isDragging = true
-                    // Emit drag started with the start position
-                    var startCanvasX = root.dragStartPos.x + (root.canvas.canvasMinX || 0)
-                    var startCanvasY = root.dragStartPos.y + (root.canvas.canvasMinY || 0)
-                    root.dragStarted(Qt.point(startCanvasX, startCanvasY))
+                    // Convert mouse position to canvas coordinates using CanvasUtils
+                    // First map to viewport coordinates relative to the canvas
+                    var viewportPos = mapToItem(root.canvas, root.dragStartPos.x, root.dragStartPos.y)
+                    var canvasPos = Utils.viewportToCanvas(
+                        viewportPos,
+                        root.canvas.flickable.contentX,
+                        root.canvas.flickable.contentY,
+                        root.canvas.zoom,
+                        root.canvas.canvasMinX,
+                        root.canvas.canvasMinY
+                    )
+                    console.log("CanvasBackground dragStarted - mouse:", root.dragStartPos.x, root.dragStartPos.y, 
+                               "viewport:", viewportPos.x, viewportPos.y,
+                               "contentX/Y:", root.canvas.flickable.contentX, root.canvas.flickable.contentY,
+                               "final canvas:", canvasPos.x, canvasPos.y)
+                    root.dragStarted(canvasPos)
                 }
             }
             
             // If dragging, emit drag moved
             if (root.isDragging) {
-                var canvasX = mouse.x + (root.canvas.canvasMinX || 0)
-                var canvasY = mouse.y + (root.canvas.canvasMinY || 0)
-                root.dragMoved(Qt.point(canvasX, canvasY))
+                // Convert mouse position to canvas coordinates using CanvasUtils
+                var viewportPos = mapToItem(root.canvas, mouse.x, mouse.y)
+                var canvasPos = Utils.viewportToCanvas(
+                    viewportPos,
+                    root.canvas.flickable.contentX,
+                    root.canvas.flickable.contentY,
+                    root.canvas.zoom,
+                    root.canvas.canvasMinX,
+                    root.canvas.canvasMinY
+                )
+                root.dragMoved(canvasPos)
             }
         }
         
         onReleased: (mouse) => {
             if (root.canvas) {
-                var canvasX = mouse.x + (root.canvas.canvasMinX || 0)
-                var canvasY = mouse.y + (root.canvas.canvasMinY || 0)
-                var canvasPoint = Qt.point(canvasX, canvasY)
+                // Convert mouse position to canvas coordinates using CanvasUtils
+                var viewportPos = mapToItem(root.canvas, mouse.x, mouse.y)
+                var canvasPoint = Utils.viewportToCanvas(
+                    viewportPos,
+                    root.canvas.flickable.contentX,
+                    root.canvas.flickable.contentY,
+                    root.canvas.zoom,
+                    root.canvas.canvasMinX,
+                    root.canvas.canvasMinY
+                )
                 
                 if (root.isDragging) {
                     // Emit drag ended

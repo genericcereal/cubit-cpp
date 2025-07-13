@@ -71,6 +71,13 @@ void Project::setName(const QString& name) {
 
 void Project::setViewMode(const QString& viewMode) {
     if (m_viewMode != viewMode) {
+        QString previousMode = m_viewMode;
+        
+        // Emit signal to save viewport state before changing mode
+        if (previousMode == "design" || previousMode == "variant") {
+            emit viewportStateShouldBeSaved();
+        }
+        
         m_viewMode = viewMode;
         
         // Handle mode-specific logic
@@ -83,13 +90,19 @@ void Project::setViewMode(const QString& viewMode) {
             
             // Clear script elements from ElementModel
             clearScriptElementsFromModel();
+            
+            // Emit signal to restore viewport state after switching to design mode
+            emit viewportStateShouldBeRestored();
         } else if (viewMode == "variant") {
             // Variant mode: similar to design mode but for component variants
             // Save any changes back to scripts if coming from script mode
-            if (m_viewMode == "script") {
+            if (previousMode == "script") {
                 saveElementModelToScripts();
                 clearScriptElementsFromModel();
             }
+            
+            // Emit signal to restore viewport state after switching to variant mode
+            emit viewportStateShouldBeRestored();
             // Log the editing element when switching to variant mode
             qDebug() << "Switching to variant mode, editingElement:" << m_editingElement;
             // Variant canvas will show component variants
