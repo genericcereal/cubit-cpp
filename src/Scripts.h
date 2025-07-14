@@ -9,6 +9,7 @@
 
 class Node;
 class Edge;
+class ElementModel;
 
 class Scripts : public QObject {
     Q_OBJECT
@@ -20,7 +21,7 @@ class Scripts : public QObject {
     Q_PROPERTY(QString compiledScript READ compiledScript NOTIFY compiledScriptChanged)
 
 public:
-    explicit Scripts(QObject *parent = nullptr);
+    explicit Scripts(QObject *parent = nullptr, bool isComponentInstance = false);
     ~Scripts();
 
     // Node management
@@ -46,7 +47,7 @@ public:
     Q_INVOKABLE void clear();
     
     // Compile the script graph to JSON
-    Q_INVOKABLE QString compile();
+    Q_INVOKABLE QString compile(ElementModel* elementModel = nullptr);
 
     // Property getters
     QQmlListProperty<Node> nodes();
@@ -58,6 +59,7 @@ public:
     
     // Property setters
     void setIsCompiled(bool compiled);
+    void setCompiledScript(const QString& script);
 
 signals:
     void nodesChanged();
@@ -77,6 +79,7 @@ private:
     
     // Initialize default nodes
     void loadInitialNodes();
+    void loadComponentInstanceNodes();
     
     // QML list property helpers
     static void appendNode(QQmlListProperty<Node>* list, Node* node);

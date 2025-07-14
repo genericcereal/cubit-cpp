@@ -2,13 +2,21 @@
 #include "Scripts.h"
 #include "Node.h"
 #include "Edge.h"
+#include "ElementModel.h"
+#include "Element.h"
+#include "FrameComponentInstance.h"
+#include "TextComponentInstance.h"
+#include "ComponentInstance.h"
+#include "Component.h"
+#include "ScriptCompiler.h"
 #include <QDebug>
+#include <QJsonDocument>
 
 ScriptInvokeBuilder::ScriptInvokeBuilder()
 {
 }
 
-ScriptInvokeBuilder::BuildContext ScriptInvokeBuilder::buildInvokes(Node* eventNode, Scripts* scripts)
+ScriptInvokeBuilder::BuildContext ScriptInvokeBuilder::buildInvokes(Node* eventNode, Scripts* scripts, ElementModel* elementModel)
 {
     BuildContext context;
     
@@ -22,7 +30,7 @@ ScriptInvokeBuilder::BuildContext ScriptInvokeBuilder::buildInvokes(Node* eventN
     for (Edge* edge : outgoingEdges) {
         Node* targetNode = scripts->getNode(edge->targetNodeId());
         if (targetNode) {
-            buildInvokesRecursive(targetNode, scripts, context);
+            buildInvokesRecursive(targetNode, scripts, context, elementModel);
         }
     }
     
@@ -30,7 +38,8 @@ ScriptInvokeBuilder::BuildContext ScriptInvokeBuilder::buildInvokes(Node* eventN
 }
 
 void ScriptInvokeBuilder::buildInvokesRecursive(Node* node, Scripts* scripts, 
-                                                BuildContext& context, const QString& parentInvokeId)
+                                                BuildContext& context, ElementModel* elementModel,
+                                                const QString& parentInvokeId)
 {
     Q_UNUSED(parentInvokeId);
     if (!node || !scripts) {
@@ -40,6 +49,118 @@ void ScriptInvokeBuilder::buildInvokesRecursive(Node* node, Scripts* scripts,
     // Skip event nodes - they don't generate invokes
     if (node->nodeType() == "Event") {
         return;
+    }
+    
+    // Store node reference for function generation
+    NodeReference nodeRef;
+    nodeRef.node = node;
+    nodeRef.scripts = scripts;
+    context.nodeReferences[node->getId()] = nodeRef;
+    
+    // Special handling for ComponentOnEditorLoadEvents node
+    if (node->nodeTitle() == "Component On Editor Load Events") {
+        qDebug() << "ScriptInvokeBuilder: Processing ComponentOnEditorLoadEvents node";
+        
+        // Get the parent element that owns these scripts
+        QObject* scriptParent = scripts->parent();
+        FrameComponentInstance* frameInstance = qobject_cast<FrameComponentInstance*>(scriptParent);
+        TextComponentInstance* textInstance = qobject_cast<TextComponentInstance*>(scriptParent);
+        
+        Component* component = nullptr;
+        QString componentId;
+        
+        // Check if the scripts belong to a component instance
+        if (frameInstance) {
+            componentId = frameInstance->instanceOf();
+            qDebug() << "ScriptInvokeBuilder: Scripts belong to FrameComponentInstance" << frameInstance->getId() 
+                     << "instance of" << componentId;
+            
+            // Access the component directly from the instance
+            component = frameInstance->sourceComponent();
+        } else if (textInstance) {
+            componentId = textInstance->instanceOf();
+            qDebug() << "ScriptInvokeBuilder: Scripts belong to TextComponentInstance" << textInstance->getId() 
+                     << "instance of" << componentId;
+            
+            // Access the component directly from the instance
+            component = textInstance->sourceComponent();
+        } else {
+            qDebug() << "ScriptInvokeBuilder: ComponentOnEditorLoadEvents node not in a component instance context";
+            // Continue with the normal flow
+            QList<Edge*> outgoingEdges = getOutgoingFlowEdges(node, scripts);
+            for (Edge* edge : outgoingEdges) {
+                Node* nextNode = scripts->getNode(edge->targetNodeId());
+                if (nextNode) {
+                    buildInvokesRecursive(nextNode, scripts, context, elementModel, parentInvokeId);
+                }
+            }
+            return;
+        }
+        
+        // Check if we have the component (either from frame or text instance)
+        if (component && component->scripts()) {
+            qDebug() << "ScriptInvokeBuilder: Found component" << componentId 
+                     << "for instance" << (frameInstance ? frameInstance->getId() : textInstance->getId());
+            
+            // Ensure component scripts are compiled
+            Scripts* componentScripts = component->scripts();
+            qDebug() << "ScriptInvokeBuilder: Component has" << componentScripts->nodeCount() << "nodes and" 
+                     << componentScripts->edgeCount() << "edges";
+            if (!componentScripts->isCompiled()) {
+                ScriptCompiler compiler;
+                QString compiledJson = compiler.compile(componentScripts, elementModel);
+                if (compiledJson.isEmpty()) {
+                    qDebug() << "ScriptInvokeBuilder: Failed to compile component scripts for" << componentId;
+                } else {
+                    componentScripts->setCompiledScript(compiledJson);
+                    componentScripts->setIsCompiled(true);
+                }
+            }
+            
+            if (componentScripts->isCompiled()) {
+                // Find the onEditorLoad event node in the component's scripts
+                QList<Node*> componentNodes = componentScripts->getAllNodes();
+                Node* onEditorLoadNode = nullptr;
+                
+                for (Node* compNode : componentNodes) {
+                    if (compNode && compNode->nodeType() == "Event" && 
+                        compNode->nodeTitle() == "On Editor Load") {
+                        onEditorLoadNode = compNode;
+                        break;
+                    }
+                }
+                
+                if (onEditorLoadNode) {
+                    qDebug() << "ScriptInvokeBuilder: Building invokes for component's onEditorLoad event";
+                    
+                    // Get outgoing edges from the onEditorLoad event
+                    QList<Edge*> componentEdges = getOutgoingFlowEdges(onEditorLoadNode, componentScripts);
+                    
+                    for (Edge* edge : componentEdges) {
+                        Node* targetNode = componentScripts->getNode(edge->targetNodeId());
+                        if (targetNode) {
+                            // Build invokes for the component's nodes, inserting them into our context
+                            buildComponentInvokesRecursive(targetNode, componentScripts, context, elementModel);
+                        }
+                    }
+                } else {
+                    qDebug() << "ScriptInvokeBuilder: No onEditorLoad event found in component scripts";
+                }
+            }
+        } else {
+            qDebug() << "ScriptInvokeBuilder: Component" << componentId << "not found or has no scripts";
+        }
+        
+        // Continue with the next nodes after ComponentOnEditorLoadEvents
+        QList<Edge*> outgoingEdges = getOutgoingFlowEdges(node, scripts);
+        for (Edge* edge : outgoingEdges) {
+            Node* nextNode = scripts->getNode(edge->targetNodeId());
+            if (nextNode) {
+                buildInvokesRecursive(nextNode, scripts, context, elementModel, parentInvokeId);
+            }
+        }
+        
+        return; // Don't create an invoke for the ComponentOnEditorLoadEvents node itself
     }
     
     // Create invoke for this node
@@ -61,7 +182,7 @@ void ScriptInvokeBuilder::buildInvokesRecursive(Node* node, Scripts* scripts,
             context.invokes[invoke.invokeId] = invoke;
             
             // Process next node
-            buildInvokesRecursive(nextNode, scripts, context, invoke.invokeId);
+            buildInvokesRecursive(nextNode, scripts, context, elementModel, invoke.invokeId);
             return; // Already stored invoke
         }
     }
@@ -182,4 +303,50 @@ QString ScriptInvokeBuilder::generateInvokeId(BuildContext& context)
 QString ScriptInvokeBuilder::generateOutputId(BuildContext& context)
 {
     return QString("output_%1").arg(context.outputCounter++);
+}
+
+void ScriptInvokeBuilder::buildComponentInvokesRecursive(Node* node, Scripts* scripts, 
+                                                         BuildContext& context, ElementModel* elementModel)
+{
+    if (!node || !scripts) {
+        return;
+    }
+    
+    // Skip event nodes - they don't generate invokes
+    if (node->nodeType() == "Event") {
+        return;
+    }
+    
+    // Store node reference for function generation
+    NodeReference nodeRef;
+    nodeRef.node = node;
+    nodeRef.scripts = scripts;
+    context.nodeReferences[node->getId()] = nodeRef;
+    
+    // Create invoke for this node
+    InvokeData invoke;
+    invoke.invokeId = generateInvokeId(context);
+    invoke.nodeId = node->getId();
+    invoke.functionName = getFunctionNameForNode(node);
+    invoke.params = createNodeParameters(node, scripts, context);
+    
+    // Find next nodes to invoke
+    QList<Edge*> outgoingEdges = getOutgoingFlowEdges(node, scripts);
+    for (Edge* edge : outgoingEdges) {
+        Node* nextNode = scripts->getNode(edge->targetNodeId());
+        if (nextNode) {
+            QString nextInvokeId = generateInvokeId(context);
+            invoke.nextInvokes.append(nextInvokeId);
+            
+            // Store this invoke before processing next
+            context.invokes[invoke.invokeId] = invoke;
+            
+            // Process next node
+            buildComponentInvokesRecursive(nextNode, scripts, context, elementModel);
+            return; // Already stored invoke
+        }
+    }
+    
+    // Store invoke if not already stored
+    context.invokes[invoke.invokeId] = invoke;
 }

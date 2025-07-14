@@ -12,6 +12,9 @@ TextComponentInstance::TextComponentInstance(const QString &id, QObject *parent)
     // Set element type
     elementType = Element::FrameComponentInstanceType;
     setName("TextInstance");
+    
+    // Re-initialize scripts with ComponentInstance flag
+    initializeScripts(true);
 }
 
 TextComponentInstance::~TextComponentInstance()
@@ -204,4 +207,11 @@ void TextComponentInstance::syncPropertiesFromVariant()
         setRect(QRectF(textVariant->x(), textVariant->y(), 
                       textVariant->width(), textVariant->height()));
     }
+}
+
+void TextComponentInstance::executeScriptEvent(const QString& eventName)
+{
+    // ComponentInstances should execute their own scripts, not their source variant's scripts
+    // Call the parent class implementation directly
+    Text::executeScriptEvent(eventName);
 }

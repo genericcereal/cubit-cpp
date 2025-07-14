@@ -26,12 +26,16 @@ Item {
                     continue;
                 var elementType = element.elementType || "unknown";
 
+                console.log("DesignScriptExecutorOverlay - Checking element:", element.elementId, "type:", elementType);
 
-                // Only Frame and Text elements (DesignElements) can execute scripts
-                if (elementType === "Frame" || elementType === "Text") {
+                // Only DesignElements (Frame, Text, and their ComponentInstance variants) can execute scripts
+                if (elementType === "Frame" || elementType === "Text" || 
+                    elementType === "FrameComponentInstance" || elementType === "TextComponentInstance") {
+                    console.log("  -> Executing onEditorLoad for element:", element.elementId, "type:", elementType);
                     try {
                         element.executeScriptEvent("onEditorLoad");
                     } catch (e) {
+                        console.error("  -> Error executing onEditorLoad for element:", element.elementId, "error:", e);
                     }
                 }
             }

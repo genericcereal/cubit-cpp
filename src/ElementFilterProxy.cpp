@@ -63,30 +63,63 @@ void ElementFilterProxy::setEditingElement(QObject* element) {
     }
 }
 
+bool ElementFilterProxy::filterComponentsOut() const {
+    return m_filterComponentsOut;
+}
+
+void ElementFilterProxy::setFilterComponentsOut(bool filter) {
+    if (m_filterComponentsOut != filter) {
+        m_filterComponentsOut = filter;
+        emit filterComponentsOutChanged();
+        invalidateFilter();
+    }
+}
+
+bool ElementFilterProxy::filterComponentsOnly() const {
+    return m_filterComponentsOnly;
+}
+
+void ElementFilterProxy::setFilterComponentsOnly(bool filter) {
+    if (m_filterComponentsOnly != filter) {
+        m_filterComponentsOnly = filter;
+        emit filterComponentsOnlyChanged();
+        invalidateFilter();
+    }
+}
+
 bool ElementFilterProxy::filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const {
     Q_UNUSED(sourceParent)
     
     if (!sourceModel()) {
+        qDebug() << "ElementFilterProxy: No source model";
         return false;
     }
     
     QModelIndex index = sourceModel()->index(sourceRow, 0);
     if (!index.isValid()) {
+        qDebug() << "ElementFilterProxy: Invalid index for row" << sourceRow;
         return false;
     }
     
     // Get the element from the model data
     QVariant data = sourceModel()->data(index, Qt::UserRole + 1); // ElementRole
     if (!data.isValid()) {
+        qDebug() << "ElementFilterProxy: No valid data for row" << sourceRow;
         return false;
     }
     
     Element* element = data.value<Element*>();
     if (!element) {
+        qDebug() << "ElementFilterProxy: Null element for row" << sourceRow;
         return false;
     }
     
-    return shouldShowElementInMode(element);
+    bool accepted = shouldShowElementInMode(element);
+    // qDebug() << "ElementFilterProxy: Element" << element->getName() << "type" << element->getTypeName() 
+    //          << "filterComponentsOut:" << m_filterComponentsOut 
+    //          << "filterComponentsOnly:" << m_filterComponentsOnly
+    //          << "accepted:" << accepted;
+    return accepted;
 }
 
 bool ElementFilterProxy::shouldShowElementInMode(Element* element) const {
@@ -99,8 +132,20 @@ bool ElementFilterProxy::shouldShowElementInMode(Element* element) const {
     // But ElementList can still show them
     Component* component = qobject_cast<Component*>(element);
     if (component) {
+        // Apply component filtering
+        if (m_filterComponentsOut) {
+            return false; // Filter out components
+        }
+        if (m_filterComponentsOnly) {
+            return m_viewMode == "design"; // Only show components in design mode
+        }
         // Components are only shown in design mode, not in script or variant modes
         return m_viewMode == "design";
+    }
+    
+    // If we're only showing components, filter out non-components
+    if (m_filterComponentsOnly) {
+        return false;
     }
     
     // Non-visual elements (except Components) are never shown

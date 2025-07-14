@@ -20,7 +20,7 @@ ScriptCompiler::ScriptCompiler(QObject *parent)
 
 ScriptCompiler::~ScriptCompiler() = default;
 
-QString ScriptCompiler::compile(Scripts* scripts)
+QString ScriptCompiler::compile(Scripts* scripts, ElementModel* elementModel)
 {
     if (!scripts) {
         m_lastError = "No scripts object provided";
@@ -42,8 +42,8 @@ QString ScriptCompiler::compile(Scripts* scripts)
             // Normalize event name
             QString eventName = node->nodeTitle().toLower().remove(' ');
             
-            // Build invokes for this event
-            ScriptInvokeBuilder::BuildContext context = m_invokeBuilder->buildInvokes(node, scripts);
+            // Build invokes for this event, passing elementModel for ComponentOnEditorLoadEvents handling
+            ScriptInvokeBuilder::BuildContext context = m_invokeBuilder->buildInvokes(node, scripts, elementModel);
             
             // Store context for this event
             eventContexts[eventName] = context;

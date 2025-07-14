@@ -28,8 +28,14 @@ public:
     // Get editable properties from source variant
     Q_INVOKABLE QStringList getEditableProperties() const;
     
+    // Get the source component
+    Component* sourceComponent() const { return m_component; }
+    
     // Override to identify this as a visual element
     virtual bool isVisual() const override { return true; }
+    
+    // Override to execute scripts (now executes instance's own scripts)
+    Q_INVOKABLE virtual void executeScriptEvent(const QString& eventName) override;
     
     // Override Text property setters to track modifications
     void setContent(const QString &content);

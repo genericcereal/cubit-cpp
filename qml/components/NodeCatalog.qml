@@ -41,6 +41,25 @@ QtObject {
                     "label": "Done"
                 }
             ]
+        },
+        "componentOnEditorLoadEvents": {
+            "id": "componentOnEditorLoadEvents",
+            "name": "Component On Editor Load Events",
+            "type": "Operation",
+            "targets": [
+                {
+                    "id": "exec",
+                    "type": "Flow",
+                    "label": "Exec"
+                }
+            ],
+            "sources": [
+                {
+                    "id": "done",
+                    "type": "Flow",
+                    "label": "Done"
+                }
+            ]
         }
     }
 

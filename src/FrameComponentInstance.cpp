@@ -74,6 +74,9 @@ FrameComponentInstance::FrameComponentInstance(const QString &id, QObject *paren
     // Set overflow to Hidden by default to test clipping
     setOverflow(Hidden);
     qDebug() << "ComponentInstance constructor - set overflow to Hidden for" << id;
+    
+    // Re-initialize scripts with ComponentInstance flag
+    initializeScripts(true);
 }
 
 FrameComponentInstance::~FrameComponentInstance()
@@ -673,4 +676,11 @@ void FrameComponentInstance::setHeightType(SizeType type)
 {
     m_modifiedProperties.insert("heightType");
     Frame::setHeightType(type);
+}
+
+void FrameComponentInstance::executeScriptEvent(const QString& eventName)
+{
+    // ComponentInstances should execute their own scripts, not their source variant's scripts
+    // Call the parent class implementation directly
+    Frame::executeScriptEvent(eventName);
 }

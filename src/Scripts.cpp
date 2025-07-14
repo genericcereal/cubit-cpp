@@ -6,11 +6,15 @@
 #include "ConsoleMessageRepository.h"
 #include <algorithm>
 
-Scripts::Scripts(QObject *parent)
+Scripts::Scripts(QObject *parent, bool isComponentInstance)
     : QObject(parent)
 {
-    // Initialize with default nodes
-    loadInitialNodes();
+    // Initialize with appropriate nodes based on type
+    if (isComponentInstance) {
+        loadComponentInstanceNodes();
+    } else {
+        loadInitialNodes();
+    }
 }
 
 Scripts::~Scripts() {
@@ -186,9 +190,9 @@ void Scripts::clear() {
 }
 
 // Compile the script graph to JSON
-QString Scripts::compile() {
+QString Scripts::compile(ElementModel* elementModel) {
     ScriptCompiler compiler;
-    QString result = compiler.compile(this);
+    QString result = compiler.compile(this, elementModel);
     
     if (result.isEmpty()) {
         QString error = compiler.getLastError();
@@ -254,6 +258,13 @@ void Scripts::setIsCompiled(bool compiled) {
         }
         
         emit isCompiledChanged();
+    }
+}
+
+void Scripts::setCompiledScript(const QString& script) {
+    if (m_compiledScript != script) {
+        m_compiledScript = script;
+        emit compiledScriptChanged();
     }
 }
 
@@ -342,4 +353,87 @@ void Scripts::loadInitialNodes() {
     
     // Add the node to the scripts
     addNode(onEditorLoadNode);
+}
+
+void Scripts::loadComponentInstanceNodes() {
+    // Create the onEditorLoad node
+    QString onEditorLoadId = UniqueIdGenerator::generate16DigitId();
+    Node* onEditorLoadNode = new Node(onEditorLoadId, this);
+    
+    // Configure the onEditorLoad node
+    onEditorLoadNode->setNodeTitle("On Editor Load");
+    onEditorLoadNode->setNodeType("Event");
+    
+    // Set position 
+    onEditorLoadNode->setX(-200);
+    onEditorLoadNode->setY(0);
+    onEditorLoadNode->setWidth(150);
+    onEditorLoadNode->setHeight(80);
+    
+    // Configure the node's ports
+    Node::RowConfig rowConfig;
+    rowConfig.hasSource = true;
+    rowConfig.sourceLabel = "Done";
+    rowConfig.sourceType = "Flow";
+    rowConfig.sourcePortIndex = 0;
+    onEditorLoadNode->addRow(rowConfig);
+    
+    // Add output port
+    onEditorLoadNode->addOutputPort("done");
+    onEditorLoadNode->setOutputPortType(0, "Flow");
+    
+    // Add the onEditorLoad node
+    addNode(onEditorLoadNode);
+    
+    // Create the ComponentOnEditorLoadEvents node
+    QString componentEventsId = UniqueIdGenerator::generate16DigitId();
+    Node* componentEventsNode = new Node(componentEventsId, this);
+    
+    // Configure the ComponentOnEditorLoadEvents node
+    componentEventsNode->setNodeTitle("Component On Editor Load Events");
+    componentEventsNode->setNodeType("Operation");
+    
+    // Set position (to the right of onEditorLoad)
+    componentEventsNode->setX(50);
+    componentEventsNode->setY(0);
+    componentEventsNode->setWidth(250);
+    componentEventsNode->setHeight(80);
+    
+    // Configure the node's ports
+    Node::RowConfig componentRowConfig;
+    componentRowConfig.hasTarget = true;
+    componentRowConfig.targetLabel = "Exec";
+    componentRowConfig.targetType = "Flow";
+    componentRowConfig.targetPortIndex = 0;
+    componentRowConfig.hasSource = true;
+    componentRowConfig.sourceLabel = "Done";
+    componentRowConfig.sourceType = "Flow";
+    componentRowConfig.sourcePortIndex = 0;
+    componentEventsNode->addRow(componentRowConfig);
+    
+    // Add ports
+    componentEventsNode->addInputPort("exec");
+    componentEventsNode->setInputPortType(0, "Flow");
+    componentEventsNode->addOutputPort("done");
+    componentEventsNode->setOutputPortType(0, "Flow");
+    
+    // Add the ComponentOnEditorLoadEvents node
+    addNode(componentEventsNode);
+    
+    // Create an edge connecting onEditorLoad's "done" to ComponentOnEditorLoadEvents's "exec"
+    QString edgeId = UniqueIdGenerator::generate16DigitId();
+    Edge* edge = new Edge(edgeId, this);
+    
+    // Set source (onEditorLoad "done" port - output port index 0)
+    edge->setSourceNodeId(onEditorLoadId);
+    edge->setSourcePortIndex(0);  // "done" is at index 0
+    edge->setSourcePortType("Flow");
+    
+    // Set target (ComponentOnEditorLoadEvents "exec" port - input port index 0)
+    edge->setTargetNodeId(componentEventsId);
+    edge->setTargetPortIndex(0);  // "exec" is at index 0
+    edge->setTargetPortType("Flow");
+    
+    // Add the edge
+    addEdge(edge);
 }

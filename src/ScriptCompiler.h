@@ -10,6 +10,7 @@ class ScriptGraphValidator;
 class ScriptInvokeBuilder;
 class ScriptFunctionRegistry;
 class ScriptSerializer;
+class ElementModel;
 
 class ScriptCompiler : public QObject {
     Q_OBJECT
@@ -19,7 +20,7 @@ public:
     ~ScriptCompiler();
 
     // Main compilation method
-    Q_INVOKABLE QString compile(Scripts* scripts);
+    Q_INVOKABLE QString compile(Scripts* scripts, ElementModel* elementModel = nullptr);
     
     // Get the last compilation error (if any)
     QString getLastError() const;

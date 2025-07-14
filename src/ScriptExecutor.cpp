@@ -72,7 +72,7 @@ void ScriptExecutor::executeEvent(const QString& eventName)
     // Check if scripts are compiled
     if (!m_scripts->isCompiled()) {
         // Compile the scripts
-        QString compiledJson = m_scripts->compile();
+        QString compiledJson = m_scripts->compile(m_elementModel);
         if (compiledJson.isEmpty()) {
             return; // Compilation failed
         }

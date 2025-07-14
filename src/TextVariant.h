@@ -27,6 +27,15 @@ public:
     
     // ComponentVariant interface
     virtual void applyToInstance(ComponentInstance* instance) override;
+    
+    // Override scripts getter to return nullptr for variants
+    Scripts* scripts() const override { return nullptr; }
+    
+    // Override to identify as component variant
+    bool isComponentVariant() const override { return true; }
+    
+    // Override to prevent script execution for variants
+    void executeScriptEvent(const QString& eventName) override { Q_UNUSED(eventName); }
 
 signals:
     void instancesAcceptChildrenChanged();
