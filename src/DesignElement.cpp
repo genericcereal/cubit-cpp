@@ -20,11 +20,16 @@
 DesignElement::DesignElement(const QString &id, QObject *parent)
     : CanvasElement(Element::FrameType, id, parent)  // Use FrameType as default, subclasses will override
 {
-    m_scripts = std::make_unique<Scripts>(this);
+    // Initialize scripts with default configuration
+    initializeScripts(false);
 }
 
 DesignElement::~DesignElement() {
     // Destructor defined here so Scripts is complete type
+}
+
+void DesignElement::initializeScripts(bool isComponentInstance) {
+    m_scripts = std::make_unique<Scripts>(this, isComponentInstance);
 }
 
 Scripts* DesignElement::scripts() const {

@@ -1,5 +1,6 @@
 #include "TextVariant.h"
 #include "TextComponentInstance.h"
+#include "Scripts.h"
 
 TextVariant::TextVariant(const QString &id, QObject *parent)
     : Text(id, parent)
@@ -9,6 +10,10 @@ TextVariant::TextVariant(const QString &id, QObject *parent)
     // Set element type
     elementType = Element::TextVariantType;
     setName("TextVariant");
+    
+    // Prevent scripts initialization by clearing the pointer
+    // Scripts were initialized in DesignElement constructor, but variants shouldn't have scripts
+    m_scripts.reset();
 }
 
 TextVariant::~TextVariant()

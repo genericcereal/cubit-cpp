@@ -57,12 +57,14 @@ GroupBox {
             }
         }
         
-        // Create component button - only for design elements
+        // Create component button - only for design elements that are not component instances
         Button {
             Layout.fillWidth: true
             text: "Create component"
             font.pixelSize: 14
-            visible: selectedDesignElement !== null
+            visible: selectedDesignElement !== null && 
+                     selectedElement.elementType !== "FrameComponentInstance" && 
+                     selectedElement.elementType !== "TextComponentInstance"
             
             background: Rectangle {
                 color: parent.pressed ? "#e0e0e0" : (parent.hovered ? "#f0f0f0" : "#ffffff")
@@ -82,15 +84,18 @@ GroupBox {
             }
         }
         
-        // Scripts button - shows for elements that can have scripts
+        // Scripts button - shows for elements that can have scripts (but not variants)
         Button {
             Layout.fillWidth: true
             text: selectedElement && selectedElement.name ? selectedElement.name + " Scripts" : "Scripts"
             font.pixelSize: 14
-            visible: selectedElement && (selectedElement.isDesignElement || 
-                                       selectedElement.elementType === "Component" ||
-                                       selectedElement.elementType === "FrameComponentInstance" ||
-                                       selectedElement.elementType === "TextComponentInstance")
+            visible: selectedElement && 
+                     selectedElement.elementType !== "FrameComponentVariant" &&
+                     selectedElement.elementType !== "TextVariant" &&
+                     (selectedElement.isDesignElement || 
+                      selectedElement.elementType === "Component" ||
+                      selectedElement.elementType === "FrameComponentInstance" ||
+                      selectedElement.elementType === "TextComponentInstance")
             
             background: Rectangle {
                 color: parent.pressed ? "#e0e0e0" : (parent.hovered ? "#f0f0f0" : "#ffffff")
@@ -102,7 +107,12 @@ GroupBox {
             
             onClicked: {
                 if (Application.activeCanvas && selectedElement) {
-                    Application.activeCanvas.setEditingElement(selectedElement, "script")
+                    // Components need special handling
+                    if (selectedElement.elementType === "Component") {
+                        Application.activeCanvas.setEditingComponent(selectedElement, "script")
+                    } else {
+                        Application.activeCanvas.setEditingElement(selectedElement, "script")
+                    }
                 }
             }
         }

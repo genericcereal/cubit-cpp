@@ -17,6 +17,7 @@ Rectangle {
     
     property int currentMode: CanvasController.Select
     property bool isScriptMode: Application.activeCanvas && Application.activeCanvas.viewMode === "script"
+    property bool isVariantMode: Application.activeCanvas && Application.activeCanvas.viewMode === "variant"
     property bool needsCompilation: {
         if (!Application.activeCanvas) return false
         if (!Application.activeCanvas.activeScripts) return false
@@ -73,7 +74,7 @@ Rectangle {
         // Back to Design Canvas button
         ToolButton {
             id: backButton
-            visible: isScriptMode
+            visible: isScriptMode || isVariantMode
             Layout.fillHeight: true
             Layout.preferredWidth: height
             

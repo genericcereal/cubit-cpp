@@ -113,7 +113,7 @@ QJsonObject ScriptSerializer::serializeFunctions(const ScriptInvokeBuilder::Buil
 {
     QJsonObject functions;
     
-    if (!m_functionRegistry || !scripts) {
+    if (!m_functionRegistry) {
         return functions;
     }
     
@@ -126,8 +126,12 @@ QJsonObject ScriptSerializer::serializeFunctions(const ScriptInvokeBuilder::Buil
         Node* sampleNode = nullptr;
         for (const auto& invoke : context.invokes) {
             if (invoke.functionName == functionName) {
-                sampleNode = scripts->getNode(invoke.nodeId);
-                break;
+                // Use nodeReferences to find the node
+                auto nodeRefIt = context.nodeReferences.find(invoke.nodeId);
+                if (nodeRefIt != context.nodeReferences.end()) {
+                    sampleNode = nodeRefIt->node;
+                    break;
+                }
             }
         }
         

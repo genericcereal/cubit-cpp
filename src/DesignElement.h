@@ -34,10 +34,10 @@ public:
     virtual bool isScriptElement() const override { return false; }
     
     // Scripts management
-    Scripts* scripts() const;
+    virtual Scripts* scripts() const;
     
     // Execute a script event
-    Q_INVOKABLE void executeScriptEvent(const QString& eventName);
+    Q_INVOKABLE virtual void executeScriptEvent(const QString& eventName);
     
     // Anchor position getters
     qreal left() const { return m_left; }
@@ -101,6 +101,7 @@ private slots:
     
 protected:
     std::unique_ptr<Scripts> m_scripts;
+    void initializeScripts(bool isComponentInstance = false);
     
 private:
     // Helper for component creation

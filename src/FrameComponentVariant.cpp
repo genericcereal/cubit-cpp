@@ -1,5 +1,6 @@
 #include "FrameComponentVariant.h"
 #include "FrameComponentInstance.h"
+#include "Scripts.h"
 
 FrameComponentVariant::FrameComponentVariant(const QString &id, QObject *parent)
     : Frame(id, parent)
@@ -8,6 +9,10 @@ FrameComponentVariant::FrameComponentVariant(const QString &id, QObject *parent)
 {
     // Override the element type set by Frame
     elementType = Element::FrameComponentVariantType;
+    
+    // Prevent scripts initialization by clearing the pointer
+    // Scripts were initialized in DesignElement constructor, but variants shouldn't have scripts
+    m_scripts.reset();
     
     // Set a more appropriate name
     setName(QString("Variant %1").arg(id.right(4)));
