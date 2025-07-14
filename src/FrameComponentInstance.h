@@ -14,7 +14,7 @@ class FrameComponentInstance : public Frame, public ComponentInstance
 {
     Q_OBJECT
     Q_PROPERTY(QString instanceOf READ instanceOf WRITE setInstanceOf NOTIFY instanceOfChanged)
-    Q_PROPERTY(Element* sourceVariant READ sourceVariant NOTIFY sourceVariantChanged)
+    Q_PROPERTY(Element* sourceVariant READ sourceVariant WRITE setSourceVariant NOTIFY sourceVariantChanged)
     
 public:
     explicit FrameComponentInstance(const QString &id, QObject *parent = nullptr);
@@ -26,12 +26,13 @@ public:
     
     // Property setters
     void setInstanceOf(const QString &componentId);
+    void setSourceVariant(Element* variant);
     
     // Get editable properties from source variant
     Q_INVOKABLE QStringList getEditableProperties() const;
     
     // Get the source component
-    Component* sourceComponent() const { return m_component; }
+    Q_INVOKABLE Component* sourceComponent() const { return m_component; }
     
     // Override to identify this as a visual element
     virtual bool isVisual() const override { return true; }

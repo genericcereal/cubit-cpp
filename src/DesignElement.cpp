@@ -471,8 +471,11 @@ Component* DesignElement::createComponent() {
         FrameComponentVariant* variantFrame = new FrameComponentVariant(variantId, this->parent());
         variantFrame->setVariantName("Variant1");
         
-        // Set the variant frame's position to 0,0 (relative to component)
-        variantFrame->setRect(QRectF(0, 0, width(), height()));
+        // Center the variant in the canvas by positioning it so its center is at (0,0)
+        // This ensures it will be visible when the viewport centers on entering variant mode
+        qreal variantX = -width() / 2.0;
+        qreal variantY = -height() / 2.0;
+        variantFrame->setRect(QRectF(variantX, variantY, width(), height()));
         
         // Copy all style properties from the source frame
         variantFrame->setFill(sourceFrame->fill());
@@ -491,8 +494,11 @@ Component* DesignElement::createComponent() {
         TextVariant* variantText = new TextVariant(variantId, this->parent());
         variantText->setVariantName("Variant1");
         
-        // Set the variant text's position to 0,0 (relative to component)
-        variantText->setRect(QRectF(0, 0, width(), height()));
+        // Center the variant in the canvas by positioning it so its center is at (0,0)
+        // This ensures it will be visible when the viewport centers on entering variant mode
+        qreal variantX = -width() / 2.0;
+        qreal variantY = -height() / 2.0;
+        variantText->setRect(QRectF(variantX, variantY, width(), height()));
         
         // Copy all text properties from the source text
         variantText->setContent(sourceText->content());

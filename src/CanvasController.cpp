@@ -15,6 +15,11 @@
 #include "IModeHandler.h"
 #include "SelectModeHandler.h"
 #include "CreationModeHandler.h"
+#include "FrameComponentVariant.h"
+#include "TextVariant.h"
+#include "Component.h"
+#include "DesignElement.h"
+#include "UniqueIdGenerator.h"
 #include <QDebug>
 
 CanvasController::CanvasController(ElementModel& model,
@@ -232,6 +237,134 @@ void CanvasController::createGraphFromJson(const QString &jsonData)
 {
     m_jsonImporter->setCreationManager(m_creationManager.get());
     m_jsonImporter->createGraphFromJson(jsonData);
+}
+
+void CanvasController::duplicateVariant(const QString &variantId)
+{
+    // Find the source variant
+    Element* sourceElement = m_elementModel.getElementById(variantId);
+    if (!sourceElement) {
+        qWarning() << "duplicateVariant: Could not find variant with id" << variantId;
+        return;
+    }
+    
+    // Check if it's a FrameComponentVariant or TextVariant
+    FrameComponentVariant* sourceFrameVariant = qobject_cast<FrameComponentVariant*>(sourceElement);
+    TextVariant* sourceTextVariant = qobject_cast<TextVariant*>(sourceElement);
+    
+    if (!sourceFrameVariant && !sourceTextVariant) {
+        qWarning() << "duplicateVariant: Element is not a FrameComponentVariant or TextVariant";
+        return;
+    }
+    
+    // Find the parent component by searching through all components
+    Component* component = nullptr;
+    QList<Element*> allElements = m_elementModel.getAllElements();
+    for (Element* elem : allElements) {
+        if (Component* comp = qobject_cast<Component*>(elem)) {
+            for (Element* variantElem : comp->variants()) {
+                if (variantElem && variantElem->getId() == variantId) {
+                    component = comp;
+                    break;
+                }
+            }
+            if (component) break;
+        }
+    }
+    
+    if (!component) {
+        qWarning() << "duplicateVariant: Could not find parent component for variant";
+        return;
+    }
+    
+    // Generate new ID for the duplicate
+    QString newId = UniqueIdGenerator::generate16DigitId();
+    
+    // Generate a unique name
+    int variantCount = component->variants().size();
+    QString variantName = QString("Variant%1").arg(variantCount + 1);
+    
+    if (sourceFrameVariant) {
+        // Create new FrameComponentVariant
+        FrameComponentVariant* newVariant = new FrameComponentVariant(newId, sourceFrameVariant->parent());
+        newVariant->setVariantName(variantName);
+        
+        // Copy geometry - position it next to the source variant
+        newVariant->setX(sourceFrameVariant->x() + sourceFrameVariant->width() + 50);
+        newVariant->setY(sourceFrameVariant->y());
+        newVariant->setWidth(sourceFrameVariant->width());
+        newVariant->setHeight(sourceFrameVariant->height());
+        
+        // Copy all style properties
+        newVariant->setFill(sourceFrameVariant->fill());
+        newVariant->setBorderColor(sourceFrameVariant->borderColor());
+        newVariant->setBorderWidth(sourceFrameVariant->borderWidth());
+        newVariant->setBorderRadius(sourceFrameVariant->borderRadius());
+        newVariant->setOverflow(sourceFrameVariant->overflow());
+        
+        // Copy flex layout properties
+        newVariant->setFlex(sourceFrameVariant->flex());
+        newVariant->setOrientation(sourceFrameVariant->orientation());
+        newVariant->setGap(sourceFrameVariant->gap());
+        
+        // Copy other Frame properties
+        newVariant->setRole(sourceFrameVariant->role());
+        newVariant->setPlatform(sourceFrameVariant->platform());
+        
+        // Copy anchor properties
+        DesignElement::copyElementProperties(newVariant, sourceFrameVariant, false);
+        
+        // Copy variant-specific properties
+        newVariant->setInstancesAcceptChildren(sourceFrameVariant->instancesAcceptChildren());
+        newVariant->setEditableProperties(sourceFrameVariant->editableProperties());
+        
+        // Add to component
+        component->addVariant(newVariant);
+        
+        // Add to element model
+        m_elementModel.addElement(newVariant);
+        
+        // Select the new variant
+        m_selectionManager.clearSelection();
+        m_selectionManager.selectElement(newVariant);
+        
+        qDebug() << "Created duplicate frame variant:" << newVariant->variantName() << "with ID:" << newId;
+    } else if (sourceTextVariant) {
+        // Create new TextVariant
+        TextVariant* newVariant = new TextVariant(newId, sourceTextVariant->parent());
+        newVariant->setVariantName(variantName);
+        
+        // Copy geometry - position it next to the source variant
+        newVariant->setX(sourceTextVariant->x() + sourceTextVariant->width() + 50);
+        newVariant->setY(sourceTextVariant->y());
+        newVariant->setWidth(sourceTextVariant->width());
+        newVariant->setHeight(sourceTextVariant->height());
+        
+        // Copy text-specific properties
+        newVariant->setContent(sourceTextVariant->content());
+        newVariant->setFont(sourceTextVariant->font());
+        newVariant->setColor(sourceTextVariant->color());
+        newVariant->setPosition(sourceTextVariant->position());
+        
+        // Copy anchor properties
+        DesignElement::copyElementProperties(newVariant, sourceTextVariant, false);
+        
+        // Copy variant-specific properties
+        newVariant->setInstancesAcceptChildren(sourceTextVariant->instancesAcceptChildren());
+        newVariant->setEditableProperties(sourceTextVariant->editableProperties());
+        
+        // Add to component
+        component->addVariant(newVariant);
+        
+        // Add to element model
+        m_elementModel.addElement(newVariant);
+        
+        // Select the new variant
+        m_selectionManager.clearSelection();
+        m_selectionManager.selectElement(newVariant);
+        
+        qDebug() << "Created duplicate text variant:" << newVariant->variantName() << "with ID:" << newId;
+    }
 }
 
 void CanvasController::selectElementsInRect(const QRectF &rect)

@@ -13,6 +13,11 @@ Window {
     width: 1280
     height: 720
     title: qsTr("Cubit")
+    
+    Component.onCompleted: {
+        // Request focus for keyboard shortcuts
+        mainWindow.requestActivate()
+    }
 
     SplitView {
         anchors.fill: parent
@@ -86,6 +91,45 @@ Window {
                         Application.activeCanvas.controller.savedContentX = state.contentX
                         Application.activeCanvas.controller.savedContentY = state.contentY
                         Application.activeCanvas.controller.savedZoom = state.zoom
+                    }
+                }
+                
+                function onViewModeChanged() {
+                    // Center the viewport when entering variant mode
+                    if (Application.activeCanvas.viewMode === "variant" && canvasLoader.item && canvasLoader.item.moveToPoint) {
+                        // Calculate center point based on selected component or canvas bounds
+                        var centerPoint = Qt.point(0, 0)
+                        
+                        if (Application.activeCanvas.selectionManager) {
+                            var selectedElements = Application.activeCanvas.selectionManager.selectedElements
+                            if (selectedElements.length > 0) {
+                                // Calculate the center of all selected elements
+                                var minX = Number.MAX_VALUE
+                                var minY = Number.MAX_VALUE
+                                var maxX = Number.MIN_VALUE
+                                var maxY = Number.MIN_VALUE
+                                
+                                for (var i = 0; i < selectedElements.length; i++) {
+                                    var element = selectedElements[i]
+                                    if (element && element.isVisual) {
+                                        minX = Math.min(minX, element.x)
+                                        minY = Math.min(minY, element.y)
+                                        maxX = Math.max(maxX, element.x + element.width)
+                                        maxY = Math.max(maxY, element.y + element.height)
+                                    }
+                                }
+                                
+                                if (minX !== Number.MAX_VALUE) {
+                                    centerPoint = Qt.point(
+                                        (minX + maxX) / 2,
+                                        (minY + maxY) / 2
+                                    )
+                                }
+                            }
+                        }
+                        
+                        // Move to the calculated center point without animation
+                        canvasLoader.item.moveToPoint(centerPoint, false)
                     }
                 }
                 

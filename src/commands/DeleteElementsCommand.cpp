@@ -37,6 +37,11 @@ void DeleteElementsCommand::execute()
 {
     if (!m_elementModel) return;
 
+    qDebug() << "DeleteElementsCommand::execute() - Deleting" << m_deletedElements.size() << "elements";
+    for (const ElementInfo& info : m_deletedElements) {
+        qDebug() << "  - Deleting element:" << info.element->getId() << "type:" << info.element->metaObject()->className();
+    }
+
     // Clear selection first
     if (m_selectionManager) {
         m_selectionManager->clearSelection();

@@ -113,6 +113,75 @@ void FrameComponentInstance::setInstanceOf(const QString &componentId)
     }
 }
 
+void FrameComponentInstance::setSourceVariant(Element* variant)
+{
+    if (m_sourceVariant == variant) {
+        return;
+    }
+    
+    // Verify the variant belongs to our component
+    if (variant && m_component) {
+        bool found = false;
+        for (Element* v : m_component->variants()) {
+            if (v == variant) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            qWarning() << "FrameComponentInstance::setSourceVariant - variant does not belong to component";
+            return;
+        }
+    }
+    
+    // Disconnect from current variant
+    disconnectFromVariant();
+    
+    // Set new variant
+    m_sourceVariant = variant;
+    
+    if (m_sourceVariant) {
+        // Sync properties from new variant
+        syncPropertiesFromVariant();
+        
+        // Recreate child instances
+        createChildInstances();
+        
+        // Connect to track changes
+        if (CanvasElement* canvasVariant = qobject_cast<CanvasElement*>(m_sourceVariant)) {
+            // Use PropertySyncer to connect to property changes
+            PropertySyncer::sync(canvasVariant, this, s_variantPropertiesToSync, 
+                                "onSourceVariantPropertyChanged()", m_variantConnections);
+            
+            // Connect to ElementModel to track child changes
+            Application* app = Application::instance();
+            if (app && app->activeCanvas() && app->activeCanvas()->elementModel()) {
+                ElementModel* elementModel = app->activeCanvas()->elementModel();
+                
+                // Connect to track when new elements are added
+                m_variantConnections.add(
+                    connect(elementModel, &ElementModel::elementAdded,
+                            this, &FrameComponentInstance::onElementAdded,
+                            Qt::UniqueConnection)
+                );
+                
+                // Connect to track parent changes on existing elements
+                for (Element* element : elementModel->getAllElements()) {
+                    if (element && element != canvasVariant) {
+                        m_variantConnections.add(
+                            connect(element, &Element::parentIdChanged,
+                                    this, &FrameComponentInstance::onElementParentChanged,
+                                    Qt::UniqueConnection)
+                        );
+                    }
+                }
+            }
+        }
+    }
+    
+    emit sourceVariantChanged();
+}
+
 void FrameComponentInstance::connectToComponent()
 {
     if (m_instanceOf.isEmpty()) {
@@ -159,16 +228,41 @@ void FrameComponentInstance::connectToVariant()
         return;
     }
     
-    // Connect to the first variant that is a CanvasElement (usually a ComponentVariant)
-    for (Element* variant : variants) {
-        if (qobject_cast<CanvasElement*>(variant)) {
-            m_sourceVariant = variant;
-            break;
-        }
-    }
-    
+    // If we don't already have a source variant, connect to the first one
     if (!m_sourceVariant) {
-        return;
+        // Connect to the first variant that is a CanvasElement (usually a ComponentVariant)
+        for (Element* variant : variants) {
+            if (qobject_cast<CanvasElement*>(variant)) {
+                m_sourceVariant = variant;
+                break;
+            }
+        }
+        
+        if (!m_sourceVariant) {
+            return;
+        }
+    } else {
+        // Verify that our current source variant still exists in the component
+        bool found = false;
+        for (Element* variant : variants) {
+            if (variant == m_sourceVariant) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            // Our variant was removed, fall back to first available
+            m_sourceVariant = nullptr;
+            for (Element* variant : variants) {
+                if (qobject_cast<CanvasElement*>(variant)) {
+                    m_sourceVariant = variant;
+                    break;
+                }
+            }
+            if (!m_sourceVariant) {
+                return;
+            }
+        }
     }
     
     // Sync initial properties

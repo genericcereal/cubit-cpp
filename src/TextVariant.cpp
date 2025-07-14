@@ -36,6 +36,14 @@ void TextVariant::setEditableProperties(const QStringList& properties)
     }
 }
 
+void TextVariant::setVariantName(const QString& name)
+{
+    if (ComponentVariant::variantName() != name) {
+        ComponentVariant::setVariantName(name);
+        emit variantNameChanged();
+    }
+}
+
 void TextVariant::applyToInstance(ComponentInstance* instance)
 {
     if (TextComponentInstance* textInstance = dynamic_cast<TextComponentInstance*>(instance)) {

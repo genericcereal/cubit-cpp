@@ -66,6 +66,15 @@ void FrameComponentVariant::setEditableProperties(const QStringList& properties)
     }
 }
 
+void FrameComponentVariant::setVariantName(const QString& name)
+{
+    if (ComponentVariant::variantName() != name) {
+        ComponentVariant::setVariantName(name);
+        emit variantNameChanged();
+        emit elementChanged();
+    }
+}
+
 void FrameComponentVariant::applyToInstance(ComponentInstance* instance)
 {
     if (FrameComponentInstance* frameInstance = dynamic_cast<FrameComponentInstance*>(instance)) {

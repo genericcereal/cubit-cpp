@@ -40,6 +40,61 @@ void TextComponentInstance::setInstanceOf(const QString &componentId)
     }
 }
 
+void TextComponentInstance::setSourceVariant(Element* variant)
+{
+    if (m_sourceVariant == variant) {
+        return;
+    }
+    
+    // Verify the variant belongs to our component
+    if (variant && m_component) {
+        bool found = false;
+        for (Element* v : m_component->variants()) {
+            if (v == variant) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            qWarning() << "TextComponentInstance::setSourceVariant - variant does not belong to component";
+            return;
+        }
+    }
+    
+    // Disconnect from current variant
+    disconnectFromVariant();
+    
+    // Set new variant
+    m_sourceVariant = variant;
+    
+    if (m_sourceVariant) {
+        // Sync properties from new variant
+        syncPropertiesFromVariant();
+        
+        // Connect to track changes
+        if (TextVariant* textVariant = qobject_cast<TextVariant*>(m_sourceVariant)) {
+            // Connect to property changes
+            m_variantConnections.add(
+                connect(textVariant, &TextVariant::contentChanged,
+                        this, &TextComponentInstance::onSourceVariantPropertyChanged,
+                        Qt::UniqueConnection)
+            );
+            m_variantConnections.add(
+                connect(textVariant, &TextVariant::fontChanged,
+                        this, &TextComponentInstance::onSourceVariantPropertyChanged,
+                        Qt::UniqueConnection)
+            );
+            m_variantConnections.add(
+                connect(textVariant, &TextVariant::colorChanged,
+                        this, &TextComponentInstance::onSourceVariantPropertyChanged,
+                        Qt::UniqueConnection)
+            );
+        }
+    }
+    
+    emit sourceVariantChanged();
+}
+
 QStringList TextComponentInstance::getEditableProperties() const
 {
     if (m_sourceVariant) {
@@ -126,11 +181,26 @@ void TextComponentInstance::connectToVariant()
         return;
     }
     
-    // For now, just use the first variant
     QList<Element*> variants = m_component->variants();
     
     if (!variants.isEmpty()) {
-        m_sourceVariant = variants.first();
+        // If we don't already have a source variant, use the first one
+        if (!m_sourceVariant) {
+            m_sourceVariant = variants.first();
+        } else {
+            // Verify that our current source variant still exists in the component
+            bool found = false;
+            for (Element* variant : variants) {
+                if (variant == m_sourceVariant) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                // Our variant was removed, fall back to first available
+                m_sourceVariant = variants.first();
+            }
+        }
         
         // Clear modified properties when connecting to a new variant
         m_modifiedProperties.clear();
@@ -203,9 +273,10 @@ void TextComponentInstance::syncPropertiesFromVariant()
             Text::setPosition(textVariant->position());
         }
         
-        // Sync geometry
-        setRect(QRectF(textVariant->x(), textVariant->y(), 
-                      textVariant->width(), textVariant->height()));
+        // Note: We don't sync position (x, y) as instances maintain their own position
+        // Only sync size
+        setWidth(textVariant->width());
+        setHeight(textVariant->height());
     }
 }
 
