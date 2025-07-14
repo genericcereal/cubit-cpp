@@ -5,6 +5,8 @@
 #include "Component.h"
 #include "FrameComponentVariant.h"
 #include "FrameComponentInstance.h"
+#include "TextVariant.h"
+#include "TextComponentInstance.h"
 #include "ElementModel.h"
 #include <QDebug>
 
@@ -166,7 +168,7 @@ bool ElementFilterProxy::shouldShowElementInMode(Element* element) const {
         // Note: Component elements are already handled above
         
         // Check if it's a ComponentInstance
-        if (qobject_cast<FrameComponentInstance*>(element)) {
+        if (qobject_cast<FrameComponentInstance*>(element) || qobject_cast<TextComponentInstance*>(element)) {
             return true;
         }
         
@@ -176,7 +178,7 @@ bool ElementFilterProxy::shouldShowElementInMode(Element* element) const {
         }
         
         // Check if this element is a ComponentVariant (should be hidden in design mode)
-        if (qobject_cast<FrameComponentVariant*>(element)) {
+        if (qobject_cast<FrameComponentVariant*>(element) || qobject_cast<TextVariant*>(element)) {
             return false;
         }
         
@@ -194,7 +196,7 @@ bool ElementFilterProxy::shouldShowElementInMode(Element* element) const {
                 }
                 
                 // Check if the parent is a ComponentVariant
-                if (qobject_cast<FrameComponentVariant*>(parent)) {
+                if (qobject_cast<FrameComponentVariant*>(parent) || qobject_cast<TextVariant*>(parent)) {
                     return false; // This element is a descendant of a ComponentVariant
                 }
                 

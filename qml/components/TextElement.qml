@@ -29,13 +29,6 @@ Item {
     // Selection state
     property bool selected: element ? element.selected : false
     
-    // Background rectangle - light blue like frames
-    Rectangle {
-        anchors.fill: parent
-        color: Config.elementBackgroundColor
-        z: 0
-    }
-    
     // Text visual representation
     Text {
         id: textItem

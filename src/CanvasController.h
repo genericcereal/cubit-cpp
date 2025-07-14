@@ -102,10 +102,13 @@ public slots:
     Q_INVOKABLE void createNodesFromJson(const QString &jsonData);
     Q_INVOKABLE void createGraphFromJson(const QString &jsonData);
     
+    // Component variant operations
+    Q_INVOKABLE void duplicateVariant(const QString &variantId);
+    
     // Selection
     void selectElementsInRect(const QRectF &rect);
-    void selectAll();
-    void deleteSelectedElements();
+    Q_INVOKABLE void selectAll();
+    Q_INVOKABLE void deleteSelectedElements();
     
 signals:
     void modeChanged();

@@ -38,6 +38,42 @@ PropertyGroup {
             visible: () => selectedElement && selectedElement.isDesignElement
         },
         {
+            name: "Variant",
+            type: "combobox",
+            getter: () => {
+                if (selectedElement && selectedElement.sourceVariant) {
+                    return selectedElement.sourceVariant.variantName || "Default"
+                }
+                return "Default"
+            },
+            setter: v => {
+                if (selectedElement && selectedElement.sourceComponent) {
+                    var variants = selectedElement.sourceComponent().variants
+                    for (var i = 0; i < variants.length; i++) {
+                        if (variants[i].variantName === v) {
+                            selectedElement.sourceVariant = variants[i]
+                            break
+                        }
+                    }
+                }
+            },
+            model: () => {
+                if (!selectedElement || !selectedElement.sourceComponent) {
+                    return ["Default"]
+                }
+                var variantNames = []
+                var component = selectedElement.sourceComponent()
+                if (component && component.variants) {
+                    for (var i = 0; i < component.variants.length; i++) {
+                        var variant = component.variants[i]
+                        variantNames.push(variant.variantName || "Variant" + (i + 1))
+                    }
+                }
+                return variantNames.length > 0 ? variantNames : ["Default"]
+            },
+            visible: () => selectedElement && (selectedElement.elementType === "FrameComponentInstance" || selectedElement.elementType === "TextComponentInstance")
+        },
+        {
             name: "Platform",
             type: "combobox",
             getter: () => {

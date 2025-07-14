@@ -18,6 +18,7 @@ Item {
     
     // Check if all selected elements are component-related
     property bool allSelectedAreComponentRelated: false
+    property bool selectedIsComponentVariant: false
     
     // Check if resizing is disabled
     property bool isResizingDisabled: {
@@ -1290,11 +1291,61 @@ Item {
     // Export the HoverBadge component for external use
     property alias hoverBadge: hoverBadgeComponent
     
+    // Component Variant Add Button
+    Rectangle {
+        id: componentVariantAddButton
+        visible: selectedIsComponentVariant
+        width: 30
+        height: 30
+        radius: 15
+        color: Config.componentControlBarColor
+        
+        // Position it below the bottom bar
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.top: parent.bottom
+        anchors.topMargin: 10  // Position below the bottom bar
+        
+        z: 100  // Ensure it's above other controls
+        
+        Text {
+            anchors.centerIn: parent
+            text: "+"
+            font.pixelSize: 20
+            font.family: "Arial"
+            font.bold: true
+            color: "white"
+        }
+        
+        MouseArea {
+            anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
+            
+            onClicked: {
+                // Get the controller from the parent ViewportOverlay
+                if (root.parent && root.parent.controller && root.parent.selectedElements && root.parent.selectedElements.length === 1) {
+                    var selectedVariant = root.parent.selectedElements[0]
+                    if (selectedVariant && (selectedVariant.elementType === "FrameComponentVariant" || selectedVariant.elementType === "TextVariant")) {
+                        root.parent.controller.duplicateVariant(selectedVariant.elementId)
+                    }
+                }
+            }
+        }
+    }
+    
     // Function to check if all selected elements are component-related
     function updateComponentRelatedStatus() {
         if (!parent || !parent.selectedElements || parent.selectedElements.length === 0) {
             allSelectedAreComponentRelated = false
+            selectedIsComponentVariant = false
             return
+        }
+        
+        // Check if exactly one element is selected and it's a ComponentVariant
+        if (parent.selectedElements.length === 1) {
+            var element = parent.selectedElements[0]
+            selectedIsComponentVariant = element && (element.elementType === "FrameComponentVariant" || element.elementType === "TextVariant")
+        } else {
+            selectedIsComponentVariant = false
         }
         
         var allComponent = true
@@ -1306,14 +1357,16 @@ Item {
             }
             
             // Check if element is a ComponentInstance or ComponentVariant
-            if (element.elementType !== "FrameComponentInstance" && element.elementType !== "FrameComponentVariant") {
+            if (element.elementType !== "FrameComponentInstance" && element.elementType !== "FrameComponentVariant" && 
+                element.elementType !== "TextComponentInstance" && element.elementType !== "TextVariant") {
                 // Check if it's a descendant of a ComponentInstance or ComponentVariant
                 var isDescendant = false
                 if (parent.canvasView && parent.canvasView.elementModel) {
                     var currentId = element.parentId
                     while (currentId && currentId !== "") {
                         var parentElement = parent.canvasView.elementModel.getElementById(currentId)
-                        if (parentElement && (parentElement.elementType === "FrameComponentInstance" || parentElement.elementType === "FrameComponentVariant")) {
+                        if (parentElement && (parentElement.elementType === "FrameComponentInstance" || parentElement.elementType === "FrameComponentVariant" ||
+                                            parentElement.elementType === "TextComponentInstance" || parentElement.elementType === "TextVariant")) {
                             isDescendant = true
                             break
                         }

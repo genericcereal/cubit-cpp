@@ -6,6 +6,7 @@ import "."
 
 Item {
     id: root
+    focus: true  // Enable keyboard focus
     
     // Required properties from subclasses
     property var controller
@@ -374,10 +375,32 @@ Item {
         }
     }
     
-    // Keyboard shortcuts
+    // Keyboard shortcuts for Delete key
     Shortcut {
         sequence: "Delete"
-        onActivated: controller.deleteSelectedElements()
+        onActivated: {
+            console.log("Delete key pressed in BaseCanvas")
+            if (controller) {
+                console.log("Controller exists, calling deleteSelectedElements")
+                controller.deleteSelectedElements()
+            } else {
+                console.log("Controller is null!")
+            }
+        }
+    }
+    
+    // Alternative shortcut for Backspace key (Mac compatibility)
+    Shortcut {
+        sequence: "Backspace"
+        onActivated: {
+            console.log("Backspace key pressed in BaseCanvas")
+            if (controller) {
+                console.log("Controller exists, calling deleteSelectedElements")
+                controller.deleteSelectedElements()
+            } else {
+                console.log("Controller is null!")
+            }
+        }
     }
     
     Shortcut {

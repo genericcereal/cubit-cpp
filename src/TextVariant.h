@@ -12,6 +12,7 @@ class TextVariant : public Text, public ComponentVariant
     Q_OBJECT
     Q_PROPERTY(bool instancesAcceptChildren READ instancesAcceptChildren WRITE setInstancesAcceptChildren NOTIFY instancesAcceptChildrenChanged)
     Q_PROPERTY(QStringList editableProperties READ editableProperties WRITE setEditableProperties NOTIFY editablePropertiesChanged)
+    Q_PROPERTY(QString variantName READ variantName WRITE setVariantName NOTIFY variantNameChanged)
 
 public:
     explicit TextVariant(const QString &id, QObject *parent = nullptr);
@@ -20,10 +21,12 @@ public:
     // Property getters
     bool instancesAcceptChildren() const { return m_instancesAcceptChildren; }
     QStringList editableProperties() const { return m_editableProperties; }
+    QString variantName() const { return ComponentVariant::variantName(); }
     
     // Property setters
     void setInstancesAcceptChildren(bool accept);
     void setEditableProperties(const QStringList& properties);
+    void setVariantName(const QString& name);
     
     // ComponentVariant interface
     virtual void applyToInstance(ComponentInstance* instance) override;
@@ -40,6 +43,7 @@ public:
 signals:
     void instancesAcceptChildrenChanged();
     void editablePropertiesChanged();
+    void variantNameChanged();
 
 private:
     bool m_instancesAcceptChildren;
