@@ -6,26 +6,6 @@ ComponentVariant::ComponentVariant(const QString& id)
 {
 }
 
-QString ComponentVariant::id() const
-{
-    return m_id;
-}
-
-QString ComponentVariant::variantName() const
-{
-    return m_variantName;
-}
-
-void ComponentVariant::setVariantName(const QString& name)
-{
-    m_variantName = name;
-}
-
-const QList<ComponentInstance*>& ComponentVariant::instances() const
-{
-    return m_instances;
-}
-
 void ComponentVariant::addInstance(ComponentInstance* instance)
 {
     if (!m_instances.contains(instance)) {

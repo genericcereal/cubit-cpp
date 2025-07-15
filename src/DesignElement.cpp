@@ -6,7 +6,7 @@
 #include "Component.h"
 #include "FrameComponentInstance.h"
 #include "FrameComponentVariant.h"
-#include "TextVariant.h"
+#include "TextComponentVariant.h"
 #include "TextComponentInstance.h"
 #include "Frame.h"
 #include "Text.h"
@@ -490,8 +490,8 @@ Component* DesignElement::createComponent() {
         variant = variantFrame;
         component->setComponentType("frame");
     } else if (Text* sourceText = qobject_cast<Text*>(this)) {
-        // Text elements become TextVariants
-        TextVariant* variantText = new TextVariant(variantId, this->parent());
+        // Text elements become TextComponentVariants
+        TextComponentVariant* variantText = new TextComponentVariant(variantId, this->parent());
         variantText->setVariantName("Variant1");
         
         // Center the variant in the canvas by positioning it so its center is at (0,0)

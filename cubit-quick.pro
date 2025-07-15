@@ -48,7 +48,7 @@ SOURCES += \
     src/ComponentVariant.cpp \
     src/FrameComponentInstance.cpp \
     src/FrameComponentVariant.cpp \
-    src/TextVariant.cpp \
+    src/TextComponentVariant.cpp \
     src/TextComponentInstance.cpp \
     src/Node.cpp \
     src/Edge.cpp \
@@ -83,7 +83,8 @@ SOURCES += \
     src/CreationModeHandler.cpp \
     src/ElementFilterProxy.cpp \
     src/FlexLayoutEngine.cpp \
-    src/PrototypeController.cpp
+    src/PrototypeController.cpp \
+    src/DesignControlsController.cpp
 
 HEADERS += \
     src/Element.h \
@@ -99,7 +100,7 @@ HEADERS += \
     src/ComponentVariant.h \
     src/FrameComponentInstance.h \
     src/FrameComponentVariant.h \
-    src/TextVariant.h \
+    src/TextComponentVariant.h \
     src/TextComponentInstance.h \
     src/ConnectionManager.h \
     src/PropertySyncer.h \
@@ -140,7 +141,8 @@ HEADERS += \
     src/SelectModeHandler.h \
     src/CreationModeHandler.h \
     src/ElementFilterProxy.h \
-    src/PrototypeController.h
+    src/PrototypeController.h \
+    src/DesignControlsController.h
 
 RESOURCES += qml.qrc
 

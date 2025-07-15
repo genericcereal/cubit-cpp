@@ -16,7 +16,7 @@
 #include "SelectModeHandler.h"
 #include "CreationModeHandler.h"
 #include "FrameComponentVariant.h"
-#include "TextVariant.h"
+#include "TextComponentVariant.h"
 #include "Component.h"
 #include "DesignElement.h"
 #include "UniqueIdGenerator.h"
@@ -248,12 +248,12 @@ void CanvasController::duplicateVariant(const QString &variantId)
         return;
     }
     
-    // Check if it's a FrameComponentVariant or TextVariant
+    // Check if it's a FrameComponentVariant or TextComponentVariant
     FrameComponentVariant* sourceFrameVariant = qobject_cast<FrameComponentVariant*>(sourceElement);
-    TextVariant* sourceTextVariant = qobject_cast<TextVariant*>(sourceElement);
+    TextComponentVariant* sourceTextVariant = qobject_cast<TextComponentVariant*>(sourceElement);
     
     if (!sourceFrameVariant && !sourceTextVariant) {
-        qWarning() << "duplicateVariant: Element is not a FrameComponentVariant or TextVariant";
+        qWarning() << "duplicateVariant: Element is not a FrameComponentVariant or TextComponentVariant";
         return;
     }
     
@@ -330,8 +330,8 @@ void CanvasController::duplicateVariant(const QString &variantId)
         
         qDebug() << "Created duplicate frame variant:" << newVariant->variantName() << "with ID:" << newId;
     } else if (sourceTextVariant) {
-        // Create new TextVariant
-        TextVariant* newVariant = new TextVariant(newId, sourceTextVariant->parent());
+        // Create new TextComponentVariant
+        TextComponentVariant* newVariant = new TextComponentVariant(newId, sourceTextVariant->parent());
         newVariant->setVariantName(variantName);
         
         // Copy geometry - position it next to the source variant

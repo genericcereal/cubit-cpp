@@ -17,6 +17,7 @@
         <file>qml/components/PortTypeConfig.qml</file>
         <file>qml/components/PortInput.qml</file>
         <file>qml/components/PropertyPopover.qml</file>
+        <file>qml/components/FontPicker.qml</file>
         <file>qml/components/LabeledField.qml</file>
         <file>qml/components/PropertyGroup.qml</file>
         <file>qml/components/color-picker/ColorPicker.qml</file>
@@ -34,25 +35,34 @@
         <file>qml/components/ViewportOverlay.qml</file>
         <file>qml/components/SelectionBox.qml</file>
         <file>qml/components/SelectionBoundingBox.qml</file>
-        <file>qml/components/DesignControls.qml</file>
+        <file>qml/components/design-controls/DesignControls.qml</file>
+        <file>qml/components/design-controls/ControlSurface.qml</file>
+        <file>qml/components/design-controls/EdgeResizeBar.qml</file>
+        <file>qml/components/design-controls/CornerResizeJoint.qml</file>
+        <file>qml/components/design-controls/RotationJoint.qml</file>
+        <file>qml/components/design-controls/BorderRadiusControl.qml</file>
+        <file>qml/components/design-controls/PrototypePlayButton.qml</file>
+        <file>qml/components/design-controls/HoverBadge.qml</file>
+        <file>qml/components/design-controls/VariantAddButton.qml</file>
+        <file>qml/components/design-controls/ControlMath.js</file>
         <file>qml/components/PrototypeViewableArea.qml</file>
         <file>qml/components/ElementLayer.qml</file>
-        <file>qml/panels/DetailPanel.qml</file>
-        <file>qml/panels/ElementList.qml</file>
-        <file>qml/panels/PropertiesPanel.qml</file>
-        <file>qml/panels/PlatformsSection.qml</file>
-        <file>qml/panels/ActionsSection.qml</file>
-        <file>qml/panels/GeneralProperties.qml</file>
-        <file>qml/panels/PositionSection.qml</file>
-        <file>qml/panels/SizeSection.qml</file>
-        <file>qml/panels/FrameStyleSection.qml</file>
-        <file>qml/panels/FlexLayoutSection.qml</file>
-        <file>qml/panels/TextSection.qml</file>
-        <file>qml/panels/VariableSection.qml</file>
-        <file>qml/panels/ActionsPanel.qml</file>
-        <file>qml/panels/Console.qml</file>
-        <file>qml/panels/PropertyPopoverPanel.qml</file>
-        <file>qml/panels/PrototypePanel.qml</file>
+        <file>qml/components/panels/DetailPanel.qml</file>
+        <file>qml/components/panels/ElementList.qml</file>
+        <file>qml/components/panels/PropertiesPanel.qml</file>
+        <file>qml/components/panels/PlatformsSection.qml</file>
+        <file>qml/components/panels/ActionsSection.qml</file>
+        <file>qml/components/panels/GeneralProperties.qml</file>
+        <file>qml/components/panels/PositionSection.qml</file>
+        <file>qml/components/panels/SizeSection.qml</file>
+        <file>qml/components/panels/FrameStyleSection.qml</file>
+        <file>qml/components/panels/FlexLayoutSection.qml</file>
+        <file>qml/components/panels/TextSection.qml</file>
+        <file>qml/components/panels/VariableSection.qml</file>
+        <file>qml/components/panels/ActionsPanel.qml</file>
+        <file>qml/components/panels/Console.qml</file>
+        <file>qml/components/panels/PropertyPopoverPanel.qml</file>
+        <file>qml/components/panels/PrototypePanel.qml</file>
         <file>shaders/roundedmask.frag.qsb</file>
     </qresource>
 </RCC>

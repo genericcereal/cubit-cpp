@@ -2,8 +2,8 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Cubit
-import "../components"
-import "../PropertyHelpers.js" as PropertyHelpers
+import ".."
+import "../../PropertyHelpers.js" as PropertyHelpers
 
 PropertyGroup {
     id: root

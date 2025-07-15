@@ -124,7 +124,7 @@ Item {
                                 // Check if it's a text-based instance by checking for content property
                                 return childElement.hasOwnProperty('content') ? "TextElement.qml" : "FrameElement.qml"
                             case "Text": return "TextElement.qml"
-                            case "TextVariant": return "TextElement.qml"
+                            case "TextComponentVariant": return "TextElement.qml"
                             default: return ""
                         }
                     }

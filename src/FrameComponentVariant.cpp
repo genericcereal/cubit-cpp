@@ -5,7 +5,6 @@
 FrameComponentVariant::FrameComponentVariant(const QString &id, QObject *parent)
     : Frame(id, parent)
     , ComponentVariant(id)
-    , m_instancesAcceptChildren(true)  // Default to true
 {
     // Override the element type set by Frame
     elementType = Element::FrameComponentVariantType;
@@ -19,7 +18,7 @@ FrameComponentVariant::FrameComponentVariant(const QString &id, QObject *parent)
     setVariantName(QString("Variant %1").arg(id.right(4)));
     
     // Initialize default editable properties to include all Frame properties
-    m_editableProperties = QStringList{
+    ComponentVariant::setEditableProperties(QStringList{
         // Frame appearance properties
         "fill",
         "colorFormat",
@@ -41,7 +40,10 @@ FrameComponentVariant::FrameComponentVariant(const QString &id, QObject *parent)
         "controlled",
         "role",
         "platform"
-    };
+    });
+    
+    // Frame variants typically accept children by default
+    ComponentVariant::setInstancesAcceptChildren(true);
 }
 
 FrameComponentVariant::~FrameComponentVariant()
@@ -50,29 +52,20 @@ FrameComponentVariant::~FrameComponentVariant()
 
 void FrameComponentVariant::setInstancesAcceptChildren(bool accept)
 {
-    if (m_instancesAcceptChildren != accept) {
-        m_instancesAcceptChildren = accept;
-        emit instancesAcceptChildrenChanged();
-        emit elementChanged();
-    }
+    ComponentVariant::setInstancesAcceptChildren(accept);
+    emit instancesAcceptChildrenChanged();
 }
 
 void FrameComponentVariant::setEditableProperties(const QStringList& properties)
 {
-    if (m_editableProperties != properties) {
-        m_editableProperties = properties;
-        emit editablePropertiesChanged();
-        emit elementChanged();
-    }
+    ComponentVariant::setEditableProperties(properties);
+    emit editablePropertiesChanged();
 }
 
 void FrameComponentVariant::setVariantName(const QString& name)
 {
-    if (ComponentVariant::variantName() != name) {
-        ComponentVariant::setVariantName(name);
-        emit variantNameChanged();
-        emit elementChanged();
-    }
+    ComponentVariant::setVariantName(name);
+    emit variantNameChanged();
 }
 
 void FrameComponentVariant::applyToInstance(ComponentInstance* instance)

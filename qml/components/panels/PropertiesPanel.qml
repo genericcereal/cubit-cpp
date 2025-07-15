@@ -2,8 +2,8 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Cubit
-import "../components"
-import "../PropertyHelpers.js" as PropertyHelpers
+import ".."
+import "../../PropertyHelpers.js" as PropertyHelpers
 
 ScrollView {
     id: root
@@ -66,6 +66,7 @@ ScrollView {
         
         TextSection {
             selectedElement: root.selectedElement
+            onPanelSelectorClicked: root.panelSelectorClicked(selector, type)
         }
         
         VariableSection {

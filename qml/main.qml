@@ -3,7 +3,7 @@ import QtQuick.Window
 import QtQuick.Controls
 import QtQuick.Layouts
 import Cubit 1.0
-import "panels"
+import "components/panels"
 import "components"
 import "components/color-picker"
 
@@ -258,6 +258,8 @@ Window {
                     return fillComponent
                 case "style":
                     return styleComponent
+                case "font":
+                    return fontComponent
                 default:
                     return null
             }
@@ -342,6 +344,28 @@ Window {
             anchors.centerIn: parent
             font.pixelSize: 14
             color: "#666666"
+        }
+    }
+    
+    // Component for Font selector
+    Component {
+        id: fontComponent
+        FontPicker {
+            id: fontPickerInstance
+            property var selectedElement: Application.activeCanvas && Application.activeCanvas.selectionManager 
+                ? Application.activeCanvas.selectionManager.selectedElements[0] : null
+            
+            currentFontFamily: selectedElement && selectedElement.font ? selectedElement.font.family : ""
+            
+            onFontSelected: function(fontFamily) {
+                if (selectedElement && selectedElement.font !== undefined) {
+                    var newFont = selectedElement.font
+                    newFont.family = fontFamily
+                    selectedElement.font = newFont
+                }
+                // Close the popover panel
+                globalSelectorPanel.visible = false
+            }
         }
     }
     
