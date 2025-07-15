@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Cubit
-import "../PropertyHelpers.js" as PropertyHelpers
+import "../../PropertyHelpers.js" as PropertyHelpers
 
 ColumnLayout {
     id: root

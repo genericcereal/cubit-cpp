@@ -5,7 +5,7 @@
 #include "ConnectionManager.h"
 
 class Component;
-class TextVariant;
+class TextComponentVariant;
 class Element;
 
 class TextComponentInstance : public Text, public ComponentInstance

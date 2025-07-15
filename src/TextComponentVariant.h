@@ -1,5 +1,5 @@
-#ifndef TEXTVARIANT_H
-#define TEXTVARIANT_H
+#ifndef TEXTCOMPONENTVARIANT_H
+#define TEXTCOMPONENTVARIANT_H
 
 #include "Text.h"
 #include "ComponentVariant.h"
@@ -7,7 +7,7 @@
 
 class TextComponentInstance;
 
-class TextVariant : public Text, public ComponentVariant
+class TextComponentVariant : public Text, public ComponentVariant
 {
     Q_OBJECT
     Q_PROPERTY(bool instancesAcceptChildren READ instancesAcceptChildren WRITE setInstancesAcceptChildren NOTIFY instancesAcceptChildrenChanged)
@@ -15,12 +15,12 @@ class TextVariant : public Text, public ComponentVariant
     Q_PROPERTY(QString variantName READ variantName WRITE setVariantName NOTIFY variantNameChanged)
 
 public:
-    explicit TextVariant(const QString &id, QObject *parent = nullptr);
-    ~TextVariant();
+    explicit TextComponentVariant(const QString &id, QObject *parent = nullptr);
+    ~TextComponentVariant();
     
     // Property getters
-    bool instancesAcceptChildren() const { return m_instancesAcceptChildren; }
-    QStringList editableProperties() const { return m_editableProperties; }
+    bool instancesAcceptChildren() const { return ComponentVariant::instancesAcceptChildren(); }
+    QStringList editableProperties() const { return ComponentVariant::editableProperties(); }
     QString variantName() const { return ComponentVariant::variantName(); }
     
     // Property setters
@@ -44,10 +44,6 @@ signals:
     void instancesAcceptChildrenChanged();
     void editablePropertiesChanged();
     void variantNameChanged();
-
-private:
-    bool m_instancesAcceptChildren;
-    QStringList m_editableProperties;
 };
 
-#endif // TEXTVARIANT_H
+#endif // TEXTCOMPONENTVARIANT_H

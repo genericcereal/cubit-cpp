@@ -18,7 +18,7 @@ function isText(el) {
 }
 
 function isTextVariant(el) {
-    return el && el.elementType === "TextVariant"
+    return el && el.elementType === "TextComponentVariant"
 }
 
 function isVariable(el) {

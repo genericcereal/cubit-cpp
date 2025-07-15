@@ -31,7 +31,7 @@ QString Element::getTypeName() const
         case FrameComponentVariantType:
             return "FrameComponentVariant";
         case TextVariantType:
-            return "TextVariant";
+            return "TextComponentVariant";
         default:
             return "Unknown";
     }

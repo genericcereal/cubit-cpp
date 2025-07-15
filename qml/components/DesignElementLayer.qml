@@ -43,7 +43,7 @@ Item {
                         // Check if it's a text-based instance by checking for content property
                         return element.hasOwnProperty('content') ? textComponent : frameComponent
                     case "Text": return textComponent
-                    case "TextVariant": return textComponent
+                    case "TextComponentVariant": return textComponent
                     default: return null
                 }
             }

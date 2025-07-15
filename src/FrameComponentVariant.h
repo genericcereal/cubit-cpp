@@ -19,8 +19,8 @@ public:
     ~FrameComponentVariant();
     
     // Property getters
-    bool instancesAcceptChildren() const { return m_instancesAcceptChildren; }
-    QStringList editableProperties() const { return m_editableProperties; }
+    bool instancesAcceptChildren() const { return ComponentVariant::instancesAcceptChildren(); }
+    QStringList editableProperties() const { return ComponentVariant::editableProperties(); }
     QString variantName() const { return ComponentVariant::variantName(); }
     
     // Property setters
@@ -44,10 +44,6 @@ signals:
     void instancesAcceptChildrenChanged();
     void editablePropertiesChanged();
     void variantNameChanged();
-
-private:
-    bool m_instancesAcceptChildren;
-    QStringList m_editableProperties;
 };
 
 #endif // FRAMECOMPONENTVARIANT_H

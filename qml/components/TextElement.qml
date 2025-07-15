@@ -10,7 +10,7 @@ Item {
     property var element
     property var elementModel
     property var textElement: {
-        // Handle Text, TextVariant, and FrameComponentInstance that inherits from Text
+        // Handle Text, TextComponentVariant, and FrameComponentInstance that inherits from Text
         if (element) {
             // Check if it's a text-based element by checking if it has content property
             if (element.hasOwnProperty('content')) {
@@ -68,6 +68,7 @@ Item {
         rightPadding: 4
         topPadding: 4
         bottomPadding: 4
+        
         
         background: Rectangle {
             color: "transparent"

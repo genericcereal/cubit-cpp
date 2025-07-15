@@ -13,7 +13,7 @@
 #include "Component.h"
 #include "FrameComponentInstance.h"
 #include "FrameComponentVariant.h"
-#include "TextVariant.h"
+#include "TextComponentVariant.h"
 #include "TextComponentInstance.h"
 #include "Node.h"
 #include "Edge.h"
@@ -30,6 +30,7 @@
 #include "ScriptCompiler.h"
 #include "ElementFilterProxy.h"
 #include "PrototypeController.h"
+#include "DesignControlsController.h"
 
 int main(int argc, char *argv[])
 {
@@ -60,7 +61,7 @@ int main(int argc, char *argv[])
     qmlRegisterType<Component>("Cubit", 1, 0, "ComponentElement");
     qmlRegisterType<FrameComponentInstance>("Cubit", 1, 0, "FrameComponentInstance");
     qmlRegisterType<FrameComponentVariant>("Cubit", 1, 0, "FrameComponentVariant");
-    qmlRegisterType<TextVariant>("Cubit", 1, 0, "TextVariant");
+    qmlRegisterType<TextComponentVariant>("Cubit", 1, 0, "TextComponentVariant");
     qmlRegisterType<TextComponentInstance>("Cubit", 1, 0, "TextComponentInstance");
     qmlRegisterType<Node>("Cubit", 1, 0, "Node");
     qmlRegisterType<Edge>("Cubit", 1, 0, "Edge");
@@ -94,6 +95,10 @@ int main(int argc, char *argv[])
             Q_UNUSED(scriptEngine)
             return appInstance;
         });
+
+    // Create and register DesignControlsController as context property
+    DesignControlsController* designControlsController = new DesignControlsController(appInstance, &app);
+    engine.rootContext()->setContextProperty("designControls", designControlsController);
 
     // Register QML singleton
     qmlRegisterSingletonType(QUrl("qrc:/qml/Config.qml"), "Cubit.UI", 1, 0, "Config");

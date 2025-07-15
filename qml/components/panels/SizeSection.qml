@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Cubit
-import "../components"
+import ".."
 
 ColumnLayout {
     id: root
@@ -268,7 +268,7 @@ ColumnLayout {
     // Size section - for DesignElements with a parent
     PropertyGroup {
         title: "Size"
-        visible: selectedElement && selectedElement.isDesignElement && selectedElement.parentId
+        visible: selectedElement && selectedElement.isDesignElement === true && selectedElement.parentId !== undefined && selectedElement.parentId !== ""
         
         content: [
             Repeater {

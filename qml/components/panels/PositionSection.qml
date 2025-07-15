@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Cubit
-import "../components"
+import ".."
 
 PropertyGroup {
     id: root
@@ -12,7 +12,7 @@ PropertyGroup {
     property var editableProperties: []
     property var selectedDesignElement: selectedElement && selectedElement.isDesignElement ? selectedElement : null
     
-    visible: selectedElement && selectedElement.isDesignElement && selectedElement.parentId
+    visible: selectedElement && selectedElement.isDesignElement === true && selectedElement.parentId !== undefined && selectedElement.parentId !== ""
     
     property var positionProps: [
         {

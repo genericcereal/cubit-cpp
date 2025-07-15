@@ -91,7 +91,7 @@ GroupBox {
             font.pixelSize: 14
             visible: selectedElement && 
                      selectedElement.elementType !== "FrameComponentVariant" &&
-                     selectedElement.elementType !== "TextVariant" &&
+                     selectedElement.elementType !== "TextComponentVariant" &&
                      (selectedElement.isDesignElement || 
                       selectedElement.elementType === "Component" ||
                       selectedElement.elementType === "FrameComponentInstance" ||

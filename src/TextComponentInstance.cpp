@@ -1,6 +1,6 @@
 #include "TextComponentInstance.h"
 #include "Component.h"
-#include "TextVariant.h"
+#include "TextComponentVariant.h"
 #include "ElementModel.h"
 #include "Application.h"
 #include <QDebug>
@@ -72,20 +72,20 @@ void TextComponentInstance::setSourceVariant(Element* variant)
         syncPropertiesFromVariant();
         
         // Connect to track changes
-        if (TextVariant* textVariant = qobject_cast<TextVariant*>(m_sourceVariant)) {
+        if (TextComponentVariant* textVariant = qobject_cast<TextComponentVariant*>(m_sourceVariant)) {
             // Connect to property changes
             m_variantConnections.add(
-                connect(textVariant, &TextVariant::contentChanged,
+                connect(textVariant, &Text::contentChanged,
                         this, &TextComponentInstance::onSourceVariantPropertyChanged,
                         Qt::UniqueConnection)
             );
             m_variantConnections.add(
-                connect(textVariant, &TextVariant::fontChanged,
+                connect(textVariant, &Text::fontChanged,
                         this, &TextComponentInstance::onSourceVariantPropertyChanged,
                         Qt::UniqueConnection)
             );
             m_variantConnections.add(
-                connect(textVariant, &TextVariant::colorChanged,
+                connect(textVariant, &Text::colorChanged,
                         this, &TextComponentInstance::onSourceVariantPropertyChanged,
                         Qt::UniqueConnection)
             );
@@ -98,7 +98,7 @@ void TextComponentInstance::setSourceVariant(Element* variant)
 QStringList TextComponentInstance::getEditableProperties() const
 {
     if (m_sourceVariant) {
-        if (TextVariant* textVariant = qobject_cast<TextVariant*>(m_sourceVariant)) {
+        if (TextComponentVariant* textVariant = qobject_cast<TextComponentVariant*>(m_sourceVariant)) {
             return textVariant->editableProperties();
         }
     }
@@ -210,10 +210,10 @@ void TextComponentInstance::connectToVariant()
         
         // Connect to property changes
         if (m_sourceVariant) {
-            // For TextVariant, connect directly to contentChanged signal
-            if (TextVariant* textVariant = qobject_cast<TextVariant*>(m_sourceVariant)) {
+            // For TextComponentVariant, connect directly to contentChanged signal
+            if (TextComponentVariant* textVariant = qobject_cast<TextComponentVariant*>(m_sourceVariant)) {
                 // Note: Can't use Qt::UniqueConnection with lambdas, so we'll just use a regular connection
-                QMetaObject::Connection conn = connect(textVariant, &TextVariant::contentChanged,
+                QMetaObject::Connection conn = connect(textVariant, &Text::contentChanged,
                         this, [this, textVariant]() {
                             setContent(textVariant->content());
                         });
@@ -223,7 +223,7 @@ void TextComponentInstance::connectToVariant()
                 }
                 
                 // Also connect other properties
-                QMetaObject::Connection fontConn = connect(textVariant, &TextVariant::fontChanged,
+                QMetaObject::Connection fontConn = connect(textVariant, &Text::fontChanged,
                         this, [this, textVariant]() {
                             // Always update font from variant
                             Text::setFont(textVariant->font());
@@ -234,7 +234,7 @@ void TextComponentInstance::connectToVariant()
                 }
                 
                 m_variantConnections.add(
-                    connect(textVariant, &TextVariant::colorChanged,
+                    connect(textVariant, &Text::colorChanged,
                             this, [this, textVariant]() {
                                 if (!m_modifiedProperties.contains("color")) {
                                     // Call the base class setColor directly to avoid marking as modified
@@ -259,7 +259,7 @@ void TextComponentInstance::syncPropertiesFromVariant()
 {
     if (!m_sourceVariant) return;
     
-    if (TextVariant* textVariant = qobject_cast<TextVariant*>(m_sourceVariant)) {
+    if (TextComponentVariant* textVariant = qobject_cast<TextComponentVariant*>(m_sourceVariant)) {
         // Sync Text-specific properties
         // Always sync content from variant
         setContent(textVariant->content());

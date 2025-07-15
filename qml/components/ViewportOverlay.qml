@@ -2,6 +2,7 @@ import QtQuick
 import QtQml
 import Cubit 1.0
 import Cubit.UI 1.0
+import "./design-controls"
 
 // ViewportOverlay provides a layer for UI elements that should maintain
 // their visual size regardless of canvas zoom level
@@ -202,7 +203,7 @@ Item {
                         var element = allElements[i]
                         // Check for all text-based elements that can be edited
                         if ((element.elementType === "Text" || 
-                             element.elementType === "TextVariant" ||
+                             element.elementType === "TextComponentVariant" ||
                              (element.elementType === "FrameComponentInstance" && element.hasOwnProperty('content'))) 
                             && element.isEditing) {
                             // This will trigger the save through the Connections in TextElement.qml
