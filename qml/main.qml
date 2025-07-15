@@ -5,6 +5,7 @@ import QtQuick.Layouts
 import Cubit 1.0
 import "components/panels"
 import "components"
+import "components/viewport-overlay"
 import "components/color-picker"
 
 Window {
@@ -191,6 +192,9 @@ Window {
                         Application.activeCanvas.controller.createVariable()
                     }
                 }
+                onWebElementsClicked: {
+                    // Handled internally by ActionsPanel
+                }
                 
                 Connections {
                     target: Application.activeCanvas ? Application.activeCanvas.controller : null
@@ -214,6 +218,7 @@ Window {
                 anchors.topMargin: 20
                 canvasView: canvasLoader.item
             }
+            
 
         }
 

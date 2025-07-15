@@ -12,6 +12,7 @@ class SelectionManager;
 class DesignElement;
 class Frame;
 class Text;
+class WebTextInput;
 
 class CreateDesignElementCommand : public Command
 {
@@ -20,7 +21,8 @@ class CreateDesignElementCommand : public Command
 public:
     enum ElementType {
         FrameElement,
-        TextElement
+        TextElement,
+        WebTextInputElement
     };
     Q_ENUM(ElementType)
 
@@ -43,6 +45,7 @@ private:
     // Created elements
     QPointer<Frame> m_frame;
     QPointer<Text> m_textElement;
+    QPointer<WebTextInput> m_webTextInput;
     
     // IDs for the created elements
     QString m_frameId;

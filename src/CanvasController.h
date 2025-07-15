@@ -29,7 +29,8 @@ public:
     enum class Mode {
         Select,
         Frame,
-        Text
+        Text,
+        WebTextInput
     };
     Q_ENUM(Mode)
     

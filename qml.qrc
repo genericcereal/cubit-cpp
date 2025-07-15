@@ -28,13 +28,18 @@
         <file>qml/components/ElementRenderer.qml</file>
         <file>qml/components/FrameElement.qml</file>
         <file>qml/components/TextElement.qml</file>
+        <file>qml/components/WebTextInputElement.qml</file>
         <file>qml/components/NodeElement.qml</file>
         <file>qml/components/EdgeElement.qml</file>
         <file>qml/components/BezierEdge.qml</file>
-        <file>qml/components/NodeSelectionBounds.qml</file>
-        <file>qml/components/ViewportOverlay.qml</file>
-        <file>qml/components/SelectionBox.qml</file>
-        <file>qml/components/SelectionBoundingBox.qml</file>
+        <file>qml/components/viewport-overlay/NodeSelectionBounds.qml</file>
+        <file>qml/components/viewport-overlay/ViewportOverlay.qml</file>
+        <file>qml/components/viewport-overlay/SelectionBox.qml</file>
+        <file>qml/components/viewport-overlay/SelectionBoundingBox.qml</file>
+        <file>qml/components/viewport-overlay/SelectionArea.qml</file>
+        <file>qml/components/viewport-overlay/SelectionBounds.qml</file>
+        <file>qml/components/viewport-overlay/DesignControlsOverlay.qml</file>
+        <file>qml/components/viewport-overlay/PrototypeControls.qml</file>
         <file>qml/components/design-controls/DesignControls.qml</file>
         <file>qml/components/design-controls/ControlSurface.qml</file>
         <file>qml/components/design-controls/EdgeResizeBar.qml</file>
@@ -45,7 +50,8 @@
         <file>qml/components/design-controls/HoverBadge.qml</file>
         <file>qml/components/design-controls/VariantAddButton.qml</file>
         <file>qml/components/design-controls/ControlMath.js</file>
-        <file>qml/components/PrototypeViewableArea.qml</file>
+        <file>qml/components/viewport-overlay/OverlayUtils.js</file>
+        <file>qml/components/viewport-overlay/PrototypeViewableArea.qml</file>
         <file>qml/components/ElementLayer.qml</file>
         <file>qml/components/panels/DetailPanel.qml</file>
         <file>qml/components/panels/ElementList.qml</file>
@@ -60,6 +66,7 @@
         <file>qml/components/panels/TextSection.qml</file>
         <file>qml/components/panels/VariableSection.qml</file>
         <file>qml/components/panels/ActionsPanel.qml</file>
+        <file>qml/components/panels/ActionsSelectPopover.qml</file>
         <file>qml/components/panels/Console.qml</file>
         <file>qml/components/panels/PropertyPopoverPanel.qml</file>
         <file>qml/components/panels/PrototypePanel.qml</file>

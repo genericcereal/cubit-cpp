@@ -160,8 +160,9 @@ Item {
                 var element = viewportOverlay.selectedElements[0]
                 ConsoleMessageRepository.addOutput("Selected element type: " + element.elementType + " (ID: " + element.elementId + ")")
                 
-                // Check if it's a Text element, TextComponentVariant, or text-based ComponentInstance directly selected
+                // Check if it's a Text element, TextComponentVariant, WebTextInput, or text-based ComponentInstance directly selected
                 if (element && (element.elementType === "Text" || element.elementType === "TextComponentVariant" || 
+                    element.elementType === "WebTextInput" ||
                     (element.elementType === "FrameComponentInstance" && element.hasOwnProperty("content")))) {
                     ConsoleMessageRepository.addOutput("Text-based element directly selected - triggering edit mode")
                     element.isEditing = true
@@ -871,7 +872,7 @@ Item {
             }
             
             var designCanvas = viewportOverlay.canvasView
-            var prototypeController = viewportOverlay.prototypeController
+            var prototypeController = Application.activeCanvas ? Application.activeCanvas.prototypeController : null
             
             if (!prototypeController) {
                 ConsoleMessageRepository.addError("PrototypeController not available")
