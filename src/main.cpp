@@ -9,6 +9,7 @@
 #include "ScriptElement.h"
 #include "Frame.h"
 #include "Text.h"
+#include "WebTextInput.h"
 #include "Variable.h"
 #include "Component.h"
 #include "FrameComponentInstance.h"
@@ -57,6 +58,7 @@ int main(int argc, char *argv[])
     qmlRegisterUncreatableType<ScriptElement>("Cubit", 1, 0, "ScriptElement", "ScriptElement is an abstract base class");
     qmlRegisterType<Frame>("Cubit", 1, 0, "Frame");
     qmlRegisterType<Text>("Cubit", 1, 0, "TextElement");  // Rename to avoid conflict with QML Text
+    qmlRegisterType<WebTextInput>("Cubit", 1, 0, "WebTextInput");
     qmlRegisterType<Variable>("Cubit", 1, 0, "Variable");
     qmlRegisterType<Component>("Cubit", 1, 0, "ComponentElement");
     qmlRegisterType<FrameComponentInstance>("Cubit", 1, 0, "FrameComponentInstance");

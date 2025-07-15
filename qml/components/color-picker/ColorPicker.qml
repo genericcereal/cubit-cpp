@@ -14,6 +14,9 @@ Item {
     property int colorFormat: 1 // 0: RGB, 1: HEX, 2: HSL
     property int fillType: 0 // 0: Solid, 1: Linear, 2: Radial, 3: Conic, 4: Image
     
+    // Internal flag to prevent feedback loops during external updates
+    property bool _updatingFromExternal: false
+    
     // Signals
     signal colorChanged(color newColor)
     signal eyeButtonClicked()
@@ -171,7 +174,12 @@ Item {
     function updateColor() {
         var newColor = Qt.hsla(root.hue / 360, root.saturation, root.lightness, root.alphaValue)
         root.currentColor = newColor
-        root.colorChanged(newColor)
+        
+        // Only emit colorChanged if we're not updating from external binding changes
+        if (!root._updatingFromExternal) {
+            root.colorChanged(newColor)
+        }
+        
         colorInput.text = formatColorString()
         opacityInput.text = Math.round(root.alphaValue * 100) + "%"
     }
@@ -266,24 +274,32 @@ Item {
     
     // Update child components when properties change
     onHueChanged: {
+        _updatingFromExternal = true
         shadeSelector.hue = hue
         hueSlider.hue = hue
         updateColor()
+        _updatingFromExternal = false
     }
     
     onSaturationChanged: {
+        _updatingFromExternal = true
         shadeSelector.saturation = saturation
         updateColor()
+        _updatingFromExternal = false
     }
     
     onLightnessChanged: {
+        _updatingFromExternal = true
         shadeSelector.lightness = lightness
         updateColor()
+        _updatingFromExternal = false
     }
     
     onAlphaValueChanged: {
+        _updatingFromExternal = true
         opacitySlider.alpha = alphaValue
         updateColor()
+        _updatingFromExternal = false
     }
     
     onColorFormatChanged: {

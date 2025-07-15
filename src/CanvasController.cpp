@@ -88,6 +88,15 @@ void CanvasController::initializeModeHandlers()
         &m_elementModel, &m_selectionManager,
         m_commandHistory.get(), setModeFunc);
     
+    // WebTextInput mode
+    m_modeHandlers[Mode::WebTextInput] = std::make_unique<CreationModeHandler>(
+        CreationModeHandler::Config{
+            CreateDesignElementCommand::WebTextInputElement,
+            QVariant("Enter text...")  // Default placeholder
+        },
+        &m_elementModel, &m_selectionManager,
+        m_commandHistory.get(), setModeFunc);
+    
     
     // Set initial handler
     m_currentHandler = m_modeHandlers[m_mode].get();

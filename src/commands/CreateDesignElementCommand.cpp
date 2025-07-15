@@ -1,6 +1,7 @@
 #include "CreateDesignElementCommand.h"
 #include "../Frame.h"
 #include "../Text.h"
+#include "../WebTextInput.h"
 #include "../ElementModel.h"
 #include "../SelectionManager.h"
 #include "../Application.h"
@@ -19,6 +20,7 @@ CreateDesignElementCommand::CreateDesignElementCommand(ElementModel* model, Sele
     , m_initialPayload(initialPayload)
     , m_frame(nullptr)
     , m_textElement(nullptr)
+    , m_webTextInput(nullptr)
 {
     QString typeStr;
     switch (type) {
@@ -27,6 +29,9 @@ CreateDesignElementCommand::CreateDesignElementCommand(ElementModel* model, Sele
         break;
     case TextElement:
         typeStr = "Text";
+        break;
+    case WebTextInputElement:
+        typeStr = "WebTextInput";
         break;
     }
     
@@ -49,6 +54,9 @@ CreateDesignElementCommand::~CreateDesignElementCommand()
         }
         if (m_textElement && !allElements.contains(m_textElement)) {
             delete m_textElement;
+        }
+        if (m_webTextInput && !allElements.contains(m_webTextInput)) {
+            delete m_webTextInput;
         }
     }
 }
@@ -97,6 +105,18 @@ void CreateDesignElementCommand::execute()
             }
             break;
             
+        case WebTextInputElement:
+            // Create web text input element
+            m_childElementId = m_elementModel->generateId();
+            m_webTextInput = new WebTextInput(m_childElementId);
+            m_webTextInput->setRect(m_rect);
+            
+            // Set initial placeholder if provided
+            if (m_initialPayload.isValid() && m_initialPayload.canConvert<QString>()) {
+                m_webTextInput->setPlaceholder(m_initialPayload.toString());
+            }
+            break;
+            
         }
     }
 
@@ -113,6 +133,11 @@ void CreateDesignElementCommand::execute()
             // Still add to model for visibility
             m_elementModel->addElement(m_textElement);
         }
+        if (m_webTextInput) {
+            editingComponent->addVariant(m_webTextInput);
+            // Still add to model for visibility
+            m_elementModel->addElement(m_webTextInput);
+        }
     } else {
         // Normal mode, just add to model
         if (m_frame) {
@@ -120,6 +145,9 @@ void CreateDesignElementCommand::execute()
         }
         if (m_textElement) {
             m_elementModel->addElement(m_textElement);
+        }
+        if (m_webTextInput) {
+            m_elementModel->addElement(m_webTextInput);
         }
     }
 
@@ -129,6 +157,8 @@ void CreateDesignElementCommand::execute()
             m_selectionManager->selectOnly(m_frame);
         } else if (m_textElement) {
             m_selectionManager->selectOnly(m_textElement);
+        } else if (m_webTextInput) {
+            m_selectionManager->selectOnly(m_webTextInput);
         }
     }
 }
@@ -152,7 +182,8 @@ void CreateDesignElementCommand::undo()
     if (m_selectionManager && m_selectionManager->hasSelection()) {
         auto selectedElements = m_selectionManager->selectedElements();
         if ((m_frame && selectedElements.contains(m_frame)) ||
-            (m_textElement && selectedElements.contains(m_textElement))) {
+            (m_textElement && selectedElements.contains(m_textElement)) ||
+            (m_webTextInput && selectedElements.contains(m_webTextInput))) {
             m_selectionManager->clearSelection();
         }
     }
@@ -162,6 +193,12 @@ void CreateDesignElementCommand::undo()
         m_elementModel->removeElement(m_textElement->getId());
         if (isVariantMode && editingComponent) {
             editingComponent->removeVariant(m_textElement);
+        }
+    }
+    if (m_webTextInput) {
+        m_elementModel->removeElement(m_webTextInput->getId());
+        if (isVariantMode && editingComponent) {
+            editingComponent->removeVariant(m_webTextInput);
         }
     }
     if (m_frame) {

@@ -44,6 +44,7 @@ Item {
                         return element.hasOwnProperty('content') ? textComponent : frameComponent
                     case "Text": return textComponent
                     case "TextComponentVariant": return textComponent
+                    case "WebTextInput": return webTextInputComponent
                     default: return null
                 }
             }
@@ -68,5 +69,10 @@ Item {
     Component {
         id: textComponent
         TextElement {}
+    }
+    
+    Component {
+        id: webTextInputComponent
+        WebTextInputElement {}
     }
 }

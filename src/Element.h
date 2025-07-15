@@ -22,7 +22,8 @@ public:
         ComponentType,
         FrameComponentInstanceType,
         FrameComponentVariantType,
-        TextVariantType
+        TextVariantType,
+        WebTextInputType
     };
     Q_ENUM(ElementType)
 

@@ -1,170 +1,32 @@
 import QtQuick
-import QtQml
 import Cubit 1.0
 import Cubit.UI 1.0
-import "./design-controls"
+import "../design-controls"
+import "OverlayUtils.js" as OverlayUtils
 
-// ViewportOverlay provides a layer for UI elements that should maintain
-// their visual size regardless of canvas zoom level
+// DesignControlsOverlay contains the complex DesignControls block
 Item {
     id: root
-    objectName: "viewportOverlay"
     
-    // Core properties from CanvasView
+    // Properties passed from ViewportOverlay
     property var canvasView
-    property real zoomLevel: canvasView?.zoomLevel ?? 1.0
-    property var flickable: canvasView?.flickable ?? null
-    property var hoveredElement: null
-    property var selectionManager: canvasView?.selectionManager ?? null
+    property var controller
+    property var selectionManager
     property var selectedElements: selectionManager?.selectedElements ?? []
-    property var controller: canvasView?.controller ?? null
-    property string canvasType: canvasView?.canvasType ?? "design"
+    property var flickable
+    property real zoomLevel: 1.0
+    property real canvasMinX: 0
+    property real canvasMinY: 0
+    property string canvasType: "design"
     
-    // Canvas bounds from canvasView
-    property real canvasMinX: canvasView?.canvasMinX ?? 0
-    property real canvasMinY: canvasView?.canvasMinY ?? 0
-    
-    // Expose the selection controls
-    property alias selectionControls: selectionControls
-    
-    
-    
-    // Direct mouse handling for selection box
-    MouseArea {
-        id: selectionMouseArea
-        anchors.fill: parent
-        acceptedButtons: Qt.LeftButton
-        propagateComposedEvents: true
-        z: -1  // Behind other overlays but above canvas
-        
-        property bool isSelecting: false
-        property point selectionStartPoint: Qt.point(0, 0)
-        
-        onPressed: (mouse) => {
-            // Only start selection if:
-            // 1. We're in select mode
-            // 2. Click is not on a control
-            // 3. Click is not on an element
-            if (controller?.mode !== 0) { // 0 is CanvasController.Select
-                mouse.accepted = false
-                return
-            }
-            
-            // Check if controls are visible and under mouse
-            if (selectionControls.visible && selectionControls.contains(selectionControls.mapFromItem(root, mouse.x, mouse.y))) {
-                mouse.accepted = false
-                return
-            }
-            
-            // Convert to canvas coordinates
-            var canvasX = (mouse.x + (flickable?.contentX ?? 0)) / zoomLevel + canvasMinX
-            var canvasY = (mouse.y + (flickable?.contentY ?? 0)) / zoomLevel + canvasMinY
-            var canvasPoint = Qt.point(canvasX, canvasY)
-            
-            // Check if clicking on an element
-            var element = controller?.hitTest(canvasX, canvasY) ?? null
-            if (element) {
-                mouse.accepted = false
-                return
-            }
-            
-            // Start selection
-            isSelecting = true
-            selectionStartPoint = canvasPoint
-            selectionBox.startPoint = canvasPoint
-            selectionBox.currentPoint = canvasPoint
-            selectionBox.active = true
-            
-            // Clear existing selection
-            if (selectionManager) {
-                selectionManager.clearSelection()
-            }
-            
-            mouse.accepted = true
-        }
-        
-        onPositionChanged: (mouse) => {
-            if (!isSelecting) {
-                mouse.accepted = false
-                return
-            }
-            
-            // Convert to canvas coordinates
-            var canvasX = (mouse.x + (flickable?.contentX ?? 0)) / zoomLevel + canvasMinX
-            var canvasY = (mouse.y + (flickable?.contentY ?? 0)) / zoomLevel + canvasMinY
-            var canvasPoint = Qt.point(canvasX, canvasY)
-            
-            // Update selection box
-            selectionBox.currentPoint = canvasPoint
-            
-            // Calculate selection rectangle
-            var rect = Qt.rect(
-                Math.min(selectionStartPoint.x, canvasPoint.x),
-                Math.min(selectionStartPoint.y, canvasPoint.y),
-                Math.abs(canvasPoint.x - selectionStartPoint.x),
-                Math.abs(canvasPoint.y - selectionStartPoint.y)
-            )
-            
-            // Select elements in rect through the controller
-            if (controller?.selectElementsInRect) {
-                controller.selectElementsInRect(rect)
-            }
-            
-            mouse.accepted = true
-        }
-        
-        onReleased: (mouse) => {
-            if (!isSelecting) {
-                mouse.accepted = false
-                return
-            }
-            
-            isSelecting = false
-            selectionBox.active = false
-            mouse.accepted = true
-        }
-    }
-    
-    // Selection box visual during drag selection
-    SelectionBox {
-        id: selectionBox
-    }
-    
-    // Selection bounding box for all selected elements (design and variant canvases)
-    SelectionBoundingBox {
-        id: selectionBoundingBox
-        visible: (canvasType === "design" || canvasType === "variant") && 
-                 selectionManager && 
-                 selectionManager.hasVisualSelection
-        canvasMinX: root.canvasMinX
-        canvasMinY: root.canvasMinY
-        zoomLevel: root.zoomLevel
-        flickable: root.flickable
-        // Use selection bounds directly
-        boundingX: root.selectionBoundingX
-        boundingY: root.selectionBoundingY
-        boundingWidth: root.selectionBoundingWidth
-        boundingHeight: root.selectionBoundingHeight
-        z: -1  // Behind controls but above canvas
-    }
-    
-    // Node selection bounds (only for script canvas)
-    NodeSelectionBounds {
-        id: nodeSelectionBounds
-        visible: canvasType === "script"
-        selectionManager: root.selectionManager
-        zoomLevel: root.zoomLevel
-        flickable: root.flickable
-        canvasMinX: root.canvasMinX
-        canvasMinY: root.canvasMinY
-    }
-    
-    // Use bounding box properties computed in C++ for better performance
-    // Use readonly to ensure we always get the latest value from C++
+    // Bounding box properties
     readonly property real selectionBoundingX: selectionManager?.boundingX ?? 0
     readonly property real selectionBoundingY: selectionManager?.boundingY ?? 0
     readonly property real selectionBoundingWidth: selectionManager?.boundingWidth ?? 0
     readonly property real selectionBoundingHeight: selectionManager?.boundingHeight ?? 0
+    
+    // Expose the selection controls for external access
+    property alias selectionControls: selectionControls
     
     // Controls that follow selected elements (for design and variant canvases)
     DesignControls {
@@ -204,6 +66,7 @@ Item {
                         // Check for all text-based elements that can be edited
                         if ((element.elementType === "Text" || 
                              element.elementType === "TextComponentVariant" ||
+                             element.elementType === "WebTextInput" ||
                              (element.elementType === "FrameComponentInstance" && element.hasOwnProperty('content'))) 
                             && element.isEditing) {
                             // This will trigger the save through the Connections in TextElement.qml
@@ -235,7 +98,6 @@ Item {
             }
         }
         
-        
         // Additional connection for creation mode - always update during element creation
         Connections {
             target: selectionManager
@@ -266,7 +128,6 @@ Item {
             }
         }
         
-        
         function initializeFromSelection() {
             if (!selectedElements || selectedElements.length === 0) {
                 // Reset controls to zero size when no selection
@@ -289,7 +150,6 @@ Item {
             // Convert to viewport coordinates for display
             updateViewportPosition()
         }
-        
         
         // Use Binding objects for efficient position updates
         Binding {
@@ -360,9 +220,7 @@ Item {
                 // Also handle hover detection
                 if (canvasView.handleHover) {
                     // Convert viewport position to canvas coordinates
-                    var canvasX = (viewportPos.x + (flickable?.contentX ?? 0)) / zoomLevel + canvasMinX
-                    var canvasY = (viewportPos.y + (flickable?.contentY ?? 0)) / zoomLevel + canvasMinY
-                    var canvasPoint = Qt.point(canvasX, canvasY)
+                    var canvasPoint = OverlayUtils.toCanvas(viewportPos, flickable, zoomLevel, canvasMinX, canvasMinY)
                     canvasView.handleHover(canvasPoint)
                 }
             }
@@ -706,72 +564,5 @@ Item {
             })
             item.z = Config.zHoverBadge
         }
-    }
-    
-    // Access the prototype controller
-    property var prototypeController: Application.activeCanvas ? Application.activeCanvas.prototypeController : null
-    
-    onPrototypeControllerChanged: {
-        ConsoleMessageRepository.addOutput("ViewportOverlay: prototypeController changed to " + (prototypeController ? "valid controller" : "null"))
-        
-        // Connect requestCanvasMove signal to the canvas moveToPoint function
-        if (prototypeController) {
-            prototypeController.requestCanvasMove.connect(function(canvasPoint, animated) {
-                if (canvasView && canvasView.moveToPoint) {
-                    // Adjust the Y coordinate to account for the viewable area's position
-                    // The prototype viewable area is positioned at a specific Y in the viewport
-                    // We need to offset the canvas point so the frame aligns with the viewable area
-                    var adjustedPoint = Qt.point(canvasPoint.x, canvasPoint.y)
-                    
-                    // Get the viewable area's actual position in viewport
-                    if (prototypeViewableArea && prototypeViewableArea.visible) {
-                        // The viewable area is now vertically centered in the viewport
-                        var viewportHeight = root.flickable.height
-                        var viewableAreaHeight = prototypeController.viewableArea.height
-                        var viewableAreaTopInViewport = (viewportHeight - viewableAreaHeight) / 2
-                        
-                        // We need to find what canvas point to pass to moveToPoint
-                        // so that the frame top appears at viewableAreaTopInViewport
-                        
-                        // Using the standard viewport formula: viewportY = (canvasY - canvasMinY) * zoom - contentY
-                        // We want: viewableAreaTopInViewport = (frameTopY - canvasMinY) * zoom - contentY
-                        // Solving for contentY: contentY = (frameTopY - canvasMinY) * zoom - viewableAreaTopInViewport
-                        
-                        // But moveToPoint sets contentY based on centering a canvas point
-                        // When point P is centered: contentY = (P - canvasMinY) * zoom - viewportHeight/2
-                        
-                        // Setting these equal:
-                        // (P - canvasMinY) * zoom - viewportHeight/2 = (frameTopY - canvasMinY) * zoom - viewableAreaTopInViewport
-                        // (P - canvasMinY) * zoom = (frameTopY - canvasMinY) * zoom - viewableAreaTopInViewport + viewportHeight/2
-                        // P = frameTopY + (viewportHeight/2 - viewableAreaTopInViewport) / zoom
-                        
-                        var frameTopY = canvasPoint.y  // This is the frame's top edge
-                        var offset = (viewportHeight/2 - viewableAreaTopInViewport) / canvasView.zoom
-                        
-                        // Calculate the adjustment to align frame top with viewable area top
-                        adjustedPoint.y = frameTopY + offset
-                    }
-                    
-                    canvasView.moveToPoint(adjustedPoint, animated)
-                    
-                }
-            })
-        }
-    }
-    
-    // Prototype viewable area - visible only when prototyping
-    PrototypeViewableArea {
-        id: prototypeViewableArea
-        visible: {
-            var hasController = prototypeController !== null
-            var isPrototyping = hasController && prototypeController.isPrototyping
-            var isAnimating = controller && controller.isAnimating
-            var shouldShow = hasController && isPrototyping && !isAnimating
-            
-            return shouldShow
-        }
-        designCanvas: canvasView
-        flickable: root.flickable
-        prototypeController: root.prototypeController
     }
 }

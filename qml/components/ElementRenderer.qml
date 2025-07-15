@@ -27,7 +27,8 @@ Item {
                 switch(elementType) {
                     case "Frame": return "FrameElement.qml"
                     case "FrameComponentInstance": return "FrameElement.qml"
-                    case "Text": return "TextElement.qml"  
+                    case "Text": return "TextElement.qml"
+                    case "WebTextInput": return "WebTextInputElement.qml"
                     default: return ""
                 }
             }

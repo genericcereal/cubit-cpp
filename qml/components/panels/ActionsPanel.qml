@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Cubit
+import "."
 
 Rectangle {
     id: root
@@ -14,6 +15,10 @@ Rectangle {
     signal modeChanged(int mode)
     signal compileClicked()
     signal createVariableClicked()
+    signal webElementsClicked()
+    
+    // Expose the web elements button for positioning
+    property alias webElementsButton: webElementsButton
     
     property int currentMode: CanvasController.Select
     property bool isScriptMode: Application.activeCanvas && Application.activeCanvas.viewMode === "script"
@@ -22,6 +27,11 @@ Rectangle {
         if (!Application.activeCanvas) return false
         if (!Application.activeCanvas.activeScripts) return false
         return !Application.activeCanvas.activeScripts.isCompiled
+    }
+    property bool hasWebPlatform: {
+        if (!Application.activeCanvas) return false
+        if (!Application.activeCanvas.platforms) return false
+        return Application.activeCanvas.platforms.indexOf("web") !== -1
     }
     
     
@@ -234,8 +244,105 @@ Rectangle {
             ToolTip.text: "Create Variable"
         }
         
+        ToolButton {
+            id: webElementsButton
+            visible: !isScriptMode && hasWebPlatform
+            Layout.fillHeight: true
+            Layout.preferredWidth: height
+            checkable: false
+            
+            contentItem: Text {
+                text: "W"
+                color: parent.hovered ? "#ffffff" : "#aaaaaa"
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                font.pixelSize: 16
+            }
+            
+            background: Rectangle {
+                color: parent.hovered ? Qt.rgba(0.4, 0.4, 0.4, 0.3) : "transparent"
+                radius: 4
+                antialiasing: true
+            }
+            
+            onClicked: {
+                if (!isScriptMode) {
+                    webElementsPopoverVisible = !webElementsPopoverVisible
+                }
+            }
+            
+            ToolTip.visible: hovered
+            ToolTip.text: "Web Elements"
+        }
+        
         Item {
             Layout.fillWidth: true
+        }
+    }
+    
+    // Property to track popover visibility
+    property bool webElementsPopoverVisible: false
+    
+    // WebElements popover
+    Item {
+        id: popoverContainer
+        visible: webElementsPopoverVisible
+        
+        // Fill the entire window to catch clicks
+        anchors.fill: parent
+        parent: root.Window.window ? root.Window.window.contentItem : root
+        z: 1000
+        
+        // Transparent background to catch clicks
+        MouseArea {
+            anchors.fill: parent
+            onClicked: {
+                webElementsPopoverVisible = false
+            }
+        }
+        
+        // The actual popover
+        ActionsSelectPopover {
+            id: webElementsPopover
+            
+            // Position above the W button using manual positioning
+            Component.onCompleted: updatePosition()
+            
+            function updatePosition() {
+                if (webElementsButton) {
+                    var buttonPos = webElementsButton.mapToItem(parent, 0, 0)
+                    x = buttonPos.x + (webElementsButton.width / 2) - (width / 2)
+                    y = buttonPos.y - height - 10
+                }
+            }
+            
+            options: [
+                { text: "Select", value: "select" },
+                { text: "Text", value: "text" },
+                { text: "Radio", value: "radio" }
+            ]
+            
+            onOptionSelected: function(value) {
+                ConsoleMessageRepository.addInfo("WebElements option selected: " + value)
+                webElementsPopoverVisible = false
+                
+                // Switch canvas mode based on selection
+                if (value === "text" && Application.activeCanvas && Application.activeCanvas.controller) {
+                    currentMode = CanvasController.WebTextInput
+                    root.modeChanged(CanvasController.WebTextInput)
+                }
+            }
+            
+            onDismissed: {
+                webElementsPopoverVisible = false
+            }
+        }
+    }
+    
+    // Update popover position when visibility changes
+    onWebElementsPopoverVisibleChanged: {
+        if (webElementsPopoverVisible && popoverContainer.children[1]) {
+            popoverContainer.children[1].updatePosition()
         }
     }
 }

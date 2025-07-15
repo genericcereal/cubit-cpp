@@ -42,6 +42,7 @@ SOURCES += \
     src/ScriptElement.cpp \
     src/Frame.cpp \
     src/Text.cpp \
+    src/WebTextInput.cpp \
     src/Variable.cpp \
     src/Component.cpp \
     src/ComponentInstance.cpp \
@@ -94,6 +95,7 @@ HEADERS += \
     src/ScriptElement.h \
     src/Frame.h \
     src/Text.h \
+    src/WebTextInput.h \
     src/Variable.h \
     src/Component.h \
     src/ComponentInstance.h \
