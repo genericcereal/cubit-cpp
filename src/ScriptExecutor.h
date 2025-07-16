@@ -33,8 +33,8 @@ public:
     void setElementModel(ElementModel* model);
     void setCanvasController(CanvasController* controller);
 
-    // Execute a specific event (e.g., "oneditorload")
-    void executeEvent(const QString& eventName);
+    // Execute a specific event with optional data
+    void executeEvent(const QString& eventName, const QVariantMap& eventData = QVariantMap());
 
 private:
     // Execute a chain of invokes starting from given invoke IDs
@@ -59,6 +59,7 @@ private:
     CanvasController* m_canvasController;
     QJsonObject m_compiledScript;
     QString m_currentEventName;
+    QVariantMap m_currentEventData;
 };
 
 #endif // SCRIPTEXECUTOR_H

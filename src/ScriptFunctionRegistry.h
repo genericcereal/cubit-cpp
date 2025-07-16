@@ -34,6 +34,7 @@ private:
     static QString buildVariableFunction(Node* node);
     static QString buildMathFunction(Node* node);
     static QString buildConditionFunction(Node* node);
+    static QString buildEventDataFunction(Node* node);
 };
 
 #endif // SCRIPTFUNCTIONREGISTRY_H

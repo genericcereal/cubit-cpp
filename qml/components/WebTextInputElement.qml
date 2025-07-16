@@ -1,8 +1,8 @@
-import QtQuick
-import QtQuick.Controls
+import QtQuick 2.15
+import QtQuick.Controls 2.15
 import Cubit 1.0
 
-Item {
+FocusScope {
     id: root
     
     // The C++ Element object
@@ -17,6 +17,20 @@ Item {
     
     // Selection state
     property bool selected: element ? element.selected : false
+    
+    // Track if we're in prototype mode
+    property bool isPrototyping: Application.activeCanvas && Application.activeCanvas.prototypeController ? Application.activeCanvas.prototypeController.isPrototyping : false
+    
+    // Force focus to be cleared when isEditing becomes false
+    Connections {
+        target: element
+        function onIsEditingChanged() {
+            if (element && !element.isEditing && textField.activeFocus) {
+                textField.focus = false
+                root.focus = false
+            }
+        }
+    }
     
     // Web-style text input visual representation
     Rectangle {
@@ -34,7 +48,7 @@ Item {
             anchors.margins: 8
             
             text: element ? element.value : ""
-            placeholderText: element && !element.isEditing ? "" : (element ? element.placeholder : "Enter text...")
+            placeholderText: element ? element.placeholder : "Enter text..."
             color: "#333333"
             font.pixelSize: 14
             font.family: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
@@ -43,13 +57,20 @@ Item {
                 color: "transparent"
             }
             
-            // Handle editing mode
-            enabled: element ? element.isEditing : false
+            // Handle editing mode - enabled when editing OR in prototype mode
+            enabled: element ? (element.isEditing || root.isPrototyping) : false
             
-            // Update value on text change (when editing)
+            // Update value on text change (when editing or prototyping)
             onTextChanged: {
-                if (element && element.isEditing && text !== element.value) {
-                    element.value = text
+                if (element && text !== element.value) {
+                    if (element.isEditing || root.isPrototyping) {
+                        element.value = text
+                        
+                        // Fire onChange event in prototype mode
+                        if (root.isPrototyping) {
+                            element.executeScriptEvent("On Change")
+                        }
+                    }
                 }
             }
             
@@ -68,10 +89,25 @@ Item {
                 }
             }
             
-            // Handle focus loss
+            // Handle focus changes
             onActiveFocusChanged: {
-                if (!activeFocus && element && element.isEditing) {
-                    element.isEditing = false
+                if (element) {
+                    if (activeFocus) {
+                        // Fire onFocus event in prototype mode
+                        if (root.isPrototyping) {
+                            element.executeScriptEvent("On Focus")
+                        }
+                    } else {
+                        // Handle focus loss
+                        if (element.isEditing) {
+                            element.isEditing = false
+                        }
+                        
+                        // Fire onBlur event in prototype mode
+                        if (root.isPrototyping) {
+                            element.executeScriptEvent("On Blur")
+                        }
+                    }
                 }
             }
             
@@ -85,17 +121,6 @@ Item {
                     }
                 }
             }
-        }
-        
-        // Show placeholder when not editing and no value
-        Text {
-            anchors.fill: parent
-            anchors.margins: 8
-            visible: element && !element.isEditing && element.value === ""
-            text: element ? element.placeholder : "Enter text..."
-            color: "#999999"
-            font: textField.font
-            verticalAlignment: Text.AlignVCenter
         }
     }
     

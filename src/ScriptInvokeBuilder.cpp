@@ -214,30 +214,43 @@ QJsonArray ScriptInvokeBuilder::createNodeParameters(Node* node, Scripts* script
         param["output"] = outputId;
         params.append(param);
         
-        qDebug() << "ScriptInvokeBuilder: Node" << node->getId() << "has direct value:" << nodeValue;
     } else if (!dataEdges.isEmpty()) {
         // Node gets data from connected edges
         for (Edge* edge : dataEdges) {
             Node* sourceNode = scripts->getNode(edge->sourceNodeId());
             if (sourceNode) {
-                QString sourceValue = sourceNode->value();
-                qDebug() << "ScriptInvokeBuilder: Source node" << sourceNode->getId() 
-                         << "(" << sourceNode->nodeTitle() << ")"
-                         << "value:" << sourceValue;
-                
-                if (!sourceValue.isEmpty()) {
-                    // Create output for source node's value
+                // Check if the source node is an event node
+                if (sourceNode->nodeType() == "Event") {
+                    // For event nodes, create an output that references event data
                     QString outputId = generateOutputId(context);
                     QJsonObject output;
-                    output["type"] = "literal";
-                    output["value"] = sourceValue;
+                    output["type"] = "eventData";
                     output["sourceNodeId"] = sourceNode->getId();
+                    output["sourcePortIndex"] = edge->sourcePortIndex();
                     context.outputs[outputId] = output;
                     
                     // Reference this output in params
                     QJsonObject param;
                     param["output"] = outputId;
                     params.append(param);
+                } else {
+                    // For regular nodes, use the static value
+                    QString sourceValue = sourceNode->value();
+                    
+                    if (!sourceValue.isEmpty()) {
+                        // Create output for source node's value
+                        QString outputId = generateOutputId(context);
+                        QJsonObject output;
+                        output["type"] = "literal";
+                        output["value"] = sourceValue;
+                        output["sourceNodeId"] = sourceNode->getId();
+                        context.outputs[outputId] = output;
+                        
+                        // Reference this output in params
+                        QJsonObject param;
+                        param["output"] = outputId;
+                        params.append(param);
+                    }
                 }
             }
         }

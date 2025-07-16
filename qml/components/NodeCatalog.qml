@@ -60,6 +60,69 @@ QtObject {
                     "label": "Done"
                 }
             ]
+        },
+        "onChange": {
+            "id": "onChange",
+            "name": "On Change",
+            "type": "Event",
+            "sources": [
+                {
+                    "id": "done",
+                    "type": "Flow",
+                    "label": "Done"
+                },
+                {
+                    "id": "value",
+                    "type": "String",
+                    "label": "Value"
+                }
+            ]
+        },
+        "onBlur": {
+            "id": "onBlur",
+            "name": "On Blur",
+            "type": "Event",
+            "sources": [
+                {
+                    "id": "done",
+                    "type": "Flow",
+                    "label": "Done"
+                },
+                {
+                    "id": "value",
+                    "type": "String",
+                    "label": "Value"
+                }
+            ]
+        },
+        "onFocus": {
+            "id": "onFocus",
+            "name": "On Focus",
+            "type": "Event",
+            "sources": [
+                {
+                    "id": "done",
+                    "type": "Flow",
+                    "label": "Done"
+                },
+                {
+                    "id": "value",
+                    "type": "String",
+                    "label": "Value"
+                }
+            ]
+        },
+        "eventData": {
+            "id": "eventData",
+            "name": "Event Data",
+            "type": "Param",
+            "sources": [
+                {
+                    "id": "value",
+                    "type": "String",
+                    "label": "Value"
+                }
+            ]
         }
     }
 

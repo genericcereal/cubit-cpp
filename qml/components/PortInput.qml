@@ -22,7 +22,30 @@ Item {
     
     width: inputWidth
     height: inputHeight
-    visible: portType !== "Flow" && !hasIncomingEdge
+    
+    // Explicitly bind visibility with logging
+    visible: {
+        var shouldBeVisible = portType !== "Flow" && !hasIncomingEdge
+        console.log("PortInput visibility calculation:", 
+                   "portType:", portType,
+                   "hasIncomingEdge:", hasIncomingEdge,
+                   "=> should be visible:", shouldBeVisible)
+        return shouldBeVisible
+    }
+    
+    onVisibleChanged: {
+        console.log("PortInput visibility changed to:", visible,
+                   "portType:", portType,
+                   "hasIncomingEdge:", hasIncomingEdge,
+                   "parent.visible:", parent ? parent.visible : "no parent")
+    }
+    
+    onHasIncomingEdgeChanged: {
+        console.log("PortInput hasIncomingEdge property changed to:", hasIncomingEdge,
+                   "portType:", portType,
+                   "portIndex:", portIndex,
+                   "=> visible should be:", portType !== "Flow" && !hasIncomingEdge)
+    }
     
     // Function to handle clicks from parent
     function handleClick() {
@@ -96,7 +119,6 @@ Item {
         }
         
         onActiveFocusChanged: {
-            console.log("TextField activeFocus changed to:", activeFocus, "for port:", root.portIndex)
         }
     }
     

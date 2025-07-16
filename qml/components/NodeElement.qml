@@ -72,12 +72,19 @@ Item {
         target: elementModel
         function onRowsInserted() {
             root.modelUpdateCount++
+            console.log("NodeElement: rows inserted, modelUpdateCount =", root.modelUpdateCount)
         }
         function onRowsRemoved() {
             root.modelUpdateCount++
+            console.log("NodeElement: rows removed, modelUpdateCount =", root.modelUpdateCount)
         }
         function onDataChanged() {
             root.modelUpdateCount++
+            console.log("NodeElement: data changed, modelUpdateCount =", root.modelUpdateCount)
+        }
+        function onElementChanged() {
+            root.modelUpdateCount++
+            console.log("NodeElement: element changed, modelUpdateCount =", root.modelUpdateCount)
         }
     }
     
@@ -279,8 +286,6 @@ Item {
                     var dy = Math.abs(mouse.y - dragStartPoint.y)
                     if (!isDragging && (dx > 3 || dy > 3)) {
                         isDragging = true
-                        console.log("Node drag started for:", root.element ? root.element.nodeTitle : "unknown node", 
-                                   "ID:", root.element ? root.element.elementId : "unknown")
                         // Notify canvas that node dragging has started
                         if (root.canvas && root.canvas.canvasType === "script") {
                             root.canvas.isNodeDragging = true
@@ -367,7 +372,6 @@ Item {
                     var canvasPos = mapToItem(root.canvas, 0, 0)
                     root.canvas.hoveredElement = root.element
                     root.canvas.hoveredPoint = canvasPos
-                    console.log("Started hovering over node:", root.element ? root.element.nodeTitle : "null")
                 } else if (root.canvas.hoveredElement === root.element) {
                     root.canvas.hoveredElement = null
                 }
@@ -459,20 +463,45 @@ Item {
                         
                         // Check if this target port has an incoming edge
                         property bool hasIncomingEdge: {
-                            if (!hasTarget || !root.elementModel || !root.element) return false
+                            if (!hasTarget || !root.elementModel || !root.element) {
+                                console.log("hasIncomingEdge: early return - hasTarget:", hasTarget,
+                                           "elementModel:", !!root.elementModel,
+                                           "element:", !!root.element)
+                                return false
+                            }
                             
                             var dummy = root.modelUpdateCount
                             var edges = root.elementModel.getAllElements()
+                            console.log("Checking for incoming edges to node", root.element.nodeTitle,
+                                       "port", targetPortIndex,
+                                       "total edges in model:", edges.length)
+                            
+                            var incomingFound = false
                             for (var i = 0; i < edges.length; i++) {
                                 var edge = edges[i]
                                 if (edge && edge.objectName === "Edge") {
+                                    console.log("  Edge from", edge.sourceNodeId, "port", edge.sourcePortIndex,
+                                               "to", edge.targetNodeId, "port", edge.targetPortIndex)
                                     if (edge.targetNodeId === root.element.elementId && 
                                         edge.targetPortIndex === targetPortIndex) {
-                                        return true
+                                        console.log("  -> MATCH! Found incoming edge to port", targetPortIndex, 
+                                                   "of node", root.element.nodeTitle,
+                                                   "from", edge.sourceNodeId)
+                                        incomingFound = true
                                     }
                                 }
                             }
-                            return false
+                            if (!incomingFound && hasTarget) {
+                                console.log("No incoming edge found for port", targetPortIndex, 
+                                           "of node", root.element.nodeTitle)
+                            }
+                            return incomingFound
+                        }
+                        
+                        onHasIncomingEdgeChanged: {
+                            console.log("Delegate hasIncomingEdge changed to:", hasIncomingEdge,
+                                       "for port", targetPortIndex,
+                                       "of node", root.element ? root.element.nodeTitle : "unknown")
                         }
                         
                         // Check if handle is hovered
@@ -546,26 +575,36 @@ Item {
                             }
                         }
                         
-                        // Port input using PortInput component
-                        PortInput {
-                            id: targetInput
-                            visible: hasTarget && targetType !== "Flow" && !hasIncomingEdge
+                        // Port input using Loader to ensure proper re-creation
+                        Loader {
+                            id: targetInputLoader
+                            visible: hasTarget && targetType !== "Flow" && !parent.hasIncomingEdge
                             anchors.left: targetHandle.right
                             anchors.leftMargin: 5
                             anchors.verticalCenter: parent.verticalCenter
                             
-                            portType: targetType
-                            portIndex: targetPortIndex
-                            hasIncomingEdge: hasIncomingEdge
-                            isHovered: comboBoxHovered
-                            canvas: root.canvas
-                            value: nodeElement ? nodeElement.value : ""
-                            
-                            onPortValueChanged: function(newValue) {
-                                console.log("Target port", targetPortIndex, "value changed to:", newValue)
-                                // Update the node's value property
-                                if (nodeElement) {
-                                    nodeElement.value = String(newValue)
+                            sourceComponent: PortInput {
+                                portType: targetType
+                                portIndex: targetPortIndex
+                                hasIncomingEdge: parent.parent.hasIncomingEdge
+                                isHovered: comboBoxHovered
+                                canvas: root.canvas
+                                value: nodeElement ? nodeElement.value : ""
+                                
+                                Component.onCompleted: {
+                                    console.log("PortInput created via Loader for node", root.element ? root.element.nodeTitle : "unknown",
+                                               "port", targetPortIndex,
+                                               "hasIncomingEdge:", hasIncomingEdge,
+                                               "parent.parent.hasIncomingEdge:", parent.parent.hasIncomingEdge,
+                                               "visible:", visible,
+                                               "loader.visible:", parent.visible)
+                                }
+                                
+                                onPortValueChanged: function(newValue) {
+                                    // Update the node's value property
+                                    if (nodeElement) {
+                                        nodeElement.value = String(newValue)
+                                    }
                                 }
                             }
                         }

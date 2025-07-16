@@ -164,6 +164,17 @@ Item {
                 if (element && (element.elementType === "Text" || element.elementType === "TextComponentVariant" || 
                     element.elementType === "WebTextInput" ||
                     (element.elementType === "FrameComponentInstance" && element.hasOwnProperty("content")))) {
+                    
+                    // Only enable editing for WebTextInput when in prototype mode
+                    if (element.elementType === "WebTextInput") {
+                        var prototypeController = Application.activeCanvas ? Application.activeCanvas.prototypeController : null
+                        if (!prototypeController || !prototypeController.isPrototyping) {
+                            ConsoleMessageRepository.addOutput("WebTextInput editing disabled outside of prototype mode")
+                            mouse.accepted = true
+                            return
+                        }
+                    }
+                    
                     ConsoleMessageRepository.addOutput("Text-based element directly selected - triggering edit mode")
                     element.isEditing = true
                     mouse.accepted = true
@@ -840,8 +851,8 @@ Item {
             if (!element || element.elementType !== "Frame") return false
             if (root.dragging) return false
             // Hide when prototyping is active
-            var viewportOverlay = root.parent
-            if (viewportOverlay && viewportOverlay.prototypeController && viewportOverlay.prototypeController.isPrototyping) {
+            var prototypeController = Application.activeCanvas ? Application.activeCanvas.prototypeController : null
+            if (prototypeController && prototypeController.isPrototyping) {
                 return false
             }
             // Hide if platform is undefined/empty
@@ -912,28 +923,7 @@ Item {
             // 2) Start prototyping through the controller
             prototypeController.startPrototyping(currentCanvasCenter, designCanvas.zoom)
             
-            // 3) Position the viewport so the PrototypeViewableArea top aligns with frame top
-            // Wait for frames to be positioned, then get the selected frame's new position
-            if (prototypeController.selectedFrameX >= 0) {
-                // The selected frame is now positioned at (selectedFrameX, -350) - top edge at y=-350
-                // The PrototypeViewableArea has a fixed top position
-                
-                // Calculate where the viewable area's top edge will be in viewport coordinates
-                // Using fixed position calculation from PrototypeViewableArea
-                var dropdownHeight = 50  // 30px dropdown + margins
-                var viewableAreaTopInViewport = (viewportOverlay.flickable.height - 450) / 2 + dropdownHeight
-                
-                // We want the frame top (-350) to appear at viewableAreaTopInViewport
-                // So we need to position the canvas such that y=-350 maps to that viewport position
-                var targetCanvasY = -350 - (viewableAreaTopInViewport / designCanvas.zoom) + (viewportOverlay.flickable.height / 2 / designCanvas.zoom)
-                
-                var targetPoint = Qt.point(
-                    prototypeController.selectedFrameX,
-                    targetCanvasY
-                )
-                
-                designCanvas.moveToPoint(targetPoint, false)
-            }
+            // The PrototypeController will handle canvas positioning when it sets the activeOuterFrame
         }
     }
     

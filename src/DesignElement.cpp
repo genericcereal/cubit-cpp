@@ -36,7 +36,7 @@ Scripts* DesignElement::scripts() const {
     return m_scripts.get();
 }
 
-void DesignElement::executeScriptEvent(const QString& eventName) {
+void DesignElement::executeScriptEvent(const QString& eventName, const QVariantMap& eventData) {
     
     if (!m_scripts) {
         qWarning() << "DesignElement: No scripts available";
@@ -61,7 +61,7 @@ void DesignElement::executeScriptEvent(const QString& eventName) {
         }
     }
     
-    executor.executeEvent(eventName);
+    executor.executeEvent(eventName, eventData);
 }
 
 void DesignElement::setLeft(qreal value) {

@@ -62,12 +62,15 @@ void ScriptExecutor::setupJSContext()
     }
 }
 
-void ScriptExecutor::executeEvent(const QString& eventName)
+void ScriptExecutor::executeEvent(const QString& eventName, const QVariantMap& eventData)
 {
     if (!m_scripts) {
         qWarning() << "ScriptExecutor: No scripts object set";
         return;
     }
+    
+    // Store the event data for use in scripts
+    m_currentEventData = eventData;
     
     // Check if scripts are compiled
     if (!m_scripts->isCompiled()) {
@@ -102,14 +105,14 @@ void ScriptExecutor::executeEvent(const QString& eventName)
     // Store the current event name for use in evaluateFunction
     m_currentEventName = normalizedEventName;
     
-    QJsonObject eventData = m_compiledScript[normalizedEventName].toObject();
-    if (!eventData.contains("next")) {
+    QJsonObject compiledEventData = m_compiledScript[normalizedEventName].toObject();
+    if (!compiledEventData.contains("next")) {
         return;
     }
     
     // Execute the chain of invokes
-    QJsonArray nextInvokes = eventData["next"].toArray();
-    executeInvokeChain(eventData, nextInvokes);
+    QJsonArray nextInvokes = compiledEventData["next"].toArray();
+    executeInvokeChain(compiledEventData, nextInvokes);
 }
 
 void ScriptExecutor::executeInvokeChain(const QJsonObject& eventData, const QJsonArray& invokeIds)
@@ -165,6 +168,15 @@ void ScriptExecutor::executeInvoke(const QJsonObject& eventData, const QString& 
 
 QJSValue ScriptExecutor::evaluateFunction(const QString& functionCode, const QJsonArray& params)
 {
+    // Make event data available as a global variable in the script
+    if (!m_currentEventData.isEmpty()) {
+        QJSValue eventDataObj = m_jsEngine.newObject();
+        for (auto it = m_currentEventData.begin(); it != m_currentEventData.end(); ++it) {
+            eventDataObj.setProperty(it.key(), m_jsEngine.toScriptValue(it.value()));
+        }
+        m_jsEngine.globalObject().setProperty("eventData", eventDataObj);
+    }
+    
     // First, we need to resolve any output references in the parameters
     QJsonArray resolvedParams;
     
@@ -179,11 +191,31 @@ QJSValue ScriptExecutor::evaluateFunction(const QString& functionCode, const QJs
             
             if (outputs.contains(outputId)) {
                 QJsonObject outputDef = outputs[outputId].toObject();
-                // For now, just use the value if it exists
-                if (outputDef.contains("value")) {
+                QString outputType = outputDef["type"].toString();
+                
+                if (outputType == "eventData") {
+                    // For event data outputs, get the value from the current event data
+                    int sourcePortIndex = outputDef["sourcePortIndex"].toInt();
+                    
+                    // Map port indices to event data keys
+                    // For WebTextInput events: port 0 = "done" (Flow), port 1 = "value" (String)
+                    QString eventDataKey = "value"; // Default to "value"
+                    if (sourcePortIndex == 1) {
+                        eventDataKey = "value";
+                    }
+                    
+                    // Get the value from the current event data and convert to JSON-compatible type
+                    if (m_currentEventData.contains(eventDataKey)) {
+                        QVariant variant = m_currentEventData[eventDataKey];
+                        resolvedParam["value"] = QJsonValue::fromVariant(variant);
+                    } else {
+                        resolvedParam["value"] = "";
+                    }
+                } else if (outputDef.contains("value")) {
+                    // For literal outputs, use the stored value
                     resolvedParam["value"] = outputDef["value"];
                 } else {
-                    // TODO: Handle computed outputs
+                    // TODO: Handle other computed outputs
                     resolvedParam["value"] = "";
                 }
             }
