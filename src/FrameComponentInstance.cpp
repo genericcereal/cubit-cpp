@@ -772,9 +772,9 @@ void FrameComponentInstance::setHeightType(SizeType type)
     Frame::setHeightType(type);
 }
 
-void FrameComponentInstance::executeScriptEvent(const QString& eventName)
+void FrameComponentInstance::executeScriptEvent(const QString& eventName, const QVariantMap& eventData)
 {
     // ComponentInstances should execute their own scripts, not their source variant's scripts
     // Call the parent class implementation directly
-    Frame::executeScriptEvent(eventName);
+    Frame::executeScriptEvent(eventName, eventData);
 }

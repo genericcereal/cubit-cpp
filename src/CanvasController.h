@@ -111,6 +111,9 @@ public slots:
     Q_INVOKABLE void selectAll();
     Q_INVOKABLE void deleteSelectedElements();
     
+    // Access to HitTestService
+    HitTestService* hitTestService() const { return m_hitTestService.get(); }
+    
 signals:
     void modeChanged();
     void canvasTypeChanged();

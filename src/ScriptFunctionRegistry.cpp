@@ -41,6 +41,9 @@ void ScriptFunctionRegistry::registerDefaultFunctions()
     // Variable
     registerFunction("variable", &ScriptFunctionRegistry::buildVariableFunction);
     
+    // Event Data
+    registerFunction("eventdata", &ScriptFunctionRegistry::buildEventDataFunction);
+    
     // Math operations (future)
     registerFunction("add", &ScriptFunctionRegistry::buildMathFunction);
     registerFunction("subtract", &ScriptFunctionRegistry::buildMathFunction);
@@ -117,5 +120,18 @@ QString ScriptFunctionRegistry::buildConditionFunction(Node* node)
     return "(params) => { "
            "const condition = params[0] ? params[0].value : false; "
            "return condition ? true : false; "
+           "}";
+}
+
+QString ScriptFunctionRegistry::buildEventDataFunction(Node* node)
+{
+    Q_UNUSED(node);
+    // Return the value from the global eventData object
+    return "(params) => { "
+           "if (typeof eventData !== 'undefined' && eventData.value !== undefined) { "
+           "return eventData.value; "
+           "} else { "
+           "return ''; "
+           "} "
            "}";
 }

@@ -156,6 +156,9 @@ void Project::initialize() {
     // Create the prototype controller
     m_prototypeController = std::make_unique<PrototypeController>(*m_elementModel, *m_selectionManager, this);
     
+    // Set the canvas controller on the prototype controller
+    m_prototypeController->setCanvasController(m_controller.get());
+    
     // Connect prototype controller's isPrototyping to design canvas disable flags
     if (DesignCanvas* designCanvas = qobject_cast<DesignCanvas*>(m_controller.get())) {
         connect(m_prototypeController.get(), &PrototypeController::isPrototypingChanged,

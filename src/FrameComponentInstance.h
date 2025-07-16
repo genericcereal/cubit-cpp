@@ -38,7 +38,7 @@ public:
     virtual bool isVisual() const override { return true; }
     
     // Override to execute scripts (now executes instance's own scripts)
-    Q_INVOKABLE virtual void executeScriptEvent(const QString& eventName) override;
+    Q_INVOKABLE virtual void executeScriptEvent(const QString& eventName, const QVariantMap& eventData = QVariantMap()) override;
     
     // Override Frame property setters to track modifications
     void setFill(const QColor &color);

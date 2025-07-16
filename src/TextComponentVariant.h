@@ -38,7 +38,10 @@ public:
     bool isComponentVariant() const override { return true; }
     
     // Override to prevent script execution for variants
-    void executeScriptEvent(const QString& eventName) override { Q_UNUSED(eventName); }
+    void executeScriptEvent(const QString& eventName, const QVariantMap& eventData = QVariantMap()) override { 
+        Q_UNUSED(eventName); 
+        Q_UNUSED(eventData); 
+    }
 
 signals:
     void instancesAcceptChildrenChanged();

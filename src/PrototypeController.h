@@ -8,6 +8,8 @@
 class ElementModel;
 class SelectionManager;
 class CanvasElement;
+class HitTestService;
+class CanvasController;
 
 // Structure to store constraint values
 struct ConstraintValues {
@@ -27,6 +29,7 @@ struct PrototypeSnapshot {
     qreal canvasZoom = 1.0;
     QHash<QString, QRectF> elementPositions; // elementId -> QRectF(x, y, width, height)
     QHash<QString, ConstraintValues> elementConstraints; // elementId -> constraint values
+    QHash<QString, QString> webTextInputValues; // elementId -> original value
 };
 
 class PrototypeController : public QObject {
@@ -41,12 +44,17 @@ class PrototypeController : public QObject {
     Q_PROPERTY(qreal selectedFrameX READ selectedFrameX NOTIFY selectedFramePositionChanged)
     Q_PROPERTY(qreal selectedFrameHeight READ selectedFrameHeight NOTIFY selectedFramePositionChanged)
     Q_PROPERTY(QString activeOuterFrame READ activeOuterFrame WRITE setActiveOuterFrame NOTIFY activeOuterFrameChanged)
+    Q_PROPERTY(QString hoveredElement READ hoveredElement NOTIFY hoveredElementChanged)
+    Q_PROPERTY(QString activeElement READ activeElement NOTIFY activeElementChanged)
     
 public:
     explicit PrototypeController(ElementModel& model,
                                 SelectionManager& sel,
                                 QObject *parent = nullptr);
     ~PrototypeController() = default;
+    
+    // Set the canvas controller (must be called after construction)
+    void setCanvasController(CanvasController* controller) { m_canvasController = controller; }
     
     // Prototyping state
     bool isPrototyping() const { return m_isPrototyping; }
@@ -87,6 +95,21 @@ public:
     QString activeOuterFrame() const { return m_activeOuterFrame; }
     void setActiveOuterFrame(const QString& frameId);
     
+    // Hovered element property
+    QString hoveredElement() const { return m_hoveredElement; }
+    
+    // Active element property
+    QString activeElement() const { return m_activeElement; }
+    
+    // Method to update hovered element (to be called from QML)
+    Q_INVOKABLE void updateHoveredElement(const QPointF& canvasPoint);
+    
+    // Method to handle clicks in prototype mode
+    Q_INVOKABLE void handlePrototypeClick(const QPointF& canvasPoint);
+    
+    // Method to clear any active WebTextInput
+    Q_INVOKABLE void clearActiveInput();
+    
 private:
     void setDeviceFrames(bool isModeChange = false, qreal oldViewableHeight = 0.0);
     void updateChildLayouts(CanvasElement* parent);
@@ -101,11 +124,14 @@ signals:
     void animatedBoundsChanged();
     void selectedFramePositionChanged();
     void activeOuterFrameChanged();
+    void hoveredElementChanged();
+    void activeElementChanged();
     void requestCanvasMove(const QPointF& canvasPoint, bool animated);
     
 private:
     ElementModel& m_elementModel;
     SelectionManager& m_selectionManager;
+    CanvasController* m_canvasController = nullptr;
     
     bool m_isPrototyping = false;
     QRectF m_viewableArea;
@@ -125,6 +151,12 @@ private:
     // Active outer frame
     QString m_activeOuterFrame;
     bool m_isInitializingPrototype = false;
+    
+    // Hovered element
+    QString m_hoveredElement;
+    
+    // Currently active element (e.g., WebTextInput being edited)
+    QString m_activeElement;
     
     // Default viewable area dimensions for different platforms
     static constexpr qreal IOS_WIDTH = 200.0;

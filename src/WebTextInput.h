@@ -10,8 +10,15 @@ class WebTextInput : public DesignElement {
     Q_PROPERTY(qreal borderWidth READ borderWidth WRITE setBorderWidth NOTIFY borderWidthChanged)
     Q_PROPERTY(qreal borderRadius READ borderRadius WRITE setBorderRadius NOTIFY borderRadiusChanged)
     Q_PROPERTY(bool isEditing READ isEditing WRITE setIsEditing NOTIFY isEditingChanged)
+    Q_PROPERTY(PositionType position READ position WRITE setPosition NOTIFY positionChanged)
     
 public:
+    enum PositionType {
+        Relative,
+        Absolute,
+        Fixed
+    };
+    Q_ENUM(PositionType)
     explicit WebTextInput(const QString &id, QObject *parent = nullptr);
     
     QString placeholder() const { return m_placeholder; }
@@ -20,6 +27,7 @@ public:
     qreal borderWidth() const { return m_borderWidth; }
     qreal borderRadius() const { return m_borderRadius; }
     bool isEditing() const { return m_isEditing; }
+    PositionType position() const { return m_position; }
     
     void setPlaceholder(const QString &placeholder);
     void setValue(const QString &value);
@@ -27,6 +35,10 @@ public:
     void setBorderWidth(qreal width);
     void setBorderRadius(qreal radius);
     void setIsEditing(bool editing);
+    void setPosition(PositionType position);
+    
+    // Override to pass current value to script events
+    Q_INVOKABLE void executeScriptEvent(const QString& eventName, const QVariantMap& eventData = QVariantMap()) override;
     
 signals:
     void placeholderChanged();
@@ -35,6 +47,7 @@ signals:
     void borderWidthChanged();
     void borderRadiusChanged();
     void isEditingChanged();
+    void positionChanged();
     
 private:
     QString m_placeholder = "Enter text...";
@@ -43,4 +56,5 @@ private:
     qreal m_borderWidth = 1.0;
     qreal m_borderRadius = 4.0;
     bool m_isEditing = false;
+    PositionType m_position = Relative;
 };

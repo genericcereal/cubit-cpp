@@ -116,6 +116,26 @@ Item {
             // Accept all mouse events to prevent them from reaching the canvas
             onPressed: (mouse) => {
                 mouse.accepted = true
+                
+                // First, always clear any active input when clicking anywhere
+                if (root.prototypeController) {
+                    root.prototypeController.clearActiveInput()
+                }
+                
+                // Then handle the click to potentially activate a new input
+                if (root.prototypeController && root.designCanvas && root.activeFrameElement) {
+                    // Calculate canvas coordinates same as click handler
+                    var frameRelativeX = mouse.x
+                    var frameRelativeY = mouse.y
+                    
+                    var canvasX = root.activeFrameElement.x + frameRelativeX
+                    var canvasY = root.activeFrameElement.y + frameRelativeY
+                    
+                    var canvasPoint = Qt.point(canvasX, canvasY)
+                    
+                    // Let the prototype controller handle the click
+                    root.prototypeController.handlePrototypeClick(canvasPoint)
+                }
             }
             
             onReleased: (mouse) => {
@@ -124,10 +144,32 @@ Item {
             
             onPositionChanged: (mouse) => {
                 mouse.accepted = true
+                
+                // Track hovered element
+                if (root.prototypeController && root.designCanvas && root.activeFrameElement) {
+                    // The mouse position is relative to the viewableArea rectangle
+                    // We need to convert this to canvas coordinates
+                    
+                    // First, get the mouse position relative to the active frame element
+                    // Since the viewableArea is positioned to align with the active frame,
+                    // we can calculate the position within the frame
+                    var frameRelativeX = mouse.x
+                    var frameRelativeY = mouse.y
+                    
+                    // The active frame element's canvas position gives us the offset
+                    var canvasX = root.activeFrameElement.x + frameRelativeX
+                    var canvasY = root.activeFrameElement.y + frameRelativeY
+                    
+                    var canvasPoint = Qt.point(canvasX, canvasY)
+                    
+                    // Update hovered element in prototype controller
+                    root.prototypeController.updateHoveredElement(canvasPoint)
+                }
             }
             
             onClicked: (mouse) => {
                 mouse.accepted = true
+                // Click handling is now done in onPressed to ensure focus clearing happens immediately
             }
             
             onDoubleClicked: (mouse) => {
@@ -142,8 +184,11 @@ Item {
                 if (root.activeFrameElement && root.prototypeController) {
                     // Freeze position if not already simulating
                     if (!root.isSimulatingScroll) {
-                        root.frozenX = root.x
-                        root.frozenY = root.y
+                        // Get the current computed x and y values
+                        var currentX = root.x
+                        var currentY = root.y
+                        root.frozenX = currentX
+                        root.frozenY = currentY
                         root.isSimulatingScroll = true
                     }
                     
@@ -157,7 +202,7 @@ Item {
                     
                     // Get frame and viewable area bounds in canvas coordinates
                     var frameHeight = root.activeFrameElement.height
-                    var viewableHeight = viewableArea.height
+                    var viewableHeight = root.height  // Use root.height instead of viewableArea.height
                     var zoom = root.designCanvas.zoomLevel || 1.0
                     
                     // Convert viewable area position to canvas coordinates

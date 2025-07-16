@@ -90,7 +90,7 @@ Rectangle {
                 prototypeController.stopPrototyping()
                 
                 // Then animate back to the canvas position if we have one
-                if (startPos && (startPos.x !== 0 || startPos.y !== 0)) {
+                if (startPos !== null && startPos !== undefined) {
                     // First restore the zoom level
                     root.canvasView.zoom = startZoom
                     

@@ -280,9 +280,9 @@ void TextComponentInstance::syncPropertiesFromVariant()
     }
 }
 
-void TextComponentInstance::executeScriptEvent(const QString& eventName)
+void TextComponentInstance::executeScriptEvent(const QString& eventName, const QVariantMap& eventData)
 {
     // ComponentInstances should execute their own scripts, not their source variant's scripts
     // Call the parent class implementation directly
-    Text::executeScriptEvent(eventName);
+    Text::executeScriptEvent(eventName, eventData);
 }

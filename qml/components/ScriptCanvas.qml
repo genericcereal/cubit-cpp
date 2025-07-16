@@ -213,11 +213,9 @@ BaseCanvas {
                         target: sourceNode
                         enabled: sourceNode !== null && model.elementType === "Edge"
                         function onXChanged() {
-                            console.log("Edge detected sourceNode X changed:", sourceNode.nodeTitle, "new x:", sourceNode.x)
                             updateEdgePositions()
                         }
                         function onYChanged() {
-                            console.log("Edge detected sourceNode Y changed:", sourceNode.nodeTitle, "new y:", sourceNode.y)
                             updateEdgePositions()
                         }
                         function onWidthChanged() {
@@ -232,11 +230,9 @@ BaseCanvas {
                         target: targetNode
                         enabled: targetNode !== null && model.elementType === "Edge"
                         function onXChanged() {
-                            console.log("Edge detected targetNode X changed:", targetNode.nodeTitle, "new x:", targetNode.x)
                             updateEdgePositions()
                         }
                         function onYChanged() {
-                            console.log("Edge detected targetNode Y changed:", targetNode.nodeTitle, "new y:", targetNode.y)
                             updateEdgePositions()
                         }
                         function onWidthChanged() {
@@ -269,7 +265,6 @@ BaseCanvas {
                             return
                         }
                         
-                        console.log("updateEdgePositions running for edge", edgeObj.elementId)
                         
                         var sourceX, sourceY
                         
@@ -288,7 +283,6 @@ BaseCanvas {
                                 // Handle is 20x20, anchored to right edge, vertically centered in 30px row
                                 sourceX = currentSourceNode.x + currentSourceNode.width - 10 - 10  // right edge - right margin - half handle width
                                 sourceY = currentSourceNode.y + 30 + 15 + 15  // header + top margin + half row height
-                                console.log("updateEdgePositions: Using flow port position for source")
                             } else {
                                 // Find the source port index in the sources column
                                 var sourceIndex = 0
@@ -327,7 +321,6 @@ BaseCanvas {
                             // Handle is 20x20, anchored to left edge, vertically centered in 30px row
                             var targetX = currentTargetNode.x + 10 + 10  // left edge + left margin + half handle width
                             var targetY = currentTargetNode.y + 30 + 15 + 15  // header + top margin + half row height
-                            console.log("updateEdgePositions: Using flow port position for target")
                         } else {
                             var targetIndex = 0
                             var foundTarget = false
@@ -353,10 +346,8 @@ BaseCanvas {
                         }
                         
                         // Update the edge points
-                        console.log("Setting edge points - source:", sourceX, sourceY, "target:", targetX, targetY)
                         edgeObj.sourcePoint = Qt.point(sourceX, sourceY)
                         edgeObj.targetPoint = Qt.point(targetX, targetY)
-                        console.log("Edge points updated - source:", edgeObj.sourcePoint, "target:", edgeObj.targetPoint)
                     }
                     
                     Component.onCompleted: {
@@ -686,8 +677,7 @@ BaseCanvas {
             root.dragSourceHandleType = ""
             root.dragSourcePortIndex = -1
             root.dragSourcePortType = "Flow"
-            console.log("Node selected from catalog - edge preview mode disabled")
-        }
+            }
         
         onDismissed: {
             // Clear catalog and drag state
@@ -735,7 +725,6 @@ BaseCanvas {
             if (element !== hoveredElement) {
                 hoveredElement = element
                 if (element && element.objectName === "Node") {
-                    console.log("Started hovering over node:", element.nodeTitle)
                 } else if (!element && hoveredElement) {
                     console.log("Stopped hovering")
                 }

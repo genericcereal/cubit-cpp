@@ -58,7 +58,8 @@ Item {
             // Check if this is the first scroll movement
             if (!root.hasScrollStarted && Math.abs(root.element.y - initialPos.y) > 5) {
                 root.hasScrollStarted = true
-                root.framePositionWhenScrollStarted = root.element.y
+                // Use the initial position, not the current position after movement
+                root.framePositionWhenScrollStarted = initialPos.y
             }
         }
     }

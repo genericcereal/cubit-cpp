@@ -4,6 +4,7 @@
 #include "CanvasElement.h"
 #include <memory>
 #include <QString>
+#include <QVariantMap>
 
 class Scripts;
 Q_DECLARE_OPAQUE_POINTER(Scripts*)
@@ -36,8 +37,8 @@ public:
     // Scripts management
     virtual Scripts* scripts() const;
     
-    // Execute a script event
-    Q_INVOKABLE virtual void executeScriptEvent(const QString& eventName);
+    // Execute a script event with optional data
+    Q_INVOKABLE virtual void executeScriptEvent(const QString& eventName, const QVariantMap& eventData = QVariantMap());
     
     // Anchor position getters
     qreal left() const { return m_left; }
