@@ -3,6 +3,8 @@
 #include "CanvasElement.h"
 #include "ElementModel.h"
 #include "Application.h"
+#include "platforms/web/WebTextInput.h"
+#include "Text.h"
 #include <QDebug>
 #include <QTimer>
 #include <limits>
@@ -70,7 +72,27 @@ void FlexLayoutEngine::layoutChildren(Frame* parentFrame, ElementModel* elementM
                         layoutChildren.append(child);
                     }
                 } else {
-                    qDebug() << "FlexLayoutEngine - Child" << child->getId() << "is not a Frame";
+                    // Check if child is a WebTextInput with position = Relative
+                    WebTextInput* webTextInput = qobject_cast<WebTextInput*>(child);
+                    if (webTextInput) {
+                        qDebug() << "FlexLayoutEngine - Child WebTextInput" << webTextInput->getId() 
+                                 << "position:" << webTextInput->position();
+                        if (webTextInput->position() == WebTextInput::Relative) {
+                            layoutChildren.append(child);
+                        }
+                    } else {
+                        // Check if child is a Text with position = Relative
+                        Text* textElement = qobject_cast<Text*>(child);
+                        if (textElement) {
+                            qDebug() << "FlexLayoutEngine - Child Text" << textElement->getId() 
+                                     << "position:" << textElement->position();
+                            if (textElement->position() == Text::Relative) {
+                                layoutChildren.append(child);
+                            }
+                        } else {
+                            qDebug() << "FlexLayoutEngine - Child" << child->getId() << "is not a Frame, WebTextInput, or Text";
+                        }
+                    }
                 }
             }
         }
@@ -452,6 +474,32 @@ void FlexLayoutEngine::connectChildGeometrySignals(Frame* parentFrame, ElementMo
                                                                }
                                                            });
                     m_childConnections[positionConnId] = posConn;
+                } else {
+                    // For WebTextInput children, also connect to position changes
+                    WebTextInput* webTextInput = qobject_cast<WebTextInput*>(child);
+                    if (webTextInput) {
+                        QString positionConnId = childId + "_position";
+                        QMetaObject::Connection posConn = connect(webTextInput, &WebTextInput::positionChanged,
+                                                               this, [this, parentFrame]() {
+                                                                   if (parentFrame->flex()) {
+                                                                       scheduleLayout(parentFrame);
+                                                                   }
+                                                               });
+                        m_childConnections[positionConnId] = posConn;
+                    } else {
+                        // For Text children, also connect to position changes
+                        Text* textElement = qobject_cast<Text*>(child);
+                        if (textElement) {
+                            QString positionConnId = childId + "_position";
+                            QMetaObject::Connection posConn = connect(textElement, &Text::positionChanged,
+                                                                   this, [this, parentFrame]() {
+                                                                       if (parentFrame->flex()) {
+                                                                           scheduleLayout(parentFrame);
+                                                                       }
+                                                                   });
+                            m_childConnections[positionConnId] = posConn;
+                        }
+                    }
                 }
                 
                 qDebug() << "FlexLayoutEngine - Connected geometry signal for child" << childId 

@@ -2,7 +2,27 @@
 #include "Project.h"
 #include "SelectionManager.h"
 #include "UniqueIdGenerator.h"
+#include "Element.h"
+#include "CanvasElement.h"
+#include "DesignElement.h"
+#include "Frame.h"
+#include "Text.h"
+#include "Variable.h"
+#include "ScriptElement.h"
+#include "Node.h"
+#include "Edge.h"
+#include "platforms/web/WebTextInput.h"
 #include <QDebug>
+#include <QFileDialog>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
+#include <QStandardPaths>
+#include <QDir>
+#include <QMessageBox>
+#include <QMetaObject>
+#include <QMetaProperty>
+#include <QCoreApplication>
 
 Application* Application::s_instance = nullptr;
 
@@ -149,4 +169,447 @@ QString Application::generateCanvasId() const {
 
 Panels* Application::panels() const {
     return m_panels.get();
+}
+
+bool Application::saveAs() {
+    // Get the documents directory as default location
+    QString documentsPath = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+    
+    // Show file dialog for .cbt files
+    QString fileName = QFileDialog::getSaveFileName(
+        nullptr,
+        tr("Save Project As"),
+        documentsPath + "/Untitled.cbt",
+        tr("Cubit Files (*.cbt)")
+    );
+    
+    if (fileName.isEmpty()) {
+        return false; // User cancelled
+    }
+    
+    // Ensure .cbt extension
+    if (!fileName.endsWith(".cbt", Qt::CaseInsensitive)) {
+        fileName += ".cbt";
+    }
+    
+    try {
+        // Create the main project JSON object
+        QJsonObject projectData;
+        projectData["version"] = "1.0";
+        projectData["createdWith"] = "Cubit";
+        
+        // Serialize all canvases
+        QJsonArray canvasesArray;
+        for (const auto& canvas : m_canvases) {
+            QJsonObject canvasObj = serializeCanvas(canvas.get());
+            canvasesArray.append(canvasObj);
+        }
+        projectData["canvases"] = canvasesArray;
+        
+        // Store active canvas ID
+        projectData["activeCanvasId"] = m_activeCanvasId;
+        
+        // Write to file
+        QJsonDocument doc(projectData);
+        QFile file(fileName);
+        if (!file.open(QIODevice::WriteOnly)) {
+            QMessageBox::critical(nullptr, tr("Save Error"), 
+                tr("Could not open file for writing: %1").arg(fileName));
+            return false;
+        }
+        
+        file.write(doc.toJson());
+        file.close();
+        
+        qDebug() << "Project saved successfully to:" << fileName;
+        return true;
+        
+    } catch (const std::exception& e) {
+        QMessageBox::critical(nullptr, tr("Save Error"), 
+            tr("Error saving project: %1").arg(e.what()));
+        return false;
+    }
+}
+
+QJsonObject Application::serializeCanvas(Project* canvas) const {
+    if (!canvas) return QJsonObject();
+    
+    QJsonObject canvasObj;
+    canvasObj["id"] = canvas->id();
+    canvasObj["name"] = canvas->name();
+    canvasObj["viewMode"] = canvas->viewMode();
+    canvasObj["platforms"] = QJsonArray::fromStringList(canvas->platforms());
+    
+    // Serialize all elements from the ElementModel
+    QJsonArray elementsArray;
+    if (canvas->elementModel()) {
+        QList<Element*> elements = canvas->elementModel()->getAllElements();
+        for (Element* element : elements) {
+            if (element) {
+                QJsonObject elementObj = serializeElement(element);
+                elementsArray.append(elementObj);
+            }
+        }
+    }
+    canvasObj["elements"] = elementsArray;
+    
+    // Serialize scripts/nodes if present
+    if (canvas->scripts()) {
+        QJsonObject scriptsObj;
+        // Note: We don't save the compiled output, just the node structure
+        // The Scripts class would need serialization methods for this
+        canvasObj["scripts"] = scriptsObj;
+    }
+    
+    return canvasObj;
+}
+
+QJsonObject Application::serializeElement(Element* element) const {
+    if (!element) return QJsonObject();
+    
+    QJsonObject elementObj;
+    
+    // Basic element properties
+    elementObj["elementId"] = element->getId();
+    elementObj["elementType"] = element->getTypeName();
+    elementObj["name"] = element->getName();
+    elementObj["parentId"] = element->getParentElementId();
+    
+    // Use Qt's meta-object system to serialize all properties
+    const QMetaObject* metaObj = element->metaObject();
+    for (int i = 0; i < metaObj->propertyCount(); ++i) {
+        QMetaProperty property = metaObj->property(i);
+        const char* name = property.name();
+        
+        // Skip properties we don't want to save
+        if (QString(name) == "objectName" || 
+            QString(name) == "selected" ||
+            QString(name) == "parentElement") {
+            continue;
+        }
+        
+        QVariant value = property.read(element);
+        
+        // Convert QVariant to JSON-compatible value
+        if (value.canConvert<QString>()) {
+            elementObj[name] = value.toString();
+        } else if (value.canConvert<int>()) {
+            elementObj[name] = value.toInt();
+        } else if (value.canConvert<double>()) {
+            elementObj[name] = value.toDouble();
+        } else if (value.canConvert<bool>()) {
+            elementObj[name] = value.toBool();
+        } else if (value.metaType().id() == QMetaType::QColor) {
+            QColor color = value.value<QColor>();
+            elementObj[name] = color.name(QColor::HexArgb);
+        } else if (value.metaType().id() == QMetaType::QFont) {
+            QFont font = value.value<QFont>();
+            QJsonObject fontObj;
+            fontObj["family"] = font.family();
+            fontObj["pointSize"] = font.pointSize();
+            fontObj["bold"] = font.bold();
+            fontObj["italic"] = font.italic();
+            fontObj["weight"] = font.weight();
+            elementObj[name] = fontObj;
+        } else if (value.canConvert<QStringList>()) {
+            QStringList list = value.toStringList();
+            elementObj[name] = QJsonArray::fromStringList(list);
+        }
+        // Add more type conversions as needed
+    }
+    
+    return elementObj;
+}
+
+bool Application::openFile() {
+    // Get the documents directory as default location
+    QString documentsPath = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+    
+    // Show file dialog for .cbt files
+    QString fileName = QFileDialog::getOpenFileName(
+        nullptr,
+        tr("Open Project"),
+        documentsPath,
+        tr("Cubit Files (*.cbt)")
+    );
+    
+    if (fileName.isEmpty()) {
+        return false; // User cancelled
+    }
+    
+    try {
+        // Read the file
+        QFile file(fileName);
+        if (!file.open(QIODevice::ReadOnly)) {
+            QMessageBox::critical(nullptr, tr("Open Error"), 
+                tr("Could not open file for reading: %1").arg(fileName));
+            return false;
+        }
+        
+        QByteArray data = file.readAll();
+        file.close();
+        
+        // Parse JSON
+        QJsonParseError parseError;
+        QJsonDocument doc = QJsonDocument::fromJson(data, &parseError);
+        if (parseError.error != QJsonParseError::NoError) {
+            QMessageBox::critical(nullptr, tr("Open Error"), 
+                tr("Invalid JSON format: %1").arg(parseError.errorString()));
+            return false;
+        }
+        
+        QJsonObject projectData = doc.object();
+        
+        // Validate file format
+        if (!projectData.contains("version") || !projectData.contains("canvases")) {
+            QMessageBox::critical(nullptr, tr("Open Error"), 
+                tr("Invalid Cubit project file format"));
+            return false;
+        }
+        
+        // Clear existing project and load new one
+        bool success = deserializeProject(projectData);
+        if (success) {
+            qDebug() << "Project loaded successfully from:" << fileName;
+        }
+        
+        return success;
+        
+    } catch (const std::exception& e) {
+        QMessageBox::critical(nullptr, tr("Open Error"), 
+            tr("Error opening project: %1").arg(e.what()));
+        return false;
+    }
+}
+
+bool Application::deserializeProject(const QJsonObject& projectData) {
+    try {
+        // Clear active canvas first to disconnect QML bindings safely
+        m_activeCanvasId.clear();
+        emit activeCanvasIdChanged();
+        emit activeCanvasChanged();
+        
+        // Process pending events to allow QML to handle the null canvas state
+        QCoreApplication::processEvents();
+        
+        // Clear existing canvases
+        m_canvases.clear();
+        
+        // Load canvases
+        QJsonArray canvasesArray = projectData["canvases"].toArray();
+        QString activeCanvasId = projectData["activeCanvasId"].toString();
+        
+        for (const QJsonValue& canvasValue : canvasesArray) {
+            QJsonObject canvasData = canvasValue.toObject();
+            Project* canvas = deserializeCanvas(canvasData);
+            if (canvas) {
+                m_canvases.push_back(std::unique_ptr<Project>(canvas));
+            }
+        }
+        
+        // Set active canvas
+        if (!activeCanvasId.isEmpty() && findCanvas(activeCanvasId)) {
+            setActiveCanvasId(activeCanvasId);
+        } else if (!m_canvases.empty()) {
+            setActiveCanvasId(m_canvases.front()->id());
+        }
+        
+        // Emit signals to update UI
+        emit canvasListChanged();
+        emit activeCanvasChanged();
+        
+        return true;
+        
+    } catch (const std::exception& e) {
+        qDebug() << "Error deserializing project:" << e.what();
+        return false;
+    }
+}
+
+Project* Application::deserializeCanvas(const QJsonObject& canvasData) {
+    try {
+        QString id = canvasData["id"].toString();
+        QString name = canvasData["name"].toString();
+        
+        if (id.isEmpty()) {
+            return nullptr;
+        }
+        
+        // Create new canvas
+        Project* canvas = new Project(id, name, this);
+        canvas->initialize();
+        
+        // Set canvas properties
+        if (canvasData.contains("viewMode")) {
+            canvas->setViewMode(canvasData["viewMode"].toString());
+        }
+        
+        if (canvasData.contains("platforms")) {
+            QJsonArray platformsArray = canvasData["platforms"].toArray();
+            QStringList platforms;
+            for (const QJsonValue& value : platformsArray) {
+                platforms.append(value.toString());
+            }
+            canvas->setPlatforms(platforms);
+        }
+        
+        // Load elements
+        if (canvasData.contains("elements")) {
+            QJsonArray elementsArray = canvasData["elements"].toArray();
+            ElementModel* model = canvas->elementModel();
+            
+            if (!model) {
+                delete canvas;
+                return nullptr;
+            }
+            
+            for (const QJsonValue& elementValue : elementsArray) {
+                QJsonObject elementData = elementValue.toObject();
+                Element* element = deserializeElement(elementData, model);
+                if (element) {
+                    model->addElement(element);
+                }
+            }
+        }
+        
+        return canvas;
+        
+    } catch (const std::exception& e) {
+        qDebug() << "Error deserializing canvas:" << e.what();
+        return nullptr;
+    }
+}
+
+Element* Application::deserializeElement(const QJsonObject& elementData, ElementModel* model) {
+    try {
+        QString elementId = elementData["elementId"].toString();
+        QString elementType = elementData["elementType"].toString();
+        QString name = elementData["name"].toString();
+        QString parentId = elementData["parentId"].toString();
+        
+        if (elementId.isEmpty() || elementType.isEmpty()) {
+            return nullptr;
+        }
+        
+        Element* element = nullptr;
+        
+        // Create element based on type
+        if (elementType == "Frame") {
+            element = new Frame(elementId, model);
+        } else if (elementType == "Text") {
+            element = new Text(elementId, model);
+        } else if (elementType == "WebTextInput") {
+            element = new WebTextInput(elementId, model);
+        } else if (elementType == "Variable") {
+            element = new Variable(elementId, model);
+        } else if (elementType == "Node") {
+            element = new Node(elementId, model);
+        } else if (elementType == "Edge") {
+            element = new Edge(elementId, model);
+        } else {
+            return nullptr;
+        }
+        
+        if (!element) {
+            return nullptr;
+        }
+        
+        // Set basic properties
+        element->setName(name);
+        element->setParentElementId(parentId);
+        
+        // Restore all other properties using Qt's meta-object system
+        const QMetaObject* metaObj = element->metaObject();
+        for (int i = 0; i < metaObj->propertyCount(); ++i) {
+            QMetaProperty property = metaObj->property(i);
+            const char* propName = property.name();
+            QString propNameStr(propName);
+            
+            // Skip properties we don't want to restore or already handled
+            if (propNameStr == "objectName" || 
+                propNameStr == "selected" ||
+                propNameStr == "elementId" ||
+                propNameStr == "elementType" ||
+                propNameStr == "name" ||
+                propNameStr == "parentId" ||
+                propNameStr == "parentElement") {
+                continue;
+            }
+            
+            if (elementData.contains(propName)) {
+                QJsonValue jsonValue = elementData[propName];
+                QVariant value;
+                
+                // Convert JSON value to appropriate QVariant type
+                if (jsonValue.isString()) {
+                    QString stringValue = jsonValue.toString();
+                    
+                    // Try to convert numeric strings to proper types
+                    bool isNumber;
+                    double numberValue = stringValue.toDouble(&isNumber);
+                    if (isNumber && (property.metaType().id() == QMetaType::Double || 
+                                    property.metaType().id() == QMetaType::Float ||
+                                    property.metaType().id() == QMetaType::Int)) {
+                        if (property.metaType().id() == QMetaType::Int) {
+                            value = QVariant(static_cast<int>(numberValue));
+                        } else {
+                            value = QVariant(numberValue);
+                        }
+                    } else if (stringValue == "true" || stringValue == "false") {
+                        // Convert boolean strings
+                        value = QVariant(stringValue == "true");
+                    } else {
+                        value = stringValue;
+                    }
+                } else if (jsonValue.isDouble()) {
+                    value = jsonValue.toDouble();
+                } else if (jsonValue.isBool()) {
+                    value = jsonValue.toBool();
+                } else if (jsonValue.isObject()) {
+                    // Handle complex types like fonts
+                    QJsonObject obj = jsonValue.toObject();
+                    if (obj.contains("family")) {
+                        // It's a font
+                        QFont font;
+                        font.setFamily(obj["family"].toString());
+                        font.setPointSize(obj["pointSize"].toInt());
+                        font.setBold(obj["bold"].toBool());
+                        font.setItalic(obj["italic"].toBool());
+                        font.setWeight(QFont::Weight(obj["weight"].toInt()));
+                        value = font;
+                    }
+                } else if (jsonValue.isArray()) {
+                    // Handle string lists
+                    QJsonArray array = jsonValue.toArray();
+                    QStringList list;
+                    for (const QJsonValue& val : array) {
+                        list.append(val.toString());
+                    }
+                    value = list;
+                }
+                
+                // Handle color strings (hex format)
+                if (value.metaType().id() == QMetaType::QString && propNameStr.contains("color", Qt::CaseInsensitive)) {
+                    QString colorStr = value.toString();
+                    if (colorStr.startsWith("#")) {
+                        QColor color(colorStr);
+                        if (color.isValid()) {
+                            value = color;
+                        }
+                    }
+                }
+                
+                // Set the property if the value is valid and writable
+                if (value.isValid() && property.isWritable()) {
+                    property.write(element, value);
+                }
+            }
+        }
+        
+        return element;
+        
+    } catch (const std::exception& e) {
+        qDebug() << "Error deserializing element:" << e.what();
+        return nullptr;
+    }
 }

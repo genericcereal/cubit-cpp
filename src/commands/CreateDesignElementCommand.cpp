@@ -1,12 +1,12 @@
 #include "CreateDesignElementCommand.h"
-#include "../Frame.h"
-#include "../Text.h"
-#include "../WebTextInput.h"
-#include "../ElementModel.h"
-#include "../SelectionManager.h"
-#include "../Application.h"
-#include "../Project.h"
-#include "../Component.h"
+#include "Frame.h"
+#include "Text.h"
+#include "WebTextInput.h"
+#include "ElementModel.h"
+#include "SelectionManager.h"
+#include "Application.h"
+#include "Project.h"
+#include "Component.h"
 #include <QDebug>
 
 CreateDesignElementCommand::CreateDesignElementCommand(ElementModel* model, SelectionManager* selectionManager,

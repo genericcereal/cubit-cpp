@@ -126,7 +126,7 @@ Item {
                                 return childElement.hasOwnProperty('content') ? "TextElement.qml" : "FrameElement.qml"
                             case "Text": return "TextElement.qml"
                             case "TextComponentVariant": return "TextElement.qml"
-                            case "WebTextInput": return "WebTextInputElement.qml"
+                            case "WebTextInput": return "platform/web/WebTextInputElement.qml"
                             default: return ""
                         }
                     }

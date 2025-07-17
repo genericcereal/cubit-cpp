@@ -3,10 +3,13 @@
 
 #include <QObject>
 #include <QQmlEngine>
+#include <QJsonObject>
 #include <memory>
 #include <vector>
 #include "Project.h"
 #include "Panels.h"
+
+class Element;
 
 class Application : public QObject {
     Q_OBJECT
@@ -39,6 +42,10 @@ public:
     // Property setters
     void setActiveCanvasId(const QString& canvasId);
 
+    // File operations
+    Q_INVOKABLE bool saveAs();
+    Q_INVOKABLE bool openFile();
+
 signals:
     void activeCanvasIdChanged();
     void activeCanvasChanged();
@@ -55,6 +62,15 @@ private:
     Project* findCanvas(const QString& canvasId);
     const Project* findCanvas(const QString& canvasId) const;
     QString generateCanvasId() const;
+    
+    // Serialization methods
+    QJsonObject serializeCanvas(Project* canvas) const;
+    QJsonObject serializeElement(Element* element) const;
+    
+    // Deserialization methods
+    bool deserializeProject(const QJsonObject& projectData);
+    Project* deserializeCanvas(const QJsonObject& canvasData);
+    Element* deserializeElement(const QJsonObject& elementData, ElementModel* model);
 };
 
 #endif // APPLICATION_H

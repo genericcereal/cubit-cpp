@@ -105,4 +105,7 @@ QtObject {
     
     // Animation
     readonly property int animationDuration: 150
+    
+    // Platform options
+    readonly property var platformOptions: ["web", "ios", "android"]
 }

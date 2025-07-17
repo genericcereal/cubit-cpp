@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Cubit
+import Cubit.UI
 import ".."
 
 ColumnLayout {
@@ -11,6 +12,17 @@ ColumnLayout {
     property var selectedElement
     
     property var variableProps: [
+        {
+            name: "Type",
+            type: "combobox",
+            getter: () => selectedElement && selectedElement.variableType ? selectedElement.variableType : "string",
+            setter: v => {
+                if (selectedElement && selectedElement.elementType === "Variable") {
+                    selectedElement.variableType = v
+                }
+            },
+            options: ["string", "number"]
+        },
         {
             name: "Is Array",
             type: "checkbox",
@@ -72,6 +84,13 @@ ColumnLayout {
         }
     }
     
+    Component {
+        id: comboboxComp
+        ComboBox {
+            Layout.fillWidth: true
+        }
+    }
+    
     // Variable-specific properties
     PropertyGroup {
         title: "Variable"
@@ -95,6 +114,7 @@ ColumnLayout {
                                 anchors.right: parent.right
                                 sourceComponent: modelData.type === "checkbox" ? checkboxComp
                                                : modelData.type === "text" ? textFieldComp
+                                               : modelData.type === "combobox" ? comboboxComp
                                                : null
                                 
                                 onLoaded: {
@@ -107,6 +127,24 @@ ColumnLayout {
                                         item.text = Qt.binding(modelData.getter)
                                         item.textChanged.connect(function() {
                                             modelData.setter(item.text)
+                                        })
+                                    } else if (modelData.type === "combobox") {
+                                        // Use model property if available, fallback to options
+                                        if (modelData.model) {
+                                            item.model = Qt.binding(modelData.model)
+                                        } else if (modelData.options) {
+                                            item.model = modelData.options
+                                        }
+                                        item.currentIndex = Qt.binding(function() {
+                                            var value = modelData.getter()
+                                            var model = modelData.model ? modelData.model() : modelData.options
+                                            var index = model.indexOf(value)
+                                            return index >= 0 ? index : 0
+                                        })
+                                        item.activated.connect(function(index) {
+                                            var model = modelData.model ? modelData.model() : modelData.options
+                                            var value = model[index]
+                                            modelData.setter(value)
                                         })
                                     }
                                 }

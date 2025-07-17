@@ -7,6 +7,7 @@
 #include "FrameComponentInstance.h"
 #include "TextComponentVariant.h"
 #include "TextComponentInstance.h"
+#include "Variable.h"
 #include "ElementModel.h"
 #include <QDebug>
 
@@ -150,8 +151,12 @@ bool ElementFilterProxy::shouldShowElementInMode(Element* element) const {
         return false;
     }
     
-    // Non-visual elements (except Components) are never shown
+    // Non-visual elements (except Components and Variables) are never shown
     if (!element->isVisual()) {
+        // Allow Variables to be shown even though they're non-visual
+        if (qobject_cast<Variable*>(element)) {
+            return true;
+        }
         return false;
     }
     

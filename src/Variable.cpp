@@ -16,6 +16,28 @@ void Variable::setValue(const QVariant &value)
     }
 }
 
+void Variable::setVariableType(const QString &type)
+{
+    if (type == "string" || type == "number") {
+        if (m_variableType != type) {
+            m_variableType = type;
+            emit variableTypeChanged();
+            emit elementChanged();
+        }
+    } else {
+        qWarning() << "Invalid variable type:" << type << ". Must be 'string' or 'number'.";
+    }
+}
+
+void Variable::setPlatform(const QString &platform)
+{
+    if (m_platform != platform) {
+        m_platform = platform;
+        emit platformChanged();
+        emit elementChanged();
+    }
+}
+
 void Variable::setIsArray(bool isArray)
 {
     if (m_isArray != isArray) {

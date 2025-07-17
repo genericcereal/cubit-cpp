@@ -1,5 +1,5 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
+import QtQuick
+import QtQuick.Controls
 import Cubit 1.0
 import Cubit.UI 1.0
 
@@ -13,6 +13,13 @@ Item {
     property var designCanvas: null
     property var flickable: null
     property var prototypeController: null
+    
+    // Explicit bindings for canvas properties we need
+    property real canvasZoom: designCanvas ? (designCanvas.zoom || designCanvas.zoomLevel || 1.0) : 1.0
+    property real canvasContentX: flickable ? (flickable.contentX || 0) : 0
+    property real canvasContentY: flickable ? (flickable.contentY || 0) : 0
+    property real canvasMinX: designCanvas ? (designCanvas.canvasMinX || 0) : 0
+    property real canvasMinY: designCanvas ? (designCanvas.canvasMinY || 0) : 0
     
     // Track if we're simulating scrolling
     property bool isSimulatingScroll: false
@@ -40,15 +47,12 @@ Item {
         
         // Calculate the frame's viewport position
         var frameX = activeFrameElement.x
-        var canvasMinX = designCanvas.canvasMinX || 0
-        var zoom = designCanvas.zoomLevel || 1.0
-        var contentX = flickable.contentX || 0
         
         // Convert frame canvas position to viewport position
-        var frameViewportX = (frameX - canvasMinX) * zoom - contentX
+        var frameViewportX = (frameX - canvasMinX) * canvasZoom - canvasContentX
         
         // Center the viewable area on the frame horizontally
-        return frameViewportX + (activeFrameElement.width * zoom - width) / 2
+        return frameViewportX + (activeFrameElement.width * canvasZoom - width) / 2
     }
     
     y: {
@@ -63,18 +67,16 @@ Item {
         
         // Calculate the frame's viewport position
         var frameY = activeFrameElement.y
-        var canvasMinY = designCanvas.canvasMinY || 0
-        var zoom = designCanvas.zoomLevel || 1.0
-        var contentY = flickable.contentY || 0
         
         // Convert frame canvas position to viewport position
-        var frameViewportY = (frameY - canvasMinY) * zoom - contentY
+        var frameViewportY = (frameY - canvasMinY) * canvasZoom - canvasContentY
         
         // Align the viewable area's top edge with the frame's top edge
         return frameViewportY
     }
     
     Component.onCompleted: {
+        console.log("PrototypeViewableArea created")
     }
     
     onVisibleChanged: {
@@ -203,10 +205,10 @@ Item {
                     // Get frame and viewable area bounds in canvas coordinates
                     var frameHeight = root.activeFrameElement.height
                     var viewableHeight = root.height  // Use root.height instead of viewableArea.height
-                    var zoom = root.designCanvas.zoomLevel || 1.0
+                    var zoom = root.canvasZoom
                     
                     // Convert viewable area position to canvas coordinates
-                    var viewableTopInCanvas = (root.frozenY + root.flickable.contentY) / zoom + (root.designCanvas.canvasMinY || 0)
+                    var viewableTopInCanvas = (root.frozenY + root.canvasContentY) / zoom + root.canvasMinY
                     var viewableBottomInCanvas = viewableTopInCanvas + viewableHeight / zoom
                     
                     // Apply constraints:
@@ -223,6 +225,21 @@ Item {
                     
                     // Update the frame's y position with constraints
                     root.activeFrameElement.y = newY
+                }
+            }
+            
+            onExited: {
+                // Reset hover when mouse leaves the viewable area
+                if (root.prototypeController) {
+                    root.prototypeController.updateHoveredElement(Qt.point(-1, -1))
+                }
+                
+                // Reset scroll simulation state when mouse leaves
+                if (root.isSimulatingScroll) {
+                    root.isSimulatingScroll = false
+                    root.frozenX = 0
+                    root.frozenY = 0
+                    console.log("PrototypeViewableArea: Reset scroll simulation on mouse exit")
                 }
             }
         }

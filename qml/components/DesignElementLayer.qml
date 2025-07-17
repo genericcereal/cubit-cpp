@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import Cubit 1.0
 import "."
+import "platform/web"
 
 Item {
     id: root

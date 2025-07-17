@@ -2,6 +2,7 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 2.15
 import Cubit 1.0
+import Cubit.UI 1.0
 import ".."
 
 Rectangle {
@@ -36,7 +37,7 @@ Rectangle {
                 Layout.preferredWidth: 100
                 Layout.preferredHeight: 30
                 
-                model: ["web", "ios", "android"]
+                model: Config.platformOptions
                 currentIndex: {
                     if (Application.activeCanvas && 
                         Application.activeCanvas.prototypeController) {

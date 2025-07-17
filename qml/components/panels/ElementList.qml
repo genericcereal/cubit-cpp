@@ -48,6 +48,16 @@ Item {
                     filterComponentsOut: true
                 }
                 
+                // Blue divider for drop indication
+                Rectangle {
+                    id: elementsDropIndicator
+                    width: parent.width
+                    height: 2
+                    color: "#2196F3"
+                    visible: false
+                    z: 1000
+                }
+                
                 ScrollView {
                     anchors.fill: parent
                     
@@ -62,6 +72,20 @@ Item {
                             height: visible ? 28 : 0
                             color: model.selected ? "#e3f2fd" : (elementsMouseArea.containsMouse ? "#f5f5f5" : "#ffffff")
                             antialiasing: true
+                            
+                            // Visual states for dragging
+                            states: [
+                                State {
+                                    name: "dragging"
+                                    // No visual changes - the drag ghost shows what's being dragged
+                                }
+                            ]
+                            
+                            // Drop properties for frame parenting
+                            property bool isDropTarget: false
+                            property bool isFrame: model.elementType === "Frame"
+                            border.width: isDropTarget && isFrame ? 2 : 0
+                            border.color: "#2196F3"
                             
                             // Calculate indent level and check if has children
                             property int indentLevel: {
@@ -196,10 +220,246 @@ Item {
                                 id: elementsMouseArea
                                 anchors.fill: parent
                                 hoverEnabled: true
+                                preventStealing: true
                                 
-                                onClicked: {
-                                    if (root.selectionManager) {
-                                        root.selectionManager.selectOnly(model.element)
+                                property bool isDragging: false
+                                property point dragStartPos
+                                property var dragItem: null
+                                
+                                onPressed: (mouse) => {
+                                    dragStartPos = Qt.point(mouse.x, mouse.y)
+                                    isDragging = false
+                                    mouse.accepted = true
+                                }
+                                
+                                onPositionChanged: (mouse) => {
+                                    if (pressed) {
+                                        if (!isDragging && Math.abs(mouse.y - dragStartPos.y) > 5) {
+                                            isDragging = true
+                                            elementsDelegateRect.state = "dragging"
+                                            
+                                            // Get the main window reference
+                                            var mainWindow = root.Window.window
+                                            
+                                            if (mainWindow && mainWindow.dragOverlay) {
+                                                // Set up the drag overlay
+                                                mainWindow.dragOverlay.draggedElementName = model.name || "Unnamed"
+                                                mainWindow.dragOverlay.draggedElementType = model.elementType
+                                                mainWindow.dragOverlay.draggedElement = model.element
+                                                mainWindow.dragOverlay.visible = true
+                                                
+                                                // Position the drag ghost at cursor
+                                                var globalPos = elementsMouseArea.mapToItem(mainWindow.contentItem, mouse.x, mouse.y)
+                                                mainWindow.dragOverlay.ghostPosition = globalPos
+                                            }
+                                        }
+                                        
+                                        if (isDragging) {
+                                            // Update drag overlay position
+                                            var mainWindow = root.Window.window
+                                            if (mainWindow && mainWindow.dragOverlay && mainWindow.dragOverlay.visible) {
+                                                var globalPos = elementsMouseArea.mapToItem(mainWindow.contentItem, mouse.x, mouse.y)
+                                                mainWindow.dragOverlay.ghostPosition = globalPos
+                                            }
+                                            
+                                            // Calculate drop position
+                                            var listPos = elementsListView.mapFromItem(elementsMouseArea, mouse.x, mouse.y)
+                                            var dropY = listPos.y
+                                            var targetIndex = -1
+                                            var indicatorY = 0
+                                            var dropTargetItem = null
+                                            
+                                            // Clear all drop targets
+                                            for (var j = 0; j < elementsListView.count; j++) {
+                                                var clearItem = elementsListView.itemAtIndex(j)
+                                                if (clearItem && clearItem !== elementsDelegateRect) {
+                                                    clearItem.isDropTarget = false
+                                                }
+                                            }
+                                            
+                                            // Find the target position or drop target
+                                            for (var i = 0; i < elementsListView.count; i++) {
+                                                var item = elementsListView.itemAtIndex(i)
+                                                if (item && item.visible && item !== elementsDelegateRect) {
+                                                    var itemPos = elementsListView.mapFromItem(item, 0, 0)
+                                                    // Check if hovering over a frame
+                                                    if (dropY >= itemPos.y && dropY <= itemPos.y + item.height && item.isFrame) {
+                                                        dropTargetItem = item
+                                                        item.isDropTarget = true
+                                                        elementsDropIndicator.visible = false
+                                                        break
+                                                    } else if (dropY < itemPos.y + 5) {
+                                                        targetIndex = i
+                                                        indicatorY = itemPos.y
+                                                        break
+                                                    } else if (dropY < itemPos.y + item.height) {
+                                                        targetIndex = i + 1
+                                                        indicatorY = itemPos.y + item.height
+                                                        break
+                                                    }
+                                                }
+                                            }
+                                            
+                                            if (!dropTargetItem && targetIndex >= 0) {
+                                                elementsDropIndicator.y = indicatorY
+                                                elementsDropIndicator.visible = true
+                                            } else if (!dropTargetItem) {
+                                                // Check if we're below the last element
+                                                var lastVisibleIndex = -1
+                                                var lastVisibleItemBottom = 0
+                                                
+                                                // Find the last visible element
+                                                for (var k = elementsListView.count - 1; k >= 0; k--) {
+                                                    var lastItem = elementsListView.itemAtIndex(k)
+                                                    if (lastItem && lastItem.visible && lastItem !== elementsDelegateRect) {
+                                                        lastVisibleIndex = k
+                                                        var lastItemPos = elementsListView.mapFromItem(lastItem, 0, 0)
+                                                        lastVisibleItemBottom = lastItemPos.y + lastItem.height
+                                                        break
+                                                    }
+                                                }
+                                                
+                                                // If we're below the last element, show indicator there
+                                                if (lastVisibleIndex >= 0 && dropY > lastVisibleItemBottom - 5) {
+                                                    elementsDropIndicator.y = lastVisibleItemBottom
+                                                    elementsDropIndicator.visible = true
+                                                } else {
+                                                    elementsDropIndicator.visible = false
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                onReleased: {
+                                    if (isDragging) {
+                                        elementsDropIndicator.visible = false
+                                        
+                                        // Reset visual state
+                                        elementsDelegateRect.state = ""
+                                        
+                                        // Hide drag overlay
+                                        var mainWindow = root.Window.window
+                                        if (mainWindow && mainWindow.dragOverlay) {
+                                            mainWindow.dragOverlay.visible = false
+                                            mainWindow.dragOverlay.draggedElement = null
+                                        }
+                                        
+                                        // Clear all drop targets
+                                        for (var j = 0; j < elementsListView.count; j++) {
+                                            var clearItem = elementsListView.itemAtIndex(j)
+                                            if (clearItem) {
+                                                clearItem.isDropTarget = false
+                                            }
+                                        }
+                                        
+                                        // Calculate final drop position based on mouse position
+                                        var listPos = elementsListView.mapFromItem(elementsMouseArea, mouseX, mouseY)
+                                        var dropY = listPos.y
+                                        var targetIndex = -1
+                                        var dropTargetFrame = null
+                                        var lastVisibleIndex = -1
+                                        var lastVisibleItemBottom = 0
+                                        
+                                        // First, find the last visible element
+                                        for (var j = elementsListView.count - 1; j >= 0; j--) {
+                                            var lastItem = elementsListView.itemAtIndex(j)
+                                            if (lastItem && lastItem.visible && lastItem !== elementsDelegateRect) {
+                                                lastVisibleIndex = j
+                                                var lastItemPos = elementsListView.mapFromItem(lastItem, 0, 0)
+                                                lastVisibleItemBottom = lastItemPos.y + lastItem.height
+                                                break
+                                            }
+                                        }
+                                        
+                                        for (var i = 0; i < elementsListView.count; i++) {
+                                            var item = elementsListView.itemAtIndex(i)
+                                            if (item && item.visible && item !== elementsDelegateRect) {
+                                                var itemPos = elementsListView.mapFromItem(item, 0, 0)
+                                                // Check if dropping onto a frame
+                                                if (dropY >= itemPos.y && dropY <= itemPos.y + item.height && item.isFrame) {
+                                                    // Get the frame element
+                                                    var frameElement = elementsFilteredModel.elementAt(i)
+                                                    if (frameElement && frameElement.elementType === "Frame") {
+                                                        dropTargetFrame = frameElement
+                                                        break
+                                                    }
+                                                } else if (dropY < itemPos.y + 5) {
+                                                    targetIndex = i
+                                                    break
+                                                } else if (dropY < itemPos.y + item.height) {
+                                                    targetIndex = i + 1
+                                                    break
+                                                }
+                                            }
+                                        }
+                                        
+                                        // Check if we're dropping below the last element
+                                        if (targetIndex < 0 && !dropTargetFrame && lastVisibleIndex >= 0 && dropY > lastVisibleItemBottom - 5) {
+                                            targetIndex = elementsFilteredModel.rowCount()
+                                        }
+                                        
+                                        if (model.element) {
+                                            var sourceElement = elementsFilteredModel.elementAt(model.index)
+                                            if (sourceElement) {
+                                                if (dropTargetFrame) {
+                                                    // Parent the element to the frame
+                                                    sourceElement.parentId = dropTargetFrame.elementId
+                                                } else if (targetIndex >= 0) {
+                                                    // Unparent the element if it was parented
+                                                    if (sourceElement.parentId) {
+                                                        sourceElement.parentId = ""
+                                                    }
+                                                    // Reorder the element
+                                                    var sourceTargetIndex = targetIndex
+                                                    if (targetIndex < elementsFilteredModel.rowCount()) {
+                                                        var targetElement = elementsFilteredModel.elementAt(targetIndex)
+                                                        if (targetElement) {
+                                                            // Find the target element's index in the source model
+                                                            for (var k = 0; k < root.elementModel.rowCount(); k++) {
+                                                                if (root.elementModel.elementAt(k) === targetElement) {
+                                                                    sourceTargetIndex = k
+                                                                    break
+                                                                }
+                                                            }
+                                                        } else {
+                                                            // If dropping at the end, use the source model's row count
+                                                            sourceTargetIndex = root.elementModel.rowCount()
+                                                        }
+                                                    }
+                                                    root.elementModel.reorderElement(sourceElement, sourceTargetIndex)
+                                                }
+                                            }
+                                        }
+                                        isDragging = false
+                                    } else {
+                                        // Regular click
+                                        if (root.selectionManager) {
+                                            root.selectionManager.selectOnly(model.element)
+                                        }
+                                    }
+                                }
+                                
+                                onCanceled: {
+                                    elementsDropIndicator.visible = false
+                                    isDragging = false
+                                    
+                                    // Reset visual state
+                                    elementsDelegateRect.state = ""
+                                    
+                                    // Hide drag overlay
+                                    var mainWindow = root.Window.window
+                                    if (mainWindow && mainWindow.dragOverlay) {
+                                        mainWindow.dragOverlay.visible = false
+                                        mainWindow.dragOverlay.draggedElement = null
+                                    }
+                                    
+                                    // Clear all drop targets
+                                    for (var j = 0; j < elementsListView.count; j++) {
+                                        var clearItem = elementsListView.itemAtIndex(j)
+                                        if (clearItem) {
+                                            clearItem.isDropTarget = false
+                                        }
                                     }
                                 }
                             }
