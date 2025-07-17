@@ -28,7 +28,7 @@ Item {
                     case "Frame": return "FrameElement.qml"
                     case "FrameComponentInstance": return "FrameElement.qml"
                     case "Text": return "TextElement.qml"
-                    case "WebTextInput": return "WebTextInputElement.qml"
+                    case "WebTextInput": return "platform/web/WebTextInputElement.qml"
                     default: return ""
                 }
             }

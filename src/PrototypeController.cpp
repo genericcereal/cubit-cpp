@@ -6,7 +6,7 @@
 #include "DesignElement.h"
 #include "CanvasController.h"
 #include "HitTestService.h"
-#include "WebTextInput.h"
+#include "platforms/web/WebTextInput.h"
 #include <algorithm>
 #include <limits>
 #include <QTimer>

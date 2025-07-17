@@ -41,7 +41,7 @@ function canShow(prop, el, editableProps) {
         return editableProps && editableProps.indexOf(prop) !== -1
     }
     
-    return isFrame(el) || isFrameVariant(el)
+    return isFrame(el) || isFrameVariant(el) || isVariable(el)
 }
 
 // Specific property visibility helpers
@@ -70,27 +70,27 @@ function canShowPlatform(el, editableProps, application) {
 }
 
 function canShowRole(el, editableProps) {
-    return canShow("role", el, editableProps) && el && el.platform && el.platform !== ""
+    return canShow("role", el, editableProps) && el && el.platform && el.platform !== "" && !isVariable(el)
 }
 
 function canShowFlex(el, editableProps) {
-    return canShow("flex", el, editableProps)
+    return canShow("flex", el, editableProps) && !isVariable(el)
 }
 
 function canShowOrientation(el, editableProps) {
-    return canShow("orientation", el, editableProps)
+    return canShow("orientation", el, editableProps) && !isVariable(el)
 }
 
 function canShowGap(el, editableProps) {
-    return canShow("gap", el, editableProps)
+    return canShow("gap", el, editableProps) && !isVariable(el)
 }
 
 function canShowJustify(el, editableProps) {
-    return canShow("justify", el, editableProps)
+    return canShow("justify", el, editableProps) && !isVariable(el)
 }
 
 function canShowAlign(el, editableProps) {
-    return canShow("align", el, editableProps)
+    return canShow("align", el, editableProps) && !isVariable(el)
 }
 
 // Element visibility checks

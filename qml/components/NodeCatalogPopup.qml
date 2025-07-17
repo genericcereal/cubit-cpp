@@ -116,13 +116,27 @@ Rectangle {
                 var allTypes = Object.keys(root.nodeCatalog.catalog)
                 var searchText = searchField.text
                 
+                // Filter out Event type nodes and specific nodes
+                var filteredTypes = allTypes.filter(function(type) {
+                    var nodeType = root.nodeCatalog.catalog[type]
+                    // Filter out Event type nodes
+                    if (nodeType.type === "Event") {
+                        return false
+                    }
+                    // Filter out specific nodes that shouldn't appear in popup
+                    if (type === "eventData" || type === "componentOnEditorLoadEvents") {
+                        return false
+                    }
+                    return true
+                })
+                
                 if (!searchText || searchText === "") {
-                    return allTypes
+                    return filteredTypes
                 }
                 
                 // Filter based on search text (case insensitive)
                 var searchLower = searchText.toLowerCase()
-                return allTypes.filter(function(type) {
+                return filteredTypes.filter(function(type) {
                     var nodeType = root.nodeCatalog.catalog[type]
                     return nodeType.name.toLowerCase().indexOf(searchLower) !== -1
                 })

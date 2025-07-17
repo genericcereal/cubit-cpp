@@ -19,7 +19,7 @@ PropertyGroup {
             name: "Position",
             type: "combobox",
             getter: () => {
-                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "Text")) {
+                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "Text" || selectedElement.elementType === "WebTextInput")) {
                     switch (selectedElement.position) {
                         case 0: return "Relative"
                         case 1: return "Absolute"
@@ -30,13 +30,13 @@ PropertyGroup {
                 return "Relative"
             },
             setter: v => {
-                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "Text")) {
+                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "Text" || selectedElement.elementType === "WebTextInput")) {
                     const index = ["Relative", "Absolute", "Fixed"].indexOf(v)
                     selectedElement.position = index >= 0 ? index : 0
                 }
             },
             model: () => ["Relative", "Absolute", "Fixed"],
-            visible: () => selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "Text")
+            visible: () => selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "Text" || selectedElement.elementType === "WebTextInput")
         },
         {
             name: "Left",

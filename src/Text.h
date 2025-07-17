@@ -32,6 +32,11 @@ public:
     void setIsEditing(bool editing);
     void setPosition(PositionType position);
     
+    // Override geometry setters to trigger parent layout
+    void setWidth(qreal w) override;
+    void setHeight(qreal h) override;
+    void setRect(const QRectF &rect) override;
+    
     Q_INVOKABLE void exitEditMode();
     
 signals:
@@ -46,5 +51,5 @@ private:
     QFont m_font;
     QColor m_color;
     bool m_isEditing = false;
-    PositionType m_position = Relative;
+    PositionType m_position = Absolute;
 };

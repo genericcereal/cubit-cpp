@@ -77,18 +77,18 @@ PropertyGroup {
             name: "Platform",
             type: "combobox",
             getter: () => {
-                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
+                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance" || selectedElement.elementType === "Variable")) {
                     return selectedElement.platform || "undefined"
                 }
                 return "undefined"
             },
             setter: v => {
-                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
+                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance" || selectedElement.elementType === "Variable")) {
                     selectedElement.platform = v === "undefined" ? "" : v
                 }
             },
             model: () => {
-                if (!Application.activeCanvas || !selectedElement || (selectedElement.elementType !== "Frame" && selectedElement.elementType !== "FrameComponentVariant" && selectedElement.elementType !== "FrameComponentInstance")) {
+                if (!Application.activeCanvas || !selectedElement || (selectedElement.elementType !== "Frame" && selectedElement.elementType !== "FrameComponentVariant" && selectedElement.elementType !== "FrameComponentInstance" && selectedElement.elementType !== "Variable")) {
                     return ["undefined"]
                 }
                 

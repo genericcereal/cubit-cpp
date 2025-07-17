@@ -8,16 +8,62 @@ import "components"
 import "components/viewport-overlay"
 import "components/color-picker"
 
-Window {
+ApplicationWindow {
     id: mainWindow
     visible: true
     width: 1280
     height: 720
     title: qsTr("Cubit")
     
+    property alias dragOverlay: dragOverlay
+    property bool isAuthenticated: false
+    
+    menuBar: MenuBar {
+        Menu {
+            title: qsTr("File")
+            MenuItem {
+                text: qsTr("Open...")
+                onTriggered: {
+                    Application.openFile()
+                }
+            }
+            MenuSeparator { }
+            MenuItem {
+                text: qsTr("Save As...")
+                onTriggered: {
+                    Application.saveAs()
+                }
+            }
+        }
+    }
+    
     Component.onCompleted: {
         // Request focus for keyboard shortcuts
         mainWindow.requestActivate()
+        
+        // Check authentication status and launch login if needed
+        mainWindow.isAuthenticated = OAuthManager.isAuthenticated()
+        if (!mainWindow.isAuthenticated) {
+            console.log("User not authenticated, launching login flow...")
+            OAuthManager.startOAuthFlow()
+        } else {
+            console.log("User already authenticated")
+        }
+    }
+    
+    // Handle authentication events
+    Connections {
+        target: OAuthManager
+        
+        function onAuthenticationSucceeded() {
+            console.log("Authentication successful!")
+            mainWindow.isAuthenticated = true
+        }
+        
+        function onAuthenticationFailed(error) {
+            console.error("Authentication failed:", error)
+            // You might want to show an error dialog here
+        }
     }
 
     SplitView {
@@ -401,6 +447,57 @@ Window {
         }
     }
     
+    // Drag overlay for ElementList
+    Item {
+        id: dragOverlay
+        anchors.fill: parent
+        visible: false
+        z: 10000
+        
+        property string draggedElementName: ""
+        property string draggedElementType: ""
+        property var draggedElement: null
+        property point ghostPosition: Qt.point(0, 0)
+        
+        Rectangle {
+            id: dragGhost
+            x: dragOverlay.ghostPosition.x - width / 2
+            y: dragOverlay.ghostPosition.y - height / 2
+            width: 200
+            height: 28
+            color: "#f5f5f5"
+            border.color: "#2196F3"
+            border.width: 2
+            radius: 4
+            opacity: 0.8
+            
+            RowLayout {
+                anchors.fill: parent
+                anchors.leftMargin: 6
+                anchors.rightMargin: 6
+                anchors.topMargin: 4
+                anchors.bottomMargin: 4
+                spacing: 4
+                
+                Label {
+                    Layout.fillWidth: true
+                    text: dragOverlay.draggedElementName
+                    elide: Text.ElideRight
+                    font.pixelSize: 12
+                }
+                
+                Label {
+                    Layout.alignment: Qt.AlignRight
+                    text: dragOverlay.draggedElementType
+                    color: "#666666"
+                    font.pixelSize: 10
+                }
+            }
+        }
+        
+        // Remove the MouseArea - we'll track position through ghostPosition property instead
+    }
+    
     // Close panel when selection changes
     Connections {
         target: Application.activeCanvas ? Application.activeCanvas.selectionManager : null
@@ -448,6 +545,22 @@ Window {
             globalSelectorPanel.visible = true
             console.log("Panel visible:", globalSelectorPanel.visible)
             console.log("Panel position:", globalSelectorPanel.x, globalSelectorPanel.y)
+        }
+    }
+    
+    // Authentication overlay - white screen shown when not logged in
+    Rectangle {
+        id: authOverlay
+        anchors.fill: parent
+        color: "white"
+        visible: !mainWindow.isAuthenticated
+        z: 100000 // Ensure it's on top of everything
+        
+        Text {
+            anchors.centerIn: parent
+            text: "Authenticating..."
+            font.pixelSize: 24
+            color: "#666666"
         }
     }
 }

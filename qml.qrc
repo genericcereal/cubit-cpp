@@ -28,7 +28,7 @@
         <file>qml/components/ElementRenderer.qml</file>
         <file>qml/components/FrameElement.qml</file>
         <file>qml/components/TextElement.qml</file>
-        <file>qml/components/WebTextInputElement.qml</file>
+        <file>qml/components/platform/web/WebTextInputElement.qml</file>
         <file>qml/components/NodeElement.qml</file>
         <file>qml/components/EdgeElement.qml</file>
         <file>qml/components/BezierEdge.qml</file>
@@ -71,5 +71,6 @@
         <file>qml/components/panels/PropertyPopoverPanel.qml</file>
         <file>qml/components/panels/PrototypePanel.qml</file>
         <file>shaders/roundedmask.frag.qsb</file>
+        <file>resources/aws-exports.json</file>
     </qresource>
 </RCC>

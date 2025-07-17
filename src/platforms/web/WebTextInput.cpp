@@ -2,6 +2,7 @@
 #include "Scripts.h"
 #include "Node.h"
 #include "UniqueIdGenerator.h"
+#include "Frame.h"
 
 WebTextInput::WebTextInput(const QString &id, QObject *parent)
     : DesignElement(id, parent)
@@ -126,6 +127,53 @@ void WebTextInput::setPosition(PositionType position)
     if (m_position != position) {
         m_position = position;
         emit positionChanged();
+        
+        // Trigger layout on parent if it's a frame with flex
+        if (parentElement()) {
+            Frame* parentFrame = qobject_cast<Frame*>(parentElement());
+            if (parentFrame && parentFrame->flex()) {
+                parentFrame->triggerLayout();
+            }
+        }
+    }
+}
+
+void WebTextInput::setWidth(qreal w)
+{
+    DesignElement::setWidth(w);
+    
+    // Trigger layout on parent if it's a frame with flex and this element has relative position
+    if (parentElement() && m_position == Relative) {
+        Frame* parentFrame = qobject_cast<Frame*>(parentElement());
+        if (parentFrame && parentFrame->flex()) {
+            parentFrame->triggerLayout();
+        }
+    }
+}
+
+void WebTextInput::setHeight(qreal h)
+{
+    DesignElement::setHeight(h);
+    
+    // Trigger layout on parent if it's a frame with flex and this element has relative position
+    if (parentElement() && m_position == Relative) {
+        Frame* parentFrame = qobject_cast<Frame*>(parentElement());
+        if (parentFrame && parentFrame->flex()) {
+            parentFrame->triggerLayout();
+        }
+    }
+}
+
+void WebTextInput::setRect(const QRectF &rect)
+{
+    DesignElement::setRect(rect);
+    
+    // Trigger layout on parent if it's a frame with flex and this element has relative position
+    if (parentElement() && m_position == Relative) {
+        Frame* parentFrame = qobject_cast<Frame*>(parentElement());
+        if (parentFrame && parentFrame->flex()) {
+            parentFrame->triggerLayout();
+        }
     }
 }
 

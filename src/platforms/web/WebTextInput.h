@@ -37,6 +37,11 @@ public:
     void setIsEditing(bool editing);
     void setPosition(PositionType position);
     
+    // Override geometry setters to trigger parent layout
+    void setWidth(qreal w) override;
+    void setHeight(qreal h) override;
+    void setRect(const QRectF &rect) override;
+    
     // Override to pass current value to script events
     Q_INVOKABLE void executeScriptEvent(const QString& eventName, const QVariantMap& eventData = QVariantMap()) override;
     
@@ -56,5 +61,5 @@ private:
     qreal m_borderWidth = 1.0;
     qreal m_borderRadius = 4.0;
     bool m_isEditing = false;
-    PositionType m_position = Relative;
+    PositionType m_position = Absolute;
 };

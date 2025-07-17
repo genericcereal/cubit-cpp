@@ -89,11 +89,11 @@ ColumnLayout {
             
             Label { 
                 text: "Justify:" 
-                visible: isPropertyVisible("justify")
+                visible: PropertyHelpers.canShowJustify(selectedElement, editableProperties)
             }
             ComboBox {
                 Layout.fillWidth: true
-                visible: isPropertyVisible("justify")
+                visible: PropertyHelpers.canShowJustify(selectedElement, editableProperties)
                 model: ["Start", "End", "Center", "Space Between", "Space Around", "Space Evenly"]
                 currentIndex: {
                     if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
@@ -118,11 +118,11 @@ ColumnLayout {
             
             Label { 
                 text: "Align:" 
-                visible: isPropertyVisible("align")
+                visible: PropertyHelpers.canShowAlign(selectedElement, editableProperties)
             }
             ComboBox {
                 Layout.fillWidth: true
-                visible: isPropertyVisible("align")
+                visible: PropertyHelpers.canShowAlign(selectedElement, editableProperties)
                 model: ["Start", "End", "Center", "Baseline", "Stretch"]
                 currentIndex: {
                     if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
