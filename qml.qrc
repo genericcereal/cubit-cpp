@@ -71,6 +71,5 @@
         <file>qml/components/panels/PropertyPopoverPanel.qml</file>
         <file>qml/components/panels/PrototypePanel.qml</file>
         <file>shaders/roundedmask.frag.qsb</file>
-        <file>resources/aws-exports.json</file>
     </qresource>
 </RCC>

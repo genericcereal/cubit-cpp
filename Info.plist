@@ -1,25 +1,35 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" 
-         "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>CFBundleIdentifier</key>
-  <string>com.cubit.app</string>
-  <key>CFBundleName</key>
-  <string>cubit-quick</string>
-  <key>CFBundleExecutable</key>
-  <string>cubit-quick</string>
-  <key>CFBundleURLTypes</key>
-  <array>
-    <dict>
-      <key>CFBundleURLName</key>
-      <string>com.cubit.app</string>
-      <key>CFBundleURLSchemes</key>
-      <array>
-        <string>cubitapp</string>
-      </array>
-    </dict>
-  </array>
-  <!-- any other overrides here -->
+    <key>CFBundleExecutable</key>
+    <string>cubit-quick</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.cubit.cubit-quick</string>
+    <key>CFBundleName</key>
+    <string>Cubit</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>10.14</string>
+    <key>NSPrincipalClass</key>
+    <string>NSApplication</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLName</key>
+            <string>MyApp URL</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>myapp</string>
+            </array>
+        </dict>
+    </array>
 </dict>
 </plist>

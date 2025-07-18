@@ -68,6 +68,7 @@ build-*/
 ehthumbs.db
 Thumbs.db
 
+
 # amplify
 node_modules
 .amplify

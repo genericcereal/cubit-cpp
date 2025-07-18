@@ -1,4 +1,4 @@
-QT += core gui widgets qml quick quickcontrols2 quicktemplates2
+QT += core gui widgets qml quick quickcontrols2 quicktemplates2 network
 QT += webenginecore webenginequick
 CONFIG += c++17
 CONFIG += qmltypes
@@ -85,7 +85,9 @@ SOURCES += \
     src/ElementFilterProxy.cpp \
     src/FlexLayoutEngine.cpp \
     src/PrototypeController.cpp \
-    src/DesignControlsController.cpp
+    src/DesignControlsController.cpp \
+    src/AuthenticationManager.cpp \
+    src/UrlSchemeHandler.cpp
 
 HEADERS += \
     src/Element.h \
@@ -144,7 +146,9 @@ HEADERS += \
     src/CreationModeHandler.h \
     src/ElementFilterProxy.h \
     src/PrototypeController.h \
-    src/DesignControlsController.h
+    src/DesignControlsController.h \
+    src/AuthenticationManager.h \
+    src/UrlSchemeHandler.h
 
 RESOURCES += qml.qrc
 
@@ -161,19 +165,6 @@ QML_DESIGNER_IMPORT_PATH =
 # macOS specific configuration
 macx {
     QMAKE_INFO_PLIST = Info.plist
-    
-    # AWS SDK configuration
-    INCLUDEPATH += /opt/homebrew/include
-    LIBS += -L/opt/homebrew/lib
-    LIBS += -laws-cpp-sdk-cognito-idp
-    LIBS += -laws-cpp-sdk-core
-    
-    # macOS Security framework for Keychain access
-    LIBS += -framework Security
-    
-    # Post-build step to ensure our custom Info.plist is used
-    # This merges our custom entries with Qt's generated Info.plist
-    QMAKE_POST_LINK += /usr/libexec/PlistBuddy -c \"Merge $$PWD/Info.plist\" \"$$OUT_PWD/cubit-quick.app/Contents/Info.plist\"
 }
 
 # Default rules for deployment.
