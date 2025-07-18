@@ -1,0 +1,108 @@
+name: Build Cubit
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: '6.5.3'
+        host: 'mac'
+        target: 'desktop'
+        arch: 'clang_64'
+        modules: 'qtwebengine'
+        cache: true
+    
+    - name: Build application
+      run: |
+        qmake6 -o Makefile cubit-quick.pro
+        make -j$(sysctl -n hw.ncpu)
+    
+    - name: Package application
+      run: |
+        macdeployqt cubit-quick.app -dmg
+    
+    - name: Upload macOS artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: cubit-macos
+        path: cubit-quick.dmg
+        retention-days: 7
+
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: '6.5.3'
+        host: 'windows'
+        target: 'desktop'
+        arch: 'win64_msvc2019_64'
+        modules: 'qtwebengine'
+        cache: true
+    
+    - name: Setup MSVC
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
+    
+    - name: Build application
+      run: |
+        qmake cubit-quick.pro
+        nmake
+    
+    - name: Package application
+      run: |
+        windeployqt --release --dir deploy release\cubit-quick.exe
+        copy release\cubit-quick.exe deploy\
+    
+    - name: Create installer (optional)
+      run: |
+        # You can add NSIS or other installer creation here
+        # For now, we'll just package the deployed files
+        Compress-Archive -Path deploy\* -DestinationPath cubit-windows.zip
+    
+    - name: Upload Windows artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: cubit-windows
+        path: cubit-windows.zip
+        retention-days: 7
+
+  create-release:
+    needs: [build-macos, build-windows]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ github.run_number }}
+        name: Build ${{ github.run_number }}
+        draft: false
+        prerelease: true
+        files: |
+          artifacts/cubit-macos/cubit-quick.dmg
+          artifacts/cubit-windows/cubit-windows.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
