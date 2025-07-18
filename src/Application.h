@@ -10,6 +10,8 @@
 #include "Panels.h"
 
 class Element;
+class CubitAIClient;
+class AuthenticationManager;
 
 class Application : public QObject {
     Q_OBJECT
@@ -22,6 +24,8 @@ class Application : public QObject {
 public:
     explicit Application(QObject *parent = nullptr);
     ~Application();
+    
+    void setAuthenticationManager(AuthenticationManager* authManager);
 
     static Application* instance();
 
@@ -45,6 +49,11 @@ public:
     // File operations
     Q_INVOKABLE bool saveAs();
     Q_INVOKABLE bool openFile();
+    Q_INVOKABLE bool saveToFile(const QString& fileName);
+    Q_INVOKABLE bool loadFromFile(const QString& fileName);
+    
+    // Console commands
+    Q_INVOKABLE void processConsoleCommand(const QString& command);
 
 signals:
     void activeCanvasIdChanged();
@@ -52,12 +61,16 @@ signals:
     void canvasListChanged();
     void canvasCreated(const QString& canvasId);
     void canvasRemoved(const QString& canvasId);
+    void saveFileRequested();
+    void openFileRequested();
 
 private:
     static Application* s_instance;
     std::vector<std::unique_ptr<Project>> m_canvases;
     QString m_activeCanvasId;
     std::unique_ptr<Panels> m_panels;
+    std::unique_ptr<CubitAIClient> m_cubitAIClient;
+    AuthenticationManager* m_authManager = nullptr;
     
     Project* findCanvas(const QString& canvasId);
     const Project* findCanvas(const QString& canvasId) const;

@@ -170,8 +170,8 @@ Rectangle {
                 }
                 
                 onCommandSubmitted: function(command) {
-                    // Handle command - for now just echo it back
-                    ConsoleMessageRepository.addOutput("Command received: " + command)
+                    // Process the command through Application
+                    Application.processConsoleCommand(command)
                 }
             }
         }

@@ -340,3 +340,69 @@ void AuthenticationManager::loadTokens()
         qDebug() << "Loaded saved authentication tokens";
     }
 }
+
+void AuthenticationManager::refreshAccessToken() {
+    if (m_refreshToken.isEmpty()) {
+        emit authenticationError("No refresh token available");
+        return;
+    }
+    
+    setIsLoading(true);
+    
+    // Construct the token refresh URL
+    QString tokenUrl = m_cognitoDomain + "/oauth2/token";
+    
+    // Prepare the refresh request
+    QNetworkRequest request;
+    request.setUrl(QUrl(tokenUrl));
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
+    
+    // Prepare the refresh token grant parameters
+    QUrlQuery params;
+    params.addQueryItem("grant_type", "refresh_token");
+    params.addQueryItem("client_id", m_clientId);
+    params.addQueryItem("refresh_token", m_refreshToken);
+    
+    QNetworkReply* reply = m_networkManager->post(request, params.toString(QUrl::FullyEncoded).toUtf8());
+    
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        reply->deleteLater();
+        
+        if (reply->error() != QNetworkReply::NoError) {
+            QString errorString = reply->errorString();
+            qDebug() << "Token refresh error:" << errorString;
+            
+            // If refresh fails, clear authentication and require re-login
+            clearAuthData();
+            emit authenticationError("Token refresh failed: " + errorString);
+            setIsLoading(false);
+            return;
+        }
+        
+        QByteArray response = reply->readAll();
+        QJsonDocument doc = QJsonDocument::fromJson(response);
+        QJsonObject obj = doc.object();
+        
+        if (obj.contains("access_token")) {
+            // Update tokens
+            m_accessToken = obj["access_token"].toString();
+            m_idToken = obj["id_token"].toString();
+            
+            // Save the new tokens
+            saveTokens();
+            
+            qDebug() << "Successfully refreshed access token";
+            emit tokensRefreshed();
+            
+            // Fetch updated user info with the new token
+            fetchUserInfo();
+        } else {
+            QString error = obj["error"].toString();
+            qDebug() << "Token refresh failed:" << error;
+            clearAuthData();
+            emit authenticationError("Token refresh failed: " + error);
+        }
+        
+        setIsLoading(false);
+    });
+}

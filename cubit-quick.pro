@@ -87,7 +87,8 @@ SOURCES += \
     src/PrototypeController.cpp \
     src/DesignControlsController.cpp \
     src/AuthenticationManager.cpp \
-    src/UrlSchemeHandler.cpp
+    src/UrlSchemeHandler.cpp \
+    src/CubitAIClient.cpp
 
 HEADERS += \
     src/Element.h \
@@ -148,7 +149,8 @@ HEADERS += \
     src/PrototypeController.h \
     src/DesignControlsController.h \
     src/AuthenticationManager.h \
-    src/UrlSchemeHandler.h
+    src/UrlSchemeHandler.h \
+    src/CubitAIClient.h
 
 RESOURCES += qml.qrc
 

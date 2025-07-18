@@ -12,14 +12,15 @@
 #include "Node.h"
 #include "Edge.h"
 #include "platforms/web/WebTextInput.h"
+#include "CubitAIClient.h"
+#include "ConsoleMessageRepository.h"
+#include "AuthenticationManager.h"
 #include <QDebug>
-#include <QFileDialog>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QStandardPaths>
 #include <QDir>
-#include <QMessageBox>
 #include <QMetaObject>
 #include <QMetaProperty>
 #include <QCoreApplication>
@@ -46,6 +47,13 @@ Application::~Application() {
 
 Application* Application::instance() {
     return s_instance;
+}
+
+void Application::setAuthenticationManager(AuthenticationManager* authManager) {
+    m_authManager = authManager;
+    
+    // Create CubitAI client now that we have auth manager
+    m_cubitAIClient = std::make_unique<CubitAIClient>(m_authManager, this);
 }
 
 QString Application::createCanvas(const QString& name) {
@@ -172,24 +180,21 @@ Panels* Application::panels() const {
 }
 
 bool Application::saveAs() {
-    // Get the documents directory as default location
-    QString documentsPath = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
-    
-    // Show file dialog for .cbt files
-    QString fileName = QFileDialog::getSaveFileName(
-        nullptr,
-        tr("Save Project As"),
-        documentsPath + "/Untitled.cbt",
-        tr("Cubit Files (*.cbt)")
-    );
-    
+    // Emit signal to request file save from QML
+    emit saveFileRequested();
+    return true;
+}
+
+bool Application::saveToFile(const QString& fileName) {
     if (fileName.isEmpty()) {
-        return false; // User cancelled
+        return false;
     }
     
+    QString actualFileName = fileName;
+    
     // Ensure .cbt extension
-    if (!fileName.endsWith(".cbt", Qt::CaseInsensitive)) {
-        fileName += ".cbt";
+    if (!actualFileName.endsWith(".cbt", Qt::CaseInsensitive)) {
+        actualFileName += ".cbt";
     }
     
     try {
@@ -211,22 +216,23 @@ bool Application::saveAs() {
         
         // Write to file
         QJsonDocument doc(projectData);
-        QFile file(fileName);
+        QFile file(actualFileName);
         if (!file.open(QIODevice::WriteOnly)) {
-            QMessageBox::critical(nullptr, tr("Save Error"), 
-                tr("Could not open file for writing: %1").arg(fileName));
+            qDebug() << "Could not open file for writing:" << actualFileName;
+            ConsoleMessageRepository::instance()->addError(QString("Could not open file for writing: %1").arg(actualFileName));
             return false;
         }
         
         file.write(doc.toJson());
         file.close();
         
-        qDebug() << "Project saved successfully to:" << fileName;
+        qDebug() << "Project saved successfully to:" << actualFileName;
+        ConsoleMessageRepository::instance()->addOutput(QString("Project saved to: %1").arg(actualFileName));
         return true;
         
     } catch (const std::exception& e) {
-        QMessageBox::critical(nullptr, tr("Save Error"), 
-            tr("Error saving project: %1").arg(e.what()));
+        qDebug() << "Error saving project:" << e.what();
+        ConsoleMessageRepository::instance()->addError(QString("Error saving project: %1").arg(e.what()));
         return false;
     }
 }
@@ -322,27 +328,22 @@ QJsonObject Application::serializeElement(Element* element) const {
 }
 
 bool Application::openFile() {
-    // Get the documents directory as default location
-    QString documentsPath = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
-    
-    // Show file dialog for .cbt files
-    QString fileName = QFileDialog::getOpenFileName(
-        nullptr,
-        tr("Open Project"),
-        documentsPath,
-        tr("Cubit Files (*.cbt)")
-    );
-    
+    // Emit signal to request file open from QML
+    emit openFileRequested();
+    return true;
+}
+
+bool Application::loadFromFile(const QString& fileName) {
     if (fileName.isEmpty()) {
-        return false; // User cancelled
+        return false;
     }
     
     try {
         // Read the file
         QFile file(fileName);
         if (!file.open(QIODevice::ReadOnly)) {
-            QMessageBox::critical(nullptr, tr("Open Error"), 
-                tr("Could not open file for reading: %1").arg(fileName));
+            qDebug() << "Could not open file for reading:" << fileName;
+            ConsoleMessageRepository::instance()->addError(QString("Could not open file for reading: %1").arg(fileName));
             return false;
         }
         
@@ -353,8 +354,8 @@ bool Application::openFile() {
         QJsonParseError parseError;
         QJsonDocument doc = QJsonDocument::fromJson(data, &parseError);
         if (parseError.error != QJsonParseError::NoError) {
-            QMessageBox::critical(nullptr, tr("Open Error"), 
-                tr("Invalid JSON format: %1").arg(parseError.errorString()));
+            qDebug() << "Invalid JSON format:" << parseError.errorString();
+            ConsoleMessageRepository::instance()->addError(QString("Invalid JSON format: %1").arg(parseError.errorString()));
             return false;
         }
         
@@ -362,8 +363,8 @@ bool Application::openFile() {
         
         // Validate file format
         if (!projectData.contains("version") || !projectData.contains("canvases")) {
-            QMessageBox::critical(nullptr, tr("Open Error"), 
-                tr("Invalid Cubit project file format"));
+            qDebug() << "Invalid Cubit project file format";
+            ConsoleMessageRepository::instance()->addError("Invalid Cubit project file format");
             return false;
         }
         
@@ -371,13 +372,14 @@ bool Application::openFile() {
         bool success = deserializeProject(projectData);
         if (success) {
             qDebug() << "Project loaded successfully from:" << fileName;
+            ConsoleMessageRepository::instance()->addOutput(QString("Project loaded from: %1").arg(fileName));
         }
         
         return success;
         
     } catch (const std::exception& e) {
-        QMessageBox::critical(nullptr, tr("Open Error"), 
-            tr("Error opening project: %1").arg(e.what()));
+        qDebug() << "Error opening project:" << e.what();
+        ConsoleMessageRepository::instance()->addError(QString("Error opening project: %1").arg(e.what()));
         return false;
     }
 }
@@ -611,5 +613,40 @@ Element* Application::deserializeElement(const QJsonObject& elementData, Element
     } catch (const std::exception& e) {
         qDebug() << "Error deserializing element:" << e.what();
         return nullptr;
+    }
+}
+
+void Application::processConsoleCommand(const QString& command) {
+    // Add the command to console as input
+    ConsoleMessageRepository::instance()->addInput(command);
+    
+    // Check if it's a /cubitAI command
+    if (command.startsWith("/cubitAI ", Qt::CaseInsensitive)) {
+        // Extract the prompt after /cubitAI
+        QString prompt = command.mid(9).trimmed(); // 9 is length of "/cubitAI "
+        
+        if (prompt.isEmpty()) {
+            ConsoleMessageRepository::instance()->addError("Usage: /cubitAI <prompt>");
+            return;
+        }
+        
+        // Check if we have authentication
+        if (!m_authManager || !m_authManager->isAuthenticated()) {
+            ConsoleMessageRepository::instance()->addError("You must be authenticated to use CubitAI. Please log in first.");
+            return;
+        }
+        
+        // Check if CubitAI client is available
+        if (!m_cubitAIClient) {
+            ConsoleMessageRepository::instance()->addError("CubitAI client is not initialized.");
+            return;
+        }
+        
+        // Send the prompt to CubitAI
+        m_cubitAIClient->sendMessage(prompt);
+    } else {
+        // Unknown command
+        ConsoleMessageRepository::instance()->addOutput("Unknown command: " + command);
+        ConsoleMessageRepository::instance()->addInfo("Available commands: /cubitAI <prompt>");
     }
 }
