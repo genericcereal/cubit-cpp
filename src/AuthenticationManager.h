@@ -27,6 +27,10 @@ public:
     QString userName() const { return m_userName; }
     QString userEmail() const { return m_userEmail; }
     bool isLoading() const { return m_isLoading; }
+    
+    // Token access
+    QString getIdToken() const { return m_idToken; }
+    QString getAccessToken() const { return m_accessToken; }
 
     // OAuth configuration
     void setClientId(const QString& clientId) { m_clientId = clientId; }
@@ -46,6 +50,9 @@ public slots:
     
     // Check if we should auto-login on startup
     void checkAutoLogin();
+    
+    // Refresh the access token using refresh token
+    void refreshAccessToken();
 
 signals:
     void isAuthenticatedChanged();
@@ -54,6 +61,7 @@ signals:
     void isLoadingChanged();
     void authenticationError(const QString& error);
     void authenticationSucceeded();
+    void tokensRefreshed();
 
 private slots:
     void handleTokenResponse();

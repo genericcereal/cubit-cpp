@@ -117,6 +117,7 @@ int main(int argc, char *argv[])
 
     // Register Application singleton
     Application* appInstance = new Application(&app);
+    appInstance->setAuthenticationManager(authManager);
     qmlRegisterSingletonType<Application>("Cubit", 1, 0, "Application",
         [appInstance](QQmlEngine *engine, QJSEngine *scriptEngine) -> QObject * {
             Q_UNUSED(engine)

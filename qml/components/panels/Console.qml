@@ -111,9 +111,7 @@ Rectangle {
                     
                     Keys.onReturnPressed: {
                         if (text.trim() !== "") {
-                            // Add input to repository
-                            root.repository.addInput(text)
-                            // Emit signal
+                            // Emit signal (Application will handle logging)
                             root.commandSubmitted(text)
                             // Clear input
                             text = ""
@@ -141,7 +139,7 @@ Rectangle {
                     
                     onClicked: {
                         if (inputField.text.trim() !== "") {
-                            root.repository.addInput(inputField.text)
+                            // Emit signal (Application will handle logging)
                             root.commandSubmitted(inputField.text)
                             inputField.text = ""
                         }

@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Window
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Dialogs
 import Cubit 1.0
 import "components/panels"
 import "components"
@@ -618,6 +619,61 @@ ApplicationWindow {
             globalSelectorPanel.visible = true
             console.log("Panel visible:", globalSelectorPanel.visible)
             console.log("Panel position:", globalSelectorPanel.x, globalSelectorPanel.y)
+        }
+    }
+    
+    // File dialogs
+    FileDialog {
+        id: saveFileDialog
+        title: "Save Project As"
+        nameFilters: ["Cubit Files (*.cbt)"]
+        fileMode: FileDialog.SaveFile
+        defaultSuffix: "cbt"
+        
+        onAccepted: {
+            // Convert file URL to local path
+            var filePath = selectedFile.toString()
+            // Remove "file://" prefix
+            if (Qt.platform.os === "windows") {
+                filePath = filePath.replace(/^(file:\/{3})/, "")
+            } else {
+                filePath = filePath.replace(/^(file:\/{2})/, "")
+            }
+            
+            Application.saveToFile(filePath)
+        }
+    }
+    
+    FileDialog {
+        id: openFileDialog
+        title: "Open Project"
+        nameFilters: ["Cubit Files (*.cbt)"]
+        fileMode: FileDialog.OpenFile
+        
+        onAccepted: {
+            // Convert file URL to local path
+            var filePath = selectedFile.toString()
+            // Remove "file://" prefix
+            if (Qt.platform.os === "windows") {
+                filePath = filePath.replace(/^(file:\/{3})/, "")
+            } else {
+                filePath = filePath.replace(/^(file:\/{2})/, "")
+            }
+            
+            Application.loadFromFile(filePath)
+        }
+    }
+    
+    // Connect to Application signals
+    Connections {
+        target: Application
+        
+        function onSaveFileRequested() {
+            saveFileDialog.open()
+        }
+        
+        function onOpenFileRequested() {
+            openFileDialog.open()
         }
     }
 }
