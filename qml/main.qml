@@ -16,7 +16,6 @@ ApplicationWindow {
     title: qsTr("Cubit")
     
     property alias dragOverlay: dragOverlay
-    property bool isAuthenticated: false
     
     menuBar: MenuBar {
         Menu {
@@ -41,29 +40,8 @@ ApplicationWindow {
         // Request focus for keyboard shortcuts
         mainWindow.requestActivate()
         
-        // Check authentication status and launch login if needed
-        mainWindow.isAuthenticated = OAuthManager.isAuthenticated()
-        if (!mainWindow.isAuthenticated) {
-            console.log("User not authenticated, launching login flow...")
-            OAuthManager.startOAuthFlow()
-        } else {
-            console.log("User already authenticated")
-        }
-    }
-    
-    // Handle authentication events
-    Connections {
-        target: OAuthManager
-        
-        function onAuthenticationSucceeded() {
-            console.log("Authentication successful!")
-            mainWindow.isAuthenticated = true
-        }
-        
-        function onAuthenticationFailed(error) {
-            console.error("Authentication failed:", error)
-            // You might want to show an error dialog here
-        }
+        // Start authentication on launch
+        authManager.checkAutoLogin()
     }
 
     SplitView {
@@ -447,6 +425,101 @@ ApplicationWindow {
         }
     }
     
+    // Authentication overlay - covers entire window when not authenticated
+    Rectangle {
+        id: authOverlay
+        anchors.fill: parent
+        color: "white"
+        opacity: 0.95
+        visible: !authManager.isAuthenticated
+        z: 9999 // Above everything else
+        
+        // Prevent interaction with underlying content
+        MouseArea {
+            anchors.fill: parent
+            onClicked: {}
+            onDoubleClicked: {}
+            onPressed: {}
+            onReleased: {}
+            onWheel: {}
+        }
+        
+        // Authentication UI
+        Column {
+            anchors.centerIn: parent
+            spacing: 20
+            
+            Text {
+                text: "Authentication Required"
+                font.pixelSize: 24
+                font.weight: Font.Medium
+                color: "#333333"
+                anchors.horizontalCenter: parent.horizontalCenter
+            }
+            
+            Text {
+                text: authManager.isLoading ? "Authenticating..." : "Please log in to continue"
+                font.pixelSize: 14
+                color: "#666666"
+                anchors.horizontalCenter: parent.horizontalCenter
+            }
+            
+            Button {
+                text: "Login with AWS Cognito"
+                visible: !authManager.isLoading
+                anchors.horizontalCenter: parent.horizontalCenter
+                onClicked: authManager.login()
+                
+                background: Rectangle {
+                    implicitWidth: 200
+                    implicitHeight: 40
+                    color: parent.down ? "#1976D2" : (parent.hovered ? "#2196F3" : "#1E88E5")
+                    radius: 4
+                }
+                
+                contentItem: Text {
+                    text: parent.text
+                    color: "white"
+                    font.pixelSize: 14
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+            }
+            
+            BusyIndicator {
+                running: authManager.isLoading
+                visible: authManager.isLoading
+                anchors.horizontalCenter: parent.horizontalCenter
+            }
+        }
+        
+        // Error message
+        Text {
+            text: ""
+            id: authErrorText
+            color: "#f44336"
+            font.pixelSize: 12
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 40
+            anchors.horizontalCenter: parent.horizontalCenter
+            visible: text !== ""
+        }
+        
+        Connections {
+            target: authManager
+            function onAuthenticationError(error) {
+                authErrorText.text = "Error: " + error
+                errorTimer.restart()
+            }
+        }
+        
+        Timer {
+            id: errorTimer
+            interval: 5000
+            onTriggered: authErrorText.text = ""
+        }
+    }
+    
     // Drag overlay for ElementList
     Item {
         id: dragOverlay
@@ -545,22 +618,6 @@ ApplicationWindow {
             globalSelectorPanel.visible = true
             console.log("Panel visible:", globalSelectorPanel.visible)
             console.log("Panel position:", globalSelectorPanel.x, globalSelectorPanel.y)
-        }
-    }
-    
-    // Authentication overlay - white screen shown when not logged in
-    Rectangle {
-        id: authOverlay
-        anchors.fill: parent
-        color: "white"
-        visible: !mainWindow.isAuthenticated
-        z: 100000 // Ensure it's on top of everything
-        
-        Text {
-            anchors.centerIn: parent
-            text: "Authenticating..."
-            font.pixelSize: 24
-            color: "#666666"
         }
     }
 }
