@@ -26,18 +26,73 @@ jobs:
         modules: 'qtwebengine qtwebchannel qtpositioning'
         cache: true
     
+    - name: Setup Code Signing
+      env:
+        MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+        MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+        KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+      run: |
+        # Create temporary keychain
+        security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+        security default-keychain -s build.keychain
+        security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+        
+        # Import certificate
+        echo "$MACOS_CERTIFICATE" | base64 --decode > certificate.p12
+        security import certificate.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
+        security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+        
+        # Verify certificate
+        security find-identity -v -p codesigning
+    
     - name: Build application
       run: |
         qmake6 -o Makefile cubit-quick.pro
         make -j$(sysctl -n hw.ncpu)
     
+    - name: Sign application
+      run: |
+        # Remove any extended attributes that might interfere
+        xattr -cr cubit-quick.app
+        
+        # Sign with hardened runtime for notarization
+        if [ -f entitlements.plist ]; then
+          ENTITLEMENTS="--entitlements entitlements.plist"
+        else
+          ENTITLEMENTS=""
+        fi
+        
+        codesign --deep --force --verify --verbose \
+          --sign "${{ secrets.APPLE_DEVELOPER_ID }}" \
+          --options runtime \
+          $ENTITLEMENTS \
+          cubit-quick.app
+        
+        # Verify signature
+        codesign --verify --deep --strict --verbose=2 cubit-quick.app
+    
     - name: Package application
       run: |
-        # Ad-hoc sign the app to prevent "damaged" errors
-        codesign --force --deep --sign - cubit-quick.app
         macdeployqt cubit-quick.app -dmg
-        # Sign the DMG as well
-        codesign --force --sign - cubit-quick.dmg
+        
+        # Sign the DMG
+        codesign --force --sign "${{ secrets.APPLE_DEVELOPER_ID }}" cubit-quick.dmg
+    
+    - name: Notarize application
+      env:
+        APPLE_ID: ${{ secrets.APPLE_ID }}
+        APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+        APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      run: |
+        # Submit for notarization
+        xcrun notarytool submit cubit-quick.dmg \
+          --apple-id "$APPLE_ID" \
+          --password "$APPLE_ID_PASSWORD" \
+          --team-id "$APPLE_TEAM_ID" \
+          --wait
+        
+        # Staple the notarization
+        xcrun stapler staple cubit-quick.dmg
     
     - name: Upload macOS artifact
       uses: actions/upload-artifact@v4
