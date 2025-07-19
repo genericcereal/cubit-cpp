@@ -35,6 +35,9 @@ public:
     // Override to identify this as a visual element
     virtual bool isVisual() const override { return true; }
     
+    // Override to identify this as a component instance
+    virtual bool isComponentInstance() const override { return true; }
+    
     // Override to execute scripts (now executes instance's own scripts)
     Q_INVOKABLE virtual void executeScriptEvent(const QString& eventName, const QVariantMap& eventData = QVariantMap()) override;
     

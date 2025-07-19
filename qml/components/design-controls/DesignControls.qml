@@ -948,7 +948,7 @@ Item {
         selectedVariant: {
             if (root.parent && root.parent.selectedElements && root.parent.selectedElements.length === 1) {
                 var variant = root.parent.selectedElements[0]
-                if (variant && (variant.elementType === "FrameComponentVariant" || variant.elementType === "TextComponentVariant")) {
+                if (variant && variant.isComponentVariant()) {
                     return variant
                 }
             }
@@ -974,7 +974,7 @@ Item {
         // Check if exactly one element is selected and it's a ComponentVariant
         if (parent.selectedElements.length === 1) {
             var element = parent.selectedElements[0]
-            selectedIsComponentVariant = element && (element.elementType === "FrameComponentVariant" || element.elementType === "TextComponentVariant")
+            selectedIsComponentVariant = element && element.isComponentVariant()
         } else {
             selectedIsComponentVariant = false
         }
@@ -987,17 +987,21 @@ Item {
                 break
             }
             
-            // Check if element is a ComponentInstance or ComponentVariant
-            if (element.elementType !== "FrameComponentInstance" && element.elementType !== "FrameComponentVariant" && 
-                element.elementType !== "TextComponentInstance" && element.elementType !== "TextComponentVariant") {
+            // Check if element is a ComponentInstance or ComponentVariant using the generic methods
+            var isComponentRelated = false
+            if (element.isDesignElement) {
+                isComponentRelated = element.isComponentInstance() || element.isComponentVariant()
+            }
+            
+            if (!isComponentRelated) {
                 // Check if it's a descendant of a ComponentInstance or ComponentVariant
                 var isDescendant = false
                 if (parent.canvasView && parent.canvasView.elementModel) {
                     var currentId = element.parentId
                     while (currentId && currentId !== "") {
                         var parentElement = parent.canvasView.elementModel.getElementById(currentId)
-                        if (parentElement && (parentElement.elementType === "FrameComponentInstance" || parentElement.elementType === "FrameComponentVariant" ||
-                                            parentElement.elementType === "TextComponentInstance" || parentElement.elementType === "TextComponentVariant")) {
+                        if (parentElement && parentElement.isDesignElement && 
+                            (parentElement.isComponentInstance() || parentElement.isComponentVariant())) {
                             isDescendant = true
                             break
                         }

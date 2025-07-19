@@ -17,6 +17,7 @@
 #include "CreationModeHandler.h"
 #include "FrameComponentVariant.h"
 #include "TextComponentVariant.h"
+#include "WebTextInputComponentVariant.h"
 #include "Component.h"
 #include "DesignElement.h"
 #include "UniqueIdGenerator.h"
@@ -73,7 +74,7 @@ void CanvasController::initializeModeHandlers()
     // Frame mode
     m_modeHandlers[Mode::Frame] = std::make_unique<CreationModeHandler>(
         CreationModeHandler::Config{
-            CreateDesignElementCommand::FrameElement,
+            "frame",
             QVariant()  // No default payload for frames
         },
         &m_elementModel, &m_selectionManager,
@@ -82,7 +83,7 @@ void CanvasController::initializeModeHandlers()
     // Text mode
     m_modeHandlers[Mode::Text] = std::make_unique<CreationModeHandler>(
         CreationModeHandler::Config{
-            CreateDesignElementCommand::TextElement,
+            "text",
             QVariant("Text")  // Default text content
         },
         &m_elementModel, &m_selectionManager,
@@ -91,7 +92,7 @@ void CanvasController::initializeModeHandlers()
     // WebTextInput mode
     m_modeHandlers[Mode::WebTextInput] = std::make_unique<CreationModeHandler>(
         CreationModeHandler::Config{
-            CreateDesignElementCommand::WebTextInputElement,
+            "webtextinput",
             QVariant("Enter text...")  // Default placeholder
         },
         &m_elementModel, &m_selectionManager,
@@ -257,12 +258,17 @@ void CanvasController::duplicateVariant(const QString &variantId)
         return;
     }
     
-    // Check if it's a FrameComponentVariant or TextComponentVariant
-    FrameComponentVariant* sourceFrameVariant = qobject_cast<FrameComponentVariant*>(sourceElement);
-    TextComponentVariant* sourceTextVariant = qobject_cast<TextComponentVariant*>(sourceElement);
+    // Check if it's a DesignElement with isComponentVariant
+    DesignElement* designElement = qobject_cast<DesignElement*>(sourceElement);
+    if (!designElement || !designElement->isComponentVariant()) {
+        qWarning() << "duplicateVariant: Element is not a ComponentVariant";
+        return;
+    }
     
-    if (!sourceFrameVariant && !sourceTextVariant) {
-        qWarning() << "duplicateVariant: Element is not a FrameComponentVariant or TextComponentVariant";
+    // Try to get the ComponentVariant interface
+    ComponentVariant* sourceVariant = dynamic_cast<ComponentVariant*>(sourceElement);
+    if (!sourceVariant) {
+        qWarning() << "duplicateVariant: Element does not implement ComponentVariant interface";
         return;
     }
     
@@ -289,91 +295,37 @@ void CanvasController::duplicateVariant(const QString &variantId)
     // Generate new ID for the duplicate
     QString newId = UniqueIdGenerator::generate16DigitId();
     
+    // Clone the variant using the virtual clone method
+    ComponentVariant* clonedVariant = sourceVariant->clone(newId);
+    Element* newElement = dynamic_cast<Element*>(clonedVariant);
+    
+    if (!clonedVariant || !newElement) {
+        qWarning() << "duplicateVariant: Failed to clone variant";
+        return;
+    }
+    
     // Generate a unique name
     int variantCount = component->variants().size();
     QString variantName = QString("Variant%1").arg(variantCount + 1);
+    clonedVariant->setVariantName(variantName);
     
-    if (sourceFrameVariant) {
-        // Create new FrameComponentVariant
-        FrameComponentVariant* newVariant = new FrameComponentVariant(newId, sourceFrameVariant->parent());
-        newVariant->setVariantName(variantName);
-        
-        // Copy geometry - position it next to the source variant
-        newVariant->setX(sourceFrameVariant->x() + sourceFrameVariant->width() + 50);
-        newVariant->setY(sourceFrameVariant->y());
-        newVariant->setWidth(sourceFrameVariant->width());
-        newVariant->setHeight(sourceFrameVariant->height());
-        
-        // Copy all style properties
-        newVariant->setFill(sourceFrameVariant->fill());
-        newVariant->setBorderColor(sourceFrameVariant->borderColor());
-        newVariant->setBorderWidth(sourceFrameVariant->borderWidth());
-        newVariant->setBorderRadius(sourceFrameVariant->borderRadius());
-        newVariant->setOverflow(sourceFrameVariant->overflow());
-        
-        // Copy flex layout properties
-        newVariant->setFlex(sourceFrameVariant->flex());
-        newVariant->setOrientation(sourceFrameVariant->orientation());
-        newVariant->setGap(sourceFrameVariant->gap());
-        
-        // Copy other Frame properties
-        newVariant->setRole(sourceFrameVariant->role());
-        newVariant->setPlatform(sourceFrameVariant->platform());
-        
-        // Copy anchor properties
-        DesignElement::copyElementProperties(newVariant, sourceFrameVariant, false);
-        
-        // Copy variant-specific properties
-        newVariant->setInstancesAcceptChildren(sourceFrameVariant->instancesAcceptChildren());
-        newVariant->setEditableProperties(sourceFrameVariant->editableProperties());
-        
-        // Add to component
-        component->addVariant(newVariant);
-        
-        // Add to element model
-        m_elementModel.addElement(newVariant);
-        
-        // Select the new variant
-        m_selectionManager.clearSelection();
-        m_selectionManager.selectElement(newVariant);
-        
-        qDebug() << "Created duplicate frame variant:" << newVariant->variantName() << "with ID:" << newId;
-    } else if (sourceTextVariant) {
-        // Create new TextComponentVariant
-        TextComponentVariant* newVariant = new TextComponentVariant(newId, sourceTextVariant->parent());
-        newVariant->setVariantName(variantName);
-        
-        // Copy geometry - position it next to the source variant
-        newVariant->setX(sourceTextVariant->x() + sourceTextVariant->width() + 50);
-        newVariant->setY(sourceTextVariant->y());
-        newVariant->setWidth(sourceTextVariant->width());
-        newVariant->setHeight(sourceTextVariant->height());
-        
-        // Copy text-specific properties
-        newVariant->setContent(sourceTextVariant->content());
-        newVariant->setFont(sourceTextVariant->font());
-        newVariant->setColor(sourceTextVariant->color());
-        newVariant->setPosition(sourceTextVariant->position());
-        
-        // Copy anchor properties
-        DesignElement::copyElementProperties(newVariant, sourceTextVariant, false);
-        
-        // Copy variant-specific properties
-        newVariant->setInstancesAcceptChildren(sourceTextVariant->instancesAcceptChildren());
-        newVariant->setEditableProperties(sourceTextVariant->editableProperties());
-        
-        // Add to component
-        component->addVariant(newVariant);
-        
-        // Add to element model
-        m_elementModel.addElement(newVariant);
-        
-        // Select the new variant
-        m_selectionManager.clearSelection();
-        m_selectionManager.selectElement(newVariant);
-        
-        qDebug() << "Created duplicate text variant:" << newVariant->variantName() << "with ID:" << newId;
+    // Position the new variant next to the source
+    if (CanvasElement* canvasElement = qobject_cast<CanvasElement*>(newElement)) {
+        canvasElement->setX(designElement->x() + designElement->width() + 50);
+        canvasElement->setY(designElement->y());
     }
+    
+    // Add to component
+    component->addVariant(newElement);
+    
+    // Add to element model
+    m_elementModel.addElement(newElement);
+    
+    // Select the new variant
+    m_selectionManager.clearSelection();
+    m_selectionManager.selectElement(newElement);
+    
+    qDebug() << "Created duplicate variant:" << clonedVariant->variantName() << "with ID:" << newId;
 }
 
 void CanvasController::selectElementsInRect(const QRectF &rect)

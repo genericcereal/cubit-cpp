@@ -11,6 +11,7 @@
         <file>qml/components/DesignCanvas.qml</file>
         <file>qml/components/DesignElementLayer.qml</file>
         <file>qml/components/DesignScriptExecutorOverlay.qml</file>
+        <file>qml/components/ElementComponentMapper.qml</file>
         <file>qml/components/ScriptCanvas.qml</file>
         <file>qml/components/NodeCatalog.qml</file>
         <file>qml/components/NodeCatalogPopup.qml</file>

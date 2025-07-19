@@ -88,3 +88,44 @@ void FrameComponentVariant::applyToInstance(ComponentInstance* instance)
         frameInstance->setRect(QRectF(x(), y(), width(), height()));
     }
 }
+
+ComponentVariant* FrameComponentVariant::clone(const QString& newId) const
+{
+    FrameComponentVariant* newVariant = new FrameComponentVariant(newId, parent());
+    
+    // Copy geometry
+    newVariant->setRect(rect());
+    
+    // Copy all Frame properties
+    newVariant->setFill(fill());
+    newVariant->setBorderColor(borderColor());
+    newVariant->setBorderWidth(borderWidth());
+    newVariant->setBorderRadius(borderRadius());
+    newVariant->setOverflow(overflow());
+    newVariant->setFlex(flex());
+    newVariant->setOrientation(orientation());
+    newVariant->setGap(gap());
+    newVariant->setJustify(justify());
+    newVariant->setAlign(align());
+    newVariant->setWidthType(widthType());
+    newVariant->setHeightType(heightType());
+    newVariant->setRole(role());
+    newVariant->setPlatform(platform());
+    newVariant->setPosition(position());
+    
+    // Copy anchor properties
+    newVariant->setLeft(left());
+    newVariant->setRight(right());
+    newVariant->setTop(top());
+    newVariant->setBottom(bottom());
+    newVariant->setLeftAnchored(leftAnchored());
+    newVariant->setRightAnchored(rightAnchored());
+    newVariant->setTopAnchored(topAnchored());
+    newVariant->setBottomAnchored(bottomAnchored());
+    
+    // Copy variant-specific properties
+    newVariant->setInstancesAcceptChildren(instancesAcceptChildren());
+    newVariant->setEditableProperties(editableProperties());
+    
+    return newVariant;
+}

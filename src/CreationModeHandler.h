@@ -1,10 +1,10 @@
 #pragma once
 #include "IModeHandler.h"
 #include "CanvasController.h"
-#include "commands/CreateDesignElementCommand.h"
 #include <functional>
 #include <QPointF>
 #include <QVariant>
+#include <QString>
 
 class ElementModel;
 class SelectionManager;
@@ -15,7 +15,7 @@ class CanvasController;
 class CreationModeHandler : public IModeHandler {
 public:
     struct Config {
-        CreateDesignElementCommand::ElementType elementType;
+        QString elementType;       // e.g. "frame", "text", "webtextinput"
         QVariant defaultPayload;   // e.g. "Text", "<h1>HTML</h1>", or QVariant()
     };
 

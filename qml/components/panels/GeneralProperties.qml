@@ -71,7 +71,7 @@ PropertyGroup {
                 }
                 return variantNames.length > 0 ? variantNames : ["Default"]
             },
-            visible: () => selectedElement && (selectedElement.elementType === "FrameComponentInstance" || selectedElement.elementType === "TextComponentInstance")
+            visible: () => selectedElement && selectedElement.isComponentInstance && selectedElement.isComponentInstance()
         },
         {
             name: "Platform",

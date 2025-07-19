@@ -51,6 +51,8 @@ SOURCES += \
     src/FrameComponentVariant.cpp \
     src/TextComponentVariant.cpp \
     src/TextComponentInstance.cpp \
+    src/WebTextInputComponentVariant.cpp \
+    src/WebTextInputComponentInstance.cpp \
     src/Node.cpp \
     src/Edge.cpp \
     src/CanvasController.cpp \
@@ -66,6 +68,11 @@ SOURCES += \
     src/CreationManager.cpp \
     src/HitTestService.cpp \
     src/JsonImporter.cpp \
+    src/ElementTypeRegistry.cpp \
+    src/ElementFactory.cpp \
+    src/FrameFactory.cpp \
+    src/TextFactory.cpp \
+    src/WebTextInputFactory.cpp \
     src/QuadTree.cpp \
     src/Command.cpp \
     src/CommandHistory.cpp \
@@ -107,6 +114,8 @@ HEADERS += \
     src/FrameComponentVariant.h \
     src/TextComponentVariant.h \
     src/TextComponentInstance.h \
+    src/WebTextInputComponentVariant.h \
+    src/WebTextInputComponentInstance.h \
     src/ConnectionManager.h \
     src/PropertySyncer.h \
     src/PropertyCopier.h \
@@ -128,6 +137,12 @@ HEADERS += \
     src/CreationManager.h \
     src/HitTestService.h \
     src/JsonImporter.h \
+    src/PropertyDefinition.h \
+    src/ElementTypeRegistry.h \
+    src/ElementFactory.h \
+    src/FrameFactory.h \
+    src/TextFactory.h \
+    src/WebTextInputFactory.h \
     src/QuadTree.h \
     src/Command.h \
     src/CommandHistory.h \

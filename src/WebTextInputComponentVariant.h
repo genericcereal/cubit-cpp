@@ -1,13 +1,13 @@
-#ifndef FRAMECOMPONENTVARIANT_H
-#define FRAMECOMPONENTVARIANT_H
+#ifndef WEBTEXTINPUTCOMPONENTVARIANT_H
+#define WEBTEXTINPUTCOMPONENTVARIANT_H
 
-#include "Frame.h"
+#include "platforms/web/WebTextInput.h"
 #include "ComponentVariant.h"
 #include <QString>
 
-class FrameComponentInstance;
+class WebTextInputComponentInstance;
 
-class FrameComponentVariant : public Frame, public ComponentVariant
+class WebTextInputComponentVariant : public WebTextInput, public ComponentVariant
 {
     Q_OBJECT
     Q_PROPERTY(bool instancesAcceptChildren READ instancesAcceptChildren WRITE setInstancesAcceptChildren NOTIFY instancesAcceptChildrenChanged)
@@ -15,8 +15,8 @@ class FrameComponentVariant : public Frame, public ComponentVariant
     Q_PROPERTY(QString variantName READ variantName WRITE setVariantName NOTIFY variantNameChanged)
 
 public:
-    explicit FrameComponentVariant(const QString &id, QObject *parent = nullptr);
-    ~FrameComponentVariant();
+    explicit WebTextInputComponentVariant(const QString &id, QObject *parent = nullptr);
+    ~WebTextInputComponentVariant();
     
     // Property getters
     bool instancesAcceptChildren() const { return ComponentVariant::instancesAcceptChildren(); }
@@ -50,4 +50,4 @@ signals:
     void variantNameChanged();
 };
 
-#endif // FRAMECOMPONENTVARIANT_H
+#endif // WEBTEXTINPUTCOMPONENTVARIANT_H
