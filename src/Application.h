@@ -52,8 +52,6 @@ public:
     Q_INVOKABLE bool saveToFile(const QString& fileName);
     Q_INVOKABLE bool loadFromFile(const QString& fileName);
     
-    // Console commands
-    Q_INVOKABLE void processConsoleCommand(const QString& command);
 
 signals:
     void activeCanvasIdChanged();
@@ -63,6 +61,9 @@ signals:
     void canvasRemoved(const QString& canvasId);
     void saveFileRequested();
     void openFileRequested();
+
+private slots:
+    void onCubitAICommandReceived(const QString& prompt);
 
 private:
     static Application* s_instance;

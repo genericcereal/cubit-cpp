@@ -1,6 +1,13 @@
 #include "CubitAIClient.h"
 #include "ConsoleMessageRepository.h"
 #include "AuthenticationManager.h"
+#include "AICommandDispatcher.h"
+#include "Application.h"
+#include "ElementModel.h"
+#include "SelectionManager.h"
+#include "Element.h"
+#include "CanvasElement.h"
+#include "Project.h"
 #include <QNetworkRequest>
 #include <QNetworkReply>
 #include <QJsonDocument>
@@ -9,10 +16,12 @@
 #include <QFile>
 #include <QDebug>
 
-CubitAIClient::CubitAIClient(AuthenticationManager* authManager, QObject *parent)
+CubitAIClient::CubitAIClient(AuthenticationManager* authManager, Application* app, QObject *parent)
     : QObject(parent)
     , m_networkManager(std::make_unique<QNetworkAccessManager>(this))
     , m_authManager(authManager)
+    , m_application(app)
+    , m_commandDispatcher(std::make_unique<AICommandDispatcher>(app, this))
     , m_isRetryingAfterRefresh(false)
 {
     // Connect to token refresh signal
@@ -21,16 +30,34 @@ CubitAIClient::CubitAIClient(AuthenticationManager* authManager, QObject *parent
                 this, &CubitAIClient::onTokensRefreshed,
                 Qt::UniqueConnection);
     }
+    
+    // Connect to command dispatcher signals
+    connect(m_commandDispatcher.get(), &AICommandDispatcher::commandExecuted,
+            this, [](const QString& commandType, bool success) {
+        if (success) {
+            ConsoleMessageRepository::instance()->addInfo(QString("Command '%1' executed successfully").arg(commandType));
+        }
+    });
+    
+    connect(m_commandDispatcher.get(), &AICommandDispatcher::commandError,
+            this, [](const QString& error) {
+        ConsoleMessageRepository::instance()->addError(QString("Command error: %1").arg(error));
+    });
 }
 
 CubitAIClient::~CubitAIClient() = default;
 
 void CubitAIClient::sendMessage(const QString& description) {
     QJsonObject queryObj;
-    queryObj["query"] = "query CubitAi($description:String){ cubitAi(description:$description) }";
+    queryObj["query"] = "query CubitAi($description:String, $canvasState:String){ cubitAi(description:$description, canvasState:$canvasState) { message commands } }";
     
     QJsonObject variables;
     variables["description"] = description;
+    
+    // Get current canvas state as JSON string
+    QString canvasStateJson = getCanvasState();
+    variables["canvasState"] = canvasStateJson;
+    
     queryObj["variables"] = variables;
     
     QJsonDocument doc(queryObj);
@@ -146,32 +173,37 @@ void CubitAIClient::handleNetworkReply(QNetworkReply* reply) {
     if (root.contains("data")) {
         QJsonObject data = root["data"].toObject();
         if (data.contains("cubitAi")) {
-            QString rawResponse = data["cubitAi"].toString();
+            QJsonObject aiResponse = data["cubitAi"].toObject();
             
-            // Try to parse the response as JSON
-            QJsonDocument responseDoc = QJsonDocument::fromJson(rawResponse.toUtf8());
-            QString finalResponse;
+            // Extract the message and commands
+            QString message = aiResponse["message"].toString();
             
-            if (!responseDoc.isNull() && responseDoc.isObject()) {
-                QJsonObject responseObj = responseDoc.object();
-                // Check if the response contains a description field
-                if (responseObj.contains("description")) {
-                    finalResponse = responseObj["description"].toString();
-                } else if (responseObj.contains("response")) {
-                    finalResponse = responseObj["response"].toString();
-                } else if (responseObj.contains("message")) {
-                    finalResponse = responseObj["message"].toString();
-                } else {
-                    // If no known field, use the raw response
-                    finalResponse = rawResponse;
-                }
-            } else {
-                // If not JSON, use the raw response
-                finalResponse = rawResponse;
+            // Parse commands from JSON string
+            QString commandsJson = aiResponse["commands"].toString();
+            
+            QJsonDocument commandsDoc = QJsonDocument::fromJson(commandsJson.toUtf8());
+            QJsonArray commands;
+            
+            if (commandsDoc.isArray()) {
+                commands = commandsDoc.array();
+            } else if (!commandsJson.isEmpty() && commandsJson != "[]") {
+                ConsoleMessageRepository::instance()->addWarning("Commands response is not a valid JSON array");
             }
             
-            ConsoleMessageRepository::instance()->addOutput(QString("CubitAI: %1").arg(finalResponse));
-            emit responseReceived(finalResponse);
+            // Display the message to the user
+            if (!message.isEmpty()) {
+                ConsoleMessageRepository::instance()->addOutput(QString("CubitAI: %1").arg(message));
+                emit responseReceived(message);
+            }
+            
+            // Execute commands if any
+            if (!commands.isEmpty()) {
+                ConsoleMessageRepository::instance()->addInfo(QString("Executing %1 commands...").arg(commands.size()));
+                
+                // Execute the commands
+                m_commandDispatcher->executeCommands(commands);
+                emit commandsReceived(commands);
+            }
         }
     }
 }
@@ -250,4 +282,59 @@ void CubitAIClient::onTokensRefreshed() {
         m_isRetryingAfterRefresh = false;
         makeGraphQLRequest(m_pendingQuery, "");
     }
+}
+
+QString CubitAIClient::getCanvasState() const {
+    QJsonObject state;
+    
+    if (!m_application) {
+        return QJsonDocument(state).toJson(QJsonDocument::Compact);
+    }
+    
+    // Get current canvas mode if available
+    if (m_application->activeCanvas()) {
+        state["canvasMode"] = m_application->activeCanvas()->viewMode();
+    }
+    
+    // Get selected elements
+    auto selectionManager = m_application->activeCanvas() ? m_application->activeCanvas()->selectionManager() : nullptr;
+    if (selectionManager) {
+        QJsonArray selectedElements;
+        for (Element* elem : selectionManager->selectedElements()) {
+            QJsonObject elemObj;
+            elemObj["id"] = elem->getId();
+            elemObj["name"] = elem->getName();
+            elemObj["type"] = elem->metaObject()->className();
+            selectedElements.append(elemObj);
+        }
+        state["selectedElements"] = selectedElements;
+    }
+    
+    // Get all elements
+    auto elementModel = m_application->activeCanvas() ? m_application->activeCanvas()->elementModel() : nullptr;
+    if (elementModel) {
+        QJsonArray allElements;
+        for (int i = 0; i < elementModel->rowCount(); ++i) {
+            Element* elem = elementModel->elementAt(i);
+            if (elem) {
+                QJsonObject elemObj;
+                elemObj["id"] = elem->getId();
+                elemObj["name"] = elem->getName();
+                elemObj["type"] = elem->metaObject()->className();
+                
+                // Add position and size for visual elements
+                if (auto canvasElem = qobject_cast<CanvasElement*>(elem)) {
+                    elemObj["x"] = canvasElem->x();
+                    elemObj["y"] = canvasElem->y();
+                    elemObj["width"] = canvasElem->width();
+                    elemObj["height"] = canvasElem->height();
+                }
+                
+                allElements.append(elemObj);
+            }
+        }
+        state["elements"] = allElements;
+    }
+    
+    return QJsonDocument(state).toJson(QJsonDocument::Compact);
 }

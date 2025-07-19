@@ -12,6 +12,8 @@ class HitTestService;
 class JsonImporter;
 class CommandHistory;
 struct IModeHandler;
+class Frame;
+class CanvasElement;
 
 class CanvasController : public QObject {
     Q_OBJECT
@@ -110,6 +112,15 @@ public slots:
     void selectElementsInRect(const QRectF &rect);
     Q_INVOKABLE void selectAll();
     Q_INVOKABLE void deleteSelectedElements();
+    
+    // AI command support methods
+    Q_INVOKABLE void createFrame(const QRectF& rect);
+    Q_INVOKABLE void createTextInFrame(Frame* frame, const QString& text);
+    Q_INVOKABLE void moveElements(const QList<Element*>& elements, const QPointF& delta);
+    Q_INVOKABLE void resizeElement(CanvasElement* element, const QSizeF& newSize);
+    Q_INVOKABLE void setElementProperty(Element* element, const QString& property, const QVariant& value);
+    Q_INVOKABLE void createNode(const QPointF& position, const QString& nodeType, const QString& nodeTitle);
+    Q_INVOKABLE void createEdge(const QString& sourceNodeId, const QString& targetNodeId);
     
     // Access to HitTestService
     HitTestService* hitTestService() const { return m_hitTestService.get(); }

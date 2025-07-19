@@ -81,3 +81,26 @@ QString ConsoleMessageRepository::messageTypeToString(MessageType type) const
         return "output";
     }
 }
+
+void ConsoleMessageRepository::processConsoleCommand(const QString& command) {
+    // Add the command to console as input
+    addInput(command);
+    
+    // Check if it's a /cubitAI command
+    if (command.startsWith("/cubitAI ", Qt::CaseInsensitive)) {
+        // Extract the prompt after /cubitAI
+        QString prompt = command.mid(9).trimmed(); // 9 is length of "/cubitAI "
+        
+        if (prompt.isEmpty()) {
+            addError("Usage: /cubitAI <prompt>");
+            return;
+        }
+        
+        // Emit signal for Application to handle the CubitAI request
+        emit cubitAICommandReceived(prompt);
+    } else {
+        // Unknown command
+        addOutput("Unknown command: " + command);
+        addInfo("Available commands: /cubitAI <prompt>");
+    }
+}

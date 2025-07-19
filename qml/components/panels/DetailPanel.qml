@@ -170,8 +170,8 @@ Rectangle {
                 }
                 
                 onCommandSubmitted: function(command) {
-                    // Process the command through Application
-                    Application.processConsoleCommand(command)
+                    // Process the command through ConsoleMessageRepository
+                    ConsoleMessageRepository.processConsoleCommand(command)
                 }
             }
         }
