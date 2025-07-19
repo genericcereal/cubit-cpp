@@ -5,6 +5,7 @@
 #include "CanvasElement.h"
 #include "CanvasController.h"
 #include "Config.h"
+#include "commands/CreateDesignElementCommand.h"
 #include <QRectF>
 #include <memory>
 #include <QDebug>

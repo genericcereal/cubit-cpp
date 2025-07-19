@@ -10,9 +10,13 @@
 #include "TextComponentInstance.h"
 #include "Frame.h"
 #include "Text.h"
+#include "platforms/web/WebTextInput.h"
+#include "WebTextInputComponentVariant.h"
+#include "WebTextInputComponentInstance.h"
 #include "UniqueIdGenerator.h"
 #include "ElementModel.h"
 #include "SelectionManager.h"
+#include "PropertyDefinition.h"
 #include <QCoreApplication>
 #include <QDebug>
 #include <QHash>
@@ -511,8 +515,32 @@ Component* DesignElement::createComponent() {
         
         variant = variantText;
         component->setComponentType("text");
+    } else if (WebTextInput* sourceWebTextInput = qobject_cast<WebTextInput*>(this)) {
+        // WebTextInput elements become WebTextInputComponentVariants
+        WebTextInputComponentVariant* variantWebTextInput = new WebTextInputComponentVariant(variantId, this->parent());
+        variantWebTextInput->setVariantName("Variant1");
+        
+        // Center the variant in the canvas by positioning it so its center is at (0,0)
+        // This ensures it will be visible when the viewport centers on entering variant mode
+        qreal variantX = -width() / 2.0;
+        qreal variantY = -height() / 2.0;
+        variantWebTextInput->setRect(QRectF(variantX, variantY, width(), height()));
+        
+        // Copy all WebTextInput properties from the source
+        variantWebTextInput->setValue(sourceWebTextInput->value());
+        variantWebTextInput->setPlaceholder(sourceWebTextInput->placeholder());
+        variantWebTextInput->setBorderColor(sourceWebTextInput->borderColor());
+        variantWebTextInput->setBorderWidth(sourceWebTextInput->borderWidth());
+        variantWebTextInput->setBorderRadius(sourceWebTextInput->borderRadius());
+        variantWebTextInput->setPosition(sourceWebTextInput->position());
+        
+        // Copy anchor properties
+        copyElementProperties(variantWebTextInput, sourceWebTextInput, false);
+        
+        variant = variantWebTextInput;
+        component->setComponentType("webtextinput");
     } else {
-        qWarning() << "DesignElement::createComponent - Only Frame and Text elements can be converted to components";
+        qWarning() << "DesignElement::createComponent - Only Frame, Text, and WebTextInput elements can be converted to components";
         delete component;
         return nullptr;
     }
@@ -552,6 +580,10 @@ Component* DesignElement::createComponent() {
         TextComponentInstance* textInstance = new TextComponentInstance(instanceId, this->parent());
         textInstance->setRect(QRectF(x(), y(), width(), height()));
         instance = textInstance;
+    } else if (component->componentType() == "webtextinput") {
+        WebTextInputComponentInstance* webTextInputInstance = new WebTextInputComponentInstance(instanceId, this->parent());
+        webTextInputInstance->setRect(QRectF(x(), y(), width(), height()));
+        instance = webTextInputInstance;
     } else {
         // Default to frame-based ComponentInstance
         FrameComponentInstance* frameInstance = new FrameComponentInstance(instanceId, this->parent());
@@ -565,6 +597,8 @@ Component* DesignElement::createComponent() {
     // Set the instance to reference this component after both are in the model
     if (TextComponentInstance* textInstance = qobject_cast<TextComponentInstance*>(instance)) {
         textInstance->setInstanceOf(componentId);
+    } else if (WebTextInputComponentInstance* webTextInputInstance = qobject_cast<WebTextInputComponentInstance*>(instance)) {
+        webTextInputInstance->setInstanceOf(componentId);
     } else if (FrameComponentInstance* frameInstance = qobject_cast<FrameComponentInstance*>(instance)) {
         frameInstance->setInstanceOf(componentId);
     }
@@ -713,4 +747,10 @@ void DesignElement::copyElementProperties(CanvasElement* target, CanvasElement* 
             targetText->setColor(sourceText->color());
         }
     }
+}
+
+QList<PropertyDefinition> DesignElement::propertyDefinitions() const {
+    // Base DesignElement has no specific properties
+    // Derived classes should override this
+    return QList<PropertyDefinition>();
 }

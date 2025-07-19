@@ -6,6 +6,9 @@ import "platform/web"
 Item {
     id: root
     
+    // Element component mapper
+    property ElementComponentMapper mapper: ElementComponentMapper {}
+    
     required property var elementModel
     required property real canvasMinX
     required property real canvasMinY
@@ -36,16 +39,15 @@ Item {
             y: element && active ? element.y - root.canvasMinY : 0
             
             sourceComponent: {
-                if (!active || !element || !elementType) return null
-                switch(elementType) {
-                    case "Frame": return frameComponent
-                    case "FrameComponentVariant": return frameComponent
-                    case "FrameComponentInstance": 
-                        // Check if it's a text-based instance by checking for content property
-                        return element.hasOwnProperty('content') ? textComponent : frameComponent
-                    case "Text": return textComponent
-                    case "TextComponentVariant": return textComponent
-                    case "WebTextInput": return webTextInputComponent
+                if (!active || !element) return null
+                var componentPath = root.mapper.getComponentPath(element)
+                if (!componentPath) return null
+                
+                // Map paths to components
+                switch(componentPath) {
+                    case "FrameElement.qml": return frameComponent
+                    case "TextElement.qml": return textComponent
+                    case "platform/web/WebTextInputElement.qml": return webTextInputComponent
                     default: return null
                 }
             }

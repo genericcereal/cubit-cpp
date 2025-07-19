@@ -3,10 +3,6 @@
 #include "DesignElement.h"
 #include "ScriptElement.h"
 #include "Component.h"
-#include "FrameComponentVariant.h"
-#include "FrameComponentInstance.h"
-#include "TextComponentVariant.h"
-#include "TextComponentInstance.h"
 #include "Variable.h"
 #include "ElementModel.h"
 #include <QDebug>
@@ -172,18 +168,24 @@ bool ElementFilterProxy::shouldShowElementInMode(Element* element) const {
         // 2. ComponentInstance elements
         // Note: Component elements are already handled above
         
-        // Check if it's a ComponentInstance
-        if (qobject_cast<FrameComponentInstance*>(element) || qobject_cast<TextComponentInstance*>(element)) {
-            return true;
-        }
-        
         // For other elements, they must be design elements
         if (!canvasElement->isDesignElement()) {
             return false;
         }
         
+        // Cast to DesignElement to access component-related methods
+        DesignElement* designElement = qobject_cast<DesignElement*>(element);
+        if (!designElement) {
+            return false;
+        }
+        
+        // Check if it's a ComponentInstance
+        if (designElement->isComponentInstance()) {
+            return true;
+        }
+        
         // Check if this element is a ComponentVariant (should be hidden in design mode)
-        if (qobject_cast<FrameComponentVariant*>(element) || qobject_cast<TextComponentVariant*>(element)) {
+        if (designElement->isComponentVariant()) {
             return false;
         }
         
@@ -201,7 +203,8 @@ bool ElementFilterProxy::shouldShowElementInMode(Element* element) const {
                 }
                 
                 // Check if the parent is a ComponentVariant
-                if (qobject_cast<FrameComponentVariant*>(parent) || qobject_cast<TextComponentVariant*>(parent)) {
+                DesignElement* parentDesign = qobject_cast<DesignElement*>(parent);
+                if (parentDesign && parentDesign->isComponentVariant()) {
                     return false; // This element is a descendant of a ComponentVariant
                 }
                 

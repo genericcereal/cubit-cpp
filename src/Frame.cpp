@@ -4,6 +4,7 @@
 #include "Application.h"
 #include "Project.h"
 #include "SelectionManager.h"
+#include "FrameFactory.h"
 #include <QTimer>
 #include <QDebug>
 
@@ -486,4 +487,10 @@ void Frame::setupElementModelConnections()
     } else {
         qDebug() << "Frame::setupElementModelConnections - No active canvas/model yet for frame" << getId();
     }
+}
+
+QList<PropertyDefinition> Frame::propertyDefinitions() const {
+    // Use the FrameFactory to get consistent property definitions
+    static FrameFactory factory;
+    return factory.propertyDefinitions();
 }

@@ -1,5 +1,6 @@
 #include "Text.h"
 #include "Frame.h"
+#include "TextFactory.h"
 #include <QDebug>
 
 Text::Text(const QString &id, QObject *parent)
@@ -109,4 +110,10 @@ void Text::exitEditMode()
 {
     // Simply exit edit mode - the TextField will handle saving via onIsEditingChanged
     setIsEditing(false);
+}
+
+QList<PropertyDefinition> Text::propertyDefinitions() const {
+    // Use the TextFactory to get consistent property definitions
+    static TextFactory factory;
+    return factory.propertyDefinitions();
 }

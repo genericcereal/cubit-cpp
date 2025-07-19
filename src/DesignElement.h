@@ -34,6 +34,10 @@ public:
     virtual bool isDesignElement() const override { return true; }
     virtual bool isScriptElement() const override { return false; }
     
+    // Check if this is a component variant or instance
+    Q_INVOKABLE virtual bool isComponentVariant() const { return false; }
+    Q_INVOKABLE virtual bool isComponentInstance() const { return false; }
+    
     // Scripts management
     virtual Scripts* scripts() const;
     
@@ -85,6 +89,9 @@ public:
     
     // Static utility to copy properties between elements
     static void copyElementProperties(CanvasElement* target, CanvasElement* source, bool copyGeometry = false);
+    
+    // Get property definitions for this element type
+    virtual QList<class PropertyDefinition> propertyDefinitions() const;
     
 signals:
     void scriptsChanged();

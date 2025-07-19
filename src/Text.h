@@ -37,6 +37,9 @@ public:
     void setHeight(qreal h) override;
     void setRect(const QRectF &rect) override;
     
+    // Override to provide Text-specific property definitions
+    QList<PropertyDefinition> propertyDefinitions() const override;
+    
     Q_INVOKABLE void exitEditMode();
     
 signals:

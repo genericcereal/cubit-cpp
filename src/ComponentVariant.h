@@ -27,6 +27,9 @@ public:
     
     // Implement in derived class to push your per-type properties
     virtual void applyToInstance(ComponentInstance* instance) = 0;
+    
+    // Clone this variant to create a duplicate with a new ID
+    virtual ComponentVariant* clone(const QString& newId) const = 0;
 
 protected:
     QString m_id;

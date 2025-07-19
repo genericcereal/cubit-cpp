@@ -140,6 +140,9 @@ public:
     void setHeight(qreal h) override;
     void setRect(const QRectF &rect) override;
     
+    // Override to provide Frame-specific property definitions
+    QList<PropertyDefinition> propertyDefinitions() const override;
+    
 signals:
     void fillChanged();
     void colorFormatChanged();

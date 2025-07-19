@@ -30,6 +30,7 @@ public:
     
     // ComponentVariant interface
     virtual void applyToInstance(ComponentInstance* instance) override;
+    virtual ComponentVariant* clone(const QString& newId) const override;
     
     // Override scripts getter to return nullptr for variants
     Scripts* scripts() const override { return nullptr; }

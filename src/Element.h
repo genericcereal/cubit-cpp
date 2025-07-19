@@ -23,7 +23,9 @@ public:
         FrameComponentInstanceType,
         FrameComponentVariantType,
         TextVariantType,
-        WebTextInputType
+        WebTextInputType,
+        WebTextInputComponentInstanceType,
+        WebTextInputComponentVariantType
     };
     Q_ENUM(ElementType)
 
@@ -50,9 +52,6 @@ public:
     
     // Check if this is a visual element that appears on canvas
     virtual bool isVisual() const { return false; }
-    
-    // Check if this is a component variant
-    virtual bool isComponentVariant() const { return false; }
     
     // Check if this element should be shown in the element list
     virtual bool showInElementList() const { return m_showInElementList; }

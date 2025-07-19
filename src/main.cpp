@@ -35,6 +35,7 @@
 #include "DesignControlsController.h"
 #include "AuthenticationManager.h"
 #include "UrlSchemeHandler.h"
+#include "ElementTypeRegistry.h"
 
 
 int main(int argc, char *argv[])
@@ -52,6 +53,9 @@ int main(int argc, char *argv[])
     QApplication app(argc, argv);
     app.setApplicationName("Cubit");
     app.setOrganizationName("Cubit");
+    
+    // Initialize the ElementTypeRegistry with default types
+    ElementTypeRegistry::instance().initializeDefaultTypes();
     
     // Create authentication manager
     AuthenticationManager* authManager = new AuthenticationManager(&app);

@@ -63,3 +63,33 @@ void TextComponentVariant::applyToInstance(ComponentInstance* instance)
         textInstance->setRect(QRectF(x(), y(), width(), height()));
     }
 }
+
+ComponentVariant* TextComponentVariant::clone(const QString& newId) const
+{
+    TextComponentVariant* newVariant = new TextComponentVariant(newId, parent());
+    
+    // Copy geometry
+    newVariant->setRect(rect());
+    
+    // Copy all Text properties
+    newVariant->setContent(content());
+    newVariant->setFont(font());
+    newVariant->setColor(color());
+    newVariant->setPosition(position());
+    
+    // Copy anchor properties
+    newVariant->setLeft(left());
+    newVariant->setRight(right());
+    newVariant->setTop(top());
+    newVariant->setBottom(bottom());
+    newVariant->setLeftAnchored(leftAnchored());
+    newVariant->setRightAnchored(rightAnchored());
+    newVariant->setTopAnchored(topAnchored());
+    newVariant->setBottomAnchored(bottomAnchored());
+    
+    // Copy variant-specific properties
+    newVariant->setInstancesAcceptChildren(instancesAcceptChildren());
+    newVariant->setEditableProperties(editableProperties());
+    
+    return newVariant;
+}

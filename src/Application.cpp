@@ -15,6 +15,7 @@
 #include "CubitAIClient.h"
 #include "ConsoleMessageRepository.h"
 #include "AuthenticationManager.h"
+#include "ElementTypeRegistry.h"
 #include <QDebug>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -495,21 +496,26 @@ Element* Application::deserializeElement(const QJsonObject& elementData, Element
         
         Element* element = nullptr;
         
-        // Create element based on type
-        if (elementType == "Frame") {
-            element = new Frame(elementId, model);
-        } else if (elementType == "Text") {
-            element = new Text(elementId, model);
-        } else if (elementType == "WebTextInput") {
-            element = new WebTextInput(elementId, model);
-        } else if (elementType == "Variable") {
-            element = new Variable(elementId, model);
-        } else if (elementType == "Node") {
-            element = new Node(elementId, model);
-        } else if (elementType == "Edge") {
-            element = new Edge(elementId, model);
+        // Try to create element using registry first
+        ElementTypeRegistry& registry = ElementTypeRegistry::instance();
+        QString lowerTypeName = elementType.toLower();
+        
+        if (registry.hasType(lowerTypeName)) {
+            // Registry uses lowercase type names
+            element = registry.createElement(lowerTypeName, elementId);
         } else {
-            return nullptr;
+            // Fall back to direct creation for types not in registry yet
+            // (Variable, Node, Edge)
+            if (elementType == "Variable") {
+                element = new Variable(elementId, model);
+            } else if (elementType == "Node") {
+                element = new Node(elementId, model);
+            } else if (elementType == "Edge") {
+                element = new Edge(elementId, model);
+            } else {
+                qWarning() << "Unknown element type in deserialization:" << elementType;
+                return nullptr;
+            }
         }
         
         if (!element) {

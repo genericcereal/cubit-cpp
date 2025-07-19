@@ -34,6 +34,10 @@ QString Element::getTypeName() const
             return "TextComponentVariant";
         case WebTextInputType:
             return "WebTextInput";
+        case WebTextInputComponentInstanceType:
+            return "WebTextInputComponentInstance";
+        case WebTextInputComponentVariantType:
+            return "WebTextInputComponentVariant";
         default:
             return "Unknown";
     }

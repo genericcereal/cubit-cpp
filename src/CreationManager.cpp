@@ -13,6 +13,7 @@
 #include "Application.h"
 #include "Project.h"
 #include "Component.h"
+#include "ElementTypeRegistry.h"
 #include <QDebug>
 #include <QtMath>
 
@@ -51,14 +52,22 @@ Element* CreationManager::createElement(const QString& type, qreal x, qreal y, q
     
     qDebug() << "Creating element with unique ID:" << id;
     
-    if (type == "frame") {
-        element = new Frame(id);
+    // Use the ElementTypeRegistry for design elements
+    ElementTypeRegistry& registry = ElementTypeRegistry::instance();
+    
+    if (registry.hasType(type)) {
+        // Create using the registry
+        element = registry.createElement(type, id);
     } else if (type == "text") {
-        // For text creation preview, we'll use a Frame
+        // Special handling for text - create a Frame for preview
         // The actual Text element will be created by the command
-        element = new Frame(id);
+        element = registry.createElement("frame", id);
     } else if (type == "variable") {
+        // Variables are not design elements, handle separately
         element = new Variable(id);
+    } else {
+        qWarning() << "Unknown element type:" << type;
+        return nullptr;
     }
     
     if (element) {

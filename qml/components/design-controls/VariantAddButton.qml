@@ -38,7 +38,7 @@ Rectangle {
         cursorShape: Qt.PointingHandCursor
         
         onClicked: {
-            if (selectedVariant && (selectedVariant.elementType === "FrameComponentVariant" || selectedVariant.elementType === "TextComponentVariant")) {
+            if (selectedVariant && selectedVariant.isComponentVariant()) {
                 componentVariantAddButton.addVariantClicked(selectedVariant)
             }
         }

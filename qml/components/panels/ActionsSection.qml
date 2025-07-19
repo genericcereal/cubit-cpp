@@ -24,7 +24,8 @@ GroupBox {
         
         // Show for component instances
         if (selectedElement.elementType === "FrameComponentInstance" || 
-            selectedElement.elementType === "TextComponentInstance") return true
+            selectedElement.elementType === "TextComponentInstance" ||
+            selectedElement.elementType === "WebTextInputComponentInstance") return true
             
         return false
     }
@@ -64,7 +65,8 @@ GroupBox {
             font.pixelSize: 14
             visible: selectedDesignElement !== null && 
                      selectedElement.elementType !== "FrameComponentInstance" && 
-                     selectedElement.elementType !== "TextComponentInstance"
+                     selectedElement.elementType !== "TextComponentInstance" &&
+                     selectedElement.elementType !== "WebTextInputComponentInstance"
             
             background: Rectangle {
                 color: parent.pressed ? "#e0e0e0" : (parent.hovered ? "#f0f0f0" : "#ffffff")
@@ -92,10 +94,12 @@ GroupBox {
             visible: selectedElement && 
                      selectedElement.elementType !== "FrameComponentVariant" &&
                      selectedElement.elementType !== "TextComponentVariant" &&
+                     selectedElement.elementType !== "WebTextInputComponentVariant" &&
                      (selectedElement.isDesignElement || 
                       selectedElement.elementType === "Component" ||
                       selectedElement.elementType === "FrameComponentInstance" ||
-                      selectedElement.elementType === "TextComponentInstance")
+                      selectedElement.elementType === "TextComponentInstance" ||
+                      selectedElement.elementType === "WebTextInputComponentInstance")
             
             background: Rectangle {
                 color: parent.pressed ? "#e0e0e0" : (parent.hovered ? "#f0f0f0" : "#ffffff")

@@ -2,9 +2,13 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import Cubit 1.0
 import Cubit.UI 1.0
+import "."
 
 Item {
     id: root
+    
+    // Element component mapper
+    property ElementComponentMapper mapper: ElementComponentMapper {}
     
     // The C++ Element object
     property var element
@@ -117,18 +121,8 @@ Item {
                     }
                     
                     source: {
-                        if (!active || !childElement || !childElementType) return ""
-                        switch(childElementType) {
-                            case "Frame": return "FrameElement.qml"
-                            case "FrameComponentVariant": return "FrameElement.qml"
-                            case "FrameComponentInstance":
-                                // Check if it's a text-based instance by checking for content property
-                                return childElement.hasOwnProperty('content') ? "TextElement.qml" : "FrameElement.qml"
-                            case "Text": return "TextElement.qml"
-                            case "TextComponentVariant": return "TextElement.qml"
-                            case "WebTextInput": return "platform/web/WebTextInputElement.qml"
-                            default: return ""
-                        }
+                        if (!active || !childElement) return ""
+                        return root.mapper.getComponentPath(childElement)
                     }
                     
                     onLoaded: {

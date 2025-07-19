@@ -10,24 +10,14 @@
 class ElementModel;
 class SelectionManager;
 class DesignElement;
-class Frame;
-class Text;
-class WebTextInput;
 
 class CreateDesignElementCommand : public Command
 {
     Q_OBJECT
 
 public:
-    enum ElementType {
-        FrameElement,
-        TextElement,
-        WebTextInputElement
-    };
-    Q_ENUM(ElementType)
-
     CreateDesignElementCommand(ElementModel* model, SelectionManager* selectionManager,
-                              ElementType type, const QRectF& rect, 
+                              const QString& elementType, const QRectF& rect, 
                               const QVariant& initialPayload = QVariant(),
                               QObject *parent = nullptr);
     ~CreateDesignElementCommand();
@@ -38,18 +28,15 @@ public:
 private:
     QPointer<ElementModel> m_elementModel;
     QPointer<SelectionManager> m_selectionManager;
-    ElementType m_elementType;
+    QString m_elementType;
     QRectF m_rect;
     QVariant m_initialPayload;
     
-    // Created elements
-    QPointer<Frame> m_frame;
-    QPointer<Text> m_textElement;
-    QPointer<WebTextInput> m_webTextInput;
+    // Created element
+    QPointer<DesignElement> m_element;
     
-    // IDs for the created elements
-    QString m_frameId;
-    QString m_childElementId;
+    // ID for the created element
+    QString m_elementId;
 };
 
 #endif // CREATEDESIGNELEMENTCOMMAND_H
