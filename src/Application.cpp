@@ -36,6 +36,10 @@ Application::Application(QObject *parent)
     // Create panels manager
     m_panels = std::make_unique<Panels>(this);
     
+    // Connect to console repository for CubitAI commands
+    connect(ConsoleMessageRepository::instance(), &ConsoleMessageRepository::cubitAICommandReceived,
+            this, &Application::onCubitAICommandReceived, Qt::UniqueConnection);
+    
     // Create initial canvas
     createCanvas("Canvas 1");
 }
@@ -54,7 +58,7 @@ void Application::setAuthenticationManager(AuthenticationManager* authManager) {
     m_authManager = authManager;
     
     // Create CubitAI client now that we have auth manager
-    m_cubitAIClient = std::make_unique<CubitAIClient>(m_authManager, this);
+    m_cubitAIClient = std::make_unique<CubitAIClient>(m_authManager, this, this);
 }
 
 QString Application::createCanvas(const QString& name) {
@@ -622,37 +626,19 @@ Element* Application::deserializeElement(const QJsonObject& elementData, Element
     }
 }
 
-void Application::processConsoleCommand(const QString& command) {
-    // Add the command to console as input
-    ConsoleMessageRepository::instance()->addInput(command);
-    
-    // Check if it's a /cubitAI command
-    if (command.startsWith("/cubitAI ", Qt::CaseInsensitive)) {
-        // Extract the prompt after /cubitAI
-        QString prompt = command.mid(9).trimmed(); // 9 is length of "/cubitAI "
-        
-        if (prompt.isEmpty()) {
-            ConsoleMessageRepository::instance()->addError("Usage: /cubitAI <prompt>");
-            return;
-        }
-        
-        // Check if we have authentication
-        if (!m_authManager || !m_authManager->isAuthenticated()) {
-            ConsoleMessageRepository::instance()->addError("You must be authenticated to use CubitAI. Please log in first.");
-            return;
-        }
-        
-        // Check if CubitAI client is available
-        if (!m_cubitAIClient) {
-            ConsoleMessageRepository::instance()->addError("CubitAI client is not initialized.");
-            return;
-        }
-        
-        // Send the prompt to CubitAI
-        m_cubitAIClient->sendMessage(prompt);
-    } else {
-        // Unknown command
-        ConsoleMessageRepository::instance()->addOutput("Unknown command: " + command);
-        ConsoleMessageRepository::instance()->addInfo("Available commands: /cubitAI <prompt>");
+void Application::onCubitAICommandReceived(const QString& prompt) {
+    // Check if we have authentication
+    if (!m_authManager || !m_authManager->isAuthenticated()) {
+        ConsoleMessageRepository::instance()->addError("You must be authenticated to use CubitAI. Please log in first.");
+        return;
     }
+    
+    // Check if CubitAI client is available
+    if (!m_cubitAIClient) {
+        ConsoleMessageRepository::instance()->addError("CubitAI client is not initialized.");
+        return;
+    }
+    
+    // Send the prompt to CubitAI
+    m_cubitAIClient->sendMessage(prompt);
 }

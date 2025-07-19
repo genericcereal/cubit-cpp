@@ -1,4 +1,5 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
+import { CUBITAI_SYSTEM_PROMPT } from "./cubitai-system-prompt";
 
 /*== STEP 1 ===============================================================
 The section below creates a Todo database table with a "content" field. Try
@@ -10,16 +11,17 @@ const schema = a.schema({
   cubitAi: a
     .generation({
       aiModel: a.ai.model("Claude 3.5 Haiku"),
-      systemPrompt: "You are a design Assistant",
+      systemPrompt: CUBITAI_SYSTEM_PROMPT,
     })
-    .arguments({ description: a.string() })
+    .arguments({ 
+      description: a.string(),
+      canvasState: a.string() // Current canvas state as JSON string
+    })
     .returns(
-      a.string()
-      /*  a.customType({
-        response: a.string(),
-        ingredients: a.string().array(),
-        instructions: a.string(),
-      }) */
+      a.customType({
+        message: a.string(),      // Human-readable response
+        commands: a.string()      // Array of command objects as JSON string
+      })
     )
     .authorization((allow) => allow.authenticated()),
 });

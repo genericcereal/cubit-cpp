@@ -95,7 +95,8 @@ SOURCES += \
     src/DesignControlsController.cpp \
     src/AuthenticationManager.cpp \
     src/UrlSchemeHandler.cpp \
-    src/CubitAIClient.cpp
+    src/CubitAIClient.cpp \
+    src/AICommandDispatcher.cpp
 
 HEADERS += \
     src/Element.h \
@@ -165,7 +166,8 @@ HEADERS += \
     src/DesignControlsController.h \
     src/AuthenticationManager.h \
     src/UrlSchemeHandler.h \
-    src/CubitAIClient.h
+    src/CubitAIClient.h \
+    src/AICommandDispatcher.h
 
 RESOURCES += qml.qrc
 

@@ -36,10 +36,12 @@ public:
     
     Q_INVOKABLE void clearMessages();
     Q_INVOKABLE QString messageTypeToString(MessageType type) const;
+    Q_INVOKABLE void processConsoleCommand(const QString& command);
     
 signals:
     void messagesChanged();
     void messageAdded(const QString &text, MessageType type);
+    void cubitAICommandReceived(const QString& prompt);
     
 private:
     static ConsoleMessageRepository* s_instance;

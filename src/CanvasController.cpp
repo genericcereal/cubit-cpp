@@ -18,10 +18,17 @@
 #include "FrameComponentVariant.h"
 #include "TextComponentVariant.h"
 #include "WebTextInputComponentVariant.h"
+#include "Frame.h"
+#include "Text.h"
+#include "Node.h"
+#include "Edge.h"
 #include "Component.h"
 #include "DesignElement.h"
 #include "UniqueIdGenerator.h"
 #include <QDebug>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
 
 CanvasController::CanvasController(ElementModel& model,
                                    SelectionManager& sel,
@@ -404,6 +411,95 @@ void CanvasController::setSavedZoom(qreal zoom)
     if (m_savedZoom != zoom) {
         m_savedZoom = zoom;
         emit savedZoomChanged();
+    }
+}
+
+void CanvasController::createFrame(const QRectF& rect)
+{
+    // Use the creation manager to create a frame
+    m_creationManager->createElement("frame", rect.x(), rect.y(), rect.width(), rect.height());
+}
+
+void CanvasController::createTextInFrame(Frame* frame, const QString& text)
+{
+    if (!frame) return;
+    
+    // Create a text element inside the frame
+    QString textId = UniqueIdGenerator::generate16DigitId();
+    Text* textElement = new Text(textId, &m_elementModel);
+    textElement->setContent(text);
+    textElement->setParentElementId(frame->getId());
+    textElement->setX(0);  // Position at top-left of frame
+    textElement->setY(0);
+    textElement->setWidth(frame->width());
+    textElement->setHeight(30);  // Default text height
+    
+    m_elementModel.addElement(textElement);
+    
+    // Select the frame (not the text)
+    m_selectionManager.clearSelection();
+    m_selectionManager.selectElement(frame);
+}
+
+void CanvasController::moveElements(const QList<Element*>& elements, const QPointF& delta)
+{
+    if (elements.isEmpty()) return;
+    
+    // Create and execute move command
+    auto command = std::make_unique<MoveElementsCommand>(elements, delta);
+    m_commandHistory->execute(std::move(command));
+}
+
+void CanvasController::resizeElement(CanvasElement* element, const QSizeF& newSize)
+{
+    if (!element) return;
+    
+    // Get current rect and create new rect with new size
+    QRectF oldRect(element->x(), element->y(), element->width(), element->height());
+    QRectF newRect(element->x(), element->y(), newSize.width(), newSize.height());
+    
+    // Create and execute resize command
+    auto command = std::make_unique<ResizeElementCommand>(element, oldRect, newRect);
+    m_commandHistory->execute(std::move(command));
+}
+
+void CanvasController::setElementProperty(Element* element, const QString& property, const QVariant& value)
+{
+    if (!element) return;
+    
+    // Get current value
+    QVariant oldValue = element->property(property.toUtf8().constData());
+    
+    // Create and execute set property command
+    auto command = std::make_unique<SetPropertyCommand>(element, property, oldValue, value);
+    m_commandHistory->execute(std::move(command));
+}
+
+void CanvasController::createNode(const QPointF& position, const QString& nodeType, const QString& nodeTitle)
+{
+    // Use existing createNode method with appropriate parameters
+    createNode(position.x(), position.y(), nodeTitle, nodeType);
+}
+
+void CanvasController::createEdge(const QString& sourceNodeId, const QString& targetNodeId)
+{
+    // Find nodes
+    Element* sourceElement = m_elementModel.getElementById(sourceNodeId);
+    Element* targetElement = m_elementModel.getElementById(targetNodeId);
+    
+    Node* sourceNode = qobject_cast<Node*>(sourceElement);
+    Node* targetNode = qobject_cast<Node*>(targetElement);
+    
+    if (!sourceNode || !targetNode) return;
+    
+    // Create edge between first output port of source and first input port of target
+    if (!sourceNode->outputPorts().isEmpty() && !targetNode->inputPorts().isEmpty()) {
+        // Node ports are QStringList, so we use the port names directly
+        QString sourcePort = sourceNode->outputPorts().first();
+        QString targetPort = targetNode->inputPorts().first();
+        
+        // Create edge using port indices (0 for first port)
+        m_creationManager->createEdge(sourceNodeId, targetNodeId, "output", "input", 0, 0);
     }
 }
 
