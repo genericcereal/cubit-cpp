@@ -64,6 +64,12 @@ int main(int argc, char *argv[])
     UrlSchemeHandler* urlHandler = new UrlSchemeHandler(authManager, &app);
     urlHandler->registerUrlScheme();
     
+    // If user is already authenticated (has saved tokens), refresh them on startup
+    if (authManager->isAuthenticated()) {
+        qDebug() << "User authenticated with saved tokens, refreshing...";
+        authManager->refreshAccessToken();
+    }
+    
     // Handle command line arguments for URL scheme on some platforms
     QStringList args = app.arguments();
     if (args.size() > 1) {

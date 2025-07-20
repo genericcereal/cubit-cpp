@@ -27,6 +27,13 @@ Item {
         property point selectionStartPoint: Qt.point(0, 0)
         
         onPressed: (mouse) => {
+            // Clear focus from any active element (like console input)
+            var window = root.Window.window
+            if (window && window.activeFocusItem) {
+                window.activeFocusItem.focus = false
+                console.log("SelectionArea: Cleared focus from", window.activeFocusItem)
+            }
+            
             // Only start selection if:
             // 1. We're in select mode
             // 2. Click is not on a control

@@ -18,7 +18,7 @@ For creating elements with children:
 Example - Creating a frame with text:
 User: Create a frame with some text
 Commands: 
-1. createElement frame with tempId myFrame in params
-2. createElement text with parentId myFrame in params
+1. createElement frame with a descriptive message, tempId myFrame in params
+2. createElement text with a descriptive message, parentId myFrame in params
 
 The system will automatically replace tempIds with actual element IDs during execution.`;

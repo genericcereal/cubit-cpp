@@ -3,14 +3,26 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Cubit
 
-Rectangle {
+FocusScope {
     id: root
-    color: "#ffffff"
     
     // Signal emitted when user submits a command
     signal commandSubmitted(string command)
     
     property var repository: ConsoleMessageRepository
+    
+    Rectangle {
+        anchors.fill: parent
+        color: "#ffffff"
+        
+        // Global mouse area to remove focus when clicking anywhere
+        MouseArea {
+            anchors.fill: parent
+            onClicked: {
+                // Remove focus from input field
+                root.focus = true
+            }
+        }
     
     ColumnLayout {
         anchors.fill: parent
@@ -26,6 +38,32 @@ Rectangle {
                 id: listView
                 model: root.repository.messages
                 clip: true
+                
+                // Remove focus when clicking on the list
+                TapHandler {
+                    onTapped: {
+                        if (inputField.activeFocus) {
+                            inputField.focus = false
+                        }
+                    }
+                }
+                
+                // Auto-scroll to bottom when new messages are added
+                Connections {
+                    target: root.repository
+                    function onMessagesChanged() {
+                        // Use a timer to ensure the ListView has updated before scrolling
+                        scrollTimer.restart()
+                    }
+                }
+                
+                Timer {
+                    id: scrollTimer
+                    interval: 10
+                    onTriggered: {
+                        listView.positionViewAtEnd()
+                    }
+                }
                 
                 delegate: Rectangle {
                     width: listView.width
@@ -81,6 +119,12 @@ Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 40
             color: "#f8f8f8"
+            
+            // Stop propagation of mouse events in input area
+            MouseArea {
+                anchors.fill: parent
+                // Accept events but don't do anything - prevents global MouseArea from getting them
+            }
             
             RowLayout {
                 anchors.fill: parent
@@ -147,5 +191,6 @@ Rectangle {
                 }
             }
         }
+    }
     }
 }
