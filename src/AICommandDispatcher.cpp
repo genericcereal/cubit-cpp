@@ -34,6 +34,7 @@ void AICommandDispatcher::executeCommand(const QJsonObject& command)
     }
     
     QString type = command["type"].toString();
+    QString description = command.contains("description") ? command["description"].toString() : QString("Executing %1 command").arg(type);
     QJsonObject params = command.contains("params") ? command["params"].toObject() : QJsonObject();
     
     try {
@@ -54,7 +55,7 @@ void AICommandDispatcher::executeCommand(const QJsonObject& command)
             return;
         }
         
-        emit commandExecuted(type, true);
+        emit commandExecuted(description, true);
     } catch (const std::exception& e) {
         emit commandError(QString("Command execution failed: %1").arg(e.what()));
     }
@@ -163,7 +164,34 @@ void AICommandDispatcher::executeCreateElement(const QJsonObject& command)
             Element* parent = activeElementModel()->getElementById(parentId);
             if (auto frame = qobject_cast<Frame*>(parent)) {
                 QString text = params["text"].toString("New Text");
-                controller->createTextInFrame(frame, text);
+                
+                // Create text element with absolute positioning
+                QString textId = UniqueIdGenerator::generate16DigitId();
+                Text* textElement = new Text(textId, activeElementModel());
+                textElement->setContent(text);
+                textElement->setParentElementId(frame->getId());
+                
+                // Use absolute coordinates from params
+                double textX = params["x"].toDouble(frame->x());
+                double textY = params["y"].toDouble(frame->y());
+                double textWidth = params["width"].toDouble(frame->width());
+                double textHeight = params["height"].toDouble(30);
+                
+                textElement->setX(textX);
+                textElement->setY(textY);
+                textElement->setWidth(textWidth);
+                textElement->setHeight(textHeight);
+                
+                qDebug() << "AI creating text element:" << textId 
+                         << "at absolute position" << textX << "," << textY
+                         << "inside frame" << frame->getId()
+                         << "which is at" << frame->x() << "," << frame->y();
+                
+                activeElementModel()->addElement(textElement);
+                
+                // Select the frame (not the text)
+                activeSelectionManager()->clearSelection();
+                activeSelectionManager()->selectElement(frame);
             } else {
                 emit commandError("Parent must be a Frame for Text elements");
             }

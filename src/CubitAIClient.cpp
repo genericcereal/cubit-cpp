@@ -33,9 +33,9 @@ CubitAIClient::CubitAIClient(AuthenticationManager* authManager, Application* ap
     
     // Connect to command dispatcher signals
     connect(m_commandDispatcher.get(), &AICommandDispatcher::commandExecuted,
-            this, [](const QString& commandType, bool success) {
+            this, [](const QString& description, bool success) {
         if (success) {
-            ConsoleMessageRepository::instance()->addInfo(QString("Command '%1' executed successfully").arg(commandType));
+            ConsoleMessageRepository::instance()->addInfo(description);
         }
     });
     
@@ -275,7 +275,7 @@ bool CubitAIClient::isTokenExpiredError(const QJsonDocument& doc) const {
 }
 
 void CubitAIClient::onTokensRefreshed() {
-    ConsoleMessageRepository::instance()->addInfo("Tokens refreshed. Retrying previous request...");
+    ConsoleMessageRepository::instance()->addInfo("Tokens refreshed");
     
     // If we were retrying after a refresh, retry the pending query
     if (m_isRetryingAfterRefresh && !m_pendingQuery.isEmpty()) {

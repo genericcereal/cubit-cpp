@@ -13,9 +13,11 @@ MULTIPLE ELEMENT CREATION:
 - NEVER stack multiple new elements at the same position
 
 Child element positioning:
-- CRITICAL: Child elements ALWAYS use coordinates relative to their parent, NOT canvas coordinates
-- Text inside Frame: use x:0, y:0 to place at top-left of the parent Frame
-- Text at x:10, y:10 means 10 pixels from the parent's top-left corner
-- NEVER use negative coordinates for child elements
-- NEVER use the parent's canvas position when positioning children
-- Example: If Frame is at canvas position 200,300 and you want Text at its top-left, use x:0, y:0 NOT x:200, y:300`;
+- IMPORTANT: ALL elements use absolute canvas coordinates, even child elements
+- For child elements (like Text inside Frame), calculate absolute position by adding offset to parent position
+- Example: If parent Frame is at (200, 300) and you want Text 10 pixels from frame's top-left:
+  - Text should be at x: 210, y: 310 (parent position + offset)
+- Common pattern for text inside frames:
+  - Parent frame at (100, 100) → Text at (110, 110) for 10px padding
+  - Parent frame at (320, 100) → Text at (330, 110) for 10px padding
+- NEVER use relative coordinates like (0, 0) or (10, 10) - always calculate absolute position`;

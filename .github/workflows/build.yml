@@ -79,20 +79,111 @@ jobs:
         codesign --force --sign "${{ secrets.APPLE_DEVELOPER_ID }}" cubit-quick.dmg
     
     - name: Notarize application
+      timeout-minutes: 180  # 3 hour timeout for the step itself
       env:
         APPLE_ID: ${{ secrets.APPLE_ID }}
         APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
         APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       run: |
-        # Submit for notarization
-        xcrun notarytool submit cubit-quick.dmg \
+        echo "Starting notarization process..."
+        
+        # Verify DMG exists and show info
+        echo "DMG file info:"
+        ls -la cubit-quick.dmg
+        file cubit-quick.dmg
+        
+        # Submit for notarization and capture the submission ID
+        echo "Submitting DMG for notarization..."
+        SUBMISSION_OUTPUT=$(xcrun notarytool submit cubit-quick.dmg \
           --apple-id "$APPLE_ID" \
           --password "$APPLE_ID_PASSWORD" \
           --team-id "$APPLE_TEAM_ID" \
-          --wait
+          --output-format json)
+        
+        echo "Submission output: $SUBMISSION_OUTPUT"
+        
+        # Extract submission ID
+        SUBMISSION_ID=$(echo "$SUBMISSION_OUTPUT" | jq -r '.id')
+        
+        if [ -z "$SUBMISSION_ID" ] || [ "$SUBMISSION_ID" = "null" ]; then
+          echo "Failed to get submission ID from notarytool"
+          echo "Full output: $SUBMISSION_OUTPUT"
+          exit 1
+        fi
+        
+        echo "Submission ID: $SUBMISSION_ID"
+        
+        # Poll for notarization status with timeout
+        START_TIME=$(date +%s)
+        TIMEOUT=10800  # 3 hours in seconds
+        POLL_INTERVAL=30  # Check every 30 seconds
+        
+        while true; do
+          CURRENT_TIME=$(date +%s)
+          ELAPSED=$((CURRENT_TIME - START_TIME))
+          
+          if [ $ELAPSED -gt $TIMEOUT ]; then
+            echo "Notarization timed out after $((ELAPSED / 60)) minutes"
+            
+            # Get the log for debugging
+            echo "Fetching notarization log..."
+            xcrun notarytool log "$SUBMISSION_ID" \
+              --apple-id "$APPLE_ID" \
+              --password "$APPLE_ID_PASSWORD" \
+              --team-id "$APPLE_TEAM_ID"
+            
+            exit 1
+          fi
+          
+          echo "Checking notarization status (elapsed: $((ELAPSED / 60)) minutes)..."
+          
+          STATUS_OUTPUT=$(xcrun notarytool info "$SUBMISSION_ID" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_ID_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --output-format json)
+          
+          STATUS=$(echo "$STATUS_OUTPUT" | jq -r '.status')
+          
+          echo "Current status: $STATUS"
+          
+          case "$STATUS" in
+            "Accepted")
+              echo "Notarization succeeded!"
+              break
+              ;;
+            "Rejected"|"Invalid")
+              echo "Notarization failed with status: $STATUS"
+              echo "Full status output: $STATUS_OUTPUT"
+              
+              # Get the log for debugging
+              echo "Fetching notarization log..."
+              xcrun notarytool log "$SUBMISSION_ID" \
+                --apple-id "$APPLE_ID" \
+                --password "$APPLE_ID_PASSWORD" \
+                --team-id "$APPLE_TEAM_ID"
+              
+              exit 1
+              ;;
+            "In Progress")
+              echo "Notarization still in progress..."
+              sleep $POLL_INTERVAL
+              ;;
+            *)
+              echo "Unknown status: $STATUS"
+              echo "Full status output: $STATUS_OUTPUT"
+              sleep $POLL_INTERVAL
+              ;;
+          esac
+        done
         
         # Staple the notarization
+        echo "Stapling notarization to DMG..."
         xcrun stapler staple cubit-quick.dmg
+        
+        # Verify the stapling
+        echo "Verifying stapled DMG..."
+        xcrun stapler validate cubit-quick.dmg
     
     - name: Upload macOS artifact
       uses: actions/upload-artifact@v4
