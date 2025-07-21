@@ -1,0 +1,132 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Lambda resource stack creation using Amplify CLI",
+  "Parameters": {
+    "env": {
+      "Type": "String"
+    },
+    "storagecubitChatTableName": {
+      "Type": "String",
+      "Description": "DynamoDB table name for ConversationMessageCubitChat"
+    },
+    "storagecubitChatTableStreamArn": {
+      "Type": "String",
+      "Description": "DynamoDB table stream ARN"
+    }
+  },
+  "Resources": {
+    "LambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "FunctionName": {
+          "Fn::Sub": "cubitAIStreamHandler-${env}"
+        },
+        "Runtime": "nodejs18.x",
+        "Handler": "index.handler",
+        "Timeout": 60,
+        "MemorySize": 512,
+        "Role": {
+          "Fn::GetAtt": ["LambdaExecutionRole", "Arn"]
+        },
+        "Environment": {
+          "Variables": {
+            "ENV": {
+              "Ref": "env"
+            },
+            "APPSYNC_ENDPOINT": {
+              "Fn::ImportValue": {
+                "Fn::Sub": "${env}:GetAtt:GraphQLAPIEndpointOutput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "LambdaExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "ManagedPolicyArns": [
+          "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+        ],
+        "Policies": [
+          {
+            "PolicyName": "DynamoDBStreamPolicy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "dynamodb:DescribeStream",
+                    "dynamodb:GetRecords",
+                    "dynamodb:GetShardIterator",
+                    "dynamodb:ListStreams"
+                  ],
+                  "Resource": {
+                    "Ref": "storagecubitChatTableStreamArn"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "PolicyName": "AppSyncPolicy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "appsync:GraphQL"
+                  ],
+                  "Resource": {
+                    "Fn::Sub": "arn:aws:appsync:${AWS::Region}:${AWS::AccountId}:apis/*"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "DynamoDBStreamEventSourceMapping": {
+      "Type": "AWS::Lambda::EventSourceMapping",
+      "Properties": {
+        "EventSourceArn": {
+          "Ref": "storagecubitChatTableStreamArn"
+        },
+        "FunctionName": {
+          "Ref": "LambdaFunction"
+        },
+        "StartingPosition": "LATEST",
+        "MaximumBatchingWindowInSeconds": 1,
+        "FilterCriteria": {
+          "Filters": [
+            {
+              "Pattern": "{\"eventName\": [\"INSERT\"], \"dynamodb\": {\"NewImage\": {\"__typename\": {\"S\": [\"ConversationMessageCubitChat\"]}, \"role\": {\"S\": [\"user\"]}}}}"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "LambdaFunctionArn": {
+      "Value": {
+        "Fn::GetAtt": ["LambdaFunction", "Arn"]
+      }
+    }
+  }
+}

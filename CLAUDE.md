@@ -380,6 +380,7 @@ When creating new UI components:
           this, &SelectionManager::onElementGeometryChanged,
           Qt::UniqueConnection);
   ```
+- **NEVER REVERT TO PREVIOUS IMPLEMENTATIONS** when working on new functionality. If a new implementation isn't working, debug and fix it rather than falling back to old code. Do not suggest using legacy implementations as a temporary solution.
 
 ## Qt Quick Migration Plan
 
@@ -910,3 +911,4 @@ When creating new commands:
           this, &SelectionManager::onElementGeometryChanged,
           Qt::UniqueConnection);
   ```
+- **NEVER REVERT TO PREVIOUS IMPLEMENTATIONS** when working on new functionality. If a new implementation isn't working, debug and fix it rather than falling back to old code. Do not suggest using legacy implementations as a temporary solution.

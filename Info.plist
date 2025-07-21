@@ -24,10 +24,10 @@
     <array>
         <dict>
             <key>CFBundleURLName</key>
-            <string>MyApp URL</string>
+            <string>Cubit App URL</string>
             <key>CFBundleURLSchemes</key>
             <array>
-                <string>myapp</string>
+                <string>cubitapp</string>
             </array>
         </dict>
     </array>

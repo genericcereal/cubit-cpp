@@ -2,25 +2,37 @@ import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 import { CUBITAI_SYSTEM_PROMPT } from "./cubitai-system-prompt";
 
 /*== STEP 1 ===============================================================
-The section below creates a Todo database table with a "content" field. Try
-adding a new "isDone" field as a boolean. The authorization rule below
-specifies that any unauthenticated user can "create", "read", "update", 
-and "delete" any "Todo" records.
+The section below creates the schema for the AI conversation system with
+streaming support. It uses the Amplify Conversation API to enable real-time
+AI responses via WebSocket subscriptions.
 =========================================================================*/
 const schema = a.schema({
-  cubitAi: a
-    .generation({
+  // Conversation API - this creates the conversation system
+  CubitChat: a
+    .conversation({
       aiModel: a.ai.model("Claude 3.5 Haiku"),
       systemPrompt: CUBITAI_SYSTEM_PROMPT,
+      inferenceConfiguration: {
+        maxTokens: 4000,
+        temperature: 0.7,
+      },
     })
-    .arguments({ 
+    .authorization((allow) => allow.owner()),
+
+  // Legacy cubitAi for backward compatibility (can be removed later)
+  cubitAi: a
+    .generation({
+      aiModel: a.ai.model("Claude 3 Haiku"),
+      systemPrompt: CUBITAI_SYSTEM_PROMPT,
+    })
+    .arguments({
       description: a.string(),
-      canvasState: a.string() // Current canvas state as JSON string
+      canvasState: a.string(), // Current canvas state as JSON string
     })
     .returns(
       a.customType({
-        message: a.string(),      // Human-readable response
-        commands: a.string()      // Array of command objects as JSON string
+        message: a.string(), // Human-readable response
+        commands: a.string(), // Array of command objects as JSON string
       })
     )
     .authorization((allow) => allow.authenticated()),
@@ -31,35 +43,6 @@ export type Schema = ClientSchema<typeof schema>;
 export const data = defineData({
   schema,
   authorizationModes: {
-    defaultAuthorizationMode: "identityPool",
+    defaultAuthorizationMode: "userPool", // ✅ Must be userPool for owner()
   },
 });
-
-/*== STEP 2 ===============================================================
-Go to your frontend source code. From your client-side code, generate a
-Data client to make CRUDL requests to your table. (THIS SNIPPET WILL ONLY
-WORK IN THE FRONTEND CODE FILE.)
-
-Using JavaScript or Next.js React Server Components, Middleware, Server 
-Actions or Pages Router? Review how to generate Data clients for those use
-cases: https://docs.amplify.aws/gen2/build-a-backend/data/connect-to-API/
-=========================================================================*/
-
-/*
-"use client"
-import { generateClient } from "aws-amplify/data";
-import type { Schema } from "@/amplify/data/resource";
-
-const client = generateClient<Schema>() // use this Data client for CRUDL requests
-*/
-
-/*== STEP 3 ===============================================================
-Fetch records from the database and use them in your frontend component.
-(THIS SNIPPET WILL ONLY WORK IN THE FRONTEND CODE FILE.)
-=========================================================================*/
-
-/* For example, in a React component, you can use this snippet in your
-  function's RETURN statement */
-// const { data: todos } = await client.models.Todo.list()
-
-// return <ul>{todos.map(todo => <li key={todo.id}>{todo.content}</li>)}</ul>
