@@ -38,15 +38,21 @@ public:
     Q_INVOKABLE QString messageTypeToString(MessageType type) const;
     Q_INVOKABLE void processConsoleCommand(const QString& command);
     
+    // Message with ID support for updates
+    QString addMessageWithId(const QString &text, MessageType type = Output);
+    void updateMessage(const QString &id, const QString &text);
+    void removeMessage(const QString &id);
+    
 signals:
     void messagesChanged();
     void messageAdded(const QString &text, MessageType type);
-    void cubitAICommandReceived(const QString& prompt);
+    void aiCommandReceived(const QString& prompt);
     
 private:
     static ConsoleMessageRepository* s_instance;
     
     struct Message {
+        QString id;
         QString text;
         MessageType type;
         QDateTime timestamp;

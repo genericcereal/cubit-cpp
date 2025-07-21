@@ -1,0 +1,7 @@
+{
+  "lambdaLayers": [],
+  "environmentVariables": {
+    "APPSYNC_ENDPOINT": "{your-appsync-endpoint}",
+    "ANTHROPIC_API_KEY": "{your-anthropic-api-key}"
+  }
+}

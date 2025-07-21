@@ -13,8 +13,8 @@ AuthenticationManager::AuthenticationManager(QObject *parent)
     , m_callbackTimer(new QTimer(this))
 {
     // Configure default values from the provided URL
-    m_cognitoDomain = "https://us-west-2jxin0vera.auth.us-west-2.amazoncognito.com";
-    m_clientId = "j7r7koen5v8u6pl7ijpu9re29";
+    m_cognitoDomain = "https://us-west-2jequuy6sn.auth.us-west-2.amazoncognito.com";
+    m_clientId = "2l40nv8rncp41ur8ql5httl8ni";
     m_redirectUri = "cubitapp://callback";
     
     // Setup callback timer for checking if authentication completed
@@ -264,6 +264,7 @@ void AuthenticationManager::clearAuthData()
     
     // Clear saved tokens
     QSettings settings;
+    settings.remove("auth/idToken");
     settings.remove("auth/accessToken");
     settings.remove("auth/refreshToken");
     settings.remove("auth/userName");
@@ -319,6 +320,7 @@ void AuthenticationManager::setIsLoading(bool loading)
 void AuthenticationManager::saveTokens()
 {
     QSettings settings;
+    settings.setValue("auth/idToken", m_idToken);
     settings.setValue("auth/accessToken", m_accessToken);
     settings.setValue("auth/refreshToken", m_refreshToken);
     settings.setValue("auth/userName", m_userName);
@@ -328,12 +330,13 @@ void AuthenticationManager::saveTokens()
 void AuthenticationManager::loadTokens()
 {
     QSettings settings;
+    m_idToken = settings.value("auth/idToken").toString();
     m_accessToken = settings.value("auth/accessToken").toString();
     m_refreshToken = settings.value("auth/refreshToken").toString();
     QString savedUserName = settings.value("auth/userName").toString();
     QString savedUserEmail = settings.value("auth/userEmail").toString();
     
-    if (!m_accessToken.isEmpty() && !m_refreshToken.isEmpty()) {
+    if (!m_idToken.isEmpty() && !m_refreshToken.isEmpty()) {
         setUserName(savedUserName);
         setUserEmail(savedUserEmail);
         setIsAuthenticated(true);

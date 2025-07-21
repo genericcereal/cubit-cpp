@@ -1,4 +1,4 @@
-QT += core gui widgets qml quick quickcontrols2 quicktemplates2 network
+QT += core gui widgets qml quick quickcontrols2 quicktemplates2 network websockets
 QT += webenginecore webenginequick
 CONFIG += c++17
 CONFIG += qmltypes
@@ -95,7 +95,7 @@ SOURCES += \
     src/DesignControlsController.cpp \
     src/AuthenticationManager.cpp \
     src/UrlSchemeHandler.cpp \
-    src/CubitAIClient.cpp \
+    src/StreamingAIClient.cpp \
     src/AICommandDispatcher.cpp
 
 HEADERS += \
@@ -166,7 +166,7 @@ HEADERS += \
     src/DesignControlsController.h \
     src/AuthenticationManager.h \
     src/UrlSchemeHandler.h \
-    src/CubitAIClient.h \
+    src/StreamingAIClient.h \
     src/AICommandDispatcher.h
 
 RESOURCES += qml.qrc

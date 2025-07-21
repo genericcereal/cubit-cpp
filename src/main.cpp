@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
     if (args.size() > 1) {
         for (int i = 1; i < args.size(); ++i) {
             QUrl url(args[i]);
-            if (url.scheme() == "myapp") {
+            if (url.scheme() == "cubitapp") {
                 urlHandler->handleUrl(url);
             }
         }

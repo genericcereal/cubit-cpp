@@ -12,7 +12,7 @@
 #include "Node.h"
 #include "Edge.h"
 #include "platforms/web/WebTextInput.h"
-#include "CubitAIClient.h"
+#include "StreamingAIClient.h"
 #include "ConsoleMessageRepository.h"
 #include "AuthenticationManager.h"
 #include "ElementTypeRegistry.h"
@@ -36,9 +36,9 @@ Application::Application(QObject *parent)
     // Create panels manager
     m_panels = std::make_unique<Panels>(this);
     
-    // Connect to console repository for CubitAI commands
-    connect(ConsoleMessageRepository::instance(), &ConsoleMessageRepository::cubitAICommandReceived,
-            this, &Application::onCubitAICommandReceived, Qt::UniqueConnection);
+    // Connect to console repository for AI commands
+    connect(ConsoleMessageRepository::instance(), &ConsoleMessageRepository::aiCommandReceived,
+            this, &Application::onAICommandReceived, Qt::UniqueConnection);
     
     // Create initial canvas
     createCanvas("Canvas 1");
@@ -57,8 +57,8 @@ Application* Application::instance() {
 void Application::setAuthenticationManager(AuthenticationManager* authManager) {
     m_authManager = authManager;
     
-    // Create CubitAI client now that we have auth manager
-    m_cubitAIClient = std::make_unique<CubitAIClient>(m_authManager, this, this);
+    // Create Streaming AI client now that we have auth manager
+    m_streamingAIClient = std::make_unique<StreamingAIClient>(m_authManager, this, this);
 }
 
 QString Application::createCanvas(const QString& name) {
@@ -626,19 +626,19 @@ Element* Application::deserializeElement(const QJsonObject& elementData, Element
     }
 }
 
-void Application::onCubitAICommandReceived(const QString& prompt) {
+void Application::onAICommandReceived(const QString& prompt) {
     // Check if we have authentication
     if (!m_authManager || !m_authManager->isAuthenticated()) {
-        ConsoleMessageRepository::instance()->addError("You must be authenticated to use CubitAI. Please log in first.");
+        ConsoleMessageRepository::instance()->addError("You must be authenticated to use the AI assistant. Please log in first.");
         return;
     }
     
-    // Check if CubitAI client is available
-    if (!m_cubitAIClient) {
-        ConsoleMessageRepository::instance()->addError("CubitAI client is not initialized.");
+    // Check if Streaming AI client is available
+    if (!m_streamingAIClient) {
+        ConsoleMessageRepository::instance()->addError("AI client is not initialized.");
         return;
     }
     
-    // Send the prompt to CubitAI
-    m_cubitAIClient->sendMessage(prompt);
+    // Send the prompt to the AI
+    m_streamingAIClient->sendMessage(prompt);
 }

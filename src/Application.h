@@ -10,7 +10,7 @@
 #include "Panels.h"
 
 class Element;
-class CubitAIClient;
+class StreamingAIClient;
 class AuthenticationManager;
 
 class Application : public QObject {
@@ -63,14 +63,14 @@ signals:
     void openFileRequested();
 
 private slots:
-    void onCubitAICommandReceived(const QString& prompt);
+    void onAICommandReceived(const QString& prompt);
 
 private:
     static Application* s_instance;
     std::vector<std::unique_ptr<Project>> m_canvases;
     QString m_activeCanvasId;
     std::unique_ptr<Panels> m_panels;
-    std::unique_ptr<CubitAIClient> m_cubitAIClient;
+    std::unique_ptr<StreamingAIClient> m_streamingAIClient;
     AuthenticationManager* m_authManager = nullptr;
     
     Project* findCanvas(const QString& canvasId);
