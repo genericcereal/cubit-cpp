@@ -23,7 +23,7 @@ jobs:
         host: 'mac'
         target: 'desktop'
         arch: 'clang_64'
-        modules: 'qtwebengine qtwebchannel qtpositioning'
+        modules: 'qtwebengine qtwebchannel qtpositioning qtwebsockets'
         cache: true
     
     - name: Setup Code Signing
@@ -85,105 +85,225 @@ jobs:
         APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
         APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       run: |
-        echo "Starting notarization process..."
+        echo "=== NOTARIZATION DEBUGGING START ==="
+        echo "Starting notarization process at $(date)"
         
-        # Verify DMG exists and show info
-        echo "DMG file info:"
+        # Check environment
+        echo "=== ENVIRONMENT CHECK ==="
+        echo "Apple ID present: $([[ -n "$APPLE_ID" ]] && echo "YES" || echo "NO")"
+        echo "Apple ID length: ${#APPLE_ID}"
+        echo "Password present: $([[ -n "$APPLE_ID_PASSWORD" ]] && echo "YES" || echo "NO")"
+        echo "Password length: ${#APPLE_ID_PASSWORD}"
+        echo "Team ID: $APPLE_TEAM_ID"
+        echo "Team ID length: ${#APPLE_TEAM_ID}"
+        
+        # Check Xcode and notarytool versions
+        echo "=== TOOL VERSIONS ==="
+        echo "Xcode version:"
+        xcodebuild -version
+        echo "Xcode path:"
+        xcode-select -p
+        echo "notarytool location:"
+        which notarytool || echo "notarytool not in PATH"
+        echo "xcrun notarytool version:"
+        xcrun notarytool --version || echo "Failed to get notarytool version"
+        
+        # Verify DMG exists and show detailed info
+        echo "=== DMG FILE INFO ==="
+        echo "Current directory: $(pwd)"
+        echo "Directory contents:"
+        ls -la
+        echo "DMG file details:"
         ls -la cubit-quick.dmg
         file cubit-quick.dmg
+        echo "DMG size: $(du -h cubit-quick.dmg | cut -f1)"
+        echo "DMG MD5: $(md5 -q cubit-quick.dmg || md5sum cubit-quick.dmg | cut -d' ' -f1)"
         
-        # Submit for notarization and capture the submission ID
-        echo "Submitting DMG for notarization..."
+        # Test authentication first
+        echo "=== TESTING AUTHENTICATION ==="
+        echo "Testing notarytool authentication..."
+        AUTH_TEST=$(xcrun notarytool history \
+          --apple-id "$APPLE_ID" \
+          --password "$APPLE_ID_PASSWORD" \
+          --team-id "$APPLE_TEAM_ID" \
+          --output-format json 2>&1)
+        AUTH_EXIT_CODE=$?
+        echo "Authentication test exit code: $AUTH_EXIT_CODE"
+        echo "Authentication test output (first 500 chars): ${AUTH_TEST:0:500}"
+        
+        if [ $AUTH_EXIT_CODE -ne 0 ]; then
+          echo "WARNING: Authentication test failed, but continuing..."
+        fi
+        
+        # Submit for notarization with verbose output
+        echo "=== SUBMITTING FOR NOTARIZATION ==="
+        echo "Submitting DMG for notarization at $(date)..."
+        echo "Command: xcrun notarytool submit cubit-quick.dmg --apple-id [REDACTED] --password [REDACTED] --team-id $APPLE_TEAM_ID --output-format json"
+        
+        # Capture both stdout and stderr
         SUBMISSION_OUTPUT=$(xcrun notarytool submit cubit-quick.dmg \
           --apple-id "$APPLE_ID" \
           --password "$APPLE_ID_PASSWORD" \
           --team-id "$APPLE_TEAM_ID" \
-          --output-format json)
+          --output-format json 2>&1)
+        SUBMISSION_EXIT_CODE=$?
         
+        echo "Submission exit code: $SUBMISSION_EXIT_CODE"
         echo "Submission output: $SUBMISSION_OUTPUT"
         
-        # Extract submission ID
-        SUBMISSION_ID=$(echo "$SUBMISSION_OUTPUT" | jq -r '.id')
+        # Try to extract submission ID even if exit code is non-zero
+        SUBMISSION_ID=$(echo "$SUBMISSION_OUTPUT" | jq -r '.id' 2>/dev/null || echo "")
         
         if [ -z "$SUBMISSION_ID" ] || [ "$SUBMISSION_ID" = "null" ]; then
-          echo "Failed to get submission ID from notarytool"
-          echo "Full output: $SUBMISSION_OUTPUT"
-          exit 1
+          echo "ERROR: Failed to get submission ID from notarytool"
+          echo "Full raw output:"
+          echo "$SUBMISSION_OUTPUT"
+          
+          # Try alternative parsing
+          echo "Trying alternative ID extraction..."
+          SUBMISSION_ID=$(echo "$SUBMISSION_OUTPUT" | grep -o '"id":"[^"]*"' | cut -d'"' -f4 || echo "")
+          echo "Alternative extraction result: '$SUBMISSION_ID'"
+          
+          if [ -z "$SUBMISSION_ID" ]; then
+            exit 1
+          fi
         fi
         
-        echo "Submission ID: $SUBMISSION_ID"
+        echo "Successfully got submission ID: $SUBMISSION_ID"
         
-        # Poll for notarization status with timeout
+        # Poll for notarization status with detailed logging
         START_TIME=$(date +%s)
         TIMEOUT=10800  # 3 hours in seconds
         POLL_INTERVAL=30  # Check every 30 seconds
+        CHECK_COUNT=0
+        
+        echo "=== POLLING FOR STATUS ==="
+        echo "Will check every $POLL_INTERVAL seconds for up to $((TIMEOUT / 60)) minutes"
         
         while true; do
           CURRENT_TIME=$(date +%s)
           ELAPSED=$((CURRENT_TIME - START_TIME))
+          CHECK_COUNT=$((CHECK_COUNT + 1))
           
           if [ $ELAPSED -gt $TIMEOUT ]; then
-            echo "Notarization timed out after $((ELAPSED / 60)) minutes"
+            echo "ERROR: Notarization timed out after $((ELAPSED / 60)) minutes"
+            echo "Total checks performed: $CHECK_COUNT"
             
             # Get the log for debugging
-            echo "Fetching notarization log..."
-            xcrun notarytool log "$SUBMISSION_ID" \
+            echo "=== FETCHING FINAL LOG ==="
+            echo "Fetching notarization log at $(date)..."
+            LOG_OUTPUT=$(xcrun notarytool log "$SUBMISSION_ID" \
               --apple-id "$APPLE_ID" \
               --password "$APPLE_ID_PASSWORD" \
-              --team-id "$APPLE_TEAM_ID"
+              --team-id "$APPLE_TEAM_ID" 2>&1)
+            echo "Log output:"
+            echo "$LOG_OUTPUT"
             
             exit 1
           fi
           
-          echo "Checking notarization status (elapsed: $((ELAPSED / 60)) minutes)..."
+          echo "=== STATUS CHECK #$CHECK_COUNT ==="
+          echo "Time: $(date)"
+          echo "Elapsed: $((ELAPSED / 60)) minutes $((ELAPSED % 60)) seconds"
+          echo "Checking notarization status..."
           
           STATUS_OUTPUT=$(xcrun notarytool info "$SUBMISSION_ID" \
             --apple-id "$APPLE_ID" \
             --password "$APPLE_ID_PASSWORD" \
             --team-id "$APPLE_TEAM_ID" \
-            --output-format json)
+            --output-format json 2>&1)
+          STATUS_EXIT_CODE=$?
           
-          STATUS=$(echo "$STATUS_OUTPUT" | jq -r '.status')
+          echo "Status check exit code: $STATUS_EXIT_CODE"
+          
+          # Extract status even if exit code is non-zero
+          STATUS=$(echo "$STATUS_OUTPUT" | jq -r '.status' 2>/dev/null || echo "")
+          
+          if [ -z "$STATUS" ]; then
+            echo "WARNING: Could not extract status from output"
+            echo "Raw output: $STATUS_OUTPUT"
+            STATUS=$(echo "$STATUS_OUTPUT" | grep -o '"status":"[^"]*"' | cut -d'"' -f4 || echo "Unknown")
+          fi
           
           echo "Current status: $STATUS"
+          echo "Full status output: $STATUS_OUTPUT"
           
           case "$STATUS" in
             "Accepted")
-              echo "Notarization succeeded!"
+              echo "SUCCESS: Notarization accepted!"
+              echo "Total time: $((ELAPSED / 60)) minutes $((ELAPSED % 60)) seconds"
               break
               ;;
             "Rejected"|"Invalid")
-              echo "Notarization failed with status: $STATUS"
+              echo "ERROR: Notarization failed with status: $STATUS"
               echo "Full status output: $STATUS_OUTPUT"
               
               # Get the log for debugging
+              echo "=== FETCHING ERROR LOG ==="
               echo "Fetching notarization log..."
-              xcrun notarytool log "$SUBMISSION_ID" \
+              LOG_OUTPUT=$(xcrun notarytool log "$SUBMISSION_ID" \
                 --apple-id "$APPLE_ID" \
                 --password "$APPLE_ID_PASSWORD" \
-                --team-id "$APPLE_TEAM_ID"
+                --team-id "$APPLE_TEAM_ID" 2>&1)
+              echo "Log output:"
+              echo "$LOG_OUTPUT"
               
               exit 1
               ;;
             "In Progress")
-              echo "Notarization still in progress..."
+              echo "Status: Still in progress..."
+              
+              # Every 10 checks, try to get more info
+              if [ $((CHECK_COUNT % 10)) -eq 0 ]; then
+                echo "=== EXTENDED STATUS CHECK ==="
+                echo "Attempting to get submission history..."
+                HISTORY_OUTPUT=$(xcrun notarytool history \
+                  --apple-id "$APPLE_ID" \
+                  --password "$APPLE_ID_PASSWORD" \
+                  --team-id "$APPLE_TEAM_ID" \
+                  --output-format json 2>&1 | jq ".history[] | select(.id==\"$SUBMISSION_ID\")" 2>/dev/null || echo "{}")
+                echo "Submission history entry: $HISTORY_OUTPUT"
+              fi
+              
               sleep $POLL_INTERVAL
               ;;
             *)
-              echo "Unknown status: $STATUS"
-              echo "Full status output: $STATUS_OUTPUT"
+              echo "WARNING: Unknown or unexpected status: $STATUS"
+              echo "Full output: $STATUS_OUTPUT"
+              
+              # If we get connection errors, add exponential backoff
+              if [[ "$STATUS_OUTPUT" == *"connection"* ]] || [[ "$STATUS_OUTPUT" == *"timeout"* ]]; then
+                echo "Detected possible connection issue, increasing wait time..."
+                POLL_INTERVAL=$((POLL_INTERVAL * 2))
+                if [ $POLL_INTERVAL -gt 300 ]; then
+                  POLL_INTERVAL=300  # Cap at 5 minutes
+                fi
+                echo "New poll interval: $POLL_INTERVAL seconds"
+              fi
+              
               sleep $POLL_INTERVAL
               ;;
           esac
         done
         
         # Staple the notarization
-        echo "Stapling notarization to DMG..."
-        xcrun stapler staple cubit-quick.dmg
+        echo "=== STAPLING NOTARIZATION ==="
+        echo "Stapling notarization to DMG at $(date)..."
+        STAPLE_OUTPUT=$(xcrun stapler staple cubit-quick.dmg 2>&1)
+        STAPLE_EXIT_CODE=$?
+        echo "Staple exit code: $STAPLE_EXIT_CODE"
+        echo "Staple output: $STAPLE_OUTPUT"
         
         # Verify the stapling
+        echo "=== VERIFYING STAPLED DMG ==="
         echo "Verifying stapled DMG..."
-        xcrun stapler validate cubit-quick.dmg
+        VALIDATE_OUTPUT=$(xcrun stapler validate cubit-quick.dmg 2>&1)
+        VALIDATE_EXIT_CODE=$?
+        echo "Validate exit code: $VALIDATE_EXIT_CODE"
+        echo "Validate output: $VALIDATE_OUTPUT"
+        
+        echo "=== NOTARIZATION DEBUGGING END ==="
+        echo "Notarization process completed at $(date)"
     
     - name: Upload macOS artifact
       uses: actions/upload-artifact@v4
@@ -205,7 +325,7 @@ jobs:
         host: 'windows'
         target: 'desktop'
         arch: 'win64_msvc2019_64'
-        modules: 'qtwebengine qtwebchannel qtpositioning'
+        modules: 'qtwebengine qtwebchannel qtpositioning qtwebsockets'
         cache: true
     
     - name: Setup MSVC
