@@ -62,9 +62,43 @@ jobs:
           ENTITLEMENTS=""
         fi
         
-        codesign --deep --force --verify --verbose \
+        # First, sign all frameworks and dylibs from the inside out
+        echo "Signing frameworks..."
+        find cubit-quick.app/Contents/Frameworks -name "*.framework" -o -name "*.dylib" | while read -r framework; do
+          echo "Signing: $framework"
+          codesign --force --sign "${{ secrets.APPLE_DEVELOPER_ID }}" \
+            --options runtime --timestamp \
+            $ENTITLEMENTS \
+            "$framework"
+        done
+        
+        # Sign all plugins
+        echo "Signing plugins..."
+        find cubit-quick.app/Contents/PlugIns -name "*.dylib" | while read -r plugin; do
+          echo "Signing: $plugin"
+          codesign --force --sign "${{ secrets.APPLE_DEVELOPER_ID }}" \
+            --options runtime --timestamp \
+            $ENTITLEMENTS \
+            "$plugin"
+        done
+        
+        # Sign any other executables or bundles
+        echo "Signing other executables..."
+        find cubit-quick.app -type f -perm +111 -o -name "*.bundle" | while read -r exe; do
+          if file "$exe" | grep -q "Mach-O"; then
+            echo "Signing: $exe"
+            codesign --force --sign "${{ secrets.APPLE_DEVELOPER_ID }}" \
+              --options runtime --timestamp \
+              $ENTITLEMENTS \
+              "$exe" || true
+          fi
+        done
+        
+        # Finally, sign the main app bundle
+        echo "Signing main application..."
+        codesign --force --verify --verbose \
           --sign "${{ secrets.APPLE_DEVELOPER_ID }}" \
-          --options runtime \
+          --options runtime --timestamp \
           $ENTITLEMENTS \
           cubit-quick.app
         
