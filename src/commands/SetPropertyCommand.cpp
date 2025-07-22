@@ -31,15 +31,9 @@ void SetPropertyCommand::execute()
 {
     if (!m_target) return;
 
-    if (m_firstExecute) {
-        // First execution - property is already at new value from UI interaction
-        // Just mark as executed
-        m_firstExecute = false;
-    } else {
-        // Redo - set property to new value
-        m_target->setProperty(m_propertyName.toUtf8().constData(), m_newValue);
-    }
-
+    // Always set the property to the new value
+    m_target->setProperty(m_propertyName.toUtf8().constData(), m_newValue);
+    m_firstExecute = false;
 }
 
 void SetPropertyCommand::undo()

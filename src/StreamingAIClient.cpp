@@ -18,6 +18,7 @@
 #include <QNetworkRequest>
 #include <QNetworkReply>
 #include <QUuid>
+#include <QRegularExpression>
 
 StreamingAIClient::StreamingAIClient(AuthenticationManager *authManager, Application *app, QObject *parent)
     : QObject(parent), m_webSocket(std::make_unique<QWebSocket>()), m_authManager(authManager), m_application(app), m_commandDispatcher(std::make_unique<AICommandDispatcher>(app, this)), m_isConnected(false), m_connectionAckReceived(false), m_reconnectAttempts(0)
@@ -69,6 +70,19 @@ void StreamingAIClient::sendMessage(const QString &description)
     m_accumulatedCommands.clear();
 
     QString authToken = getAuthToken();
+    
+    // Check if we have a valid token, if not trigger authentication
+    if (authToken.isEmpty() && m_authManager) {
+        ConsoleMessageRepository::instance()->addError("Authentication required. Please log in.");
+        // Trigger authentication or token refresh
+        if (!m_authManager->isAuthenticated()) {
+            m_authManager->login();
+        } else {
+            // Try to refresh the token
+            m_authManager->refreshAccessToken();
+        }
+        return;
+    }
 
     if (!m_isConnected)
     {
@@ -83,6 +97,32 @@ void StreamingAIClient::sendMessage(const QString &description)
 bool StreamingAIClient::isConnected() const
 {
     return m_isConnected && m_connectionAckReceived;
+}
+
+void StreamingAIClient::handleUserContinuationResponse(bool accepted, const QString &feedback)
+{
+    // Hide the prompt options
+    ConsoleMessageRepository::instance()->setShowAIPrompt(false);
+    
+    if (!m_currentConversationId.isEmpty() && !m_pendingContinuationContext.isEmpty())
+    {
+        QString message;
+        if (accepted) {
+            // User accepted, continue with the planned action
+            message = "Continue: " + m_pendingContinuationContext;
+            ConsoleMessageRepository::instance()->addInfo("Continuing with AI plan...");
+        } else {
+            // User provided feedback, adjust the plan
+            message = "User feedback: " + feedback + ". Please adjust the plan for: " + m_pendingContinuationContext;
+            ConsoleMessageRepository::instance()->addInfo("Adjusting AI plan based on feedback...");
+        }
+        
+        // Send the continuation or feedback message
+        sendConversationMessage(m_currentConversationId, message);
+        
+        // Clear the pending context
+        m_pendingContinuationContext.clear();
+    }
 }
 
 void StreamingAIClient::connectToWebSocket()
@@ -293,8 +333,13 @@ void StreamingAIClient::onError(QAbstractSocket::SocketError error)
 void StreamingAIClient::onTokensRefreshed()
 {
     // Tokens refreshed, reconnecting
+    qDebug() << "Tokens refreshed in StreamingAIClient, reconnecting WebSocket";
     disconnectFromWebSocket();
-    connectToWebSocket();
+    
+    // If we have a pending message, reconnect and retry
+    if (!m_pendingMessage.isEmpty()) {
+        connectToWebSocket();
+    }
 }
 
 void StreamingAIClient::sendPing()
@@ -388,10 +433,10 @@ void StreamingAIClient::subscribeToResponses(const QString &conversationId)
 {
     m_currentSubscriptionId = QUuid::createUuid().toString(QUuid::WithoutBraces);
 
-    // From schema.graphql line 184: onAssistantResponseStreamCubitChat
+    // Using the correct subscription name from amplify_outputs.json
     QString query = R"(
-        subscription OnAssistantResponseStreamCubitChat($conversationId: ID!) {
-            onAssistantResponseStreamCubitChat(conversationId: $conversationId) {
+        subscription OnCreateAssistantResponseCubitChat($conversationId: ID!) {
+            onCreateAssistantResponseCubitChat(conversationId: $conversationId) {
                 id
                 owner
                 conversationId
@@ -553,9 +598,9 @@ void StreamingAIClient::handleSubscriptionData(const QJsonObject &payload)
     QJsonObject data = payload["data"].toObject();
     
     // Handle Amplify Conversation API streaming response
-    if (data.contains("onAssistantResponseStreamCubitChat"))
+    if (data.contains("onCreateAssistantResponseCubitChat"))
     {
-        QJsonObject resp = data["onAssistantResponseStreamCubitChat"].toObject();
+        QJsonObject resp = data["onCreateAssistantResponseCubitChat"].toObject();
         
         // Extract text content from contentBlockText
         QString chunk = resp["contentBlockText"].toString();
@@ -589,10 +634,7 @@ void StreamingAIClient::processStreamingResponse(const QString &chunk, int idx, 
     if (!chunk.isEmpty())
     {
         m_accumulatedResponse += chunk;
-        if (chunk.contains("[") || chunk.contains("{") || !m_accumulatedCommands.isEmpty())
-        {
-            m_accumulatedCommands += chunk;
-        }
+        // Remove the legacy command accumulation since we'll parse from the full response
         emit responseChunkReceived(chunk);
     }
     
@@ -612,27 +654,215 @@ void StreamingAIClient::finalizeResponse()
         ConsoleMessageRepository::instance()->addOutput(QString("AI: %1").arg(m_accumulatedResponse));
         emit responseReceived(m_accumulatedResponse);
     }
-    if (!m_accumulatedCommands.isEmpty())
+    
+    // Try to parse commands from the accumulated response
+    // The AI might return commands in different formats:
+    // 1. As a JSON object with a "commands" field containing a stringified JSON array
+    // 2. As a direct JSON array
+    if (!m_accumulatedResponse.isEmpty())
     {
-        int startIdx = m_accumulatedCommands.indexOf('[');
-        int endIdx = m_accumulatedCommands.lastIndexOf(']');
-        if (startIdx != -1 && endIdx > startIdx)
+        // Clean up the response to handle malformed JSON
+        QString cleanedResponse = m_accumulatedResponse;
+        
+        // Find the JSON object boundaries more carefully
+        int jsonStartIdx = -1;
+        int jsonEndIdx = -1;
+        int braceCount = 0;
+        bool inString = false;
+        bool escapeNext = false;
+        
+        for (int i = 0; i < cleanedResponse.length(); i++) {
+            QChar ch = cleanedResponse[i];
+            
+            if (escapeNext) {
+                escapeNext = false;
+                continue;
+            }
+            
+            if (ch == '\\') {
+                escapeNext = true;
+                continue;
+            }
+            
+            if (ch == '"' && !escapeNext) {
+                inString = !inString;
+                continue;
+            }
+            
+            if (!inString) {
+                if (ch == '{') {
+                    if (jsonStartIdx == -1) jsonStartIdx = i;
+                    braceCount++;
+                } else if (ch == '}') {
+                    braceCount--;
+                    if (braceCount == 0 && jsonStartIdx != -1) {
+                        jsonEndIdx = i;
+                        break;  // Found complete JSON object
+                    }
+                }
+            }
+        }
+        
+        if (jsonStartIdx != -1 && jsonEndIdx > jsonStartIdx)
         {
-            QString jsonPart = m_accumulatedCommands.mid(startIdx, endIdx - startIdx + 1);
-            QJsonDocument doc = QJsonDocument::fromJson(jsonPart.toUtf8());
-            if (doc.isArray())
+            QString jsonStr = cleanedResponse.mid(jsonStartIdx, jsonEndIdx - jsonStartIdx + 1);
+            QJsonParseError parseError;
+            QJsonDocument doc = QJsonDocument::fromJson(jsonStr.toUtf8(), &parseError);
+            
+            if (parseError.error != QJsonParseError::NoError) {
+                qWarning() << "JSON parse error:" << parseError.errorString() << "at offset" << parseError.offset;
+                qWarning() << "JSON string:" << jsonStr;
+                
+                // Try to fix common JSON issues
+                jsonStr.replace("\\n", " ");  // Remove newlines that might break JSON
+                doc = QJsonDocument::fromJson(jsonStr.toUtf8(), &parseError);
+                
+                if (parseError.error != QJsonParseError::NoError) {
+                    return;
+                }
+            }
+            
+            if (doc.isObject())
             {
-                QJsonArray cmds = doc.array();
-                if (!cmds.isEmpty())
+                QJsonObject obj = doc.object();
+                bool commandsExecuted = false;
+                
+                if (obj.contains("commands") && obj["commands"].isString())
                 {
-                    // Executing commands
-                    m_commandDispatcher->executeCommands(cmds);
-                    emit commandsReceived(cmds);
+                    // Parse the stringified commands array
+                    QString commandsStr = obj["commands"].toString();
+                    
+                    // Try to fix common JSON corruption issues
+                    // Sometimes the AI splits IDs or values across JSON boundaries
+                    if (commandsStr.contains("\"parentId\":\"") && !commandsStr.contains("\"parentId\":\"\"")) {
+                        // Find incomplete parentId patterns
+                        QRegularExpression incompleteParentId("\"parentId\":\"[0-9]+$");
+                        if (incompleteParentId.match(commandsStr).hasMatch()) {
+                            // Try to find the rest of the ID in the continuation
+                            QRegularExpression findRestOfId("^[0-9]+\"");
+                            int pos = commandsStr.indexOf(incompleteParentId);
+                            if (pos != -1) {
+                                // Look for numbers after the partial ID
+                                QString afterPartial = commandsStr.mid(pos + incompleteParentId.match(commandsStr).capturedLength());
+                                QRegularExpression numbers("^[0-9]+");
+                                auto match = numbers.match(afterPartial);
+                                if (match.hasMatch()) {
+                                    // Fix by adding quotes around the complete ID
+                                    QString beforeId = commandsStr.left(pos);
+                                    QString partialId = incompleteParentId.match(commandsStr).captured();
+                                    QString restOfId = match.captured();
+                                    QString afterId = afterPartial.mid(match.capturedLength());
+                                    commandsStr = beforeId + partialId + restOfId + "\"" + afterId;
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Also try to fix split element types like "setProperty912\\"
+                    commandsStr.replace(QRegularExpression("\"setProperty[0-9]+\\\\+\""), "\"setProperty\"");
+                    
+                    QJsonParseError parseError;
+                    QJsonDocument cmdDoc = QJsonDocument::fromJson(commandsStr.toUtf8(), &parseError);
+                    
+                    if (cmdDoc.isArray())
+                    {
+                        QJsonArray cmds = cmdDoc.array();
+                        if (!cmds.isEmpty())
+                        {
+                            qDebug() << "Executing" << cmds.size() << "commands from AI";
+                            m_commandDispatcher->executeCommands(cmds);
+                            emit commandsReceived(cmds);
+                            commandsExecuted = true;
+                        }
+                    }
+                    else
+                    {
+                        qWarning() << "Failed to parse commands string as JSON array:" << commandsStr;
+                        qWarning() << "Parse error:" << parseError.errorString() << "at" << parseError.offset;
+                        
+                        // Try one more time with aggressive cleanup
+                        commandsStr.replace("\\\\", "\\");
+                        commandsStr.replace("\n", " ");
+                        cmdDoc = QJsonDocument::fromJson(commandsStr.toUtf8(), &parseError);
+                        
+                        if (cmdDoc.isArray()) {
+                            QJsonArray cmds = cmdDoc.array();
+                            if (!cmds.isEmpty()) {
+                                qDebug() << "Executing" << cmds.size() << "commands from AI (after cleanup)";
+                                m_commandDispatcher->executeCommands(cmds);
+                                emit commandsReceived(cmds);
+                                commandsExecuted = true;
+                            }
+                        }
+                    }
+                }
+                
+                // Check if AI wants to continue
+                bool shouldContinue = obj["shouldContinue"].toBool(false);
+                QString continuationContext = obj["continuationContext"].toString();
+                
+                if (shouldContinue && !continuationContext.isEmpty())
+                {
+                    // Execute commands first if we haven't already
+                    if (!commandsExecuted && obj.contains("commands") && obj["commands"].isString())
+                    {
+                        // Parse and execute commands before showing prompt
+                        QString commandsStr = obj["commands"].toString();
+                        QJsonParseError parseError;
+                        QJsonDocument cmdDoc = QJsonDocument::fromJson(commandsStr.toUtf8(), &parseError);
+                        
+                        if (cmdDoc.isArray())
+                        {
+                            QJsonArray cmds = cmdDoc.array();
+                            if (!cmds.isEmpty())
+                            {
+                                qDebug() << "Executing" << cmds.size() << "commands from AI before continuation prompt";
+                                m_commandDispatcher->executeCommands(cmds);
+                                emit commandsReceived(cmds);
+                            }
+                        }
+                    }
+                    
+                    ConsoleMessageRepository::instance()->addInfo("AI will continue with: " + continuationContext);
+                    
+                    // Show the AI prompt options to the user
+                    ConsoleMessageRepository::instance()->setShowAIPrompt(true);
+                    
+                    // Store the continuation context for later use
+                    m_pendingContinuationContext = continuationContext;
+                    
+                    // Don't automatically continue - wait for user input
+                }
+            }
+        }
+        
+        // If no JSON object found, try the legacy approach with accumulated commands
+        else if (!m_accumulatedCommands.isEmpty())
+        {
+            int startIdx = m_accumulatedCommands.indexOf('[');
+            int endIdx = m_accumulatedCommands.lastIndexOf(']');
+            if (startIdx != -1 && endIdx > startIdx)
+            {
+                QString jsonPart = m_accumulatedCommands.mid(startIdx, endIdx - startIdx + 1);
+                QJsonDocument doc = QJsonDocument::fromJson(jsonPart.toUtf8());
+                if (doc.isArray())
+                {
+                    QJsonArray cmds = doc.array();
+                    if (!cmds.isEmpty())
+                    {
+                        qDebug() << "Executing" << cmds.size() << "commands from AI (legacy format)";
+                        m_commandDispatcher->executeCommands(cmds);
+                        emit commandsReceived(cmds);
+                    }
                 }
             }
         }
     }
+    
     m_pendingMessage.clear();
+    m_accumulatedResponse.clear();
+    m_accumulatedCommands.clear();
+    // Don't clear m_pendingContinuationContext here - it needs to persist for user response
 }
 
 void StreamingAIClient::handleComplete(const QString &subId)

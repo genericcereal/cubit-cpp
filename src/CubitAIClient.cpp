@@ -15,6 +15,7 @@
 #include <QJsonArray>
 #include <QFile>
 #include <QDebug>
+#include <QTimer>
 
 CubitAIClient::CubitAIClient(AuthenticationManager* authManager, Application* app, QObject *parent)
     : QObject(parent)
@@ -204,6 +205,21 @@ void CubitAIClient::handleNetworkReply(QNetworkReply* reply) {
                 m_commandDispatcher->executeCommands(commands);
                 emit commandsReceived(commands);
             }
+            
+            // Check if AI wants to continue
+            bool shouldContinue = aiResponse["shouldContinue"].toBool(false);
+            QString continuationContext = aiResponse["continuationContext"].toString();
+            
+            if (shouldContinue && !continuationContext.isEmpty()) {
+                // Store the continuation context and trigger another request
+                ConsoleMessageRepository::instance()->addInfo("AI will continue with: " + continuationContext);
+                
+                // Wait a moment for commands to execute, then continue
+                QTimer::singleShot(500, this, [this, continuationContext]() {
+                    // Send continuation request with updated canvas state
+                    sendMessage("Continue: " + continuationContext);
+                });
+            }
         }
     }
 }
@@ -328,6 +344,15 @@ QString CubitAIClient::getCanvasState() const {
                     elemObj["y"] = canvasElem->y();
                     elemObj["width"] = canvasElem->width();
                     elemObj["height"] = canvasElem->height();
+                }
+                
+                // Add fill property for Frame elements
+                if (elem->metaObject()->className() == QString("Frame")) {
+                    QVariant fillVariant = elem->property("fill");
+                    if (fillVariant.isValid() && fillVariant.canConvert<QColor>()) {
+                        QColor fillColor = fillVariant.value<QColor>();
+                        elemObj["fill"] = fillColor.name();
+                    }
                 }
                 
                 allElements.append(elemObj);

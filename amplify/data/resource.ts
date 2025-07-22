@@ -33,6 +33,8 @@ const schema = a.schema({
       a.customType({
         message: a.string(), // Human-readable response
         commands: a.string(), // Array of command objects as JSON string
+        shouldContinue: a.boolean(), // Whether AI should continue with more commands
+        continuationContext: a.string(), // Context for the next turn (optional)
       })
     )
     .authorization((allow) => allow.authenticated()),

@@ -31,6 +31,9 @@ public:
 
     /** Returns true if WebSocket connected + connection_ack received */
     bool isConnected() const;
+    
+    /** Handle user response to AI continuation prompt */
+    void handleUserContinuationResponse(bool accepted, const QString &feedback = QString());
 
 signals:
     void connected();
@@ -103,6 +106,8 @@ private:
     QString m_accumulatedCommands;
     QString m_currentConversationId;
     QString m_currentSubscriptionId;
+    int m_continuationCount;
+    QString m_pendingContinuationContext;
     
     // Loading indicator
     QTimer *m_loadingTimer;

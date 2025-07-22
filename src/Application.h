@@ -64,6 +64,7 @@ signals:
 
 private slots:
     void onAICommandReceived(const QString& prompt);
+    void onAIContinuationResponse(bool accepted, const QString& feedback);
 
 private:
     static Application* s_instance;

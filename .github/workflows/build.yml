@@ -71,7 +71,31 @@ jobs:
         # Verify signature
         codesign --verify --deep --strict --verbose=2 cubit-quick.app
     
+    - name: Calculate app bundle hash
+      id: app_hash
+      run: |
+        # Calculate hash of the app bundle (excluding variable metadata)
+        APP_HASH=$(find cubit-quick.app -type f -name "*.dylib" -o -name "*.framework" -o -name "cubit-quick" | 
+                   xargs shasum -a 256 | 
+                   sort | 
+                   shasum -a 256 | 
+                   cut -d' ' -f1)
+        echo "hash=$APP_HASH" >> $GITHUB_OUTPUT
+        echo "App bundle hash: $APP_HASH"
+    
+    - name: Check notarization cache
+      id: cache_check
+      uses: actions/cache@v4
+      with:
+        path: |
+          cubit-quick-notarized.dmg
+          .notarization-complete
+        key: notarized-dmg-${{ steps.app_hash.outputs.hash }}
+        restore-keys: |
+          notarized-dmg-
+    
     - name: Package application
+      if: steps.cache_check.outputs.cache-hit != 'true'
       run: |
         macdeployqt cubit-quick.app -dmg
         
@@ -79,6 +103,7 @@ jobs:
         codesign --force --sign "${{ secrets.APPLE_DEVELOPER_ID }}" cubit-quick.dmg
     
     - name: Notarize application
+      if: steps.cache_check.outputs.cache-hit != 'true'
       timeout-minutes: 180  # 3 hour timeout for the step itself
       env:
         APPLE_ID: ${{ secrets.APPLE_ID }}
@@ -304,6 +329,16 @@ jobs:
         
         echo "=== NOTARIZATION DEBUGGING END ==="
         echo "Notarization process completed at $(date)"
+        
+        # Save notarized DMG for caching
+        cp cubit-quick.dmg cubit-quick-notarized.dmg
+        touch .notarization-complete
+    
+    - name: Use cached notarized DMG
+      if: steps.cache_check.outputs.cache-hit == 'true'
+      run: |
+        echo "Using cached notarized DMG"
+        cp cubit-quick-notarized.dmg cubit-quick.dmg
     
     - name: Upload macOS artifact
       uses: actions/upload-artifact@v4

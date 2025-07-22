@@ -40,6 +40,10 @@ Application::Application(QObject *parent)
     connect(ConsoleMessageRepository::instance(), &ConsoleMessageRepository::aiCommandReceived,
             this, &Application::onAICommandReceived, Qt::UniqueConnection);
     
+    // Connect to console repository for AI continuation responses
+    connect(ConsoleMessageRepository::instance(), &ConsoleMessageRepository::aiContinuationResponse,
+            this, &Application::onAIContinuationResponse, Qt::UniqueConnection);
+    
     // Create initial canvas
     createCanvas("Canvas 1");
 }
@@ -641,4 +645,15 @@ void Application::onAICommandReceived(const QString& prompt) {
     
     // Send the prompt to the AI
     m_streamingAIClient->sendMessage(prompt);
+}
+
+void Application::onAIContinuationResponse(bool accepted, const QString& feedback) {
+    // Check if Streaming AI client is available
+    if (!m_streamingAIClient) {
+        ConsoleMessageRepository::instance()->addError("AI client is not initialized.");
+        return;
+    }
+    
+    // Forward the response to the AI client
+    m_streamingAIClient->handleUserContinuationResponse(accepted, feedback);
 }
