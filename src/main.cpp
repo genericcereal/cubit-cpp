@@ -49,10 +49,18 @@ int main(int argc, char *argv[])
     QSurfaceFormat format = QSurfaceFormat::defaultFormat();
     format.setSamples(8); // Increase to 8x MSAA
     QSurfaceFormat::setDefaultFormat(format);
+    
+    // Set Qt Quick Controls style explicitly for consistent behavior
+    qputenv("QT_QUICK_CONTROLS_STYLE", "Basic");
 
     QApplication app(argc, argv);
     app.setApplicationName("Cubit");
     app.setOrganizationName("Cubit");
+    
+    // Ensure native menu bar on macOS
+#ifdef Q_OS_MAC
+    app.setAttribute(Qt::AA_DontUseNativeMenuBar, false);
+#endif
     
     // Initialize the ElementTypeRegistry with default types
     ElementTypeRegistry::instance().initializeDefaultTypes();
@@ -129,6 +137,20 @@ int main(int argc, char *argv[])
     Application* appInstance = new Application(&app);
     appInstance->setAuthenticationManager(authManager);
     qDebug() << "Created Application instance:" << appInstance << "with panels:" << appInstance->panels();
+    
+    // Debug: Check if we're running from a bundle or deployed build
+    qDebug() << "Application path:" << QCoreApplication::applicationDirPath();
+    qDebug() << "QML import paths:" << engine.importPathList();
+    
+    // IMPORTANT: Set Application as context property FIRST
+    // This ensures it's available immediately when QML loads
+    engine.rootContext()->setContextProperty("Application", appInstance);
+    qDebug() << "Set Application as context property:" << appInstance;
+    
+    // Force the engine to update its context
+    engine.rootContext()->setContextObject(nullptr);
+    
+    // Also register as singleton type for consistency, but context property takes precedence
     qmlRegisterSingletonType<Application>("Cubit", 1, 0, "Application",
         [appInstance](QQmlEngine *engine, QJSEngine *scriptEngine) -> QObject * {
             Q_UNUSED(engine)
@@ -144,21 +166,26 @@ int main(int argc, char *argv[])
     
     // Register authentication manager as context property
     engine.rootContext()->setContextProperty("authManager", authManager);
-    
-    // Also set Application as context property as a fallback
-    engine.rootContext()->setContextProperty("Application", appInstance);
-    qDebug() << "Set Application as context property:" << appInstance;
 
     // Register QML singleton
     qmlRegisterSingletonType(QUrl("qrc:/qml/Config.qml"), "Cubit.UI", 1, 0, "Config");
 
     const QUrl url(QStringLiteral("qrc:/qml/main.qml"));
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
-                     &app, [url](QObject *obj, const QUrl &objUrl) {
-        if (!obj && url == objUrl)
+                     &app, [url, appInstance](QObject *obj, const QUrl &objUrl) {
+        if (!obj && url == objUrl) {
+            qCritical() << "Failed to load main.qml";
             QCoreApplication::exit(-1);
+        } else if (obj && url == objUrl) {
+            qDebug() << "main.qml loaded successfully. Application instance:" << appInstance;
+            qDebug() << "Application panels:" << appInstance->panels();
+        }
     }, Qt::QueuedConnection);
+    
+    // Load QML immediately since context properties are already set
     engine.load(url);
+    
+    qDebug() << "Starting event loop...";
 
     return app.exec();
 }
