@@ -128,10 +128,12 @@ int main(int argc, char *argv[])
     // Register Application singleton
     Application* appInstance = new Application(&app);
     appInstance->setAuthenticationManager(authManager);
+    qDebug() << "Created Application instance:" << appInstance << "with panels:" << appInstance->panels();
     qmlRegisterSingletonType<Application>("Cubit", 1, 0, "Application",
         [appInstance](QQmlEngine *engine, QJSEngine *scriptEngine) -> QObject * {
             Q_UNUSED(engine)
             Q_UNUSED(scriptEngine)
+            qDebug() << "QML requesting Application singleton. Returning:" << appInstance;
             return appInstance;
         });
     
