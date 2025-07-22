@@ -83,7 +83,13 @@ jobs:
         echo "=== Verifying app bundle signature ==="
         codesign --verify --deep --strict --verbose=2 cubit-quick.app
         
-        # Also verify the DMG is signed
+        # Sign the DMG itself (macdeployqt doesn't always sign the DMG)
+        echo "=== Signing DMG ==="
+        codesign --force --sign "${{ secrets.APPLE_DEVELOPER_ID }}" \
+          --timestamp \
+          cubit-quick.dmg
+        
+        # Verify the DMG is signed
         echo "=== Verifying DMG signature ==="
         codesign --verify --verbose=2 cubit-quick.dmg
         
