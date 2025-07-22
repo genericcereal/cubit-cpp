@@ -46,10 +46,12 @@ Frame::~Frame()
 
 void Frame::setFill(const QColor &color)
 {
+    qDebug() << "Frame::setFill called with color:" << color.name() << "for frame" << getId();
     if (m_fill != color) {
         m_fill = color;
         emit fillChanged();
         emit elementChanged();
+        qDebug() << "Frame fill changed to:" << m_fill.name();
     }
 }
 

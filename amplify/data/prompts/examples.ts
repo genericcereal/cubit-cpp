@@ -1,7 +1,26 @@
 export const EXAMPLES = `
-Example: Creating a Frame with Text (in ONE batch):
-- First command: Create Frame with tempId myFrame
-- Second command: Create Text with parentId myFrame
+Example of conversational approach with continuation:
+
+User: 'Create a login screen'
+AI Response 1:
+{
+  message: 'I'll start by creating the main container for the login form',
+  commands: '[{command to create container frame}]',
+  shouldContinue: true,
+  continuationContext: 'Next I'll add a title to the login form'
+}
+
+AI Response 2:
+{
+  message: 'Now I'll add the login title',
+  commands: '[{command to create title text}]',
+  shouldContinue: true,
+  continuationContext: 'Next I'll create the input fields for email and password'
+}
+
+Remember: Use proper JSON syntax with double quotes in the actual commands array.
+
+Group related commands with descriptive messages to show progress.
 
 Example: Creating multiple Frames (e.g., create 3 frames):
 - First frame at position 100,100 size 200x150

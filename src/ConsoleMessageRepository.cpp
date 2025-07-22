@@ -5,7 +5,7 @@
 ConsoleMessageRepository* ConsoleMessageRepository::s_instance = nullptr;
 
 ConsoleMessageRepository::ConsoleMessageRepository(QObject *parent)
-    : QObject(parent)
+    : QObject(parent), m_isUsingAI(false), m_selectedOption(1), m_showAIPrompt(false)
 {
     if (!s_instance) {
         s_instance = this;
@@ -89,22 +89,49 @@ void ConsoleMessageRepository::processConsoleCommand(const QString& command) {
     // Add the command to console as input
     addInput(command);
     
-    // Check if it's an /ai command
-    if (command.startsWith("/ai ", Qt::CaseInsensitive)) {
-        // Extract the prompt after /ai
-        QString prompt = command.mid(4).trimmed(); // 4 is length of "/ai "
+    // Check if it's an /ai command to toggle AI mode
+    if (command.trimmed().toLower() == "/ai") {
+        // Toggle AI mode
+        setIsUsingAI(!m_isUsingAI);
         
-        if (prompt.isEmpty()) {
-            addError("Usage: /ai <prompt>");
-            return;
+        if (m_isUsingAI) {
+            addInfo("AI mode enabled. All messages will be sent to AI.");
+        } else {
+            addInfo("AI mode disabled.");
         }
-        
-        // Emit signal for Application to handle the AI request
-        emit aiCommandReceived(prompt);
-    } else {
-        // Unknown command
+        return;
+    }
+    
+    // If AI mode is enabled, treat all input as AI prompts
+    if (m_isUsingAI) {
+        // Check if we're showing the AI prompt (user needs to respond to continuation)
+        if (m_showAIPrompt) {
+            // Handle the user's response based on selected option
+            if (m_selectedOption == 0 && command.isEmpty()) {
+                // User selected "Accept" and pressed Enter without typing anything
+                emit aiContinuationResponse(true, QString());
+                // Hide the prompt after handling the response
+                setShowAIPrompt(false);
+            } else if (m_selectedOption == 1 && !command.isEmpty()) {
+                // User selected "Feedback" and provided custom feedback
+                emit aiContinuationResponse(false, command);
+                // Hide the prompt after handling the response
+                setShowAIPrompt(false);
+            }
+            // If "Feedback" is selected but command is empty, do nothing (wait for actual feedback)
+        } else {
+            // Normal AI command - but skip empty commands
+            if (!command.isEmpty()) {
+                emit aiCommandReceived(command);
+            }
+        }
+    } else if (command.startsWith("/")) {
+        // It's a command but not /ai
         addOutput("Unknown command: " + command);
-        addInfo("Available commands: /ai <prompt>");
+        addInfo("Available commands: /ai (toggle AI mode)");
+    } else {
+        // Regular console message when not in AI mode
+        addOutput("Type /ai to enable AI mode");
     }
 }
 
@@ -154,4 +181,43 @@ void ConsoleMessageRepository::removeMessage(const QString &id)
         return msg.id == id;
     });
     emit messagesChanged();
+}
+
+bool ConsoleMessageRepository::isUsingAI() const
+{
+    return m_isUsingAI;
+}
+
+void ConsoleMessageRepository::setIsUsingAI(bool using_ai)
+{
+    if (m_isUsingAI != using_ai) {
+        m_isUsingAI = using_ai;
+        emit isUsingAIChanged();
+    }
+}
+
+int ConsoleMessageRepository::selectedOption() const
+{
+    return m_selectedOption;
+}
+
+void ConsoleMessageRepository::setSelectedOption(int option)
+{
+    if (m_selectedOption != option && option >= 0 && option <= 1) {
+        m_selectedOption = option;
+        emit selectedOptionChanged();
+    }
+}
+
+bool ConsoleMessageRepository::showAIPrompt() const
+{
+    return m_showAIPrompt;
+}
+
+void ConsoleMessageRepository::setShowAIPrompt(bool show)
+{
+    if (m_showAIPrompt != show) {
+        m_showAIPrompt = show;
+        emit showAIPromptChanged();
+    }
 }

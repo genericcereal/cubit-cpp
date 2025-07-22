@@ -11,6 +11,9 @@ class ConsoleMessageRepository : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(QVariantList messages READ messages NOTIFY messagesChanged)
+    Q_PROPERTY(bool isUsingAI READ isUsingAI WRITE setIsUsingAI NOTIFY isUsingAIChanged)
+    Q_PROPERTY(int selectedOption READ selectedOption WRITE setSelectedOption NOTIFY selectedOptionChanged)
+    Q_PROPERTY(bool showAIPrompt READ showAIPrompt WRITE setShowAIPrompt NOTIFY showAIPromptChanged)
     
 public:
     enum MessageType {
@@ -43,10 +46,26 @@ public:
     void updateMessage(const QString &id, const QString &text);
     void removeMessage(const QString &id);
     
+    // AI state
+    bool isUsingAI() const;
+    void setIsUsingAI(bool using_ai);
+    
+    // Option selection (0 = Accept, 1 = Feedback)
+    int selectedOption() const;
+    void setSelectedOption(int option);
+    
+    // AI prompt visibility
+    bool showAIPrompt() const;
+    void setShowAIPrompt(bool show);
+    
 signals:
     void messagesChanged();
     void messageAdded(const QString &text, MessageType type);
     void aiCommandReceived(const QString& prompt);
+    void isUsingAIChanged();
+    void selectedOptionChanged();
+    void showAIPromptChanged();
+    void aiContinuationResponse(bool accepted, const QString& feedback);
     
 private:
     static ConsoleMessageRepository* s_instance;
@@ -59,6 +78,9 @@ private:
     };
     
     QList<Message> m_messages;
+    bool m_isUsingAI;
+    int m_selectedOption;
+    bool m_showAIPrompt;
 };
 
 #endif // CONSOLEMESSAGEREPOSITORY_H

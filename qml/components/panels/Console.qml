@@ -11,6 +11,27 @@ FocusScope {
     
     property var repository: ConsoleMessageRepository
     
+    // Handle arrow key navigation
+    Keys.onUpPressed: {
+        if (repository.isUsingAI && repository.showAIPrompt && repository.selectedOption > 0) {
+            repository.selectedOption = 0
+        }
+    }
+    
+    Keys.onDownPressed: {
+        if (repository.isUsingAI && repository.showAIPrompt && repository.selectedOption < 1) {
+            repository.selectedOption = 1
+        }
+    }
+    
+    // Handle Enter key at the root level to work even when input is disabled
+    Keys.onReturnPressed: {
+        if (repository.isUsingAI && repository.showAIPrompt && repository.selectedOption === 0) {
+            // User selected "Accept" and pressed Enter
+            root.commandSubmitted("")
+        }
+    }
+    
     Rectangle {
         anchors.fill: parent
         color: "#ffffff"
@@ -114,11 +135,102 @@ FocusScope {
             color: "#e0e0e0"
         }
         
+        // Options bar (only visible when both isUsingAI and showAIPrompt are true)
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.preferredHeight: (root.repository.isUsingAI && root.repository.showAIPrompt) ? 80 : 0
+            visible: root.repository.isUsingAI && root.repository.showAIPrompt
+            color: "#f0f0f0"
+            
+            // Ensure root has focus when options are shown
+            onVisibleChanged: {
+                if (visible) {
+                    root.forceActiveFocus()
+                }
+            }
+            
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: 8
+                spacing: 4
+                
+                // Option 1: Accept
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 30
+                    color: "transparent"
+                    radius: 4
+                    
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: root.repository.selectedOption = 0
+                    }
+                    
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 8
+                        anchors.rightMargin: 8
+                        spacing: 8
+                        
+                        Label {
+                            text: root.repository.selectedOption === 0 ? ">" : " "
+                            color: "#0066cc"
+                            font.pixelSize: 13
+                            font.family: "Consolas, Monaco, monospace"
+                            Layout.preferredWidth: 15
+                        }
+                        
+                        Label {
+                            text: "Yes, accept"
+                            color: root.repository.selectedOption === 0 ? "#0066cc" : "#333333"
+                            font.pixelSize: 13
+                            Layout.fillWidth: true
+                        }
+                    }
+                }
+                
+                // Option 2: Feedback
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 30
+                    color: "transparent"
+                    radius: 4
+                    
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: root.repository.selectedOption = 1
+                    }
+                    
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 8
+                        anchors.rightMargin: 8
+                        spacing: 8
+                        
+                        Label {
+                            text: root.repository.selectedOption === 1 ? ">" : " "
+                            color: "#0066cc"
+                            font.pixelSize: 13
+                            font.family: "Consolas, Monaco, monospace"
+                            Layout.preferredWidth: 15
+                        }
+                        
+                        Label {
+                            text: "No, tell AI what to do differently"
+                            color: root.repository.selectedOption === 1 ? "#0066cc" : "#333333"
+                            font.pixelSize: 13
+                            Layout.fillWidth: true
+                        }
+                    }
+                }
+            }
+        }
+        
         // Input area
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 40
-            color: "#f8f8f8"
+            color: root.repository.isUsingAI ? "#e6f2ff" : "#f8f8f8"
             
             // Stop propagation of mouse events in input area
             MouseArea {
@@ -132,10 +244,10 @@ FocusScope {
                 spacing: 8
                 
                 Label {
-                    text: ">"
+                    text: root.repository.isUsingAI ? "AI>" : ">"
                     font.pixelSize: 14
                     font.family: "Consolas, Monaco, monospace"
-                    color: "#666666"
+                    color: root.repository.isUsingAI ? "#0066cc" : "#666666"
                 }
                 
                 TextField {
@@ -143,8 +255,11 @@ FocusScope {
                     Layout.fillWidth: true
                     font.pixelSize: 13
                     font.family: "Consolas, Monaco, monospace"
-                    placeholderText: "Enter command..."
+                    placeholderText: root.repository.isUsingAI ? 
+                        (root.repository.showAIPrompt && root.repository.selectedOption === 0 ? "Accept selected - press Enter to confirm" : "Ask AI a question...") : 
+                        "Enter command..."
                     selectByMouse: true
+                    enabled: !(root.repository.isUsingAI && root.repository.showAIPrompt && root.repository.selectedOption === 0)
                     
                     background: Rectangle {
                         color: "#ffffff"
@@ -154,8 +269,12 @@ FocusScope {
                     }
                     
                     Keys.onReturnPressed: {
-                        if (text.trim() !== "") {
-                            // Emit signal (Application will handle logging)
+                        // If AI prompt is showing and "yes" is selected, treat Enter as confirmation
+                        if (root.repository.isUsingAI && root.repository.showAIPrompt && root.repository.selectedOption === 0) {
+                            // Emit empty command to trigger the "yes" confirmation
+                            root.commandSubmitted("")
+                        } else if (text.trim() !== "") {
+                            // Normal command submission
                             root.commandSubmitted(text)
                             // Clear input
                             text = ""
