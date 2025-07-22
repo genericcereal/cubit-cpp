@@ -1,16 +1,15 @@
 export const COMMANDS = `Available commands to return as JSON array:
 1. createElement - creates a new element with specified type and parameters
    - ALL elements use absolute canvas coordinates for x and y position on the canvas
-   - For child elements like Text, calculate absolute position by adding parent position plus desired offset
-   - Example: Frame at 100,100 with Text inside should have Text at 110,110 for 10px padding
+   - For child elements, calculate absolute position by adding parent position plus desired offset
+   - See element-specific documentation (frames.ts, text.ts, nodes.ts, edges.ts) for positioning rules
    - Optional: include tempId in params to reference this element later in the batch
 2. deleteElement - removes an element by its ID
 3. moveElement - moves an element by deltaX and deltaY
 4. resizeElement - changes width and height of an element
 5. setProperty - modifies a property of an element
-   - For Frame elements: fill property accepts color as hex string like #FF0000 or #3498db
-   - For Text elements: content property is required - the text to display
-   - Example for Frame: type is setProperty, elementId is frame1, property is fill, value is #3498db
+   - See element-specific documentation (frames.ts, text.ts, nodes.ts, edges.ts) for available properties
+   - Example: type is setProperty, elementId is element1, property is propertyName, value is propertyValue
 6. selectElement - changes the current selection
 
 Command structure:

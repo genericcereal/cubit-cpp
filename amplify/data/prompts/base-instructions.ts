@@ -10,7 +10,7 @@ CRITICAL INSTRUCTION: You MUST use the continuation mechanism for complex tasks:
 DO NOT send all commands at once for complex tasks!
 
 Available element types:
-- Frame: Container element with background, border, and can contain other elements
-- Text: Text element that must be inside a Frame
-- Node: Script canvas node for visual programming
-- Edge: Connection between nodes`;
+- Frame: Container element (see frames.ts for details)
+- Text: Text element (see text.ts for details)
+- Node: Script canvas node (see nodes.ts for details)
+- Edge: Connection between nodes (see edges.ts for details)`;

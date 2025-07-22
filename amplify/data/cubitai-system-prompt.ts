@@ -6,6 +6,10 @@ import { EXAMPLES } from './prompts/examples';
 import { CRITICAL_RULES } from './prompts/critical-rules';
 import { CANVAS_STATE } from './prompts/canvas-state';
 import { COMMAND_BATCHES } from './prompts/command-batches';
+import { FRAMES_PROMPTS } from './prompts/elements/frames';
+import { TEXT_PROMPTS } from './prompts/elements/text';
+import { NODES_PROMPTS } from './prompts/elements/nodes';
+import { EDGES_PROMPTS } from './prompts/elements/edges';
 
 export const CUBITAI_SYSTEM_PROMPT = [
   BASE_INSTRUCTIONS,
@@ -15,5 +19,9 @@ export const CUBITAI_SYSTEM_PROMPT = [
   EXAMPLES,
   CRITICAL_RULES,
   CANVAS_STATE,
-  COMMAND_BATCHES
+  COMMAND_BATCHES,
+  FRAMES_PROMPTS,
+  TEXT_PROMPTS,
+  NODES_PROMPTS,
+  EDGES_PROMPTS
 ].join('\n');
