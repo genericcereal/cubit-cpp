@@ -52,59 +52,75 @@ jobs:
     
     - name: Deploy and sign application
       run: |
-        # Remove any extended attributes that might interfere
+        set -e
+        echo "=== Preparing Qt deployment ==="
+
+        # Remove extended attributes (prevents code signing issues)
         xattr -cr cubit-quick.app
-        
-        # Check if we have a signing identity
-        echo "=== Checking signing identity ==="
-        security find-identity -v -p codesigning
-        
-        # Use macdeployqt with code signing and QML imports
-        echo "=== Running macdeployqt with code signing ==="
-        
+
         # Find Qt installation path
         QT_PATH=$(qmake6 -query QT_INSTALL_PREFIX)
         echo "Qt installation path: $QT_PATH"
-        
+
+        echo "=== Scanning QML dependencies ==="
+        qmlimportscanner -rootPath qml -importPath "$QT_PATH/qml" > qml_imports.json
+        echo "Generated QML imports list:"
+        cat qml_imports.json
+
+        echo "=== Running macdeployqt ==="
+        # NOTE: For Qt 6, always use -qmldir (NOT -qmlimport)
+        macdeployqt cubit-quick.app \
+          -qmldir=qml \
+          -qmldir="$QT_PATH/qml" \
+          -qmlimportlist=qml_imports.json \
+          -always-overwrite \
+          -verbose=3
+
+        echo "=== Ensuring QtWebEngineProcess.app is bundled ==="
+        WEBENGINE_HELPER="$QT_PATH/libexec/QtWebEngineProcess.app"
+        TARGET_HELPER="cubit-quick.app/Contents/Frameworks/QtWebEngineCore.framework/Helpers/QtWebEngineProcess.app"
+        if [ ! -d "$TARGET_HELPER" ]; then
+          echo "QtWebEngineProcess.app missing, copying..."
+          mkdir -p "$(dirname "$TARGET_HELPER")"
+          cp -R "$WEBENGINE_HELPER" "$(dirname "$TARGET_HELPER")/"
+        else
+          echo "QtWebEngineProcess.app already present"
+        fi
+
+        echo "=== Checking signing identity ==="
+        security find-identity -v -p codesigning
+
+        # If you have entitlements, use them, otherwise sign normally
+        echo "=== Code signing & hardened runtime ==="
         if [ -f entitlements.plist ]; then
-          # macdeployqt with signing and hardened runtime
           macdeployqt cubit-quick.app \
             -dmg \
-            -qmldir=qml \
-            -qmlimport="$QT_PATH/qml" \
             -appstore-compliant \
             -codesign="${{ secrets.APPLE_DEVELOPER_ID }}" \
             -hardened-runtime \
             -timestamp \
             -sign-for-notarization="${{ secrets.APPLE_DEVELOPER_ID }}"
         else
-          # macdeployqt with signing but no entitlements file
           macdeployqt cubit-quick.app \
             -dmg \
-            -qmldir=qml \
-            -qmlimport="$QT_PATH/qml" \
             -appstore-compliant \
             -codesign="${{ secrets.APPLE_DEVELOPER_ID }}" \
             -hardened-runtime \
             -timestamp \
             -sign-for-notarization="${{ secrets.APPLE_DEVELOPER_ID }}"
         fi
-        
-        # Verify the app bundle is properly signed
+
         echo "=== Verifying app bundle signature ==="
         codesign --verify --deep --strict --verbose=2 cubit-quick.app
-        
-        # Sign the DMG itself (macdeployqt doesn't always sign the DMG)
+
         echo "=== Signing DMG ==="
         codesign --force --sign "${{ secrets.APPLE_DEVELOPER_ID }}" \
           --timestamp \
           cubit-quick.dmg
-        
-        # Verify the DMG is signed
+
         echo "=== Verifying DMG signature ==="
         codesign --verify --verbose=2 cubit-quick.dmg
-        
-        # Additional verification - check that all Mach-O binaries are signed
+
         echo "=== Checking all binaries are signed ==="
         UNSIGNED_FILES=""
         while IFS= read -r file; do
@@ -115,14 +131,19 @@ jobs:
             fi
           fi
         done < <(find cubit-quick.app -type f)
-        
+
         if [ -n "$UNSIGNED_FILES" ]; then
           echo "ERROR: Found unsigned binaries!"
           echo -e "$UNSIGNED_FILES"
           exit 1
         fi
-        
+
         echo "All binaries are properly signed."
+
+        echo "=== Adding fallback for GPU-less environments ==="
+        # This prevents Chromium GPU errors when run on headless macOS
+        echo "export QTWEBENGINE_CHROMIUM_FLAGS='--disable-gpu --disable-software-rasterizer'" > cubit-quick.app/Contents/Resources/env.sh
+        echo "export QT_OPENGL=software" >> cubit-quick.app/Contents/Resources/env.sh
     
     - name: Calculate app bundle hash
       id: app_hash
