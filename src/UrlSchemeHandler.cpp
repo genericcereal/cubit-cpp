@@ -66,7 +66,6 @@ void UrlSchemeHandler::registerMacUrlScheme()
     // On macOS, we need to handle URLs through QDesktopServices
     QDesktopServices::setUrlHandler("cubitapp", this, "handleUrlSlot");
     
-    qDebug() << "Registered cubitapp:// URL scheme handler for macOS";
 }
 #endif
 
@@ -92,7 +91,6 @@ void UrlSchemeHandler::registerWindowsUrlScheme()
     QSettings commandSettings("HKEY_CURRENT_USER\\Software\\Classes\\cubitapp\\shell\\open\\command", QSettings::NativeFormat);
     commandSettings.setValue(".", "\"" + appPath + "\" \"%1\"");
     
-    qDebug() << "Registered cubitapp:// URL scheme handler for Windows";
 }
 #endif
 

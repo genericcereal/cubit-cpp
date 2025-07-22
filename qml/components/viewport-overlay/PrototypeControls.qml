@@ -14,7 +14,7 @@ Item {
     property var prototypeController: Application.activeCanvas ? Application.activeCanvas.prototypeController : null
     
     onPrototypeControllerChanged: {
-        ConsoleMessageRepository.addOutput("PrototypeControls: prototypeController changed to " + (prototypeController ? "valid controller" : "null"))
+        // Console log removed - prototypeController changed
         
         // Connect requestCanvasMove signal to the canvas moveToPoint function
         if (prototypeController) {

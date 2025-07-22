@@ -165,8 +165,7 @@ Rectangle {
                 id: consolePanel
                 
                 Component.onCompleted: {
-                    // Add initial welcome message via repository
-                    ConsoleMessageRepository.addOutput("Welcome to Cubit Console")
+                    // Initial welcome message removed
                 }
                 
                 onCommandSubmitted: function(command) {

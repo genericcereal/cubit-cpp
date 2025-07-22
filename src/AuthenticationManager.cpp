@@ -340,7 +340,6 @@ void AuthenticationManager::loadTokens()
         setUserName(savedUserName);
         setUserEmail(savedUserEmail);
         setIsAuthenticated(true);
-        qDebug() << "Loaded saved authentication tokens";
     }
 }
 

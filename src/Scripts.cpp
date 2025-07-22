@@ -207,8 +207,7 @@ QString Scripts::compile(ElementModel* elementModel) {
     setIsCompiled(true);
     emit compiledScriptChanged();
     
-    ConsoleMessageRepository::instance()->addOutput("Scripts compiled successfully");
-    ConsoleMessageRepository::instance()->addOutput(result);
+    // Console output removed - scripts compiled successfully
     
     return result;
 }

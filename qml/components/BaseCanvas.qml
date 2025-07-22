@@ -26,7 +26,7 @@ Item {
     
     // Debug zoom changes
     onZoomChanged: {
-        console.log("BaseCanvas zoom changed to:", Math.round(zoom * 10) / 10)
+        // Console log removed - zoom changed
     }
     
     // Canvas type - to be overridden by subclasses
@@ -84,17 +84,9 @@ Item {
         
         flick.contentX = centerPos.x
         flick.contentY = centerPos.y
-        console.log("BaseCanvas.centerViewAtOrigin - contentX:", flick.contentX, "contentY:", flick.contentY,
-                   "viewport size:", flick.width, "x", flick.height, "zoom:", zoom)
+        // Console log removed - centerViewAtOrigin positioning
     }
     
-    // Watch for mode changes (keeping for subclasses that might need it)
-    Connections {
-        target: controller
-        function onModeChanged() {
-            // Subclasses can override to handle mode changes
-        }
-    }
     
     // Main canvas area
     Flickable {
@@ -295,7 +287,7 @@ Item {
             
             onActiveChanged: {
                 if (active) {
-                    console.log("ZOOM START - root.zoom raw value:", root.zoom, "initial scale:", scale, "activeScale:", activeScale)
+                    // Console log removed - zoom start
                     // Round the start zoom to prevent accumulation errors
                     startZoom = Math.round(root.zoom * 100) / 100  // Round to 2 decimal places
                     startViewportCentroid = centroid.position
@@ -305,16 +297,16 @@ Item {
                         startContentPos.x, startContentPos.y, root.zoom, 
                         root.canvasMinX, root.canvasMinY
                     )
-                    console.log("PinchHandler started - startZoom:", startZoom, "rounded:", Math.round(startZoom * 10) / 10, "startCentroid:", Math.round(startCentroid.x), Math.round(startCentroid.y), "startContentPos:", Math.round(startContentPos.x), Math.round(startContentPos.y))
+                    // Console log removed - pinch handler started
                 } else {
                     // Log when gesture ends
-                    console.log("ZOOM END - final zoom:", Math.round(root.zoom * 10) / 10, "final scale:", scale, "activeScale:", activeScale)
+                    // Console log removed - zoom end
                 }
             }
             
             onScaleChanged: {
                 if (active && Math.abs(scale - 1.0) > 0.01) {
-                    console.log("PinchHandler scale:", Math.round(scale * 10) / 10, "activeScale:", Math.round(activeScale * 10) / 10, "currentZoom:", Math.round(root.zoom * 10) / 10)
+                    // Console log removed - pinch handler scale
                     
                     // Calculate new zoom level based on the active scale (scale change during this gesture)
                     // activeScale represents the scale factor relative to when the gesture started
@@ -327,11 +319,9 @@ Item {
                     )
                     
                     // Debug the calculation
-                    console.log("Zoom calculation - startCentroid:", startCentroid.x, startCentroid.y, 
-                               "startViewport:", startViewportCentroid.x, startViewportCentroid.y,
-                               "newZoom:", newZoom, "minX/Y:", root.canvasMinX, root.canvasMinY)
+                    // Console log removed - zoom calculation
                     
-                    console.log("PinchHandler applying - newZoom:", Math.round(newZoom * 10) / 10, "newContentPos:", Math.round(newContentPos.x), Math.round(newContentPos.y))
+                    // Console log removed - pinch handler applying
                     
                     // Apply zoom and new position
                     root.zoom = newZoom
@@ -379,12 +369,12 @@ Item {
     Shortcut {
         sequence: "Delete"
         onActivated: {
-            console.log("Delete key pressed in BaseCanvas")
+            // Console log removed - delete key pressed
             if (controller) {
-                console.log("Controller exists, calling deleteSelectedElements")
+                // Console log removed - controller exists
                 controller.deleteSelectedElements()
             } else {
-                console.log("Controller is null!")
+                // Console log removed - controller is null
             }
         }
     }
@@ -393,12 +383,12 @@ Item {
     Shortcut {
         sequence: "Backspace"
         onActivated: {
-            console.log("Backspace key pressed in BaseCanvas")
+            // Console log removed - backspace key pressed
             if (controller) {
-                console.log("Controller exists, calling deleteSelectedElements")
+                // Console log removed - controller exists
                 controller.deleteSelectedElements()
             } else {
-                console.log("Controller is null!")
+                // Console log removed - controller is null
             }
         }
     }

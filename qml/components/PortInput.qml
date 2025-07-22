@@ -97,19 +97,6 @@ Item {
         font.pixelSize: 11
         selectByMouse: true
         
-        background: Rectangle {
-            color: root.isHovered ? "#E8F4FD" : "#F5F5F5"
-            border.color: textField.activeFocus ? "#2196F3" : (root.isHovered ? "#90CAF9" : "#CCCCCC")
-            border.width: root.isHovered ? 2 : 1
-            radius: 3
-            
-            Behavior on color {
-                ColorAnimation { duration: 150 }
-            }
-            Behavior on border.color {
-                ColorAnimation { duration: 150 }
-            }
-        }
         
         onTextChanged: {
             if (inputConfig.inputType === "textInput" && PortTypeConfig.validateValue(root.portType, text)) {
@@ -136,19 +123,6 @@ Item {
             decimals: inputConfig.validation ? inputConfig.validation.decimals : 2
         }
         
-        background: Rectangle {
-            color: root.isHovered ? "#E8F4FD" : "#F5F5F5"
-            border.color: numberField.activeFocus ? "#2196F3" : (root.isHovered ? "#90CAF9" : "#CCCCCC")
-            border.width: root.isHovered ? 2 : 1
-            radius: 3
-            
-            Behavior on color {
-                ColorAnimation { duration: 150 }
-            }
-            Behavior on border.color {
-                ColorAnimation { duration: 150 }
-            }
-        }
         
         onTextChanged: {
             if (inputConfig.inputType === "numberInput") {
@@ -184,19 +158,6 @@ Item {
         }
         font.pixelSize: 11
         
-        background: Rectangle {
-            color: root.isHovered ? "#E8F4FD" : "#F5F5F5"
-            border.color: comboBox.activeFocus ? "#2196F3" : (root.isHovered ? "#90CAF9" : "#CCCCCC")
-            border.width: root.isHovered ? 2 : 1
-            radius: 3
-            
-            Behavior on color {
-                ColorAnimation { duration: 150 }
-            }
-            Behavior on border.color {
-                ColorAnimation { duration: 150 }
-            }
-        }
         
         // Custom popup that also scales
         popup: Popup {

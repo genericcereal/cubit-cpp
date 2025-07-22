@@ -70,11 +70,6 @@ Item {
         bottomPadding: 4
         
         
-        background: Rectangle {
-            color: "transparent"
-            border.width: 2
-            border.color: Config.controlBarColor
-        }
         
         // Start with focus when editing starts
         onVisibleChanged: {

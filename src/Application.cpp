@@ -35,7 +35,6 @@ Application::Application(QObject *parent)
     
     // Create panels manager
     m_panels = std::make_unique<Panels>(this);
-    qDebug() << "Application constructor: Created panels manager at" << m_panels.get();
     
     // Connect to console repository for AI commands
     connect(ConsoleMessageRepository::instance(), &ConsoleMessageRepository::aiCommandReceived,
@@ -48,7 +47,6 @@ Application::Application(QObject *parent)
     // Create initial canvas
     createCanvas("Canvas 1");
     
-    qDebug() << "Application constructor complete. Panels:" << panels();
 }
 
 Application::~Application() {

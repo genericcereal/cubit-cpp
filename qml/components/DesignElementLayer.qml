@@ -16,7 +16,7 @@ Item {
     // Create filtered proxy model
     ElementFilterProxy {
         id: filteredModel
-        sourceModel: root.elementModel
+        sourceModel: root.elementModel || null
         viewMode: Application.activeCanvas ? Application.activeCanvas.viewMode : "design"
         editingElement: Application.activeCanvas ? Application.activeCanvas.editingElement : null
     }
