@@ -50,124 +50,42 @@ jobs:
         qmake6 -o Makefile cubit-quick.pro
         make -j$(sysctl -n hw.ncpu)
     
-    - name: Sign application
+    - name: Deploy and sign application
       run: |
         # Remove any extended attributes that might interfere
         xattr -cr cubit-quick.app
         
-        # Sign with hardened runtime for notarization
-        if [ -f entitlements.plist ]; then
-          ENTITLEMENTS="--entitlements entitlements.plist"
-          echo "Using entitlements file"
-        else
-          ENTITLEMENTS=""
-          echo "No entitlements file found"
-        fi
-        
-        # Debug: Check if we have a signing identity
+        # Check if we have a signing identity
         echo "=== Checking signing identity ==="
         security find-identity -v -p codesigning
         
-        # Function to sign a single item with error checking
-        sign_item() {
-          local item="$1"
-          echo "Signing: $item"
-          # Use explicit certificate selection to ensure we're using the right one
-          if ! codesign --force \
-            --sign "${{ secrets.APPLE_DEVELOPER_ID }}" \
-            --options runtime \
-            --timestamp \
-            --verbose \
-            $ENTITLEMENTS \
-            "$item" 2>&1; then
-            echo "ERROR: Failed to sign $item"
-            # Show more details about the failure
-            codesign -dv "$item" 2>&1 || true
-            exit 1
-          fi
-          # Verify the signature was applied
-          echo "Verifying: $item"
-          codesign -v "$item" || exit 1
-        }
-        
-        # 1. First sign all dylibs in PlugIns directory
-        echo "=== Signing PlugIns dylibs ==="
-        while IFS= read -r plugin; do
-          sign_item "$plugin"
-        done < <(find cubit-quick.app/Contents/PlugIns -name "*.dylib" -type f)
-        
-        # 2. Sign QtWebEngineProcess helper app binary first, then the app bundle
-        echo "=== Signing QtWebEngineProcess helper ==="
-        HELPER_PATH="cubit-quick.app/Contents/Frameworks/QtWebEngineCore.framework/Versions/A/Helpers/QtWebEngineProcess.app"
-        if [ -d "$HELPER_PATH" ]; then
-          # Sign the binary inside the helper app first
-          if [ -f "$HELPER_PATH/Contents/MacOS/QtWebEngineProcess" ]; then
-            sign_item "$HELPER_PATH/Contents/MacOS/QtWebEngineProcess"
-          fi
-          # Then sign the helper app bundle
-          sign_item "$HELPER_PATH"
+        # Use macdeployqt with code signing
+        echo "=== Running macdeployqt with code signing ==="
+        if [ -f entitlements.plist ]; then
+          # macdeployqt with signing and hardened runtime
+          macdeployqt cubit-quick.app \
+            -dmg \
+            -codesign="${{ secrets.APPLE_DEVELOPER_ID }}" \
+            -hardened-runtime \
+            -timestamp \
+            -sign-for-notarization="${{ secrets.APPLE_DEVELOPER_ID }}"
+        else
+          # macdeployqt with signing but no entitlements file
+          macdeployqt cubit-quick.app \
+            -dmg \
+            -codesign="${{ secrets.APPLE_DEVELOPER_ID }}" \
+            -hardened-runtime \
+            -timestamp \
+            -sign-for-notarization="${{ secrets.APPLE_DEVELOPER_ID }}"
         fi
         
-        # 3. Sign framework binaries inside Versions/A/ before signing frameworks
-        echo "=== Signing framework binaries ==="
-        while IFS= read -r framework; do
-          # Qt frameworks have their binary in Versions/A/FrameworkName
-          framework_name=$(basename "$framework" .framework)
-          framework_binary="$framework/Versions/A/$framework_name"
-          
-          # Sign the actual binary first
-          if [ -f "$framework_binary" ]; then
-            sign_item "$framework_binary"
-          else
-            echo "WARNING: Framework binary not found: $framework_binary"
-          fi
-        done < <(find cubit-quick.app/Contents/Frameworks -name "*.framework" -type d)
-        
-        # 4. Sign any standalone dylibs in Frameworks
-        echo "=== Signing standalone dylibs in Frameworks ==="
-        while IFS= read -r dylib; do
-          sign_item "$dylib"
-        done < <(find cubit-quick.app/Contents/Frameworks -name "*.dylib" -type f)
-        
-        # 5. Now sign all the framework bundles themselves
-        echo "=== Signing framework bundles ==="
-        while IFS= read -r framework; do
-          sign_item "$framework"
-        done < <(find cubit-quick.app/Contents/Frameworks -name "*.framework" -type d)
-        
-        # 6. Sign any other Mach-O executables we might have missed
-        echo "=== Signing other executables ==="
-        while IFS= read -r exe; do
-          # Skip main executable and already processed files
-          if [[ "$exe" != *"/cubit-quick.app/Contents/MacOS/cubit-quick" ]] && \
-             [[ "$exe" != *".dylib" ]] && \
-             [[ "$exe" != *"/Versions/A/"* ]] && \
-             [[ "$exe" != *"QtWebEngineProcess" ]]; then
-            if file "$exe" | grep -q "Mach-O"; then
-              # Check if already signed
-              if ! codesign -v "$exe" 2>/dev/null; then
-                sign_item "$exe"
-              fi
-            fi
-          fi
-        done < <(find cubit-quick.app -type f -perm +111)
-        
-        # 7. Finally, sign the main app bundle (without --deep since we signed everything individually)
-        echo "=== Signing main application bundle ==="
-        if ! codesign --force \
-          --sign "${{ secrets.APPLE_DEVELOPER_ID }}" \
-          --options runtime \
-          --timestamp \
-          --verbose \
-          $ENTITLEMENTS \
-          cubit-quick.app 2>&1; then
-          echo "ERROR: Failed to sign main application bundle"
-          exit 1
-        fi
-        
-        # Verify signature
-        echo "=== Verifying signatures ==="
+        # Verify the app bundle is properly signed
+        echo "=== Verifying app bundle signature ==="
         codesign --verify --deep --strict --verbose=2 cubit-quick.app
+        
+        # Also verify the DMG is signed
+        echo "=== Verifying DMG signature ==="
+        codesign --verify --verbose=2 cubit-quick.dmg
         
         # Additional verification - check that all Mach-O binaries are signed
         echo "=== Checking all binaries are signed ==="
@@ -211,14 +129,6 @@ jobs:
         key: notarized-dmg-${{ steps.app_hash.outputs.hash }}
         restore-keys: |
           notarized-dmg-
-    
-    - name: Package application
-      if: steps.cache_check.outputs.cache-hit != 'true'
-      run: |
-        macdeployqt cubit-quick.app -dmg
-        
-        # Sign the DMG
-        codesign --force --sign "${{ secrets.APPLE_DEVELOPER_ID }}" cubit-quick.dmg
     
     - name: Notarize application
       if: steps.cache_check.outputs.cache-hit != 'true'
