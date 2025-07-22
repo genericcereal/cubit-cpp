@@ -144,6 +144,10 @@ int main(int argc, char *argv[])
     
     // Register authentication manager as context property
     engine.rootContext()->setContextProperty("authManager", authManager);
+    
+    // Also set Application as context property as a fallback
+    engine.rootContext()->setContextProperty("Application", appInstance);
+    qDebug() << "Set Application as context property:" << appInstance;
 
     // Register QML singleton
     qmlRegisterSingletonType(QUrl("qrc:/qml/Config.qml"), "Cubit.UI", 1, 0, "Config");
