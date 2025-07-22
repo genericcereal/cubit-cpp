@@ -17,9 +17,9 @@ jobs:
     - uses: actions/checkout@v4
     
     - name: Install Qt
-      uses: jurplel/install-qt-action@v3
+      uses: jurplel/install-qt-action@v4  # Update to v4 for better Qt 6.9 support
       with:
-        version: '6.5.3'
+        version: '6.9.0'  # Match local development environment
         host: 'mac'
         target: 'desktop'
         arch: 'clang_64'
@@ -63,13 +63,33 @@ jobs:
         echo "Qt installation path: $QT_PATH"
 
         echo "=== Scanning QML dependencies ==="
-        qmlimportscanner -rootPath qml -importPath "$QT_PATH/qml" > qml_imports.json
-        echo "Generated QML imports list:"
-        cat qml_imports.json
+        # qmlimportscanner might be in PATH or in Qt bin directory
+        QT_BIN_PATH="$QT_PATH/bin"
+        echo "Qt bin path: $QT_BIN_PATH"
+        
+        # Try to find qmlimportscanner in multiple locations
+        QMLIMPORTSCANNER=$(command -v qmlimportscanner || echo "$QT_BIN_PATH/qmlimportscanner")
+        
+        if [ -x "$QMLIMPORTSCANNER" ]; then
+          echo "Found qmlimportscanner at: $QMLIMPORTSCANNER"
+          "$QMLIMPORTSCANNER" -rootPath qml -importPath "$QT_PATH/qml" > qml_imports.json
+          echo "Generated QML imports list:"
+          cat qml_imports.json
+        else
+          echo "WARNING: qmlimportscanner not found, bundling may be incomplete"
+          echo "Searched in PATH and at: $QT_BIN_PATH/qmlimportscanner"
+          echo "[]" > qml_imports.json
+        fi
 
         echo "=== Running macdeployqt ==="
         # NOTE: For Qt 6, always use -qmldir (NOT -qmlimport)
-        macdeployqt cubit-quick.app \
+        MACDEPLOYQT="$QT_BIN_PATH/macdeployqt"
+        if [ ! -f "$MACDEPLOYQT" ]; then
+          echo "ERROR: macdeployqt not found at $MACDEPLOYQT"
+          exit 1
+        fi
+        
+        "$MACDEPLOYQT" cubit-quick.app \
           -qmldir=qml \
           -qmldir="$QT_PATH/qml" \
           -qmlimportlist=qml_imports.json \
@@ -93,7 +113,7 @@ jobs:
         # If you have entitlements, use them, otherwise sign normally
         echo "=== Code signing & hardened runtime ==="
         if [ -f entitlements.plist ]; then
-          macdeployqt cubit-quick.app \
+          "$MACDEPLOYQT" cubit-quick.app \
             -dmg \
             -appstore-compliant \
             -codesign="${{ secrets.APPLE_DEVELOPER_ID }}" \
@@ -101,7 +121,7 @@ jobs:
             -timestamp \
             -sign-for-notarization="${{ secrets.APPLE_DEVELOPER_ID }}"
         else
-          macdeployqt cubit-quick.app \
+          "$MACDEPLOYQT" cubit-quick.app \
             -dmg \
             -appstore-compliant \
             -codesign="${{ secrets.APPLE_DEVELOPER_ID }}" \
@@ -139,6 +159,12 @@ jobs:
         fi
 
         echo "All binaries are properly signed."
+
+        echo "=== Testing plugin loading (debug mode) ==="
+        # This helps identify missing plugins before notarization
+        echo "Running with QT_DEBUG_PLUGINS=1 to check for missing plugins..."
+        QT_DEBUG_PLUGINS=1 ./cubit-quick.app/Contents/MacOS/cubit-quick --help 2>&1 | head -50 || true
+        echo "Plugin debug complete (exit expected in headless environment)"
 
         echo "=== Adding fallback for GPU-less environments ==="
         # This prevents Chromium GPU errors when run on headless macOS
@@ -420,9 +446,9 @@ jobs:
     - uses: actions/checkout@v4
     
     - name: Install Qt
-      uses: jurplel/install-qt-action@v3
+      uses: jurplel/install-qt-action@v4  # Update to v4 for better Qt 6.9 support
       with:
-        version: '6.5.3'
+        version: '6.9.0'  # Match local development environment
         host: 'windows'
         target: 'desktop'
         arch: 'win64_msvc2019_64'
