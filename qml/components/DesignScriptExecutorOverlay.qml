@@ -83,14 +83,12 @@ Item {
         }
     }
 
-    // Watch for when elements are loaded into the model
-    Connections {
-        target: elementModel
-        function onRowsInserted(parent, first, last) {
-            if (canvasVisible && !scriptsExecutedForCurrentLoad) {
-                scriptsExecutedForCurrentLoad = true;
-                Qt.callLater(executeOnEditorLoad);
-            }
+    // Watch for when canvas becomes visible
+    // The onEditorLoad scripts will be executed when canvasVisible becomes true
+    onCanvasVisibleChanged: {
+        if (canvasVisible && !scriptsExecutedForCurrentLoad) {
+            scriptsExecutedForCurrentLoad = true;
+            Qt.callLater(executeOnEditorLoad);
         }
     }
 }

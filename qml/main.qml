@@ -208,7 +208,7 @@ ApplicationWindow {
                         if (compiledJson) {
                             // Mark as compiled
                             Application.activeCanvas.activeScripts.isCompiled = true
-                            console.log("Scripts compiled successfully")
+                            // Scripts compiled successfully
                         }
                     }
                 }
@@ -471,20 +471,6 @@ ApplicationWindow {
                 anchors.horizontalCenter: parent.horizontalCenter
                 onClicked: authManager.login()
                 
-                background: Rectangle {
-                    implicitWidth: 200
-                    implicitHeight: 40
-                    color: parent.down ? "#1976D2" : (parent.hovered ? "#2196F3" : "#1E88E5")
-                    radius: 4
-                }
-                
-                contentItem: Text {
-                    text: parent.text
-                    color: "white"
-                    font.pixelSize: 14
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                }
             }
             
             BusyIndicator {

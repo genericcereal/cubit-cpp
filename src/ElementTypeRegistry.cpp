@@ -24,7 +24,6 @@ void ElementTypeRegistry::registerType(const ElementTypeInfo& typeInfo)
     }
     
     m_types[typeInfo.typeName] = typeInfo;
-    qDebug() << "Registered element type:" << typeInfo.typeName;
 }
 
 DesignElement* ElementTypeRegistry::createElement(const QString& typeName, const QString& id) const
@@ -111,7 +110,6 @@ void ElementTypeRegistry::registerFactory(std::shared_ptr<ElementFactory> factor
     m_types[typeName] = info;
     m_factories[typeName] = std::move(factory);
     
-    qDebug() << "Registered element factory:" << typeName;
 }
 
 ElementFactory* ElementTypeRegistry::getFactory(const QString& typeName) const
@@ -131,5 +129,4 @@ void ElementTypeRegistry::initializeDefaultTypes()
     // Register WebTextInput factory
     registerFactory(std::make_shared<WebTextInputFactory>());
     
-    qDebug() << "ElementTypeRegistry initialized with default types";
 }

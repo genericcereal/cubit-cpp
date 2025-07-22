@@ -109,7 +109,7 @@ FocusScope {
                             id: messageText
                             text: modelData.text
                             font.pixelSize: 13
-                            font.family: "Consolas, Monaco, monospace"
+                            font.family: Qt.platform.os === "osx" ? "Menlo" : (Qt.platform.os === "windows" ? "Consolas" : "DejaVu Sans Mono")
                             color: modelData.type === "error" ? "#cc0000" : 
                                    modelData.type === "input" ? "#0066cc" : 
                                    "#333333"
@@ -176,7 +176,7 @@ FocusScope {
                             text: root.repository.selectedOption === 0 ? ">" : " "
                             color: "#0066cc"
                             font.pixelSize: 13
-                            font.family: "Consolas, Monaco, monospace"
+                            font.family: Qt.platform.os === "osx" ? "Menlo" : (Qt.platform.os === "windows" ? "Consolas" : "DejaVu Sans Mono")
                             Layout.preferredWidth: 15
                         }
                         
@@ -211,7 +211,7 @@ FocusScope {
                             text: root.repository.selectedOption === 1 ? ">" : " "
                             color: "#0066cc"
                             font.pixelSize: 13
-                            font.family: "Consolas, Monaco, monospace"
+                            font.family: Qt.platform.os === "osx" ? "Menlo" : (Qt.platform.os === "windows" ? "Consolas" : "DejaVu Sans Mono")
                             Layout.preferredWidth: 15
                         }
                         
@@ -246,7 +246,7 @@ FocusScope {
                 Label {
                     text: root.repository.isUsingAI ? "AI>" : ">"
                     font.pixelSize: 14
-                    font.family: "Consolas, Monaco, monospace"
+                    font.family: Qt.platform.os === "osx" ? "Menlo" : (Qt.platform.os === "windows" ? "Consolas" : "DejaVu Sans Mono")
                     color: root.repository.isUsingAI ? "#0066cc" : "#666666"
                 }
                 
@@ -254,19 +254,13 @@ FocusScope {
                     id: inputField
                     Layout.fillWidth: true
                     font.pixelSize: 13
-                    font.family: "Consolas, Monaco, monospace"
+                    font.family: Qt.platform.os === "osx" ? "Menlo" : (Qt.platform.os === "windows" ? "Consolas" : "DejaVu Sans Mono")
                     placeholderText: root.repository.isUsingAI ? 
                         (root.repository.showAIPrompt && root.repository.selectedOption === 0 ? "Accept selected - press Enter to confirm" : "Ask AI a question...") : 
                         "Enter command..."
                     selectByMouse: true
                     enabled: !(root.repository.isUsingAI && root.repository.showAIPrompt && root.repository.selectedOption === 0)
                     
-                    background: Rectangle {
-                        color: "#ffffff"
-                        border.color: inputField.activeFocus ? "#0066cc" : "#d0d0d0"
-                        border.width: 1
-                        radius: 2
-                    }
                     
                     Keys.onReturnPressed: {
                         // If AI prompt is showing and "yes" is selected, treat Enter as confirmation
@@ -287,18 +281,6 @@ FocusScope {
                     Layout.preferredWidth: 60
                     enabled: inputField.text.trim() !== ""
                     
-                    background: Rectangle {
-                        color: parent.enabled ? (parent.pressed ? "#0055aa" : (parent.hovered ? "#0077cc" : "#0066cc")) : "#cccccc"
-                        radius: 4
-                    }
-                    
-                    contentItem: Label {
-                        text: parent.text
-                        color: "#ffffff"
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        font.pixelSize: 13
-                    }
                     
                     onClicked: {
                         if (inputField.text.trim() !== "") {

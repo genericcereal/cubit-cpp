@@ -76,7 +76,7 @@ Item {
     }
     
     Component.onCompleted: {
-        console.log("PrototypeViewableArea created")
+        // Console log removed - PrototypeViewableArea created
     }
     
     onVisibleChanged: {
@@ -239,7 +239,7 @@ Item {
                     root.isSimulatingScroll = false
                     root.frozenX = 0
                     root.frozenY = 0
-                    console.log("PrototypeViewableArea: Reset scroll simulation on mouse exit")
+                    // Console log removed - Reset scroll simulation on mouse exit
                 }
             }
         }

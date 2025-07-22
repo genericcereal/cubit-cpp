@@ -43,13 +43,6 @@ GroupBox {
             font.pixelSize: 14
             visible: !selectedElement && Application.activeCanvas
             
-            background: Rectangle {
-                color: parent.pressed ? "#e0e0e0" : (parent.hovered ? "#f0f0f0" : "#ffffff")
-                border.color: "#d0d0d0"
-                border.width: 1
-                radius: 4
-                antialiasing: true
-            }
             
             onClicked: {
                 if (Application.activeCanvas) {
@@ -68,13 +61,6 @@ GroupBox {
                      selectedElement.elementType !== "TextComponentInstance" &&
                      selectedElement.elementType !== "WebTextInputComponentInstance"
             
-            background: Rectangle {
-                color: parent.pressed ? "#e0e0e0" : (parent.hovered ? "#f0f0f0" : "#ffffff")
-                border.color: "#d0d0d0"
-                border.width: 1
-                radius: 4
-                antialiasing: true
-            }
             
             onClicked: {
                 if (selectedDesignElement) {
@@ -101,13 +87,6 @@ GroupBox {
                       selectedElement.elementType === "TextComponentInstance" ||
                       selectedElement.elementType === "WebTextInputComponentInstance")
             
-            background: Rectangle {
-                color: parent.pressed ? "#e0e0e0" : (parent.hovered ? "#f0f0f0" : "#ffffff")
-                border.color: "#d0d0d0"
-                border.width: 1
-                radius: 4
-                antialiasing: true
-            }
             
             onClicked: {
                 if (Application.activeCanvas && selectedElement) {
@@ -128,13 +107,6 @@ GroupBox {
             font.pixelSize: 14
             visible: selectedElement && selectedElement.elementType === "Component"
             
-            background: Rectangle {
-                color: parent.pressed ? "#e0e0e0" : (parent.hovered ? "#f0f0f0" : "#ffffff")
-                border.color: "#d0d0d0"
-                border.width: 1
-                radius: 4
-                antialiasing: true
-            }
             
             onClicked: {
                 if (Application.activeCanvas && selectedElement && selectedElement.elementType === "Component") {

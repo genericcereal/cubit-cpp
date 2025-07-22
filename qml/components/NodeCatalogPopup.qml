@@ -81,12 +81,6 @@ Rectangle {
         placeholderText: "Search nodes..."
         selectByMouse: true
         
-        background: Rectangle {
-            color: "#f5f5f5"
-            border.color: searchField.activeFocus ? "#2196F3" : "#cccccc"
-            border.width: 1 * canvas.zoom
-            radius: 4 * canvas.zoom
-        }
         
         // Removed auto-focus behavior
         
