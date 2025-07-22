@@ -62,48 +62,93 @@ jobs:
           ENTITLEMENTS=""
         fi
         
-        # First, sign all frameworks and dylibs from the inside out
-        echo "Signing frameworks..."
-        find cubit-quick.app/Contents/Frameworks -name "*.framework" -o -name "*.dylib" | while read -r framework; do
-          echo "Signing: $framework"
+        # Function to sign a single item
+        sign_item() {
+          local item="$1"
+          echo "Signing: $item"
           codesign --force --sign "${{ secrets.APPLE_DEVELOPER_ID }}" \
             --options runtime --timestamp \
             $ENTITLEMENTS \
-            "$framework"
-        done
+            "$item"
+        }
         
-        # Sign all plugins
-        echo "Signing plugins..."
+        # 1. First sign all dylibs in PlugIns directory
+        echo "=== Signing PlugIns dylibs ==="
         find cubit-quick.app/Contents/PlugIns -name "*.dylib" | while read -r plugin; do
-          echo "Signing: $plugin"
-          codesign --force --sign "${{ secrets.APPLE_DEVELOPER_ID }}" \
-            --options runtime --timestamp \
-            $ENTITLEMENTS \
-            "$plugin"
+          sign_item "$plugin"
         done
         
-        # Sign any other executables or bundles
-        echo "Signing other executables..."
-        find cubit-quick.app -type f -perm +111 -o -name "*.bundle" | while read -r exe; do
-          if file "$exe" | grep -q "Mach-O"; then
-            echo "Signing: $exe"
-            codesign --force --sign "${{ secrets.APPLE_DEVELOPER_ID }}" \
-              --options runtime --timestamp \
-              $ENTITLEMENTS \
-              "$exe" || true
+        # 2. Sign QtWebEngineProcess helper app if it exists
+        echo "=== Signing QtWebEngineProcess helper ==="
+        if [ -d "cubit-quick.app/Contents/Frameworks/QtWebEngineCore.framework/Versions/A/Helpers/QtWebEngineProcess.app" ]; then
+          sign_item "cubit-quick.app/Contents/Frameworks/QtWebEngineCore.framework/Versions/A/Helpers/QtWebEngineProcess.app"
+        fi
+        
+        # 3. Sign framework binaries inside Versions/A/
+        echo "=== Signing framework binaries ==="
+        find cubit-quick.app/Contents/Frameworks -name "*.framework" | while read -r framework; do
+          # Qt frameworks have their binary in Versions/A/FrameworkName
+          framework_name=$(basename "$framework" .framework)
+          framework_binary="$framework/Versions/A/$framework_name"
+          if [ -f "$framework_binary" ]; then
+            sign_item "$framework_binary"
+          fi
+          
+          # Also sign the framework bundle itself
+          sign_item "$framework"
+        done
+        
+        # 4. Sign any standalone dylibs in Frameworks
+        echo "=== Signing standalone dylibs in Frameworks ==="
+        find cubit-quick.app/Contents/Frameworks -name "*.dylib" | while read -r dylib; do
+          sign_item "$dylib"
+        done
+        
+        # 5. Sign any other Mach-O executables
+        echo "=== Signing other executables ==="
+        find cubit-quick.app -type f -perm +111 | while read -r exe; do
+          # Skip if already signed or if it's the main executable
+          if [[ "$exe" != *"/cubit-quick.app/Contents/MacOS/cubit-quick" ]] && \
+             [[ "$exe" != *".dylib" ]] && \
+             [[ "$exe" != *"/Versions/A/"* ]]; then
+            if file "$exe" | grep -q "Mach-O"; then
+              sign_item "$exe" || true
+            fi
           fi
         done
         
-        # Finally, sign the main app bundle
-        echo "Signing main application..."
+        # 6. Finally, sign the main app bundle
+        echo "=== Signing main application bundle ==="
         codesign --force --verify --verbose \
           --sign "${{ secrets.APPLE_DEVELOPER_ID }}" \
           --options runtime --timestamp \
           $ENTITLEMENTS \
+          --deep \
           cubit-quick.app
         
         # Verify signature
+        echo "=== Verifying signatures ==="
         codesign --verify --deep --strict --verbose=2 cubit-quick.app
+        
+        # Additional verification - check that all Mach-O binaries are signed
+        echo "=== Checking all binaries are signed ==="
+        UNSIGNED_FILES=""
+        while IFS= read -r file; do
+          if file "$file" | grep -q "Mach-O"; then
+            if ! codesign -v "$file" 2>/dev/null; then
+              echo "ERROR: Unsigned binary found: $file"
+              UNSIGNED_FILES="${UNSIGNED_FILES}${file}\n"
+            fi
+          fi
+        done < <(find cubit-quick.app -type f)
+        
+        if [ -n "$UNSIGNED_FILES" ]; then
+          echo "ERROR: Found unsigned binaries!"
+          echo -e "$UNSIGNED_FILES"
+          exit 1
+        fi
+        
+        echo "All binaries are properly signed."
     
     - name: Calculate app bundle hash
       id: app_hash

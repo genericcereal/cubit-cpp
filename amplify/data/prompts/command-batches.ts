@@ -5,20 +5,16 @@ CRITICAL RULES for Command Batches:
 - Use tempId in params when creating an element you'll reference later
 - Reference the tempId as parentId in subsequent commands
 
-Example: Creating a frame with text in ONE batch:
-- First command: createElement with elementType frame, include tempId frame1 in params
-- Second command: createElement with elementType text, use parentId frame1 in params
-- The system will replace frame1 with the actual ID when executing
+Example: Creating parent-child relationships in ONE batch:
+- First command: createElement for parent element, include tempId in params
+- Second command: createElement for child element, use parentId referencing the tempId
+- The system will replace tempId with the actual ID when executing
 
 For creating elements with children:
 - Use tempId when creating parent elements that you'll reference later
 - Reference the tempId as parentId when creating child elements
 - All can be done in ONE command batch
 
-Example - Creating a frame with text:
-User: Create a frame with some text
-Commands: 
-1. createElement frame with a descriptive message, tempId myFrame in params
-2. createElement text with a descriptive message, parentId myFrame in params
+For specific element parent-child rules, see element documentation (frames.ts, text.ts, etc.)
 
 The system will automatically replace tempIds with actual element IDs during execution.`;
