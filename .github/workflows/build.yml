@@ -59,12 +59,19 @@ jobs:
         echo "=== Checking signing identity ==="
         security find-identity -v -p codesigning
         
-        # Use macdeployqt with code signing
+        # Use macdeployqt with code signing and QML imports
         echo "=== Running macdeployqt with code signing ==="
+        
+        # Find Qt installation path
+        QT_PATH=$(qmake6 -query QT_INSTALL_PREFIX)
+        echo "Qt installation path: $QT_PATH"
+        
         if [ -f entitlements.plist ]; then
           # macdeployqt with signing and hardened runtime
           macdeployqt cubit-quick.app \
             -dmg \
+            -qmldir=qml \
+            -qmlimport="$QT_PATH/qml" \
             -codesign="${{ secrets.APPLE_DEVELOPER_ID }}" \
             -hardened-runtime \
             -timestamp \
@@ -73,6 +80,8 @@ jobs:
           # macdeployqt with signing but no entitlements file
           macdeployqt cubit-quick.app \
             -dmg \
+            -qmldir=qml \
+            -qmlimport="$QT_PATH/qml" \
             -codesign="${{ secrets.APPLE_DEVELOPER_ID }}" \
             -hardened-runtime \
             -timestamp \
