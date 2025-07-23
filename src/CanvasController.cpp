@@ -461,12 +461,12 @@ void CanvasController::moveElements(const QList<Element*>& elements, const QPoin
     m_commandHistory->execute(std::move(command));
 }
 
-void CanvasController::resizeElement(CanvasElement* element, const QSizeF& newSize)
+void CanvasController::resizeElement(CanvasElement* element, const QSizeF& oldSize, const QSizeF& newSize)
 {
     if (!element) return;
     
-    // Get current rect and create new rect with new size
-    QRectF oldRect(element->x(), element->y(), element->width(), element->height());
+    // Create rects with the provided old and new sizes
+    QRectF oldRect(element->x(), element->y(), oldSize.width(), oldSize.height());
     QRectF newRect(element->x(), element->y(), newSize.width(), newSize.height());
     
     // Create and execute resize command

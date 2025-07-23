@@ -24,6 +24,7 @@ public:
     bool mergeWith(SetPropertyCommand* other);
 
 private:
+    void syncWithAPI();
     QObject* m_target;
     QString m_propertyName;
     QVariant m_oldValue;

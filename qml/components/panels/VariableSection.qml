@@ -120,19 +120,19 @@ ColumnLayout {
                                 
                                 onLoaded: {
                                     if (modelData.type === "checkbox") {
-                                        item.checked = Qt.binding(modelData.getter)
+                                        item.checked = Qt.binding(function() { return modelData.getter() })
                                         item.toggled.connect(function() {
                                             modelData.setter(item.checked)
                                         })
                                     } else if (modelData.type === "text") {
-                                        item.text = Qt.binding(modelData.getter)
+                                        item.text = Qt.binding(function() { return modelData.getter() })
                                         item.textChanged.connect(function() {
                                             modelData.setter(item.text)
                                         })
                                     } else if (modelData.type === "combobox") {
                                         // Use model property if available, fallback to options
                                         if (modelData.model) {
-                                            item.model = Qt.binding(modelData.model)
+                                            item.model = Qt.binding(function() { return modelData.model() })
                                         } else if (modelData.options) {
                                             item.model = modelData.options
                                         }

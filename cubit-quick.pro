@@ -77,7 +77,10 @@ SOURCES += \
     src/Command.cpp \
     src/CommandHistory.cpp \
     src/commands/CreateDesignElementCommand.cpp \
+    src/commands/CreateProjectCommand.cpp \
+    src/commands/OpenProjectCommand.cpp \
     src/commands/DeleteElementsCommand.cpp \
+    src/commands/DeleteProjectCommand.cpp \
     src/commands/MoveElementsCommand.cpp \
     src/commands/ResizeElementCommand.cpp \
     src/commands/SetPropertyCommand.cpp \
@@ -96,7 +99,8 @@ SOURCES += \
     src/AuthenticationManager.cpp \
     src/UrlSchemeHandler.cpp \
     src/StreamingAIClient.cpp \
-    src/AICommandDispatcher.cpp
+    src/AICommandDispatcher.cpp \
+    src/ProjectApiClient.cpp
 
 HEADERS += \
     src/Element.h \
@@ -148,7 +152,10 @@ HEADERS += \
     src/Command.h \
     src/CommandHistory.h \
     src/commands/CreateDesignElementCommand.h \
+    src/commands/CreateProjectCommand.h \
+    src/commands/OpenProjectCommand.h \
     src/commands/DeleteElementsCommand.h \
+    src/commands/DeleteProjectCommand.h \
     src/commands/MoveElementsCommand.h \
     src/commands/ResizeElementCommand.h \
     src/commands/SetPropertyCommand.h \
@@ -167,7 +174,8 @@ HEADERS += \
     src/AuthenticationManager.h \
     src/UrlSchemeHandler.h \
     src/StreamingAIClient.h \
-    src/AICommandDispatcher.h
+    src/AICommandDispatcher.h \
+    src/ProjectApiClient.h
 
 RESOURCES += qml.qrc
 

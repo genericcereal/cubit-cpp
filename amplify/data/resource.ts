@@ -49,7 +49,7 @@ const schema = a.schema({
     .model({
       name: a.string().required(),
       teamId: a.string().required(),
-      jsonData: a.json(),
+      canvasData: a.json().required(), // Store canvas state as JSON
     })
     .authorization((allow) => allow.owner()),
 });
