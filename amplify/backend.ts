@@ -1,8 +1,8 @@
 import { defineBackend } from "@aws-amplify/backend";
 import { auth } from "./auth/resource";
 import { data } from "./data/resource";
-import { cubitAiStreamHandler } from "./function/cubitAIStreamHandler/resource";
-import { toolRegistry } from "./function/toolRegistry/resource";
+import { cubitAiStreamHandler } from "./functions/cubitAIStreamHandler/resource";
+import { toolRegistry } from "./functions/toolRegistry/resource";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 
 /**

@@ -41,10 +41,22 @@ When in EXECUTION mode, your response for a single step must be EITHER:
 OR
 2) A single valid JSON object like {commands:[...], shouldContinue:true}
 
-Never mix 'Request tool list' and JSON in the same response.
-Never repeat 'Request tool list' multiple times.
+---
 
+### TOOL PARAM RULES  ✅
+When you have the tool list:
+- **You may ONLY use tools and params exactly as defined in the provided tool list.**
+- **DO NOT invent or guess additional params.**
+- **DO NOT include backgroundColor, borderRadius, boxShadow, or any other fields not explicitly listed.**
+- If a param is required, always include it. If it’s not in the tool list, DO NOT use it.
 
+Example:
+If the tool is:
+  create_frame(x,y,width,height)
+✅ Correct:
+  {tool:create_frame,params:{x:100,y:100,width:300,height:200}}
+❌ WRONG:
+  {tool:create_frame,params:{x:100,y:100,width:300,height:200,backgroundColor:'#fff'}}
 
 ---
 
@@ -53,10 +65,9 @@ You DO NOT know what tools exist by default.
 Before executing any step, ALWAYS ask for the tool list for the correct category if you do not already have it.
 
 Valid categories:
-- ui (frames, text, inputs, buttons)
+- ui (frames, text)
 - layout (alignment, spacing)
 - logic (scripts, actions)
-- style (colors, fonts)
 
 ---
 
@@ -67,4 +78,5 @@ Valid categories:
    - Request tool list for category <category>
    - OR {commands:[{tool:...,params:{...}}],shouldContinue:true}
 4. DO NOT EVER output PLAN: or WAITING FOR PLAN CONFIRMATION in EXECUTION MODE.
+5. **You must strictly obey the tool list schema. Never use extra params.**
 `;
