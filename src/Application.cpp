@@ -44,6 +44,10 @@ Application::Application(QObject *parent)
     connect(ConsoleMessageRepository::instance(), &ConsoleMessageRepository::aiContinuationResponse,
             this, &Application::onAIContinuationResponse, Qt::UniqueConnection);
     
+    // Connect to console repository for AI mode disabled
+    connect(ConsoleMessageRepository::instance(), &ConsoleMessageRepository::aiModeDisabled,
+            this, &Application::onAIModeDisabled, Qt::UniqueConnection);
+    
     // Create initial canvas
     createCanvas("Canvas 1");
     
@@ -661,4 +665,11 @@ void Application::onAIContinuationResponse(bool accepted, const QString& feedbac
     
     // Forward the response to the AI client
     m_streamingAIClient->handleUserContinuationResponse(accepted, feedback);
+}
+
+void Application::onAIModeDisabled() {
+    // Clear the AI conversation when AI mode is disabled
+    if (m_streamingAIClient) {
+        m_streamingAIClient->clearConversation();
+    }
 }

@@ -11,6 +11,8 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QFile>
+#include <QTextStream>
+#include <QCoreApplication>
 #include <QUrl>
 #include <QUrlQuery>
 #include <QDebug>
@@ -88,9 +90,15 @@ void StreamingAIClient::sendMessage(const QString &description)
     {
         connectToWebSocket();
     }
+    else if (m_currentConversationId.isEmpty())
+    {
+        // Create a new conversation only if we don't have one
+        createConversation();
+    }
     else
     {
-        createConversation();
+        // Use existing conversation
+        sendConversationMessage(m_currentConversationId, m_pendingMessage);
     }
 }
 
@@ -99,30 +107,34 @@ bool StreamingAIClient::isConnected() const
     return m_isConnected && m_connectionAckReceived;
 }
 
-void StreamingAIClient::handleUserContinuationResponse(bool accepted, const QString &feedback)
-{
-    // Hide the prompt options
+void StreamingAIClient::handleUserContinuationResponse(bool accepted, const QString &feedback) {
     ConsoleMessageRepository::instance()->setShowAIPrompt(false);
-    
-    if (!m_currentConversationId.isEmpty() && !m_pendingContinuationContext.isEmpty())
-    {
-        QString message;
-        if (accepted) {
-            // User accepted, continue with the planned action
-            message = "Continue: " + m_pendingContinuationContext;
-            ConsoleMessageRepository::instance()->addInfo("Continuing with AI plan...");
-        } else {
-            // User provided feedback, adjust the plan
-            message = "User feedback: " + feedback + ". Please adjust the plan for: " + m_pendingContinuationContext;
-            ConsoleMessageRepository::instance()->addInfo("Adjusting AI plan based on feedback...");
+
+    if (!m_currentConversationId.isEmpty() && !m_pendingContinuationContext.isEmpty()) {
+        if (accepted && m_pendingContinuationContext == "PLAN_CONFIRMED") {
+            // ✅ User approved the plan → start executing first step
+            m_currentStepIndex = 0;
+            executeNextPlanStep();
+        } 
+        else if (accepted && m_pendingContinuationContext.startsWith("EXEC_STEP")) {
+            // ✅ Continue next step after manual approval
+            executeNextPlanStep();
+        } 
+        else {
+            // ❌ User rejected → ask AI to adjust
+            QString message = QString("User feedback: %1. Please adjust the plan.").arg(feedback);
+            sendConversationMessage(m_currentConversationId, message);
         }
-        
-        // Send the continuation or feedback message
-        sendConversationMessage(m_currentConversationId, message);
-        
-        // Clear the pending context
+
         m_pendingContinuationContext.clear();
     }
+}
+
+void StreamingAIClient::clearConversation()
+{
+    m_currentConversationId.clear();
+    m_currentSubscriptionId.clear();
+    m_pendingContinuationContext.clear();
 }
 
 void StreamingAIClient::connectToWebSocket()
@@ -145,8 +157,8 @@ void StreamingAIClient::connectToWebSocket()
     request.setRawHeader("Origin", "app://cubit");
     request.setRawHeader("User-Agent", "Cubit/1.0");
 
-    qDebug() << "Opening WebSocket with URL:" << url;
-    qDebug() << "WebSocket protocol: graphql-ws";
+    // qDebug() << "Opening WebSocket with URL:" << url;
+    // qDebug() << "WebSocket protocol: graphql-ws";
     m_webSocket->open(request);
 }
 
@@ -168,7 +180,7 @@ QString StreamingAIClient::getWebSocketUrl() const
         return {};
     }
 
-    qDebug() << "[DEBUG] Original AppSync endpoint:" << endpoint;
+    // qDebug() << "[DEBUG] Original AppSync endpoint:" << endpoint;
 
     QString wsEndpoint = endpoint;
     wsEndpoint.replace("https://", "wss://");
@@ -177,7 +189,7 @@ QString StreamingAIClient::getWebSocketUrl() const
         wsEndpoint.chop(8);
     wsEndpoint += "/graphql";
 
-    qDebug() << "[DEBUG] Realtime WebSocket endpoint:" << wsEndpoint;
+    // qDebug() << "[DEBUG] Realtime WebSocket endpoint:" << wsEndpoint;
 
     QJsonObject authHeader;
     QUrl endpointUrl(endpoint);
@@ -189,8 +201,8 @@ QString StreamingAIClient::getWebSocketUrl() const
     else
         qWarning() << "[DEBUG] No Cognito token available for websocket!";
 
-    qDebug() << "[DEBUG] WebSocket authHeader JSON:"
-             << QJsonDocument(authHeader).toJson(QJsonDocument::Compact);
+    // qDebug() << "[DEBUG] WebSocket authHeader JSON:"
+    //          << QJsonDocument(authHeader).toJson(QJsonDocument::Compact);
 
     QByteArray headerJson = QJsonDocument(authHeader).toJson(QJsonDocument::Compact);
     QString encodedHeader = QString::fromUtf8(headerJson.toBase64());
@@ -202,8 +214,8 @@ QString StreamingAIClient::getWebSocketUrl() const
                            .arg(encodedPayload);
 
     QByteArray decodedHeader = QByteArray::fromBase64(encodedHeader.toUtf8());
-    qDebug() << "[DEBUG] Decoded Base64 header JSON (sanity check):" << decodedHeader;
-    qDebug() << "[DEBUG] Final WebSocket URL:" << finalUrl;
+    // qDebug() << "[DEBUG] Decoded Base64 header JSON (sanity check):" << decodedHeader;
+    // qDebug() << "[DEBUG] Final WebSocket URL:" << finalUrl;
 
     return finalUrl;
 }
@@ -244,8 +256,13 @@ QString StreamingAIClient::getAuthToken() const
             return idToken;
         }
     }
-    qDebug() << "No Cognito ID token available!";
+    // qDebug() << "No Cognito ID token available!";
     return QString();
+}
+
+QString StreamingAIClient::getToolRegistryUrl() const
+{
+    return "https://k72mo3oun7sefawjhvilq2ne5a0ybfgr.lambda-url.us-west-2.on.aws/";
 }
 
 void StreamingAIClient::onConnected()
@@ -299,7 +316,7 @@ void StreamingAIClient::onTextMessageReceived(const QString &message)
     else if (type == "error" || type == "connection_error") {
         handleError(obj["payload"].toObject());
         // Additional error logging
-        qDebug() << "Full error message:" << QJsonDocument(obj).toJson(QJsonDocument::Compact);
+        // qDebug() << "Full error message:" << QJsonDocument(obj).toJson(QJsonDocument::Compact);
         
         // Check if this is a subscription-specific error
         QString errorType = "";
@@ -312,14 +329,16 @@ void StreamingAIClient::onTextMessageReceived(const QString &message)
         
         if (errorType == "UnsupportedOperation" && errorMessage.contains("not supported through the realtime channel")) {
             ConsoleMessageRepository::instance()->addError("Subscription format error: The subscription request format is not compatible with AWS AppSync realtime channel");
-            qDebug() << "This typically means the subscription message format is incorrect for AppSync";
+            // qDebug() << "This typically means the subscription message format is incorrect for AppSync";
         }
     }
     else if (type == "ka")
     {
     } // Keepalive
     else
-        qDebug() << "Unknown WebSocket message type:" << type;
+    {
+        // qDebug() << "Unknown WebSocket message type:" << type;
+    }
 }
 
 void StreamingAIClient::onError(QAbstractSocket::SocketError error)
@@ -333,7 +352,7 @@ void StreamingAIClient::onError(QAbstractSocket::SocketError error)
 void StreamingAIClient::onTokensRefreshed()
 {
     // Tokens refreshed, reconnecting
-    qDebug() << "Tokens refreshed in StreamingAIClient, reconnecting WebSocket";
+    // qDebug() << "Tokens refreshed in StreamingAIClient, reconnecting WebSocket";
     disconnectFromWebSocket();
     
     // If we have a pending message, reconnect and retry
@@ -403,7 +422,7 @@ void StreamingAIClient::createConversation()
             {
         if (reply->error() == QNetworkReply::NoError) {
             QByteArray responseData = reply->readAll();
-            qDebug() << "CreateConversation response:" << responseData;
+            // qDebug() << "CreateConversation response:" << responseData;
             QJsonDocument responseDoc = QJsonDocument::fromJson(responseData);
             QJsonObject response = responseDoc.object();
             if (response.contains("data")) {
@@ -417,7 +436,19 @@ void StreamingAIClient::createConversation()
                     
                     // Add a small delay to ensure subscription is established
                     QTimer::singleShot(500, this, [this]() {
-                        sendConversationMessage(m_currentConversationId, m_pendingMessage);
+                        // Send CubitAI rules as the first message
+                        // sendCubitAIRules(m_currentConversationId);  // Disabled - no longer sending rules
+                        
+                        // Check if this is just initialization (INIT_AI_WITH_RULES)
+                        if (m_pendingMessage == "INIT_AI_WITH_RULES") {
+                            // Don't send any user message, just the rules
+                            m_pendingMessage.clear();
+                        } else {
+                            // Then send the user's message after a brief delay
+                            QTimer::singleShot(200, this, [this]() {
+                                sendConversationMessage(m_currentConversationId, m_pendingMessage);
+                            });
+                        }
                     });
                 }
             }
@@ -515,6 +546,75 @@ void StreamingAIClient::sendSubscription(const QString &subId, const QString &qu
     m_webSocket->sendTextMessage(msgJson);
 }
 
+void StreamingAIClient::sendCubitAIRules(const QString &conversationId)
+{
+    // Read the CubitAI rules from file
+    QString rulesPath = QCoreApplication::applicationDirPath() + "/../amplify/data/prompts/CubitAIRules.txt";
+    QFile rulesFile(rulesPath);
+    QString rulesContent;
+    
+    if (rulesFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QTextStream in(&rulesFile);
+        rulesContent = in.readAll();
+        rulesFile.close();
+    } else {
+        // If file not found, try alternative path (development environment)
+        rulesPath = "amplify/data/prompts/CubitAIRules.txt";
+        QFile altRulesFile(rulesPath);
+        if (altRulesFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            QTextStream in(&altRulesFile);
+            rulesContent = in.readAll();
+            altRulesFile.close();
+        } else {
+            qWarning() << "Could not load CubitAI rules file from:" << rulesPath;
+            // Fall back to a minimal rules string
+            rulesContent = "You are CubitAI. Always respond in strict JSON with {message, commands, shouldContinue, continuationContext}.";
+        }
+    }
+    
+    // Send the rules as the first message
+    QString mutation = R"(
+        mutation SendMessageCubitChat($conversationId: ID!, $content: [AmplifyAIContentBlockInput!]) {
+            CubitChat(conversationId: $conversationId, content: $content) {
+                conversationId
+                id
+                content { text }
+                role
+                createdAt
+            }
+        }
+    )";
+
+    QJsonObject textBlock;
+    textBlock["text"] = rulesContent;
+    QJsonArray contentArr;
+    contentArr.append(textBlock);
+
+    QJsonObject vars;
+    vars["conversationId"] = conversationId;
+    vars["content"] = contentArr;
+    
+    QJsonObject body;
+    body["query"] = mutation;
+    body["variables"] = vars;
+
+    QNetworkAccessManager *manager = new QNetworkAccessManager(this);
+    QNetworkRequest req((QUrl(getApiEndpoint())));
+    req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    QString token = getAuthToken();
+    if (!token.isEmpty())
+        req.setRawHeader("Authorization", token.toUtf8());
+
+    QNetworkReply *reply = manager->post(req, QJsonDocument(body).toJson(QJsonDocument::Compact));
+    connect(reply, &QNetworkReply::finished, this, [reply, manager]() {
+        if (reply->error() != QNetworkReply::NoError) {
+            qWarning() << "Failed to send CubitAI rules:" << reply->errorString();
+        }
+        reply->deleteLater();
+        manager->deleteLater();
+    });
+}
+
 void StreamingAIClient::sendConversationMessage(const QString &conversationId, const QString &message)
 {
     // Sending message to conversation
@@ -554,7 +654,7 @@ void StreamingAIClient::sendConversationMessage(const QString &conversationId, c
         req.setRawHeader("Authorization", token.toUtf8());
 
     QNetworkReply *reply = manager->post(req, QJsonDocument(body).toJson(QJsonDocument::Compact));
-    connect(reply, &QNetworkReply::finished, this, [this, reply, manager]()
+    connect(reply, &QNetworkReply::finished, this, [reply, manager]()
             {
         QByteArray resp = reply->readAll();
         // qDebug() << "SendMessage response:" << resp;
@@ -605,7 +705,7 @@ void StreamingAIClient::handleSubscriptionData(const QJsonObject &payload)
         // Extract text content from contentBlockText
         QString chunk = resp["contentBlockText"].toString();
         int contentBlockIndex = resp["contentBlockIndex"].toInt(-1);
-        int contentBlockDoneAtIndex = resp["contentBlockDoneAtIndex"].toInt(-1);
+        // int contentBlockDoneAtIndex = resp["contentBlockDoneAtIndex"].toInt(-1);
         QString stopReason = resp["stopReason"].toString();
         
         // Check if there are errors
@@ -648,217 +748,194 @@ void StreamingAIClient::processStreamingResponse(const QString &chunk, int idx, 
 void StreamingAIClient::finalizeResponse()
 {
     stopLoadingIndicator();
-    
-    if (!m_accumulatedResponse.isEmpty())
-    {
-        ConsoleMessageRepository::instance()->addOutput(QString("AI: %1").arg(m_accumulatedResponse));
-        emit responseReceived(m_accumulatedResponse);
-    }
-    
-    // Try to parse commands from the accumulated response
-    // The AI might return commands in different formats:
-    // 1. As a JSON object with a "commands" field containing a stringified JSON array
-    // 2. As a direct JSON array
-    if (!m_accumulatedResponse.isEmpty())
-    {
-        // Clean up the response to handle malformed JSON
-        QString cleanedResponse = m_accumulatedResponse;
-        
-        // Find the JSON object boundaries more carefully
-        int jsonStartIdx = -1;
-        int jsonEndIdx = -1;
-        int braceCount = 0;
-        bool inString = false;
-        bool escapeNext = false;
-        
-        for (int i = 0; i < cleanedResponse.length(); i++) {
-            QChar ch = cleanedResponse[i];
+
+    if (m_accumulatedResponse.isEmpty()) return;
+
+    // --- Safeguard: Prevent plan injection during EXECUTION ---
+    if (m_pendingContinuationContext == "EXEC_STEP") {
+        // If AI accidentally replanned, remove plan text
+        if (m_accumulatedResponse.contains("PLAN:")) {
+            qDebug() << "⚠️ AI tried to replan in EXECUTION mode. Stripping plan text.";
+            // Remove any "PLAN:" lines and "WAITING FOR PLAN CONFIRMATION"
+            QString filtered = m_accumulatedResponse;
+            filtered.remove(QRegularExpression("PLAN:.*WAITING FOR PLAN CONFIRMATION", QRegularExpression::DotMatchesEverythingOption));
+            filtered.remove("WAITING FOR PLAN CONFIRMATION");
+            m_accumulatedResponse = filtered.trimmed();
             
-            if (escapeNext) {
-                escapeNext = false;
-                continue;
-            }
-            
-            if (ch == '\\') {
-                escapeNext = true;
-                continue;
-            }
-            
-            if (ch == '"' && !escapeNext) {
-                inString = !inString;
-                continue;
-            }
-            
-            if (!inString) {
-                if (ch == '{') {
-                    if (jsonStartIdx == -1) jsonStartIdx = i;
-                    braceCount++;
-                } else if (ch == '}') {
-                    braceCount--;
-                    if (braceCount == 0 && jsonStartIdx != -1) {
-                        jsonEndIdx = i;
-                        break;  // Found complete JSON object
-                    }
-                }
+            // Skip console output if nothing left after filtering
+            if (m_accumulatedResponse.isEmpty()) {
+                ConsoleMessageRepository::instance()->addInfo("AI response contained only plan text during execution, skipping.");
+                return;
             }
         }
+    }
+
+    ConsoleMessageRepository::instance()->addOutput(QString("AI: %1").arg(m_accumulatedResponse));
+    emit responseReceived(m_accumulatedResponse);
+
+    // --- 1) Detect PLAN phase ---
+    if (m_accumulatedResponse.contains("PLAN:") ||
+        m_accumulatedResponse.contains("WAITING FOR PLAN CONFIRMATION")) {
+        m_pendingPlanSteps = extractPlanSteps(m_accumulatedResponse);
+
+        if (!m_pendingPlanSteps.isEmpty()) {
+            ConsoleMessageRepository::instance()->addInfo(
+                QString("AI proposed a plan with %1 steps.").arg(m_pendingPlanSteps.size())
+            );
+            // Show confirm/reject prompt
+            ConsoleMessageRepository::instance()->setShowAIPrompt(true);
+            m_pendingContinuationContext = "PLAN_CONFIRMED";
+        } else {
+            ConsoleMessageRepository::instance()->addInfo("AI produced a plan but no steps were detected.");
+        }
         
-        if (jsonStartIdx != -1 && jsonEndIdx > jsonStartIdx)
-        {
-            QString jsonStr = cleanedResponse.mid(jsonStartIdx, jsonEndIdx - jsonStartIdx + 1);
-            QJsonParseError parseError;
-            QJsonDocument doc = QJsonDocument::fromJson(jsonStr.toUtf8(), &parseError);
-            
-            if (parseError.error != QJsonParseError::NoError) {
-                qWarning() << "JSON parse error:" << parseError.errorString() << "at offset" << parseError.offset;
-                qWarning() << "JSON string:" << jsonStr;
+        // ✅ Remove everything up to WAITING FOR PLAN CONFIRMATION
+        m_accumulatedResponse.remove(
+            QRegularExpression("PLAN:.*WAITING FOR PLAN CONFIRMATION",
+            QRegularExpression::DotMatchesEverythingOption)
+        );
+        
+        // Clear the buffer completely after handling the plan
+        m_accumulatedResponse.clear();
+        
+        // ✅ Stop here, don't attempt JSON parsing
+        return;
+    }
+
+    // --- 2) Detect tool registry request ---
+    if (m_accumulatedResponse.startsWith("Request tool list for category")) {
+        QString requestedCategory = m_accumulatedResponse.section(':', 1).trimmed();
+        fetchToolRegistry(requestedCategory);
+        m_accumulatedResponse.clear(); // ✅ Clear buffer after handling tool request
+        return; // ✅ Stop here, wait for tool list
+    }
+
+    // --- Handle EXECUTION mode responses ---
+    if (m_pendingContinuationContext == "EXEC_STEP") {
+        // Check if response contains JSON
+        int startIdx = m_accumulatedResponse.indexOf('{');
+        int endIdx   = m_accumulatedResponse.lastIndexOf('}');
+        
+        // If JSON is present, prioritize it over tool requests
+        if (startIdx >= 0 && endIdx > startIdx) {
+            QString onlyJson = m_accumulatedResponse.mid(startIdx, endIdx - startIdx + 1);
+            m_accumulatedResponse = onlyJson; // Extract only the JSON part
+            // Continue to JSON parsing below
+        }
+        // Only check for tool request if no JSON was found
+        else if (m_accumulatedResponse.contains("Request tool list for category")) {
+            // Find the tool request line
+            int toolReqStart = m_accumulatedResponse.indexOf("Request tool list for category");
+            if (toolReqStart >= 0) {
+                // Extract from "Request" to the end of that line
+                int lineEnd = m_accumulatedResponse.indexOf('\n', toolReqStart);
+                QString toolRequest;
+                if (lineEnd > 0) {
+                    toolRequest = m_accumulatedResponse.mid(toolReqStart, lineEnd - toolReqStart);
+                } else {
+                    toolRequest = m_accumulatedResponse.mid(toolReqStart);
+                }
                 
-                // Try to fix common JSON issues
-                jsonStr.replace("\\n", " ");  // Remove newlines that might break JSON
-                doc = QJsonDocument::fromJson(jsonStr.toUtf8(), &parseError);
-                
-                if (parseError.error != QJsonParseError::NoError) {
+                // Extract category from the tool request
+                QString category = toolRequest.section(':', 1).trimmed();
+                if (!category.isEmpty()) {
+                    fetchToolRegistry(category);
+                    m_accumulatedResponse.clear(); // ✅ Clear buffer after handling tool request
                     return;
                 }
             }
-            
-            if (doc.isObject())
-            {
-                QJsonObject obj = doc.object();
-                bool commandsExecuted = false;
-                
-                if (obj.contains("commands") && obj["commands"].isString())
-                {
-                    // Parse the stringified commands array
-                    QString commandsStr = obj["commands"].toString();
-                    
-                    // Try to fix common JSON corruption issues
-                    // Sometimes the AI splits IDs or values across JSON boundaries
-                    if (commandsStr.contains("\"parentId\":\"") && !commandsStr.contains("\"parentId\":\"\"")) {
-                        // Find incomplete parentId patterns
-                        QRegularExpression incompleteParentId("\"parentId\":\"[0-9]+$");
-                        if (incompleteParentId.match(commandsStr).hasMatch()) {
-                            // Try to find the rest of the ID in the continuation
-                            QRegularExpression findRestOfId("^[0-9]+\"");
-                            int pos = commandsStr.indexOf(incompleteParentId);
-                            if (pos != -1) {
-                                // Look for numbers after the partial ID
-                                QString afterPartial = commandsStr.mid(pos + incompleteParentId.match(commandsStr).capturedLength());
-                                QRegularExpression numbers("^[0-9]+");
-                                auto match = numbers.match(afterPartial);
-                                if (match.hasMatch()) {
-                                    // Fix by adding quotes around the complete ID
-                                    QString beforeId = commandsStr.left(pos);
-                                    QString partialId = incompleteParentId.match(commandsStr).captured();
-                                    QString restOfId = match.captured();
-                                    QString afterId = afterPartial.mid(match.capturedLength());
-                                    commandsStr = beforeId + partialId + restOfId + "\"" + afterId;
-                                }
-                            }
-                        }
-                    }
-                    
-                    // Also try to fix split element types like "setProperty912\\"
-                    commandsStr.replace(QRegularExpression("\"setProperty[0-9]+\\\\+\""), "\"setProperty\"");
-                    
-                    QJsonParseError parseError;
-                    QJsonDocument cmdDoc = QJsonDocument::fromJson(commandsStr.toUtf8(), &parseError);
-                    
-                    if (cmdDoc.isArray())
-                    {
-                        QJsonArray cmds = cmdDoc.array();
-                        if (!cmds.isEmpty())
-                        {
-                            qDebug() << "Executing" << cmds.size() << "commands from AI";
-                            m_commandDispatcher->executeCommands(cmds);
-                            emit commandsReceived(cmds);
-                            commandsExecuted = true;
-                        }
-                    }
-                    else
-                    {
-                        qWarning() << "Failed to parse commands string as JSON array:" << commandsStr;
-                        qWarning() << "Parse error:" << parseError.errorString() << "at" << parseError.offset;
-                        
-                        // Try one more time with aggressive cleanup
-                        commandsStr.replace("\\\\", "\\");
-                        commandsStr.replace("\n", " ");
-                        cmdDoc = QJsonDocument::fromJson(commandsStr.toUtf8(), &parseError);
-                        
-                        if (cmdDoc.isArray()) {
-                            QJsonArray cmds = cmdDoc.array();
-                            if (!cmds.isEmpty()) {
-                                qDebug() << "Executing" << cmds.size() << "commands from AI (after cleanup)";
-                                m_commandDispatcher->executeCommands(cmds);
-                                emit commandsReceived(cmds);
-                                commandsExecuted = true;
-                            }
-                        }
-                    }
-                }
-                
-                // Check if AI wants to continue
-                bool shouldContinue = obj["shouldContinue"].toBool(false);
-                QString continuationContext = obj["continuationContext"].toString();
-                
-                if (shouldContinue && !continuationContext.isEmpty())
-                {
-                    // Execute commands first if we haven't already
-                    if (!commandsExecuted && obj.contains("commands") && obj["commands"].isString())
-                    {
-                        // Parse and execute commands before showing prompt
-                        QString commandsStr = obj["commands"].toString();
-                        QJsonParseError parseError;
-                        QJsonDocument cmdDoc = QJsonDocument::fromJson(commandsStr.toUtf8(), &parseError);
-                        
-                        if (cmdDoc.isArray())
-                        {
-                            QJsonArray cmds = cmdDoc.array();
-                            if (!cmds.isEmpty())
-                            {
-                                qDebug() << "Executing" << cmds.size() << "commands from AI before continuation prompt";
-                                m_commandDispatcher->executeCommands(cmds);
-                                emit commandsReceived(cmds);
-                            }
-                        }
-                    }
-                    
-                    ConsoleMessageRepository::instance()->addInfo("AI will continue with: " + continuationContext);
-                    
-                    // Show the AI prompt options to the user
-                    ConsoleMessageRepository::instance()->setShowAIPrompt(true);
-                    
-                    // Store the continuation context for later use
-                    m_pendingContinuationContext = continuationContext;
-                    
-                    // Don't automatically continue - wait for user input
-                }
-            }
+        } else {
+            ConsoleMessageRepository::instance()->addInfo("AI execution step had no JSON or tool request, ignoring.");
+            m_accumulatedResponse.clear(); // ✅ Clear buffer to prevent accumulation
+            return;
         }
+    }
+
+    // --- 3) Only parse JSON if it looks like JSON ---
+    QString trimmed = m_accumulatedResponse.trimmed();
+    if (!(trimmed.startsWith("{") || trimmed.startsWith("["))) {
+        ConsoleMessageRepository::instance()->addInfo("AI response is plain text, skipping JSON parse.");
+        return;
+    }
+
+    // --- Now safe to parse JSON ---
+    QJsonParseError parseError;
+    QJsonDocument doc = QJsonDocument::fromJson(trimmed.toUtf8(), &parseError);
+
+    if (parseError.error != QJsonParseError::NoError) {
+        ConsoleMessageRepository::instance()->addError(
+            QString("Failed to parse AI response as JSON: %1 at position %2")
+            .arg(parseError.errorString())
+            .arg(parseError.offset)
+        );
+        qWarning() << "Raw response:" << trimmed;
+        requestJsonRepair(trimmed, parseError.errorString());
+        return;
+    }
+
+    if (!doc.isObject()) {
+        ConsoleMessageRepository::instance()->addError("AI response is not a valid JSON object");
+        requestJsonRepair(trimmed, "Response is not a JSON object");
+        return;
+    }
+
+    QJsonObject responseObj = doc.object();
+
+    // Extract message if present
+    QString message = responseObj["message"].toString();
+
+    // Check if AI is requesting tool list (in JSON message field)
+    if (message.startsWith("Request tool list for category")) {
+        QString category = message.section(':', 1).trimmed();
+        fetchToolRegistry(category);
+        return;
+    }
+
+    // Extract and parse commands
+    if (responseObj.contains("commands") && responseObj["commands"].isString()) {
+        QString commandsStr = responseObj["commands"].toString();
         
-        // If no JSON object found, try the legacy approach with accumulated commands
-        else if (!m_accumulatedCommands.isEmpty())
-        {
-            int startIdx = m_accumulatedCommands.indexOf('[');
-            int endIdx = m_accumulatedCommands.lastIndexOf(']');
-            if (startIdx != -1 && endIdx > startIdx)
-            {
-                QString jsonPart = m_accumulatedCommands.mid(startIdx, endIdx - startIdx + 1);
-                QJsonDocument doc = QJsonDocument::fromJson(jsonPart.toUtf8());
-                if (doc.isArray())
-                {
-                    QJsonArray cmds = doc.array();
-                    if (!cmds.isEmpty())
-                    {
-                        qDebug() << "Executing" << cmds.size() << "commands from AI (legacy format)";
-                        m_commandDispatcher->executeCommands(cmds);
-                        emit commandsReceived(cmds);
-                    }
+        if (commandsStr != "[]") {
+            QJsonParseError cmdParseError;
+            QJsonDocument cmdDoc = QJsonDocument::fromJson(commandsStr.toUtf8(), &cmdParseError);
+            
+            if (cmdParseError.error == QJsonParseError::NoError && cmdDoc.isArray()) {
+                QJsonArray cmds = cmdDoc.array();
+                if (!cmds.isEmpty()) {
+                    m_commandDispatcher->executeCommands(cmds);
+                    emit commandsReceived(cmds);
+                    
+                    // ✅ After handling JSON/tool request, clear buffer so it won't re-run
+                    m_accumulatedResponse.clear();
                 }
+            } else {
+                ConsoleMessageRepository::instance()->addError(
+                    QString("Failed to parse commands array: %1").arg(cmdParseError.errorString())
+                );
+                QString errorDetail = QString("Commands array parsing failed: %1. Invalid commands string: %2")
+                    .arg(cmdParseError.errorString())
+                    .arg(commandsStr);
+                requestJsonRepair(m_accumulatedResponse, errorDetail);
+                return;
             }
         }
     }
-    
+
+    // Check if AI wants to continue
+    bool shouldContinue = responseObj["shouldContinue"].toBool(false);
+    QString continuationContext = responseObj["continuationContext"].toString();
+
+    if (shouldContinue && !m_pendingPlanSteps.isEmpty()) {
+        // ✅ Auto-loop next step
+        executeNextPlanStep();
+    } 
+    else if (shouldContinue && !continuationContext.isEmpty()) {
+        // Legacy behavior for non-step continuation
+        ConsoleMessageRepository::instance()->addInfo("AI wants to continue: " + continuationContext);
+        ConsoleMessageRepository::instance()->setShowAIPrompt(true);
+        m_pendingContinuationContext = continuationContext;
+    }
+
     m_pendingMessage.clear();
     m_accumulatedResponse.clear();
     m_accumulatedCommands.clear();
@@ -957,6 +1034,56 @@ QString StreamingAIClient::getCanvasState() const
     return QJsonDocument(state).toJson(QJsonDocument::Compact);
 }
 
+QStringList StreamingAIClient::extractPlanSteps(const QString &aiResponse) {
+    QStringList steps;
+    // Regex matches lines like "1. Do something"
+    QRegularExpression stepRegex(R"(^\s*\d+\.\s+(.*)$)", QRegularExpression::MultilineOption);
+    QRegularExpressionMatchIterator it = stepRegex.globalMatch(aiResponse);
+    while (it.hasNext()) {
+        auto match = it.next();
+        QString step = match.captured(1).trimmed();
+        if (!step.isEmpty()) steps.append(step);
+    }
+    return steps;
+}
+
+void StreamingAIClient::executeNextPlanStep() {
+    if (m_currentStepIndex >= m_pendingPlanSteps.size()) {
+        ConsoleMessageRepository::instance()->addInfo("✅ All steps executed. Asking AI to review & refine...");
+        sendConversationMessage(
+            m_currentConversationId,
+            "All planned steps are complete. Please review the results, refine if needed, and provide the final polished answer."
+        );
+        return;
+    }
+
+    QString stepText = m_pendingPlanSteps[m_currentStepIndex];
+    ConsoleMessageRepository::instance()->addInfo(
+        QString("Executing step %1: %2").arg(m_currentStepIndex + 1).arg(stepText)
+    );
+
+    // ✅ Now we tell AI explicitly: DO NOT RE-PLAN
+    QString message = QString(
+        "⚠️ STOP. You are now in EXECUTION MODE.\n\n"
+        "❌ DO NOT say PLAN:\n"
+        "❌ DO NOT list steps\n"
+        "❌ DO NOT output WAITING FOR PLAN CONFIRMATION\n"
+        "❌ DO NOT repeat any previous instructions.\n\n"
+        "In EXECUTION MODE, for this step you must do ONLY ONE of these:\n"
+        "1️⃣ If you need tool info → respond exactly:\n"
+        "   Request tool list for category <category>\n\n"
+        "2️⃣ If you already know the tools → respond ONLY with this JSON format:\n"
+        "{commands:[{tool:...,params:{...}}],shouldContinue:true}\n\n"
+        "Nothing else. No explanations. No plans. No mixed text.\n\n"
+        "Execute ONLY this step:\n➡️  %1"
+    ).arg(stepText);
+
+    sendConversationMessage(m_currentConversationId, message);
+
+    m_pendingContinuationContext = "EXEC_STEP";
+    m_currentStepIndex++;
+}
+
 void StreamingAIClient::startLoadingIndicator()
 {
     m_loadingDots = 0;
@@ -987,4 +1114,80 @@ void StreamingAIClient::updateLoadingIndicator()
         m_loadingMessageId, 
         QString("AI is thinking%1%2").arg(dots).arg(spaces)
     );
+}
+
+void StreamingAIClient::requestJsonRepair(const QString &invalidJson, const QString &errorMessage)
+{
+    if (m_currentConversationId.isEmpty()) {
+        ConsoleMessageRepository::instance()->addError("Cannot request JSON repair: no active conversation");
+        return;
+    }
+    
+    // Clear the accumulated response to prepare for the repaired version
+    m_accumulatedResponse.clear();
+    m_accumulatedCommands.clear();
+    
+    // Construct a repair request message
+    QString repairMessage = QString(
+        "Your previous response contained invalid JSON that could not be parsed. "
+        "Error: %1\n\n"
+        "The invalid response was:\n%2\n\n"
+        "Please provide a corrected response with valid JSON format. "
+        "Remember to use the exact format: {\"message\": \"...\", \"commands\": \"[...]\", \"shouldContinue\": bool, \"continuationContext\": \"...\"}"
+    ).arg(errorMessage).arg(invalidJson);
+    
+    ConsoleMessageRepository::instance()->addInfo("Requesting AI to fix invalid JSON response...");
+    
+    // Send the repair request
+    sendConversationMessage(m_currentConversationId, repairMessage);
+}
+
+void StreamingAIClient::fetchToolRegistry(const QString &category) {
+    QString baseUrl = getToolRegistryUrl();
+    if (baseUrl.isEmpty()) {
+        ConsoleMessageRepository::instance()->addError("Tool registry URL not configured in amplify_outputs.json");
+        return;
+    }
+    
+    QString url = QString("%1?category=%2")
+                    .arg(baseUrl)
+                    .arg(category);
+
+    QNetworkAccessManager *manager = new QNetworkAccessManager(this);
+    QNetworkRequest request((QUrl(url)));
+
+    QNetworkReply *reply = manager->get(request);
+    connect(reply, &QNetworkReply::finished, this, [this, reply, manager, category, url]() {
+        QByteArray data = reply->readAll();
+        reply->deleteLater();
+        manager->deleteLater();
+
+        if (reply->error() != QNetworkReply::NoError) {
+            ConsoleMessageRepository::instance()->addError(
+                QString("Tool registry fetch failed: %1").arg(reply->errorString())
+            );
+            qDebug() << "Tool registry URL was:" << url;
+            qDebug() << "Response:" << data;
+            return;
+        }
+
+        QJsonDocument doc = QJsonDocument::fromJson(data);
+        QJsonObject obj = doc.object();
+        QJsonArray toolsArray = obj["tools"].toArray();
+
+        // Format a compact tool list for AI
+        QStringList toolLines;
+        for (auto t : toolsArray) {
+            auto tool = t.toObject();
+            toolLines << QString("%1: %2 (params: %3)")
+                .arg(tool["name"].toString())
+                .arg(tool["description"].toString())
+                .arg(QString(QJsonDocument(tool["params"].toObject()).toJson(QJsonDocument::Compact)));
+        }
+
+        QString toolListForAI = "Available tools in category '" + category + "':\n" + toolLines.join("\n");
+
+        // Send this back into the AI conversation
+        sendConversationMessage(m_currentConversationId, toolListForAI);
+    });
 }

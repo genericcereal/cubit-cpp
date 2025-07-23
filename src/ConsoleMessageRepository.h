@@ -66,6 +66,7 @@ signals:
     void selectedOptionChanged();
     void showAIPromptChanged();
     void aiContinuationResponse(bool accepted, const QString& feedback);
+    void aiModeDisabled();
     
 private:
     static ConsoleMessageRepository* s_instance;
