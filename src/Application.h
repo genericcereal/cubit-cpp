@@ -12,6 +12,7 @@
 class Element;
 class StreamingAIClient;
 class AuthenticationManager;
+class QQmlApplicationEngine;
 
 class Application : public QObject {
     Q_OBJECT
@@ -35,6 +36,11 @@ public:
     Q_INVOKABLE void switchToCanvas(const QString& canvasId);
     Q_INVOKABLE QString getCanvasName(const QString& canvasId) const;
     Q_INVOKABLE void renameCanvas(const QString& canvasId, const QString& newName);
+    Q_INVOKABLE Project* getCanvas(const QString& canvasId);
+    Q_INVOKABLE void createNewProject();
+    
+    // Engine management for multi-window support
+    void setEngine(QQmlApplicationEngine* engine);
 
     // Property getters
     QString activeCanvasId() const;
@@ -74,6 +80,7 @@ private:
     std::unique_ptr<Panels> m_panels;
     std::unique_ptr<StreamingAIClient> m_streamingAIClient;
     AuthenticationManager* m_authManager = nullptr;
+    QQmlApplicationEngine* m_engine = nullptr;
     
     Project* findCanvas(const QString& canvasId);
     const Project* findCanvas(const QString& canvasId) const;

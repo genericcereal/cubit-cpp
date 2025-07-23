@@ -52,6 +52,9 @@ int main(int argc, char *argv[])
     QApplication app(argc, argv);
     app.setApplicationName("Cubit");
     app.setOrganizationName("Cubit");
+    
+    // Quit when the last window is closed
+    app.setQuitOnLastWindowClosed(true);
 
     // Ensure native menu bar on macOS
 #ifdef Q_OS_MAC
@@ -135,6 +138,7 @@ int main(int argc, char *argv[])
     // Register Application singleton
     Application *appInstance = new Application(&app);
     appInstance->setAuthenticationManager(authManager);
+    appInstance->setEngine(&engine);
 
 
     // IMPORTANT: Set Application as context property FIRST

@@ -38,6 +38,20 @@ const schema = a.schema({
       })
     )
     .authorization((allow) => allow.authenticated()),
+  Team: a
+    .model({
+      name: a.string().required(),
+      members: a.string().array(), // store user IDs
+    })
+    .authorization((allow) => allow.owner()),
+
+  Project: a
+    .model({
+      name: a.string().required(),
+      teamId: a.string().required(),
+      jsonData: a.json(),
+    })
+    .authorization((allow) => allow.owner()),
 });
 
 export type Schema = ClientSchema<typeof schema>;
