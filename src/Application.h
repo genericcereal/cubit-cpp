@@ -11,6 +11,8 @@
 
 class Element;
 class AuthenticationManager;
+class ProjectApiClient;
+class CommandHistory;
 Q_DECLARE_OPAQUE_POINTER(AuthenticationManager*)
 class QQmlApplicationEngine;
 
@@ -20,6 +22,8 @@ class Application : public QObject {
     Q_PROPERTY(QStringList canvasNames READ canvasNames NOTIFY canvasListChanged)
     Q_PROPERTY(Panels* panels READ panels CONSTANT)
     Q_PROPERTY(AuthenticationManager* authManager READ authManager CONSTANT)
+    
+    friend class OpenProjectCommand;
 
 public:
     explicit Application(QObject *parent = nullptr);
@@ -29,13 +33,16 @@ public:
 
     static Application* instance();
 
-    // Canvas management
-    Q_INVOKABLE QString createCanvas(const QString& name = QString());
-    Q_INVOKABLE void removeCanvas(const QString& canvasId);
-    Q_INVOKABLE QString getCanvasName(const QString& canvasId) const;
-    Q_INVOKABLE void renameCanvas(const QString& canvasId, const QString& newName);
-    Q_INVOKABLE Project* getCanvas(const QString& canvasId);
+    // Project management
+    Q_INVOKABLE QString createProject(const QString& name = QString());
+    Q_INVOKABLE void removeProject(const QString& projectId);
+    Q_INVOKABLE QString getProjectName(const QString& projectId) const;
+    Q_INVOKABLE void renameProject(const QString& projectId, const QString& newName);
+    Q_INVOKABLE Project* getProject(const QString& projectId);
+    void addProject(Project* project);  // For command undo operations
     Q_INVOKABLE void createNewProject();
+    Q_INVOKABLE void fetchProjectsFromAPI();  // Fetch projects from API
+    Q_INVOKABLE void openAPIProject(const QString& projectId, const QString& projectName, const QJsonObject& canvasData);
     
     // Engine management for multi-window support
     void setEngine(QQmlApplicationEngine* engine);
@@ -45,12 +52,18 @@ public:
     QStringList canvasNames() const;
     Panels* panels() const;
     AuthenticationManager* authManager() const;
+    ProjectApiClient* projectApiClient() const;
 
     // File operations
     Q_INVOKABLE bool saveAs();
     Q_INVOKABLE bool openFile();
     Q_INVOKABLE bool saveToFile(const QString& fileName, Project* project = nullptr);
     Q_INVOKABLE bool loadFromFile(const QString& fileName);
+    
+    // Public access for commands
+    Project* deserializeProjectFromData(const QJsonObject& projectData);
+    QJsonObject serializeProjectData(Project* project) const;
+    QJsonObject serializeElement(Element* element) const;
     
 
 signals:
@@ -59,6 +72,8 @@ signals:
     void canvasRemoved(const QString& canvasId);
     void saveFileRequested();
     void openFileRequested();
+    void projectsFetchedFromAPI(const QJsonArray& projects);
+    void apiErrorOccurred(const QString& error);
 
 private slots:
 
@@ -68,18 +83,19 @@ private:
     std::unique_ptr<Panels> m_panels;
     AuthenticationManager* m_authManager = nullptr;
     QQmlApplicationEngine* m_engine = nullptr;
+    std::unique_ptr<ProjectApiClient> m_projectApiClient;
+    std::unique_ptr<CommandHistory> m_commandHistory;
     
-    Project* findCanvas(const QString& canvasId);
-    const Project* findCanvas(const QString& canvasId) const;
-    QString generateCanvasId() const;
+    Project* findProject(const QString& projectId);
+    const Project* findProject(const QString& projectId) const;
+    QString generateProjectId() const;
     
     // Serialization methods
-    QJsonObject serializeCanvas(Project* canvas) const;
-    QJsonObject serializeElement(Element* element) const;
+    QJsonObject serializeProject(Project* project) const;
     
     // Deserialization methods
-    bool deserializeProject(const QJsonObject& projectData);
-    Project* deserializeCanvas(const QJsonObject& canvasData);
+    bool deserializeApplication(const QJsonObject& projectData);
+    Project* deserializeProject(const QJsonObject& projectData);
     Element* deserializeElement(const QJsonObject& elementData, ElementModel* model);
 };
 

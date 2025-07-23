@@ -15,6 +15,10 @@
 #include "ConsoleMessageRepository.h"
 #include "AuthenticationManager.h"
 #include "ElementTypeRegistry.h"
+#include "ProjectApiClient.h"
+#include "commands/CreateProjectCommand.h"
+#include "commands/OpenProjectCommand.h"
+#include "CommandHistory.h"
 #include <QDebug>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -38,8 +42,11 @@ Application::Application(QObject *parent)
     // Create panels manager
     m_panels = std::make_unique<Panels>(this);
     
-    // Don't create initial canvas - let user start from ProjectList
-    // createCanvas("Canvas 1");
+    // Create command history for application-level operations
+    m_commandHistory = std::make_unique<CommandHistory>(this);
+    
+    // Don't create initial project - let user start from ProjectList
+    // createProject("Project 1")
     
 }
 
@@ -55,88 +62,148 @@ Application* Application::instance() {
 
 void Application::setAuthenticationManager(AuthenticationManager* authManager) {
     m_authManager = authManager;
+    
+    // Create ProjectApiClient when we have authentication
+    if (authManager && !m_projectApiClient) {
+        m_projectApiClient = std::make_unique<ProjectApiClient>(authManager, this);
+        m_projectApiClient->setApplication(this);
+        
+        // Connect API client signals
+        connect(m_projectApiClient.get(), &ProjectApiClient::projectsFetched, 
+                this, &Application::projectsFetchedFromAPI, Qt::UniqueConnection);
+        connect(m_projectApiClient.get(), &ProjectApiClient::fetchProjectsFailed, 
+                this, &Application::apiErrorOccurred, Qt::UniqueConnection);
+    }
 }
 
 void Application::setEngine(QQmlApplicationEngine* engine) {
     m_engine = engine;
 }
 
-QString Application::createCanvas(const QString& name) {
-    QString canvasId = generateCanvasId();
-    QString canvasName = name.isEmpty() ? QString("Canvas %1").arg(m_canvases.size() + 1) : name;
+void Application::fetchProjectsFromAPI()
+{
+    if (!m_projectApiClient) {
+        qWarning() << "Application::fetchProjectsFromAPI: No API client available";
+        return;
+    }
+
+    m_projectApiClient->fetchProjects();
+}
+
+QString Application::createProject(const QString& name) {
+    QString projectId = generateProjectId();
+    QString projectName = name.isEmpty() ? QString("Project %1").arg(m_canvases.size() + 1) : name;
     
-    // Creating new canvas
+    // Creating new project
     
-    auto canvas = std::make_unique<Project>(canvasId, canvasName, this);
-    canvas->initialize();
+    auto project = std::make_unique<Project>(projectId, projectName, this);
+    project->initialize();
     
-    // Canvas initialized successfully
+    // Project initialized successfully
     
-    m_canvases.push_back(std::move(canvas));
+    m_canvases.push_back(std::move(project));
     
     // Don't automatically set as active - let windows manage their own canvases
     
     emit canvasListChanged();
-    emit canvasCreated(canvasId);
+    emit canvasCreated(projectId);
     
-    return canvasId;
+    return projectId;
 }
 
-void Application::removeCanvas(const QString& canvasId) {
+void Application::removeProject(const QString& projectId) {
     auto it = std::find_if(m_canvases.begin(), m_canvases.end(),
-        [&canvasId](const std::unique_ptr<Project>& c) { return c->id() == canvasId; });
+        [&projectId](const std::unique_ptr<Project>& c) { return c->id() == projectId; });
     
     if (it != m_canvases.end()) {
         m_canvases.erase(it);
         
         emit canvasListChanged();
-        emit canvasRemoved(canvasId);
+        emit canvasRemoved(projectId);
     }
 }
 
 
-QString Application::getCanvasName(const QString& canvasId) const {
-    const Project* canvas = findCanvas(canvasId);
-    return canvas ? canvas->name() : QString();
+QString Application::getProjectName(const QString& projectId) const {
+    const Project* project = findProject(projectId);
+    return project ? project->name() : QString();
 }
 
-void Application::renameCanvas(const QString& canvasId, const QString& newName) {
-    Project* canvas = findCanvas(canvasId);
-    if (canvas && !newName.isEmpty()) {
-        canvas->setName(newName);
+void Application::renameProject(const QString& projectId, const QString& newName) {
+    Project* project = findProject(projectId);
+    if (project && !newName.isEmpty()) {
+        project->setName(newName);
         emit canvasListChanged();
     }
 }
 
-Project* Application::getCanvas(const QString& canvasId) {
-    return findCanvas(canvasId);
+Project* Application::getProject(const QString& projectId) {
+    return findProject(projectId);
+}
+
+void Application::addProject(Project* project) {
+    if (!project) {
+        qWarning() << "Application::addProject: Project is null";
+        return;
+    }
+
+    // Check if project with this ID already exists
+    if (findProject(project->id())) {
+        qWarning() << "Application::addProject: Project with ID" << project->id() << "already exists";
+        return;
+    }
+
+    // Take ownership and add to collection
+    m_canvases.push_back(std::unique_ptr<Project>(project));
+    
+    emit canvasListChanged();
+    emit canvasCreated(project->id());
+    
+    qDebug() << "Application::addProject: Added project" << project->name() << "with ID" << project->id();
 }
 
 void Application::createNewProject() {
-    // Create a new canvas with a default name
-    QString newCanvasId = createCanvas("New Project");
+    // Use CreateProjectCommand to create and sync with API
+    // Execute directly without adding to command history (project management operations don't support undo)
+    auto command = std::make_unique<CreateProjectCommand>(this, "New Project");
+    CreateProjectCommand* commandPtr = command.get();
     
-    // Don't switch the active canvas - each window manages its own canvas
+    // Execute the command directly
+    command->execute();
     
-    // Create a new window for this project
-    if (m_engine) {
-        QQmlComponent component(m_engine, QUrl(QStringLiteral("qrc:/qml/ProjectWindow.qml")));
-        if (component.isReady()) {
-            QObject* window = component.create();
-            if (window) {
-                // Set the canvas ID property on the window
-                window->setProperty("canvasId", newCanvasId);
-                
-                // The window will show itself due to visible: true in QML
+    // Get the project ID and create window
+    QString projectId = commandPtr->getCreatedProjectId();
+    if (!projectId.isEmpty()) {
+        // Create a new window for this project
+        if (m_engine) {
+            QQmlComponent component(m_engine, QUrl(QStringLiteral("qrc:/qml/ProjectWindow.qml")));
+            if (component.isReady()) {
+                QObject* window = component.create();
+                if (window) {
+                    // Set the canvas ID property on the window
+                    window->setProperty("canvasId", projectId);
+                    qDebug() << "Created window for new project:" << projectId;
+                } else {
+                    qWarning() << "Failed to create project window:" << component.errorString();
+                }
             } else {
-                qWarning() << "Failed to create project window:" << component.errorString();
+                qWarning() << "ProjectWindow component not ready:" << component.errorString();
             }
         } else {
-            qWarning() << "ProjectWindow component not ready:" << component.errorString();
+            qWarning() << "QML engine not set, cannot create new window";
         }
     } else {
-        qWarning() << "QML engine not set, cannot create new window";
+        qWarning() << "Failed to get project ID from CreateProjectCommand";
     }
+}
+
+void Application::openAPIProject(const QString& projectId, const QString& projectName, const QJsonObject& canvasData) {
+    qDebug() << "Application::openAPIProject called with ID:" << projectId << "Name:" << projectName;
+    
+    // Use OpenProjectCommand to open and deserialize the project
+    // Execute directly without adding to command history (project management operations don't support undo)
+    auto command = std::make_unique<OpenProjectCommand>(this, projectId, projectName, canvasData);
+    command->execute();
 }
 
 
@@ -158,19 +225,19 @@ QStringList Application::canvasNames() const {
 
 
 
-Project* Application::findCanvas(const QString& canvasId) {
+Project* Application::findProject(const QString& projectId) {
     auto it = std::find_if(m_canvases.begin(), m_canvases.end(),
-        [&canvasId](const std::unique_ptr<Project>& c) { return c->id() == canvasId; });
+        [&projectId](const std::unique_ptr<Project>& c) { return c->id() == projectId; });
     return (it != m_canvases.end()) ? it->get() : nullptr;
 }
 
-const Project* Application::findCanvas(const QString& canvasId) const {
+const Project* Application::findProject(const QString& projectId) const {
     auto it = std::find_if(m_canvases.begin(), m_canvases.end(),
-        [&canvasId](const std::unique_ptr<Project>& c) { return c->id() == canvasId; });
+        [&projectId](const std::unique_ptr<Project>& c) { return c->id() == projectId; });
     return (it != m_canvases.end()) ? it->get() : nullptr;
 }
 
-QString Application::generateCanvasId() const {
+QString Application::generateProjectId() const {
     return UniqueIdGenerator::generate16DigitId();
 }
 
@@ -185,6 +252,20 @@ Panels* Application::panels() const {
 
 AuthenticationManager* Application::authManager() const {
     return m_authManager;
+}
+
+ProjectApiClient* Application::projectApiClient() const {
+    return m_projectApiClient.get();
+}
+
+Project* Application::deserializeProjectFromData(const QJsonObject& projectData)
+{
+    return deserializeProject(projectData);
+}
+
+QJsonObject Application::serializeProjectData(Project* project) const
+{
+    return serializeProject(project);
 }
 
 bool Application::saveAs() {
@@ -213,8 +294,8 @@ bool Application::saveToFile(const QString& fileName, Project* project) {
         
         // Serialize only the specified project
         QJsonArray canvasesArray;
-        QJsonObject canvasObj = serializeCanvas(project);
-        canvasesArray.append(canvasObj);
+        QJsonObject projectObj = serializeProject(project);
+        canvasesArray.append(projectObj);
         projectData["canvases"] = canvasesArray;
         
         
@@ -247,19 +328,19 @@ bool Application::saveToFile(const QString& fileName, Project* project) {
     }
 }
 
-QJsonObject Application::serializeCanvas(Project* canvas) const {
-    if (!canvas) return QJsonObject();
+QJsonObject Application::serializeProject(Project* project) const {
+    if (!project) return QJsonObject();
     
-    QJsonObject canvasObj;
-    canvasObj["id"] = canvas->id();
-    canvasObj["name"] = canvas->name();
-    canvasObj["viewMode"] = canvas->viewMode();
-    canvasObj["platforms"] = QJsonArray::fromStringList(canvas->platforms());
+    QJsonObject projectObj;
+    projectObj["id"] = project->id();
+    projectObj["name"] = project->name();
+    projectObj["viewMode"] = project->viewMode();
+    projectObj["platforms"] = QJsonArray::fromStringList(project->platforms());
     
     // Serialize all elements from the ElementModel
     QJsonArray elementsArray;
-    if (canvas->elementModel()) {
-        QList<Element*> elements = canvas->elementModel()->getAllElements();
+    if (project->elementModel()) {
+        QList<Element*> elements = project->elementModel()->getAllElements();
         for (Element* element : elements) {
             if (element) {
                 QJsonObject elementObj = serializeElement(element);
@@ -267,17 +348,17 @@ QJsonObject Application::serializeCanvas(Project* canvas) const {
             }
         }
     }
-    canvasObj["elements"] = elementsArray;
+    projectObj["elements"] = elementsArray;
     
     // Serialize scripts/nodes if present
-    if (canvas->scripts()) {
+    if (project->scripts()) {
         QJsonObject scriptsObj;
         // Note: We don't save the compiled output, just the node structure
         // The Scripts class would need serialization methods for this
-        canvasObj["scripts"] = scriptsObj;
+        projectObj["scripts"] = scriptsObj;
     }
     
-    return canvasObj;
+    return projectObj;
 }
 
 QJsonObject Application::serializeElement(Element* element) const {
@@ -399,11 +480,11 @@ bool Application::loadFromFile(const QString& fileName) {
         
         for (const QJsonValue& canvasValue : canvasesArray) {
             QJsonObject canvasData = canvasValue.toObject();
-            Project* newCanvas = deserializeCanvas(canvasData);
-            if (newCanvas) {
+            Project* newProject = deserializeProject(canvasData);
+            if (newProject) {
                 qDebug() << "Project loaded successfully from:" << fileName;
-                if (newCanvas->console()) {
-                    newCanvas->console()->addOutput(QString("Project loaded from: %1").arg(fileName));
+                if (newProject->console()) {
+                    newProject->console()->addOutput(QString("Project loaded from: %1").arg(fileName));
                 }
                 
                 // Create a new window for this project
@@ -429,7 +510,7 @@ bool Application::loadFromFile(const QString& fileName) {
     }
 }
 
-bool Application::deserializeProject(const QJsonObject& projectData) {
+bool Application::deserializeApplication(const QJsonObject& projectData) {
     try {
         // Process pending events to allow QML to handle state changes
         QCoreApplication::processEvents();
@@ -442,9 +523,9 @@ bool Application::deserializeProject(const QJsonObject& projectData) {
         
         for (const QJsonValue& canvasValue : canvasesArray) {
             QJsonObject canvasData = canvasValue.toObject();
-            Project* canvas = deserializeCanvas(canvasData);
-            if (canvas) {
-                m_canvases.push_back(std::unique_ptr<Project>(canvas));
+            Project* project = deserializeProject(canvasData);
+            if (project) {
+                m_canvases.push_back(std::unique_ptr<Project>(project));
             }
         }
         
@@ -459,41 +540,41 @@ bool Application::deserializeProject(const QJsonObject& projectData) {
     }
 }
 
-Project* Application::deserializeCanvas(const QJsonObject& canvasData) {
+Project* Application::deserializeProject(const QJsonObject& projectData) {
     try {
-        QString id = canvasData["id"].toString();
-        QString name = canvasData["name"].toString();
+        QString id = projectData["id"].toString();
+        QString name = projectData["name"].toString();
         
         if (id.isEmpty()) {
             return nullptr;
         }
         
-        // Create new canvas
-        Project* canvas = new Project(id, name, this);
+        // Create new project
+        Project* project = new Project(id, name, this);
         // Create and initialize project
-        canvas->initialize();
+        project->initialize();
         
-        // Set canvas properties
-        if (canvasData.contains("viewMode")) {
-            canvas->setViewMode(canvasData["viewMode"].toString());
+        // Set project properties
+        if (projectData.contains("viewMode")) {
+            project->setViewMode(projectData["viewMode"].toString());
         }
         
-        if (canvasData.contains("platforms")) {
-            QJsonArray platformsArray = canvasData["platforms"].toArray();
+        if (projectData.contains("platforms")) {
+            QJsonArray platformsArray = projectData["platforms"].toArray();
             QStringList platforms;
             for (const QJsonValue& value : platformsArray) {
                 platforms.append(value.toString());
             }
-            canvas->setPlatforms(platforms);
+            project->setPlatforms(platforms);
         }
         
         // Load elements
-        if (canvasData.contains("elements")) {
-            QJsonArray elementsArray = canvasData["elements"].toArray();
-            ElementModel* model = canvas->elementModel();
+        if (projectData.contains("elements")) {
+            QJsonArray elementsArray = projectData["elements"].toArray();
+            ElementModel* model = project->elementModel();
             
             if (!model) {
-                delete canvas;
+                delete project;
                 return nullptr;
             }
             
@@ -506,10 +587,10 @@ Project* Application::deserializeCanvas(const QJsonObject& canvasData) {
             }
         }
         
-        return canvas;
+        return project;
         
     } catch (const std::exception& e) {
-        qDebug() << "Error deserializing canvas:" << e.what();
+        qDebug() << "Error deserializing project:" << e.what();
         return nullptr;
     }
 }

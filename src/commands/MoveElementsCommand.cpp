@@ -1,6 +1,10 @@
 #include "MoveElementsCommand.h"
 #include "../Element.h"
 #include "../CanvasElement.h"
+#include "../Application.h"
+#include "../Project.h"
+#include "../ProjectApiClient.h"
+#include "../ElementModel.h"
 #include <QDebug>
 
 MoveElementsCommand::MoveElementsCommand(const QList<Element*>& elements, const QPointF& delta, QObject *parent)
@@ -44,7 +48,16 @@ void MoveElementsCommand::execute()
             move.element->setY(move.newPosition.y());
         }
     }
-
+    
+    // Log to console
+    qDebug() << QString("Moved %1 element%2 by delta (%3, %4)")
+                .arg(m_moves.size())
+                .arg(m_moves.size() == 1 ? "" : "s")
+                .arg(m_totalDelta.x())
+                .arg(m_totalDelta.y());
+    
+    // Sync with API after the move
+    syncWithAPI();
 }
 
 void MoveElementsCommand::undo()
@@ -84,4 +97,66 @@ bool MoveElementsCommand::mergeWith(MoveElementsCommand* other)
                    .arg(m_moves.size() == 1 ? "" : "s"));
 
     return true;
+}
+
+void MoveElementsCommand::syncWithAPI()
+{
+    if (m_moves.isEmpty()) {
+        return;
+    }
+
+    // Get project from any element's model
+    CanvasElement* firstElement = m_moves.first().element;
+    if (!firstElement) {
+        return;
+    }
+
+    // Navigate up to find the project (through ElementModel)
+    ElementModel* model = nullptr;
+    QObject* parent = firstElement->parent();
+    while (parent) {
+        model = qobject_cast<ElementModel*>(parent);
+        if (model) break;
+        parent = parent->parent();
+    }
+
+    if (!model) {
+        return;
+    }
+
+    Project* project = qobject_cast<Project*>(model->parent());
+    if (!project) {
+        return;
+    }
+
+    // Get the Application instance and its API client
+    Application* app = Application::instance();
+    if (!app) {
+        return;
+    }
+
+    ProjectApiClient* apiClient = app->projectApiClient();
+    if (!apiClient) {
+        return;
+    }
+
+    // Get the project's API ID
+    QString apiProjectId = project->id();
+    
+    // Create array of element IDs
+    QJsonArray elementIds;
+    for (const ElementMove& move : m_moves) {
+        elementIds.append(move.element->getId());
+    }
+    
+    // Create delta data
+    QJsonObject deltaData;
+    deltaData["dx"] = m_totalDelta.x();
+    deltaData["dy"] = m_totalDelta.y();
+    
+    // Sync with API
+    apiClient->syncMoveElements(apiProjectId, elementIds, deltaData);
+    
+    qDebug() << "MoveElementsCommand: Syncing element move with API for project" << apiProjectId 
+             << "delta:" << m_totalDelta << "elements:" << elementIds.size();
 }

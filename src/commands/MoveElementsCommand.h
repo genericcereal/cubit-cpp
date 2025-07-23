@@ -24,6 +24,7 @@ public:
     bool mergeWith(MoveElementsCommand* other);
 
 private:
+    void syncWithAPI();
     struct ElementMove {
         CanvasElement* element;
         QPointF originalPosition;

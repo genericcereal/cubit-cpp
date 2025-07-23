@@ -73,6 +73,7 @@ Item {
     property real dragStartRotation: 0
     property point lastMousePosition: Qt.point(0, 0)
     
+    
     // Signal to notify about mouse position during drag
     signal mouseDragged(point viewportPos)
     
@@ -122,6 +123,12 @@ Item {
             root.updateMousePosition(mouseInParent)
             root.dragStartPoint = mouseInParent
             root.dragStartControlPos = Qt.point(root.controlX, root.controlY)
+            
+            // Store initial state for command creation via DesignControlsController
+            if (root.designControlsController) {
+                root.designControlsController.startDragOperation()
+            }
+            
             // Reset the drag threshold exceeded flag
             controlSurface.mouseArea.isDragThresholdExceeded = false
         }
@@ -153,6 +160,17 @@ Item {
                         root.parent.selectionManager.selectOnly(element)
                     }
                 }
+            }
+            
+            // Fire MoveElementsCommand if this was a move operation
+            if (controlSurface.isDragThresholdExceeded && root.dragMode === "move" && root.designControlsController) {
+                // Calculate total delta moved
+                var totalDelta = Qt.point(
+                    (root.controlX - root.dragStartControlPos.x),
+                    (root.controlY - root.dragStartControlPos.y)
+                )
+                
+                root.designControlsController.endMoveOperation(totalDelta)
             }
             
             root.dragging = false
@@ -317,6 +335,11 @@ Item {
                 root.dragMode = "resize-edge-" + edgeIdx
                 root.resizeStarted()
                 
+                // Store initial state for command creation via DesignControlsController
+                if (root.designControlsController) {
+                    root.designControlsController.startDragOperation()
+                }
+                
                 // Initialize mouse position
                 var mouseInParent = mapToItem(root.parent, 0, 0)
                 root.updateMousePosition(mouseInParent)
@@ -449,6 +472,11 @@ Item {
             }
             
             onResizeEnded: {
+                // Fire ResizeElementCommand via DesignControlsController
+                if (root.designControlsController) {
+                    root.designControlsController.endResizeOperation()
+                }
+                
                 root.dragging = false
                 root.dragMode = ""
                 root.updateMousePosition(Qt.point(0, 0))
@@ -630,6 +658,11 @@ Item {
                 root.dragMode = "resize-corner-" + cornerIdx
                 root.resizeStarted()
                 
+                // Store initial state for command creation via DesignControlsController
+                if (root.designControlsController) {
+                    root.designControlsController.startDragOperation()
+                }
+                
                 // Initialize mouse position
                 var mouseInParent = mapToItem(root.parent, 0, 0)
                 root.updateMousePosition(mouseInParent)
@@ -755,6 +788,11 @@ Item {
             }
             
             onResizeEnded: {
+                // Fire ResizeElementCommand via DesignControlsController
+                if (root.designControlsController) {
+                    root.designControlsController.endResizeOperation()
+                }
+                
                 root.dragging = false
                 root.dragMode = ""
             }

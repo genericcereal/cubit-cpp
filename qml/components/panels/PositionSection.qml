@@ -166,7 +166,7 @@ PropertyGroup {
                         
                         onLoaded: {
                             if (modelData.type === "combobox") {
-                                item.model = Qt.binding(modelData.model)
+                                item.model = Qt.binding(function() { return modelData.model() })
                                 item.currentIndex = Qt.binding(function() {
                                     var value = modelData.getter()
                                     var index = item.model.indexOf(value)
@@ -180,14 +180,14 @@ PropertyGroup {
                                 var spinBox = item.children[0]
                                 var anchorButton = item.children[1]
                                 
-                                spinBox.value = Qt.binding(modelData.valueGetter)
+                                spinBox.value = Qt.binding(function() { return modelData.valueGetter() })
                                 spinBox.valueModified.connect(function() {
                                     if (spinBox.value !== modelData.valueGetter()) {
                                         modelData.valueSetter(spinBox.value)
                                     }
                                 })
                                 
-                                anchorButton.checked = Qt.binding(modelData.anchorGetter)
+                                anchorButton.checked = Qt.binding(function() { return modelData.anchorGetter() })
                                 anchorButton.toggled.connect(function() {
                                     modelData.anchorSetter(anchorButton.checked, spinBox.value)
                                 })

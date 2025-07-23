@@ -21,6 +21,7 @@ public:
     bool mergeWith(ResizeElementCommand* other);
 
 private:
+    void syncWithAPI();
     CanvasElement* m_element;
     QRectF m_oldRect;
     QRectF m_newRect;

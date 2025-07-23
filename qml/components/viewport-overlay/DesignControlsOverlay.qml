@@ -558,7 +558,7 @@ Item {
             })
             item.mousePosition = Qt.binding(function() { 
                 // Use the mouse position from BaseCanvas
-                return canvasView ? canvasView.lastMousePosition : Qt.point(0, 0)
+                return canvasView ? canvasView.lastMousePosition : {x: 0, y: 0}
             })
             item.z = Config.zHoverBadge
         }

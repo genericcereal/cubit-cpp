@@ -1,5 +1,9 @@
 #include "ResizeElementCommand.h"
 #include "../CanvasElement.h"
+#include "../Application.h"
+#include "../Project.h"
+#include "../ProjectApiClient.h"
+#include "../ElementModel.h"
 #include <QDebug>
 
 ResizeElementCommand::ResizeElementCommand(CanvasElement* element, const QRectF& oldRect, const QRectF& newRect, QObject *parent)
@@ -30,7 +34,17 @@ void ResizeElementCommand::execute()
         // Redo - resize element to new rect
         m_element->setRect(m_newRect);
     }
-
+    
+    // Log to console
+    qDebug() << QString("Resized element (ID: %1) from %2x%3 to %4x%5")
+                .arg(m_element ? m_element->getId() : "unknown")
+                .arg(m_oldRect.width())
+                .arg(m_oldRect.height())
+                .arg(m_newRect.width())
+                .arg(m_newRect.height());
+    
+    // Sync with API after the resize
+    syncWithAPI();
 }
 
 void ResizeElementCommand::undo()
@@ -58,4 +72,52 @@ bool ResizeElementCommand::mergeWith(ResizeElementCommand* other)
                    .arg(m_newRect.height()));
 
     return true;
+}
+
+void ResizeElementCommand::syncWithAPI()
+{
+    if (!m_element) {
+        return;
+    }
+
+    // Navigate up to find the project (through ElementModel)
+    ElementModel* model = nullptr;
+    QObject* parent = m_element->parent();
+    while (parent) {
+        model = qobject_cast<ElementModel*>(parent);
+        if (model) break;
+        parent = parent->parent();
+    }
+
+    if (!model) {
+        return;
+    }
+
+    Project* project = qobject_cast<Project*>(model->parent());
+    if (!project) {
+        return;
+    }
+
+    // Get the Application instance and its API client
+    Application* app = Application::instance();
+    if (!app) {
+        return;
+    }
+
+    ProjectApiClient* apiClient = app->projectApiClient();
+    if (!apiClient) {
+        return;
+    }
+
+    // Get the project's API ID
+    QString apiProjectId = project->id();
+    
+    // Serialize the updated element data
+    QJsonObject elementData = app->serializeElement(m_element);
+    
+    // Sync with API
+    apiClient->syncUpdateElement(apiProjectId, m_element->getId(), elementData);
+    
+    qDebug() << "ResizeElementCommand: Syncing element resize with API for project" << apiProjectId 
+             << "element:" << m_element->getId() << "new size:" << m_newRect.size();
 }

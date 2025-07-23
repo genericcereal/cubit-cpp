@@ -17,7 +17,7 @@ ApplicationWindow {
         // Canvas ID changed
         // Update canvas when canvasId changes
         if (canvasId) {
-            canvas = Application.getCanvas(canvasId)
+            canvas = Application.getProject(canvasId)
             // Canvas updated
             
             // Update the controller's project when canvas changes
@@ -74,7 +74,7 @@ ApplicationWindow {
         
         // Remove the canvas from Application
         if (canvasId) {
-            Application.removeCanvas(canvasId)
+            Application.removeProject(canvasId)
         }
     }
 }

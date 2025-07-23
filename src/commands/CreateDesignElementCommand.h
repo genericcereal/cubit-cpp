@@ -26,6 +26,7 @@ public:
     void undo() override;
 
 private:
+    void syncWithAPI();
     QPointer<ElementModel> m_elementModel;
     QPointer<SelectionManager> m_selectionManager;
     QString m_elementType;

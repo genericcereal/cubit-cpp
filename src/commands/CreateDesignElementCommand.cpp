@@ -7,6 +7,7 @@
 #include "Project.h"
 #include "Component.h"
 #include "ElementTypeRegistry.h"
+#include "ProjectApiClient.h"
 #include <QDebug>
 
 CreateDesignElementCommand::CreateDesignElementCommand(ElementModel* model, SelectionManager* selectionManager,
@@ -111,6 +112,16 @@ void CreateDesignElementCommand::execute()
     if (m_selectionManager && m_element) {
         m_selectionManager->selectOnly(m_element);
     }
+    
+    // Log to console
+    qDebug() << QString("Created %1 element (ID: %2) at position (%3, %4)")
+                .arg(m_elementType)
+                .arg(m_element ? m_element->getId() : "unknown")
+                .arg(m_rect.x())
+                .arg(m_rect.y());
+    
+    // Sync with API if project has an API client
+    syncWithAPI();
 }
 
 void CreateDesignElementCommand::undo()
@@ -148,4 +159,39 @@ void CreateDesignElementCommand::undo()
             editingComponent->removeVariant(m_element);
         }
     }
+}
+
+void CreateDesignElementCommand::syncWithAPI()
+{
+    if (!m_elementModel || !m_element) {
+        return;
+    }
+
+    // Get the Project from the ElementModel's parent
+    Project* project = qobject_cast<Project*>(m_elementModel->parent());
+    if (!project) {
+        return;
+    }
+
+    // Get the Application instance and its API client
+    Application* app = Application::instance();
+    if (!app) {
+        return;
+    }
+
+    ProjectApiClient* apiClient = app->projectApiClient();
+    if (!apiClient) {
+        return;
+    }
+
+    // Get the project's API ID (assuming it's the same as the project ID for now)
+    QString apiProjectId = project->id();
+    
+    // Serialize the element data
+    QJsonObject elementData = app->serializeElement(m_element);
+    
+    // Sync with API
+    apiClient->syncCreateElement(apiProjectId, elementData);
+    
+    qDebug() << "CreateDesignElementCommand: Syncing element creation with API for project" << apiProjectId;
 }

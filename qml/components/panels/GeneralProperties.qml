@@ -156,14 +156,14 @@ PropertyGroup {
                         
                         onLoaded: {
                             if (modelData.type === "text") {
-                                item.text = Qt.binding(modelData.getter)
+                                item.text = Qt.binding(function() { return modelData.getter() })
                                 item.textChanged.connect(function() {
                                     modelData.setter(item.text)
                                 })
                             } else if (modelData.type === "label") {
-                                item.text = Qt.binding(modelData.getter)
+                                item.text = Qt.binding(function() { return modelData.getter() })
                             } else if (modelData.type === "combobox") {
-                                item.model = Qt.binding(modelData.model)
+                                item.model = Qt.binding(function() { return modelData.model() })
                                 item.currentIndex = Qt.binding(function() {
                                     var value = modelData.getter()
                                     var index = item.model.indexOf(value)

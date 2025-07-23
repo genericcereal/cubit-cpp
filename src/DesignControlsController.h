@@ -1,12 +1,16 @@
 #pragma once
 #include <QObject>
 #include <QPointF>
+#include <QSizeF>
+#include <QHash>
+#include <QList>
 
 // Forward declarations
 class Application;
 class DesignCanvas;
 class SelectionManager;
 class ElementModel;
+class Element;
 
 // Forward declare Project for Q_PROPERTY
 class Project;
@@ -48,6 +52,11 @@ public:
     // Helper methods for coordinate transformation
     Q_INVOKABLE QPointF mapToCanvas(QObject* parent, const QPointF& point, qreal zoom, QObject* flickable, const QPointF& canvasMin) const;
     
+    // Design controls drag operation methods
+    Q_INVOKABLE void startDragOperation();
+    Q_INVOKABLE void endMoveOperation(const QPointF& totalDelta);
+    Q_INVOKABLE void endResizeOperation();
+    
 signals:
     void isResizingEnabledChanged();
     void isMovementEnabledChanged();
@@ -75,6 +84,11 @@ private:
     mutable bool m_cachedIsAnyTextEditing = false;
     mutable bool m_cachedIsAnimating = false;
     mutable bool m_cachedIsPrototyping = false;
+    
+    // Design controls drag operation state
+    QList<Element*> m_dragStartSelectedElements;
+    QHash<QString, QPointF> m_dragStartElementPositions;
+    QHash<QString, QSizeF> m_dragStartElementSizes;
     
     // Update cache and emit signals if needed
     void updateCache();

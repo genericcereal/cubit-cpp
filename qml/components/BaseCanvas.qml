@@ -420,4 +420,23 @@ Item {
             }
         }
     }
+    
+    // Undo/Redo shortcuts
+    Shortcut {
+        sequence: StandardKey.Undo
+        onActivated: {
+            if (controller) {
+                controller.undo()
+            }
+        }
+    }
+    
+    Shortcut {
+        sequence: StandardKey.Redo
+        onActivated: {
+            if (controller) {
+                controller.redo()
+            }
+        }
+    }
 }

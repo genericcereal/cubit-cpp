@@ -6,6 +6,8 @@
 #include "ElementModel.h"
 #include "PrototypeController.h"
 #include "Element.h"
+#include "CanvasElement.h"
+#include "CanvasController.h"
 #include <QMetaObject>
 #include <QQmlEngine>
 #include <QObject>
@@ -282,5 +284,107 @@ void DesignControlsController::disconnectFromActiveCanvas()
     if (m_prototypingConnection) {
         disconnect(m_prototypingConnection);
         m_prototypingConnection = QMetaObject::Connection();
+    }
+}
+
+void DesignControlsController::startDragOperation()
+{
+    // Clear previous state
+    m_dragStartSelectedElements.clear();
+    m_dragStartElementPositions.clear();
+    m_dragStartElementSizes.clear();
+    
+    // Get active selection manager
+    SelectionManager* selectionManager = getActiveSelectionManager();
+    if (!selectionManager) {
+        qDebug() << "DesignControlsController::startDragOperation - No active selection manager";
+        return;
+    }
+    
+    // Store initial state of all selected elements
+    auto selectedElements = selectionManager->selectedElements();
+    for (Element* element : selectedElements) {
+        if (element && element->isVisual()) {
+            m_dragStartSelectedElements.append(element);
+            
+            // Store position and size for visual elements
+            if (auto canvasElement = qobject_cast<CanvasElement*>(element)) {
+                m_dragStartElementPositions[element->getId()] = QPointF(canvasElement->x(), canvasElement->y());
+                m_dragStartElementSizes[element->getId()] = QSizeF(canvasElement->width(), canvasElement->height());
+                
+                qDebug() << "DesignControlsController: Storing state for element" << element->getId() 
+                         << "position:" << canvasElement->x() << "," << canvasElement->y()
+                         << "size:" << canvasElement->width() << "x" << canvasElement->height();
+            }
+        }
+    }
+    
+    qDebug() << "DesignControlsController::startDragOperation - Stored state for" << m_dragStartSelectedElements.size() << "elements";
+}
+
+void DesignControlsController::endMoveOperation(const QPointF& totalDelta)
+{
+    qDebug() << "DesignControlsController::endMoveOperation called with delta:" << totalDelta.x() << "," << totalDelta.y();
+    
+    // Only fire command if there was actual movement
+    if (qAbs(totalDelta.x()) < 0.001 && qAbs(totalDelta.y()) < 0.001) {
+        qDebug() << "DesignControlsController::endMoveOperation - No significant movement, skipping command";
+        return;
+    }
+    
+    if (m_dragStartSelectedElements.isEmpty()) {
+        qDebug() << "DesignControlsController::endMoveOperation - No elements stored, skipping command";
+        return;
+    }
+    
+    // Get active canvas controller
+    DesignCanvas* designCanvas = getActiveDesignCanvas();
+    if (!designCanvas) {
+        qDebug() << "DesignControlsController::endMoveOperation - No active canvas controller";
+        return;
+    }
+    
+    qDebug() << "DesignControlsController::endMoveOperation - Firing move command for" << m_dragStartSelectedElements.size() << "elements";
+    designCanvas->moveElements(m_dragStartSelectedElements, totalDelta);
+}
+
+void DesignControlsController::endResizeOperation()
+{
+    qDebug() << "DesignControlsController::endResizeOperation called";
+    
+    if (m_dragStartSelectedElements.isEmpty()) {
+        qDebug() << "DesignControlsController::endResizeOperation - No elements stored, skipping command";
+        return;
+    }
+    
+    // Get active canvas controller
+    DesignCanvas* designCanvas = getActiveDesignCanvas();
+    if (!designCanvas) {
+        qDebug() << "DesignControlsController::endResizeOperation - No active canvas controller";
+        return;
+    }
+    
+    // Fire resize command for each element that changed size
+    for (Element* element : m_dragStartSelectedElements) {
+        if (!element || !element->isVisual()) continue;
+        
+        auto canvasElement = qobject_cast<CanvasElement*>(element);
+        if (!canvasElement) continue;
+        
+        auto oldSize = m_dragStartElementSizes.value(element->getId());
+        QSizeF newSize(canvasElement->width(), canvasElement->height());
+        
+        qDebug() << "DesignControlsController::endResizeOperation - Element" << element->getId()
+                 << "oldSize:" << oldSize.width() << "x" << oldSize.height() 
+                 << "newSize:" << newSize.width() << "x" << newSize.height();
+        
+        // Only fire command if size actually changed
+        if (qAbs(newSize.width() - oldSize.width()) > 0.001 || 
+            qAbs(newSize.height() - oldSize.height()) > 0.001) {
+            qDebug() << "DesignControlsController::endResizeOperation - Firing resize command for element" << element->getId();
+            designCanvas->resizeElement(canvasElement, oldSize, newSize);
+        } else {
+            qDebug() << "DesignControlsController::endResizeOperation - Size didn't change enough for element" << element->getId();
+        }
     }
 }
