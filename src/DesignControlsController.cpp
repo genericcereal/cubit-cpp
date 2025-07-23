@@ -10,15 +10,54 @@
 #include <QQmlEngine>
 #include <QObject>
 
+// Default constructor for QML
+DesignControlsController::DesignControlsController(QObject* parent)
+    : QObject(parent)
+{
+    // Controller will be initialized when project is set
+}
+
+// Constructor for per-window instance
+DesignControlsController::DesignControlsController(Project* project, QObject* parent)
+    : QObject(parent), m_project(project)
+{
+    // For per-window instances, connect directly to the project's canvas
+    if (m_project) {
+        // No need to watch for canvas changes as each window has its own controller
+        connectToActiveCanvas();
+        updateCache();
+    }
+}
+
+// Legacy constructor for global instance (to be removed)
 DesignControlsController::DesignControlsController(Application* app, QObject* parent)
     : QObject(parent), m_application(app)
 {
-    // Connect to application signals
-    connect(m_application, &Application::activeCanvasChanged, this, &DesignControlsController::onActiveCanvasChanged);
-    
-    // Initialize connections to current active canvas
+    // Initialize connections
     connectToActiveCanvas();
     updateCache();
+}
+
+void DesignControlsController::setProject(Project* project)
+{
+    if (m_project == project) return;
+    
+    // Disconnect from previous project
+    if (m_project) {
+        disconnectFromActiveCanvas();
+    }
+    
+    m_project = project;
+    emit projectChanged();
+    
+    // Connect to new project
+    if (m_project) {
+        connectToActiveCanvas();
+        // Force cache update and signal emission by resetting cached values
+        m_cachedIsResizingEnabled = false;
+        m_cachedIsMovementEnabled = false;
+        updateCache();
+    }
 }
 
 bool DesignControlsController::isResizingEnabled() const
@@ -87,9 +126,11 @@ bool DesignControlsController::isAnimating() const
 
 bool DesignControlsController::isPrototyping() const
 {
-    if (!m_application || !m_application->activeCanvas()) return false;
+    if (!m_project) return false;
     
-    PrototypeController* prototypeController = m_application->activeCanvas()->prototypeController();
+    Project* project = m_project;
+    
+    PrototypeController* prototypeController = project->prototypeController();
     if (!prototypeController) return false;
     
     // Check if prototyping is active
@@ -112,12 +153,6 @@ QPointF DesignControlsController::mapToCanvas(QObject* parent, const QPointF& po
     );
 }
 
-void DesignControlsController::onActiveCanvasChanged()
-{
-    disconnectFromActiveCanvas();
-    connectToActiveCanvas();
-    updateCache();
-}
 
 void DesignControlsController::onSelectionChanged()
 {
@@ -131,20 +166,26 @@ void DesignControlsController::onDesignControlsStateChanged()
 
 DesignCanvas* DesignControlsController::getActiveDesignCanvas() const
 {
-    if (!m_application || !m_application->activeCanvas()) return nullptr;
-    return qobject_cast<DesignCanvas*>(m_application->activeCanvas()->controller());
+    Project* project = m_project;
+    
+    if (!project) return nullptr;
+    return qobject_cast<DesignCanvas*>(project->controller());
 }
 
 SelectionManager* DesignControlsController::getActiveSelectionManager() const
 {
-    if (!m_application || !m_application->activeCanvas()) return nullptr;
-    return m_application->activeCanvas()->selectionManager();
+    Project* project = m_project;
+    
+    if (!project) return nullptr;
+    return project->selectionManager();
 }
 
 ElementModel* DesignControlsController::getActiveElementModel() const
 {
-    if (!m_application || !m_application->activeCanvas()) return nullptr;
-    return m_application->activeCanvas()->elementModel();
+    Project* project = m_project;
+    
+    if (!project) return nullptr;
+    return project->elementModel();
 }
 
 void DesignControlsController::updateCache()
@@ -203,8 +244,10 @@ void DesignControlsController::connectToActiveCanvas()
                                        this, &DesignControlsController::onSelectionChanged, Qt::UniqueConnection);
     }
     
-    if (m_application && m_application->activeCanvas()) {
-        PrototypeController* prototypeController = m_application->activeCanvas()->prototypeController();
+    Project* project = m_project;
+    
+    if (project) {
+        PrototypeController* prototypeController = project->prototypeController();
         if (prototypeController) {
             // Connect to prototype state changes
             m_prototypingConnection = connect(prototypeController, SIGNAL(isPrototypingChanged()), 

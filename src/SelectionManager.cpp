@@ -284,14 +284,11 @@ void SelectionManager::onElementGeometryChanged()
 
 void SelectionManager::checkComponentVariantMembership()
 {
-    // Get the active canvas and element model
-    Application* app = Application::instance();
-    if (!app) return;
+    // Get the Project from parent
+    Project* project = qobject_cast<Project*>(parent());
+    if (!project) return;
     
-    Project* activeCanvas = app->activeCanvas();
-    if (!activeCanvas) return;
-    
-    ElementModel* elementModel = activeCanvas->elementModel();
+    ElementModel* elementModel = project->elementModel();
     if (!elementModel) return;
     
     // Check each selected element

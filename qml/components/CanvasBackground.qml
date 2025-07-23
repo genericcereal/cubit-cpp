@@ -20,6 +20,10 @@ Rectangle {
     // Canvas reference for coordinate conversion
     property var canvas
     
+    onCanvasChanged: {
+        // Canvas changed
+    }
+    
     // Track if we're dragging
     property bool isDragging: false
     property point dragStartPos
@@ -65,10 +69,7 @@ Rectangle {
                         root.canvas.canvasMinX,
                         root.canvas.canvasMinY
                     )
-                    console.log("CanvasBackground dragStarted - mouse:", root.dragStartPos.x, root.dragStartPos.y, 
-                               "viewport:", viewportPos.x, viewportPos.y,
-                               "contentX/Y:", root.canvas.flickable.contentX, root.canvas.flickable.contentY,
-                               "final canvas:", canvasPos.x, canvasPos.y)
+                    // Drag started
                     root.dragStarted(canvasPos)
                 }
             }

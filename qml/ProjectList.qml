@@ -69,7 +69,6 @@ Rectangle {
                 cursorShape: Qt.PointingHandCursor
                 
                 onClicked: {
-                    console.log("Create project clicked")
                     Application.createNewProject()
                 }
             }
@@ -95,7 +94,6 @@ Rectangle {
                 onEntered: parent.border.color = "#1976FF"
                 onExited: parent.border.color = "#E0E0E0"
                 onClicked: {
-                    console.log("Project clicked:", model.name)
                     // Functionality to be implemented later
                 }
             }

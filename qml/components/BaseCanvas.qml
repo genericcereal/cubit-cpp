@@ -8,10 +8,21 @@ Item {
     id: root
     focus: true  // Enable keyboard focus
     
-    // Required properties from subclasses
-    property var controller
-    property var selectionManager
-    property var elementModel
+    // Canvas reference - will be set by parent
+    property var canvas: null
+    
+    onCanvasChanged: {
+        // Canvas changed
+    }
+    
+    // Required properties from subclasses (can be derived from canvas)
+    property var controller: canvas ? canvas.controller : null
+    property var selectionManager: canvas ? canvas.selectionManager : null
+    property var elementModel: canvas ? canvas.elementModel : null
+    
+    onControllerChanged: {
+        // Controller changed
+    }
     
     // Canvas bounds configuration
     property real canvasMinX: -10000

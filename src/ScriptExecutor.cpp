@@ -10,7 +10,9 @@
 // QtConsoleLog implementation
 void QtConsoleLog::log(const QString& message)
 {
-    ConsoleMessageRepository::instance()->addOutput(message);
+    if (m_console) {
+        QMetaObject::invokeMethod(m_console, "addOutput", Q_ARG(QString, message));
+    }
 }
 
 ScriptExecutor::ScriptExecutor(QObject *parent)
@@ -39,10 +41,17 @@ void ScriptExecutor::setCanvasController(CanvasController* controller)
     m_canvasController = controller;
 }
 
+void ScriptExecutor::setConsole(QObject* console)
+{
+    m_console = console;
+    // Re-setup JS context with the new console
+    setupJSContext();
+}
+
 void ScriptExecutor::setupJSContext()
 {
     // Register the QtConsoleLog helper object first
-    QtConsoleLog* consoleLogger = new QtConsoleLog(&m_jsEngine);
+    QtConsoleLog* consoleLogger = new QtConsoleLog(&m_jsEngine, m_console);
     QJSValue qtConsole = m_jsEngine.newQObject(consoleLogger);
     m_jsEngine.globalObject().setProperty("_qtConsoleLog", qtConsole);
     
@@ -238,7 +247,9 @@ QJSValue ScriptExecutor::evaluateFunction(const QString& functionCode, const QJs
     
     if (result.isError()) {
         QString error = result.toString();
-        ConsoleMessageRepository::instance()->addError("Script execution error: " + error);
+        if (m_console) {
+            QMetaObject::invokeMethod(m_console, "addError", Q_ARG(QString, "Script execution error: " + error));
+        }
         qWarning() << "ScriptExecutor: JavaScript error:" << error;
     }
     
@@ -252,7 +263,9 @@ void ScriptExecutor::handleOutput(const QJsonObject& outputDef, const QJSValue& 
     if (type == "console") {
         // Output to console
         QString message = value.toString();
-        ConsoleMessageRepository::instance()->addOutput(message);
+        if (m_console) {
+            QMetaObject::invokeMethod(m_console, "addOutput", Q_ARG(QString, message));
+        }
     } else if (type == "variable") {
         // Store in variable (future implementation)
         QString variableId = outputDef["targetId"].toString();

@@ -12,13 +12,14 @@ Item {
     required property var elementModel
     required property real canvasMinX
     required property real canvasMinY
+    property var canvas: null  // Will be set by parent
     
     // Create filtered proxy model
     ElementFilterProxy {
         id: filteredModel
         sourceModel: root.elementModel || null
-        viewMode: Application.activeCanvas ? Application.activeCanvas.viewMode : "design"
-        editingElement: Application.activeCanvas ? Application.activeCanvas.editingElement : null
+        viewMode: root.canvas ? root.canvas.viewMode : "design"
+        editingElement: root.canvas ? root.canvas.editingElement : null
     }
     
     // Element rendering - only render root elements (no parent)
@@ -58,6 +59,9 @@ Item {
                     item.elementModel = root.elementModel
                     item.canvasMinX = root.canvasMinX
                     item.canvasMinY = root.canvasMinY
+                    if (item.hasOwnProperty("canvas")) {
+                        item.canvas = root.canvas
+                    }
                 }
             }
         }

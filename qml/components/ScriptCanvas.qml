@@ -708,9 +708,9 @@ BaseCanvas {
         centerViewAtOrigin()
         
         // Check if we're editing a design element
-        if (Application.activeCanvas && Application.activeCanvas.editingElement) {
-            console.log("ScriptCanvas: Editing element", Application.activeCanvas.editingElement.name, 
-                       "ID:", Application.activeCanvas.editingElement.elementId)
+        if (root.canvas && root.canvas.editingElement) {
+            console.log("ScriptCanvas: Editing element", root.canvas.editingElement.name, 
+                       "ID:", root.canvas.editingElement.elementId)
         } else {
             console.log("ScriptCanvas: No element being edited")
         }

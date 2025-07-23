@@ -33,7 +33,11 @@ Rectangle {
         property real dragThreshold: 3 // pixels
         
         // Disable mouse handling when text is being edited
-        enabled: !designControls.isAnyTextEditing
+        // Get the DesignControls root item
+        enabled: {
+            var designControlsRoot = controlSurface.parent
+            return designControlsRoot ? !designControlsRoot.isAnyTextEditing : true
+        }
         
         onPressed: (mouse) => {
             isDragThresholdExceeded = false

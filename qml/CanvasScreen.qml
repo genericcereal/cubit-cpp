@@ -5,19 +5,41 @@ import Cubit
 import "components"
 import "components/panels"
 import "components/viewport-overlay"
+import "components/color-picker"
 
-SplitView {
+Item {
     id: root
-    orientation: Qt.Horizontal
     
-    // The canvas to display - can be passed in or use the active canvas
-    property var canvas: Application.activeCanvas
+    // The canvas to display - must be passed in by parent
+    property var canvas: null
+    // The panels object to use - must be passed in by parent
+    property var panels: null
+    // The design controls controller to use - must be passed in by parent
+    property var designControlsController: null
+    
+    onCanvasChanged: {
+        // Canvas changed
+    }
+    
+    onDesignControlsControllerChanged: {
+        // Design controls controller changed
+    }
+    
+    Component.onCompleted: {
+        // CanvasScreen initialized
+    }
 
-    // Left Panel - Canvas Area
-    Item {
-        id: canvasContainer
-        SplitView.preferredWidth: parent.width * 0.7
-        SplitView.minimumWidth: 400
+    // Main split view for canvas and detail panel
+    SplitView {
+        id: splitView
+        anchors.fill: parent
+        orientation: Qt.Horizontal
+
+        // Left Panel - Canvas Area
+        Item {
+            id: canvasContainer
+            SplitView.preferredWidth: parent.width * 0.7
+            SplitView.minimumWidth: 400
 
         Loader {
             id: canvasLoader
@@ -41,9 +63,10 @@ SplitView {
             onLoaded: {
                 if (item) {
                     if (root.canvas) {
-                        item.controller = root.canvas.controller
-                        item.selectionManager = root.canvas.selectionManager
-                        item.elementModel = root.canvas.elementModel
+                        // Set canvas on loaded item
+                        item.canvas = root.canvas
+                    } else {
+                        // No canvas available
                     }
                     // Set viewportControls reference for DesignCanvas
                     if (item.hasOwnProperty("viewportControls")) {
@@ -150,19 +173,24 @@ SplitView {
             anchors.fill: parent
             canvasView: canvasLoader.item
             hoveredElement: canvasLoader.item?.hoveredElement ?? null
+            designControlsController: root.designControlsController
         }
 
         // Overlay panels
         ActionsPanel {
             id: actionsPanel
-            visible: Application.panels.actionsPanelVisible
+            visible: root.panels ? root.panels.actionsPanelVisible : false
             anchors.bottom: parent.bottom
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.bottomMargin: 20
+            canvas: root.canvas
             currentMode: root.canvas && root.canvas.controller ? root.canvas.controller.mode : CanvasController.Select
             onModeChanged: (mode) => {
+                // Actions panel mode changed
                 if (root.canvas && root.canvas.controller) {
                     root.canvas.controller.mode = mode
+                } else {
+                    // Warning: Cannot set mode
                 }
             }
             onCompileClicked: {
@@ -207,16 +235,263 @@ SplitView {
             anchors.rightMargin: 10
             anchors.topMargin: 20
             canvasView: canvasLoader.item
+            canvas: root.canvas
         }
     }
 
-    // Right Panel - Detail Panel
-    DetailPanel {
-        id: detailPanel
-        visible: Application.panels.detailPanelVisible
-        SplitView.preferredWidth: parent.width * 0.3
-        SplitView.minimumWidth: 250
-        elementModel: root.canvas ? root.canvas.elementModel : null
-        selectionManager: root.canvas ? root.canvas.selectionManager : null
+        // Right Panel - Detail Panel
+        DetailPanel {
+            id: detailPanel
+            visible: root.panels ? root.panels.detailPanelVisible : false
+            SplitView.preferredWidth: parent.width * 0.3
+            SplitView.minimumWidth: 250
+            canvas: root.canvas
+            elementModel: root.canvas ? root.canvas.elementModel : null
+            selectionManager: root.canvas ? root.canvas.selectionManager : null
+        }
+    } // End of SplitView
+    
+    // Create an overlay item to ensure the panel appears on top
+    Item {
+        id: popoverOverlay
+        anchors.fill: parent
+        z: 1000 // Above everything
+        
+        // Property selector panel that appears on top of content
+        PropertyPopoverPanel {
+            id: selectorPanel
+            visible: false
+            
+            property var anchorSelector: null
+            property real offsetY: 0
+            property string currentType: ""
+            property bool manuallyPositioned: false
+            
+            // Position will be set dynamically based on where it was triggered
+            x: 0
+            y: 0
+            
+            onCloseRequested: {
+                selectorPanel.visible = false
+                selectorPanel.anchorSelector = null
+                selectorPanel.currentType = ""
+                selectorPanel.manuallyPositioned = false
+            }
+            
+            // Dynamic content based on type
+            contentComponent: {
+                switch (selectorPanel.currentType) {
+                    case "fill":
+                        return fillComponent
+                    case "style":
+                        return styleComponent
+                    case "font":
+                        return fontComponent
+                    default:
+                        return null
+                }
+            }
+        }
+    }
+    
+    // Component for Fill selector
+    Component {
+        id: fillComponent
+        ColorPicker {
+            property var selectedElement: root.canvas && root.canvas.selectionManager 
+                ? root.canvas.selectionManager.selectedElements[0] : null
+            
+            hue: {
+                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
+                    var color = selectedElement.fill
+                    return color.hslHue * 360  // Qt returns hue as 0-1, convert to 0-360
+                }
+                return 200  // Default to light blue hue
+            }
+            
+            saturation: {
+                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
+                    var color = selectedElement.fill
+                    return color.hslSaturation
+                }
+                return 1.0
+            }
+            
+            lightness: {
+                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
+                    var color = selectedElement.fill
+                    return color.hslLightness
+                }
+                return 0.5
+            }
+            
+            alphaValue: {
+                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
+                    var color = selectedElement.fill
+                    return color.a  // Alpha channel
+                }
+                return 1.0
+            }
+            
+            colorFormat: {
+                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant")) {
+                    return selectedElement.colorFormat !== undefined ? selectedElement.colorFormat : 1
+                }
+                return 1  // Default to HEX
+            }
+            
+            fillType: 0  // Default to Solid for now
+            
+            onColorChanged: function(newColor) {
+                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
+                    selectedElement.fill = newColor
+                }
+            }
+            
+            onColorFormatChanged: function(newFormat) {
+                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
+                    selectedElement.colorFormat = newFormat
+                }
+            }
+            
+            onFillTypeChanged: function(newType) {
+                // No functionality for now
+            }
+            
+            onEyeButtonClicked: {
+                // No functionality for now
+            }
+        }
+    }
+    
+    // Component for Style selector
+    Component {
+        id: styleComponent
+        Text {
+            text: "Style options coming soon"
+            anchors.centerIn: parent
+            font.pixelSize: 14
+            color: "#666666"
+        }
+    }
+    
+    // Component for Font selector
+    Component {
+        id: fontComponent
+        FontPicker {
+            id: fontPickerInstance
+            property var selectedElement: root.canvas && root.canvas.selectionManager 
+                ? root.canvas.selectionManager.selectedElements[0] : null
+            
+            currentFontFamily: selectedElement && selectedElement.font ? selectedElement.font.family : ""
+            
+            onFontSelected: function(fontFamily) {
+                if (selectedElement && selectedElement.font !== undefined) {
+                    var newFont = selectedElement.font
+                    newFont.family = fontFamily
+                    selectedElement.font = newFont
+                }
+                // Close the popover panel
+                selectorPanel.visible = false
+            }
+        }
+    }
+    
+    // Connect properties panel to selector panel
+    Connections {
+        target: detailPanel.propertiesPanel
+        function onPanelSelectorClicked(selector, type) {
+            // Panel selector clicked
+            
+            // Position the panel to the left of the detail panel
+            var detailPanelPos = detailPanel.mapToItem(popoverOverlay, 0, 0)
+            // Position selector panel
+            
+            // Map selector position to get vertical alignment
+            var selectorPos = selector.mapToItem(popoverOverlay, 0, 0)
+            
+            // Position to the left of the detail panel with some margin
+            selectorPanel.x = detailPanelPos.x - selectorPanel.width - 10
+            
+            // Set type and make visible first so height is calculated
+            selectorPanel.currentType = type
+            selectorPanel.anchorSelector = selector
+            selectorPanel.manuallyPositioned = false
+            selectorPanel.visible = true
+            
+            // Use Qt.callLater to ensure the panel's height is calculated after becoming visible
+            Qt.callLater(function() {
+                
+                // Align the middle of the popover with the middle of the selector
+                var selectorMiddleY = selectorPos.y + (selector.height / 2)
+                selectorPanel.y = selectorMiddleY - (selectorPanel.height / 2)
+                
+                
+                // Ensure the panel stays within bounds
+                if (selectorPanel.x < 0) {
+                    // If not enough space on the left, position inside the detail panel
+                    selectorPanel.x = detailPanelPos.x + 10
+                }
+                
+                var maxY = popoverOverlay.height - selectorPanel.height
+                if (selectorPanel.y > maxY) {
+                    selectorPanel.y = maxY
+                }
+                if (selectorPanel.y < 0) {
+                    selectorPanel.y = 0
+                }
+                
+            })
+        }
+    }
+    
+    // Close panel when selection changes
+    Connections {
+        target: root.canvas ? root.canvas.selectionManager : null
+        function onSelectionChanged() {
+            if (selectorPanel.visible) {
+                selectorPanel.visible = false
+            }
+        }
+    }
+    
+    // Update panel position when detail panel moves or resizes (unless manually positioned)
+    Connections {
+        target: detailPanel
+        function onWidthChanged() {
+            updatePopoverPosition()
+        }
+        function onXChanged() {
+            updatePopoverPosition()
+        }
+    }
+    
+    function updatePopoverPosition() {
+        if (selectorPanel.visible && !selectorPanel.manuallyPositioned && selectorPanel.anchorSelector) {
+            // Recalculate position
+            var detailPanelPos = detailPanel.mapToItem(popoverOverlay, 0, 0)
+            var selectorPos = selectorPanel.anchorSelector.mapToItem(popoverOverlay, 0, 0)
+            
+            // Position to the left of detail panel
+            selectorPanel.x = detailPanelPos.x - selectorPanel.width - 10
+            
+            // Ensure it stays within bounds
+            if (selectorPanel.x < 0) {
+                selectorPanel.x = detailPanelPos.x + 10
+            }
+            
+            // Update vertical position to stay aligned with selector
+            var selectorMiddleY = selectorPos.y + (selectorPanel.anchorSelector.height / 2)
+            selectorPanel.y = selectorMiddleY - (selectorPanel.height / 2)
+            
+            // Ensure vertical bounds
+            var maxY = popoverOverlay.height - selectorPanel.height
+            if (selectorPanel.y > maxY) {
+                selectorPanel.y = maxY
+            }
+            if (selectorPanel.y < 0) {
+                selectorPanel.y = 0
+            }
+        }
     }
 }

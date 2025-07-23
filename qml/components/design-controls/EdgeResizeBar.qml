@@ -33,7 +33,11 @@ Rectangle {
     
     MouseArea {
         anchors.fill: parent
-        enabled: !designControls.isAnyTextEditing
+        enabled: {
+            // EdgeResizeBar -> Repeater -> DesignControls
+            var designControlsRoot = edgeBar.parent?.parent
+            return designControlsRoot ? !designControlsRoot.isAnyTextEditing : true
+        }
         cursorShape: {
             // Check if resize is allowed for this edge
             var resizeAllowed = true
@@ -54,7 +58,10 @@ Rectangle {
         
         onPressed: (mouse) => {
             // Check if resizing is globally disabled
-            if (!designControls.isResizingEnabled) {
+            // EdgeResizeBar -> Repeater -> DesignControls
+            var designControlsItem = parent.parent
+            var controller = designControlsItem.getDesignControlsController()
+            if (!controller.isResizingEnabled) {
                 mouse.accepted = false
                 return
             }

@@ -65,8 +65,8 @@ function canShowBorderColor(el, editableProps) {
     return canShow("borderColor", el, editableProps)
 }
 
-function canShowPlatform(el, editableProps, application) {
-    return canShow("platform", el, editableProps) && application && application.activeCanvas && application.activeCanvas.platforms.length > 0
+function canShowPlatform(el, editableProps, canvas) {
+    return canShow("platform", el, editableProps) && canvas && canvas.platforms && canvas.platforms.length > 0
 }
 
 function canShowRole(el, editableProps) {
@@ -118,12 +118,12 @@ function showVariable(el) {
     return el && isVariable(el)
 }
 
-function showFrameInVariant(el, application) {
+function showFrameInVariant(el, canvas) {
     if (!el || !isFrame(el) || !el.parentId) {
         return false
     }
-    if (!application || !application.activeCanvas) return false
-    var model = application.activeCanvas.elementModel
+    if (!canvas) return false
+    var model = canvas.elementModel
     if (!model) return false
     
     var parentElement = model.getElementById(el.parentId)

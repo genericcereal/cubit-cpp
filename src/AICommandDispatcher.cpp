@@ -26,6 +26,11 @@ AICommandDispatcher::AICommandDispatcher(Application *app, QObject *parent)
 {
 }
 
+void AICommandDispatcher::setTargetProject(Project* project)
+{
+    m_targetProject = project;
+}
+
 void AICommandDispatcher::executeCommand(const QJsonObject &command)
 {
     if (!validateCommand(command))
@@ -455,17 +460,17 @@ void AICommandDispatcher::executeSelectElement(const QJsonObject &command)
 
 CanvasController *AICommandDispatcher::activeController() const
 {
-    return m_application && m_application->activeCanvas() ? m_application->activeCanvas()->controller() : nullptr;
+    return m_targetProject ? m_targetProject->controller() : nullptr;
 }
 
 ElementModel *AICommandDispatcher::activeElementModel() const
 {
-    return m_application && m_application->activeCanvas() ? m_application->activeCanvas()->elementModel() : nullptr;
+    return m_targetProject ? m_targetProject->elementModel() : nullptr;
 }
 
 SelectionManager *AICommandDispatcher::activeSelectionManager() const
 {
-    return m_application && m_application->activeCanvas() ? m_application->activeCanvas()->selectionManager() : nullptr;
+    return m_targetProject ? m_targetProject->selectionManager() : nullptr;
 }
 
 bool AICommandDispatcher::validateCommand(const QJsonObject &command) const

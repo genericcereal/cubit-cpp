@@ -7,6 +7,7 @@
 #include "FrameFactory.h"
 #include <QTimer>
 #include <QDebug>
+#include <execinfo.h>
 
 Frame::Frame(const QString &id, QObject *parent)
     : DesignElement(id, parent)
@@ -23,16 +24,15 @@ Frame::Frame(const QString &id, QObject *parent)
     , m_justify(JustifyStart)
     , m_align(AlignStart)
     , m_layoutEngine(std::make_unique<FlexLayoutEngine>())
+    , m_elementModel(nullptr)
 {
     // Set element type
     elementType = Element::FrameType;
     
     setName(QString("Frame %1").arg(id.right(4)));  // Use last 4 digits for display
     
-    // Defer connection setup to ensure application is ready
-    QTimer::singleShot(0, this, [this]() {
-        setupElementModelConnections();
-    });
+    
+    // Don't setup connections here - wait for setElementModel to be called
 }
 
 Frame::~Frame() 
@@ -43,10 +43,18 @@ Frame::~Frame()
     }
 }
 
+void Frame::setElementModel(ElementModel* model)
+{
+    m_elementModel = model;
+    if (m_elementModel) {
+        setupElementModelConnections();
+    }
+}
+
 
 void Frame::setFill(const QColor &color)
 {
-    qDebug() << "Frame::setFill called with color:" << color.name() << "for frame" << getId();
+    // Setting fill color
     if (m_fill != color) {
         m_fill = color;
         emit fillChanged();
@@ -129,13 +137,11 @@ void Frame::setFlex(bool flex)
         
         // Immediately layout children if enabling flex
         if (flex) {
-            // Get the element model
-            Application* app = Application::instance();
-            if (app && app->activeCanvas() && app->activeCanvas()->elementModel()) {
-                ElementModel* elementModel = app->activeCanvas()->elementModel();
-                m_layoutEngine->connectChildGeometrySignals(this, elementModel);
+            // Use the stored element model
+            if (m_elementModel) {
+                m_layoutEngine->connectChildGeometrySignals(this, m_elementModel);
             }
-            m_layoutEngine->scheduleLayout(this);
+            m_layoutEngine->scheduleLayout(this, m_elementModel);
         } else {
             // Disconnect child geometry signals when disabling flex
             m_layoutEngine->disconnectChildGeometrySignals(this);
@@ -151,7 +157,7 @@ void Frame::setOrientation(LayoutOrientation orientation)
         emit elementChanged();
         
         if (m_flex && m_layoutEngine) {
-            m_layoutEngine->scheduleLayout(this);
+            m_layoutEngine->scheduleLayout(this, m_elementModel);
         }
     }
 }
@@ -165,7 +171,7 @@ void Frame::setGap(qreal gap)
         
         if (m_flex && m_layoutEngine) {
             // Trigger layout with GapChanged reason to allow parent resize even if selected
-            m_layoutEngine->scheduleLayout(this, FlexLayoutEngine::GapChanged);
+            m_layoutEngine->scheduleLayout(this, m_elementModel, FlexLayoutEngine::GapChanged);
         }
     }
 }
@@ -198,7 +204,7 @@ void Frame::setJustify(JustifyContent justify)
         if (m_flex && m_layoutEngine) {
             // When justify changes, we need to reposition children
             // but we should NOT resize the parent
-            m_layoutEngine->scheduleLayout(this, FlexLayoutEngine::JustifyChanged);
+            m_layoutEngine->scheduleLayout(this, m_elementModel, FlexLayoutEngine::JustifyChanged);
         }
     }
 }
@@ -213,7 +219,7 @@ void Frame::setAlign(AlignItems align)
         if (m_flex && m_layoutEngine) {
             // When align changes, we need to reposition children
             // but we should NOT resize the parent
-            m_layoutEngine->scheduleLayout(this, FlexLayoutEngine::AlignChanged);
+            m_layoutEngine->scheduleLayout(this, m_elementModel, FlexLayoutEngine::AlignChanged);
         }
     }
 }
@@ -327,7 +333,7 @@ void Frame::triggerLayout()
     // If we have flex enabled, schedule a layout through the layout engine
     if (m_flex && m_layoutEngine) {
         qDebug() << "Frame::triggerLayout - Called for frame" << getId();
-        m_layoutEngine->scheduleLayout(this);
+        m_layoutEngine->scheduleLayout(this, m_elementModel);
     }
 }
 
@@ -443,35 +449,34 @@ void Frame::setRect(const QRectF &rect)
 
 void Frame::setupElementModelConnections()
 {
-    // Connect to application to listen for element changes
-    Application* app = Application::instance();
-    if (app && app->activeCanvas() && app->activeCanvas()->elementModel()) {
-        qDebug() << "Frame::setupElementModelConnections - Setting up connections for frame" << getId();
+    // Use the stored element model
+    if (m_elementModel) {
+        // Setting up element model connections
         
-        connect(app->activeCanvas()->elementModel(), &ElementModel::elementAdded,
-                this, [this, app](Element* element) {
+        connect(m_elementModel, &ElementModel::elementAdded,
+                this, [this](Element* element) {
                     if (element && element->getParentElementId() == this->getId()) {
                         qDebug() << "Frame - Child added to frame" << getId();
-                        if (m_flex && app->activeCanvas() && app->activeCanvas()->elementModel()) {
+                        if (m_flex && m_elementModel) {
                             // Reconnect signals when children are added
                             m_layoutEngine->disconnectChildGeometrySignals(this);
-                            m_layoutEngine->connectChildGeometrySignals(this, app->activeCanvas()->elementModel());
+                            m_layoutEngine->connectChildGeometrySignals(this, m_elementModel);
                         }
                         triggerLayout();
                     }
                 });
-        connect(app->activeCanvas()->elementModel(), &ElementModel::elementRemoved,
-                this, [this, app](const QString&) {
+        connect(m_elementModel, &ElementModel::elementRemoved,
+                this, [this](const QString&) {
                     // Check if removed element was our child
-                    if (m_flex && app->activeCanvas() && app->activeCanvas()->elementModel()) {
+                    if (m_flex && m_elementModel) {
                         // Reconnect signals when children are removed
                         m_layoutEngine->disconnectChildGeometrySignals(this);
-                        m_layoutEngine->connectChildGeometrySignals(this, app->activeCanvas()->elementModel());
+                        m_layoutEngine->connectChildGeometrySignals(this, m_elementModel);
                     }
                     // Trigger layout when any child is removed
                     triggerLayout();
                 });
-        connect(app->activeCanvas()->elementModel(), &ElementModel::elementUpdated,
+        connect(m_elementModel, &ElementModel::elementUpdated,
                 this, [this](Element* element) {
                     if (element && element->getParentElementId() == this->getId()) {
                         // Only trigger layout if we're not already laying out

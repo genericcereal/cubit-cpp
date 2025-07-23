@@ -2,22 +2,9 @@
 #include <QDebug>
 #include <QUuid>
 
-ConsoleMessageRepository* ConsoleMessageRepository::s_instance = nullptr;
-
 ConsoleMessageRepository::ConsoleMessageRepository(QObject *parent)
     : QObject(parent), m_isUsingAI(false), m_selectedOption(1), m_showAIPrompt(false)
 {
-    if (!s_instance) {
-        s_instance = this;
-    }
-}
-
-ConsoleMessageRepository* ConsoleMessageRepository::instance()
-{
-    if (!s_instance) {
-        s_instance = new ConsoleMessageRepository();
-    }
-    return s_instance;
 }
 
 QVariantList ConsoleMessageRepository::messages() const
@@ -85,7 +72,7 @@ QString ConsoleMessageRepository::messageTypeToString(MessageType type) const
     }
 }
 
-void ConsoleMessageRepository::processConsoleCommand(const QString& command) {
+void ConsoleMessageRepository::processConsoleCommand(const QString& command, QObject* project) {
     // Add the command to console as input
     addInput(command);
     
@@ -97,7 +84,7 @@ void ConsoleMessageRepository::processConsoleCommand(const QString& command) {
         if (m_isUsingAI) {
             addInfo("AI mode enabled. Initializing AI assistant...");
             // Send initialization message to trigger AI initialization with rules
-            emit aiCommandReceived("INIT_AI_WITH_RULES");
+            emit aiCommandReceived("INIT_AI_WITH_RULES", project);
         } else {
             addInfo("AI mode disabled.");
             emit aiModeDisabled();
@@ -112,12 +99,12 @@ void ConsoleMessageRepository::processConsoleCommand(const QString& command) {
             // Handle the user's response based on selected option
             if (m_selectedOption == 0 && command.isEmpty()) {
                 // User selected "Accept" and pressed Enter without typing anything
-                emit aiContinuationResponse(true, QString());
+                emit aiContinuationResponse(true, QString(), project);
                 // Hide the prompt after handling the response
                 setShowAIPrompt(false);
             } else if (m_selectedOption == 1 && !command.isEmpty()) {
                 // User selected "Feedback" and provided custom feedback
-                emit aiContinuationResponse(false, command);
+                emit aiContinuationResponse(false, command, project);
                 // Hide the prompt after handling the response
                 setShowAIPrompt(false);
             }
@@ -125,7 +112,7 @@ void ConsoleMessageRepository::processConsoleCommand(const QString& command) {
         } else {
             // Normal AI command - but skip empty commands
             if (!command.isEmpty()) {
-                emit aiCommandReceived(command);
+                emit aiCommandReceived(command, project);
             }
         }
     } else if (command.startsWith("/")) {

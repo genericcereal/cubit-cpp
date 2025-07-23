@@ -13,6 +13,11 @@
 #include "ScriptExecutor.h"
 #include "PrototypeController.h"
 
+class StreamingAIClient;
+class AuthenticationManager;
+class ConsoleMessageRepository;
+Q_DECLARE_OPAQUE_POINTER(ConsoleMessageRepository*)
+
 class Component;
 Q_DECLARE_OPAQUE_POINTER(Component*)
 
@@ -29,6 +34,7 @@ class Project : public QObject {
     Q_PROPERTY(QObject* editingElement READ editingElement NOTIFY editingElementChanged)
     Q_PROPERTY(Scripts* activeScripts READ activeScripts NOTIFY activeScriptsChanged)
     Q_PROPERTY(QStringList platforms READ platforms WRITE setPlatforms NOTIFY platformsChanged)
+    Q_PROPERTY(ConsoleMessageRepository* console READ console CONSTANT)
 
 public:
     explicit Project(const QString& id, const QString& name = QString(), QObject *parent = nullptr);
@@ -46,6 +52,7 @@ public:
     QObject* editingElement() const;
     Scripts* activeScripts() const;
     QStringList platforms() const;
+    ConsoleMessageRepository* console() const;
 
     // Property setters
     void setName(const QString& name);
@@ -59,6 +66,15 @@ public:
     
     // Execute a script event
     Q_INVOKABLE void executeScriptEvent(const QString& eventName);
+    
+    // AI command handling
+    Q_INVOKABLE void handleAICommand(const QString& prompt);
+    Q_INVOKABLE void handleAIContinuationResponse(bool accepted, const QString& feedback);
+    
+private slots:
+    void onAICommandReceived(const QString& prompt, QObject* project);
+    void onAIContinuationResponse(bool accepted, const QString& feedback, QObject* project);
+    void onAIModeDisabled();
 
 signals:
     void nameChanged();
@@ -76,6 +92,8 @@ private:
     std::unique_ptr<Scripts> m_scripts;
     std::unique_ptr<ScriptExecutor> m_scriptExecutor;
     std::unique_ptr<PrototypeController> m_prototypeController;
+    std::unique_ptr<StreamingAIClient> m_aiClient;
+    std::unique_ptr<ConsoleMessageRepository> m_console;
     QString m_name;
     QString m_id;
     QString m_viewMode;

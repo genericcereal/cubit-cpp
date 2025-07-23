@@ -9,6 +9,7 @@ ScrollView {
     id: root
     
     property var selectionManager
+    property var canvas: null  // Will be set by parent
     property var selectedElement: selectionManager && selectionManager.selectionCount === 1 
                                  ? selectionManager.selectedElements[0] : null
     
@@ -33,15 +34,18 @@ ScrollView {
         
         ActionsSection {
             selectedElement: root.selectedElement
+            canvas: root.canvas
         }
         
         PlatformsSection {
             selectedElement: root.selectedElement
+            canvas: root.canvas
         }
         
         GeneralProperties {
             selectedElement: root.selectedElement
             editableProperties: root.editableProperties
+            canvas: root.canvas
         }
         
         PositionSection {
@@ -71,6 +75,7 @@ ScrollView {
         
         VariableSection {
             selectedElement: root.selectedElement
+            canvas: root.canvas
         }
         
         Item {

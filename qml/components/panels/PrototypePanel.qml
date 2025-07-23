@@ -9,6 +9,7 @@ Rectangle {
     id: root
     
     property var canvasView: null
+    property var canvas: null
     
     width: 250
     height: 100
@@ -39,9 +40,9 @@ Rectangle {
                 
                 model: Config.platformOptions
                 currentIndex: {
-                    if (Application.activeCanvas && 
-                        Application.activeCanvas.prototypeController) {
-                        var mode = Application.activeCanvas.prototypeController.prototypeMode
+                    if (root.canvas && 
+                        root.canvas.prototypeController) {
+                        var mode = root.canvas.prototypeController.prototypeMode
                         if (mode === "ios") return 1
                         if (mode === "android") return 2
                     }
@@ -49,10 +50,10 @@ Rectangle {
                 }
                 
                 onCurrentTextChanged: {
-                    if (Application.activeCanvas && 
-                        Application.activeCanvas.prototypeController && 
-                        currentText !== Application.activeCanvas.prototypeController.prototypeMode) {
-                        Application.activeCanvas.prototypeController.prototypeMode = currentText
+                    if (root.canvas && 
+                        root.canvas.prototypeController && 
+                        currentText !== root.canvas.prototypeController.prototypeMode) {
+                        root.canvas.prototypeController.prototypeMode = currentText
                     }
                 }
             }
@@ -70,7 +71,7 @@ Rectangle {
             text: "Stop Prototype"
             
             onClicked: {
-                if (!Application.activeCanvas || !Application.activeCanvas.prototypeController) {
+                if (!root.canvas || !root.canvas.prototypeController) {
                     return
                 }
                 
@@ -78,7 +79,7 @@ Rectangle {
                     return
                 }
                 
-                var prototypeController = Application.activeCanvas.prototypeController
+                var prototypeController = root.canvas.prototypeController
                 
                 // Get the snapshot values from prototype controller BEFORE stopping
                 var startPos = prototypeController.getSnapshotCanvasPosition()

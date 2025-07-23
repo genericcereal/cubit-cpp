@@ -8,6 +8,7 @@
 #include "SelectionManager.h"
 #include "Element.h"
 #include "CanvasElement.h"
+#include "Project.h"
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
@@ -36,12 +37,12 @@ StreamingAIClient::StreamingAIClient(AuthenticationManager *authManager, Applica
 
     // Command dispatcher logs
     connect(m_commandDispatcher.get(), &AICommandDispatcher::commandExecuted,
-            this, [](const QString &description, bool success)
+            this, [this](const QString &description, bool success)
             {
-        if (success) ConsoleMessageRepository::instance()->addInfo(description); });
+        if (success && m_console) m_console->addInfo(description); });
     connect(m_commandDispatcher.get(), &AICommandDispatcher::commandError,
-            this, [](const QString &error)
-            { ConsoleMessageRepository::instance()->addError(QString("Command error: %1").arg(error)); });
+            this, [this](const QString &error)
+            { if (m_console) m_console->addError(QString("Command error: %1").arg(error)); });
 
     // WebSocket signals
     connect(m_webSocket.get(), &QWebSocket::connected, this, &StreamingAIClient::onConnected);
@@ -76,7 +77,7 @@ void StreamingAIClient::sendMessage(const QString &description)
     
     // Check if we have a valid token, if not trigger authentication
     if (authToken.isEmpty() && m_authManager) {
-        ConsoleMessageRepository::instance()->addError("Authentication required. Please log in.");
+        if (m_console) m_console->addError("Authentication required. Please log in.");
         // Trigger authentication or token refresh
         if (!m_authManager->isAuthenticated()) {
             m_authManager->login();
@@ -109,7 +110,7 @@ bool StreamingAIClient::isConnected() const
 }
 
 void StreamingAIClient::handleUserContinuationResponse(bool accepted, const QString &feedback) {
-    ConsoleMessageRepository::instance()->setShowAIPrompt(false);
+    if (m_console) m_console->setShowAIPrompt(false);
 
     if (!m_currentConversationId.isEmpty() && !m_pendingContinuationContext.isEmpty()) {
         if (accepted && m_pendingContinuationContext == "PLAN_CONFIRMED") {
@@ -136,6 +137,15 @@ void StreamingAIClient::clearConversation()
     m_currentConversationId.clear();
     m_currentSubscriptionId.clear();
     m_pendingContinuationContext.clear();
+}
+
+void StreamingAIClient::setTargetProject(Project* project)
+{
+    m_targetProject = project;
+    m_console = project ? project->console() : nullptr;
+    if (m_commandDispatcher) {
+        m_commandDispatcher->setTargetProject(project);
+    }
 }
 
 void StreamingAIClient::connectToWebSocket()
@@ -301,7 +311,7 @@ void StreamingAIClient::onTextMessageReceived(const QString &message)
         }
         
         if (errorType == "UnsupportedOperation" && errorMessage.contains("not supported through the realtime channel")) {
-            ConsoleMessageRepository::instance()->addError("Subscription format error: The subscription request format is not compatible with AWS AppSync realtime channel");
+            if (m_console) m_console->addError("Subscription format error: The subscription request format is not compatible with AWS AppSync realtime channel");
             // qDebug() << "This typically means the subscription message format is incorrect for AppSync";
         }
     }
@@ -318,7 +328,7 @@ void StreamingAIClient::onError(QAbstractSocket::SocketError error)
 {
     Q_UNUSED(error)
     QString errorMsg = QString("WebSocket error: %1").arg(m_webSocket->errorString());
-    ConsoleMessageRepository::instance()->addError(errorMsg);
+    if (m_console) m_console->addError(errorMsg);
     emit errorOccurred(errorMsg);
 }
 
@@ -426,7 +436,7 @@ void StreamingAIClient::createConversation()
                 }
             }
         } else {
-            ConsoleMessageRepository::instance()->addError(
+            if (m_console) m_console->addError(
                 QString("Failed to create conversation: %1").arg(reply->errorString()));
         }
         reply->deleteLater();
@@ -579,7 +589,7 @@ void StreamingAIClient::sendCubitAIRules(const QString &conversationId)
         req.setRawHeader("Authorization", token.toUtf8());
 
     QNetworkReply *reply = manager->post(req, QJsonDocument(body).toJson(QJsonDocument::Compact));
-    connect(reply, &QNetworkReply::finished, this, [reply, manager]() {
+    connect(reply, &QNetworkReply::finished, this, [this, reply, manager]() {
         if (reply->error() != QNetworkReply::NoError) {
             qWarning() << "Failed to send CubitAI rules:" << reply->errorString();
         }
@@ -627,12 +637,12 @@ void StreamingAIClient::sendConversationMessage(const QString &conversationId, c
         req.setRawHeader("Authorization", token.toUtf8());
 
     QNetworkReply *reply = manager->post(req, QJsonDocument(body).toJson(QJsonDocument::Compact));
-    connect(reply, &QNetworkReply::finished, this, [reply, manager]()
+    connect(reply, &QNetworkReply::finished, this, [this, reply, manager]()
             {
         QByteArray resp = reply->readAll();
         // qDebug() << "SendMessage response:" << resp;
         if (reply->error() != QNetworkReply::NoError) {
-            ConsoleMessageRepository::instance()->addError(
+            if (m_console) m_console->addError(
                 QString("Failed to send message: %1\nResponse: %2").arg(reply->errorString()).arg(QString(resp)));
         } else {
             // Message sent successfully
@@ -644,7 +654,7 @@ void StreamingAIClient::sendConversationMessage(const QString &conversationId, c
                 QJsonArray errors = root["errors"].toArray();
                 for (const auto& error : errors) {
                     QJsonObject errObj = error.toObject();
-                    ConsoleMessageRepository::instance()->addError(
+                    if (m_console) m_console->addError(
                         QString("GraphQL Error: %1").arg(errObj["message"].toString()));
                 }
             } else if (root.contains("data")) {
@@ -689,7 +699,7 @@ void StreamingAIClient::handleSubscriptionData(const QJsonObject &payload)
                 QString errorMsg = QString("AI Error: %1 (%2)")
                     .arg(errObj["message"].toString())
                     .arg(errObj["errorType"].toString());
-                ConsoleMessageRepository::instance()->addError(errorMsg);
+                if (m_console) m_console->addError(errorMsg);
             }
             return;
         }
@@ -737,13 +747,13 @@ void StreamingAIClient::finalizeResponse()
             
             // Skip console output if nothing left after filtering
             if (m_accumulatedResponse.isEmpty()) {
-                ConsoleMessageRepository::instance()->addInfo("AI response contained only plan text during execution, skipping.");
+                if (m_console) m_console->addInfo("AI response contained only plan text during execution, skipping.");
                 return;
             }
         }
     }
 
-    ConsoleMessageRepository::instance()->addOutput(QString("AI: %1").arg(m_accumulatedResponse));
+    if (m_console) m_console->addOutput(QString("AI: %1").arg(m_accumulatedResponse));
     emit responseReceived(m_accumulatedResponse);
 
     // --- 1) Detect PLAN phase ---
@@ -752,14 +762,14 @@ void StreamingAIClient::finalizeResponse()
         m_pendingPlanSteps = extractPlanSteps(m_accumulatedResponse);
 
         if (!m_pendingPlanSteps.isEmpty()) {
-            ConsoleMessageRepository::instance()->addInfo(
+            if (m_console) m_console->addInfo(
                 QString("AI proposed a plan with %1 steps.").arg(m_pendingPlanSteps.size())
             );
             // Show confirm/reject prompt
-            ConsoleMessageRepository::instance()->setShowAIPrompt(true);
+            if (m_console) m_console->setShowAIPrompt(true);
             m_pendingContinuationContext = "PLAN_CONFIRMED";
         } else {
-            ConsoleMessageRepository::instance()->addInfo("AI produced a plan but no steps were detected.");
+            if (m_console) m_console->addInfo("AI produced a plan but no steps were detected.");
         }
         
         // ✅ Remove everything up to WAITING FOR PLAN CONFIRMATION
@@ -818,7 +828,7 @@ void StreamingAIClient::finalizeResponse()
                 }
             }
         } else {
-            ConsoleMessageRepository::instance()->addInfo("AI execution step had no JSON or tool request, ignoring.");
+            if (m_console) m_console->addInfo("AI execution step had no JSON or tool request, ignoring.");
             m_accumulatedResponse.clear(); // ✅ Clear buffer to prevent accumulation
             return;
         }
@@ -827,7 +837,7 @@ void StreamingAIClient::finalizeResponse()
     // --- 3) Only parse JSON if it looks like JSON ---
     QString trimmed = m_accumulatedResponse.trimmed();
     if (!(trimmed.startsWith("{") || trimmed.startsWith("["))) {
-        ConsoleMessageRepository::instance()->addInfo("AI response is plain text, skipping JSON parse.");
+        if (m_console) m_console->addInfo("AI response is plain text, skipping JSON parse.");
         return;
     }
 
@@ -836,7 +846,7 @@ void StreamingAIClient::finalizeResponse()
     QJsonDocument doc = QJsonDocument::fromJson(trimmed.toUtf8(), &parseError);
 
     if (parseError.error != QJsonParseError::NoError) {
-        ConsoleMessageRepository::instance()->addError(
+        if (m_console) m_console->addError(
             QString("Failed to parse AI response as JSON: %1 at position %2")
             .arg(parseError.errorString())
             .arg(parseError.offset)
@@ -847,7 +857,7 @@ void StreamingAIClient::finalizeResponse()
     }
 
     if (!doc.isObject()) {
-        ConsoleMessageRepository::instance()->addError("AI response is not a valid JSON object");
+        if (m_console) m_console->addError("AI response is not a valid JSON object");
         requestJsonRepair(trimmed, "Response is not a JSON object");
         return;
     }
@@ -882,7 +892,7 @@ void StreamingAIClient::finalizeResponse()
                     m_accumulatedResponse.clear();
                 }
             } else {
-                ConsoleMessageRepository::instance()->addError(
+                if (m_console) m_console->addError(
                     QString("Failed to parse commands array: %1").arg(cmdParseError.errorString())
                 );
                 QString errorDetail = QString("Commands array parsing failed: %1. Invalid commands string: %2")
@@ -904,8 +914,10 @@ void StreamingAIClient::finalizeResponse()
     } 
     else if (shouldContinue && !continuationContext.isEmpty()) {
         // Legacy behavior for non-step continuation
-        ConsoleMessageRepository::instance()->addInfo("AI wants to continue: " + continuationContext);
-        ConsoleMessageRepository::instance()->setShowAIPrompt(true);
+        if (m_console) {
+            m_console->addInfo("AI wants to continue: " + continuationContext);
+            m_console->setShowAIPrompt(true);
+        }
         m_pendingContinuationContext = continuationContext;
     }
 
@@ -951,7 +963,7 @@ void StreamingAIClient::handleError(const QJsonObject &payload)
     }
     else
         msg += "Unknown error";
-    ConsoleMessageRepository::instance()->addError(msg);
+    if (m_console) m_console->addError(msg);
     emit errorOccurred(msg);
 }
 
@@ -961,10 +973,10 @@ QString StreamingAIClient::getCanvasState() const
     if (!m_application)
         return QJsonDocument(state).toJson(QJsonDocument::Compact);
 
-    if (m_application->activeCanvas())
-        state["canvasMode"] = m_application->activeCanvas()->viewMode();
+    if (m_targetProject)
+        state["canvasMode"] = m_targetProject->viewMode();
 
-    auto selMgr = m_application->activeCanvas() ? m_application->activeCanvas()->selectionManager() : nullptr;
+    auto selMgr = m_targetProject ? m_targetProject->selectionManager() : nullptr;
     if (selMgr)
     {
         QJsonArray selected;
@@ -979,7 +991,7 @@ QString StreamingAIClient::getCanvasState() const
         state["selectedElements"] = selected;
     }
 
-    auto elemModel = m_application->activeCanvas() ? m_application->activeCanvas()->elementModel() : nullptr;
+    auto elemModel = m_targetProject ? m_targetProject->elementModel() : nullptr;
     if (elemModel)
     {
         QJsonArray all;
@@ -1022,7 +1034,7 @@ QStringList StreamingAIClient::extractPlanSteps(const QString &aiResponse) {
 
 void StreamingAIClient::executeNextPlanStep() {
     if (m_currentStepIndex >= m_pendingPlanSteps.size()) {
-        ConsoleMessageRepository::instance()->addInfo("✅ All steps executed. Asking AI to review & refine...");
+        if (m_console) m_console->addInfo("✅ All steps executed. Asking AI to review & refine...");
         sendConversationMessage(
             m_currentConversationId,
             "All planned steps are complete. Please review the results, refine if needed, and provide the final polished answer."
@@ -1031,7 +1043,7 @@ void StreamingAIClient::executeNextPlanStep() {
     }
 
     QString stepText = m_pendingPlanSteps[m_currentStepIndex];
-    ConsoleMessageRepository::instance()->addInfo(
+    if (m_console) m_console->addInfo(
         QString("Executing step %1: %2").arg(m_currentStepIndex + 1).arg(stepText)
     );
 
@@ -1060,7 +1072,7 @@ void StreamingAIClient::executeNextPlanStep() {
 void StreamingAIClient::startLoadingIndicator()
 {
     m_loadingDots = 0;
-    m_loadingMessageId = ConsoleMessageRepository::instance()->addMessageWithId("AI is thinking", ConsoleMessageRepository::Info);
+    if (m_console) m_loadingMessageId = m_console->addMessageWithId("AI is thinking", ConsoleMessageRepository::Info);
     m_loadingTimer->start();
 }
 
@@ -1068,7 +1080,7 @@ void StreamingAIClient::stopLoadingIndicator()
 {
     m_loadingTimer->stop();
     if (!m_loadingMessageId.isEmpty()) {
-        ConsoleMessageRepository::instance()->removeMessage(m_loadingMessageId);
+        if (m_console) m_console->removeMessage(m_loadingMessageId);
         m_loadingMessageId.clear();
     }
 }
@@ -1083,7 +1095,7 @@ void StreamingAIClient::updateLoadingIndicator()
     QString spaces;
     for (int i = 0; i < (3 - m_loadingDots); ++i) spaces += " ";
     
-    ConsoleMessageRepository::instance()->updateMessage(
+    if (m_console) m_console->updateMessage(
         m_loadingMessageId, 
         QString("AI is thinking%1%2").arg(dots).arg(spaces)
     );
@@ -1092,7 +1104,7 @@ void StreamingAIClient::updateLoadingIndicator()
 void StreamingAIClient::requestJsonRepair(const QString &invalidJson, const QString &errorMessage)
 {
     if (m_currentConversationId.isEmpty()) {
-        ConsoleMessageRepository::instance()->addError("Cannot request JSON repair: no active conversation");
+        if (m_console) m_console->addError("Cannot request JSON repair: no active conversation");
         return;
     }
     
@@ -1109,7 +1121,7 @@ void StreamingAIClient::requestJsonRepair(const QString &invalidJson, const QStr
         "Remember to use the exact format: {\"message\": \"...\", \"commands\": \"[...]\", \"shouldContinue\": bool, \"continuationContext\": \"...\"}"
     ).arg(errorMessage).arg(invalidJson);
     
-    ConsoleMessageRepository::instance()->addInfo("Requesting AI to fix invalid JSON response...");
+    if (m_console) m_console->addInfo("Requesting AI to fix invalid JSON response...");
     
     // Send the repair request
     sendConversationMessage(m_currentConversationId, repairMessage);
@@ -1118,7 +1130,7 @@ void StreamingAIClient::requestJsonRepair(const QString &invalidJson, const QStr
 void StreamingAIClient::fetchToolRegistry(const QString &category) {
     QString baseUrl = Config::TOOL_REGISTRY_URL;
     if (baseUrl.isEmpty()) {
-        ConsoleMessageRepository::instance()->addError("Tool registry URL not configured");
+        if (m_console) m_console->addError("Tool registry URL not configured");
         return;
     }
     
@@ -1136,7 +1148,7 @@ void StreamingAIClient::fetchToolRegistry(const QString &category) {
         manager->deleteLater();
 
         if (reply->error() != QNetworkReply::NoError) {
-            ConsoleMessageRepository::instance()->addError(
+            if (m_console) m_console->addError(
                 QString("Tool registry fetch failed: %1").arg(reply->errorString())
             );
             qDebug() << "Tool registry URL was:" << url;

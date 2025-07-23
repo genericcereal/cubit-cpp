@@ -34,7 +34,11 @@ Rectangle {
     
     MouseArea {
         anchors.fill: parent
-        enabled: !designControls.isAnyTextEditing
+        enabled: {
+            // VariantAddButton is positioned using anchors, so its parent is DesignControls
+            var designControlsRoot = componentVariantAddButton.parent
+            return designControlsRoot ? !designControlsRoot.isAnyTextEditing : true
+        }
         cursorShape: Qt.PointingHandCursor
         
         onClicked: {

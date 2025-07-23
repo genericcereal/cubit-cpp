@@ -9,6 +9,10 @@
 #include "Edge.h"
 #include "Component.h"
 #include "PrototypeController.h"
+#include "Application.h"
+#include "StreamingAIClient.h"
+#include "ConsoleMessageRepository.h"
+#include "AuthenticationManager.h"
 
 Project::Project(const QString& id, const QString& name, QObject *parent)
     : QObject(parent)
@@ -17,6 +21,20 @@ Project::Project(const QString& id, const QString& name, QObject *parent)
     , m_viewMode("design")
     , m_platforms()
 {
+    // Create per-project console
+    m_console = std::make_unique<ConsoleMessageRepository>(this);
+    
+    // Connect to console repository for AI commands
+    connect(m_console.get(), &ConsoleMessageRepository::aiCommandReceived,
+            this, &Project::onAICommandReceived, Qt::UniqueConnection);
+    
+    // Connect to console repository for AI continuation responses
+    connect(m_console.get(), &ConsoleMessageRepository::aiContinuationResponse,
+            this, &Project::onAIContinuationResponse, Qt::UniqueConnection);
+    
+    // Connect to console repository for AI mode disabled
+    connect(m_console.get(), &ConsoleMessageRepository::aiModeDisabled,
+            this, &Project::onAIModeDisabled, Qt::UniqueConnection);
 }
 
 Project::~Project() {
@@ -27,6 +45,9 @@ Project::~Project() {
 }
 
 CanvasController* Project::controller() const {
+    if (!m_controller) {
+        qWarning() << "Project::controller - Controller is null for project" << m_id;
+    }
     return m_controller.get();
 }
 
@@ -44,6 +65,10 @@ Scripts* Project::scripts() const {
 
 PrototypeController* Project::prototypeController() const {
     return m_prototypeController.get();
+}
+
+ConsoleMessageRepository* Project::console() const {
+    return m_console.get();
 }
 
 QString Project::name() const {
@@ -143,6 +168,8 @@ void Project::setPlatforms(const QStringList& platforms) {
 }
 
 void Project::initialize() {
+    // Initialize project components
+    
     // Create the components that don't have dependencies first
     m_elementModel = std::make_unique<ElementModel>(this);
     m_selectionManager = std::make_unique<SelectionManager>(this);
@@ -152,6 +179,8 @@ void Project::initialize() {
     // Create the controller with its required dependencies
     // For now, always create DesignCanvas as it handles both design and variant modes
     m_controller = std::make_unique<DesignCanvas>(*m_elementModel, *m_selectionManager, this);
+    
+    // Controller created and initialized
     
     // Create the prototype controller
     m_prototypeController = std::make_unique<PrototypeController>(*m_elementModel, *m_selectionManager, this);
@@ -414,4 +443,63 @@ void Project::executeScriptEvent(const QString& eventName) {
     // Execute event on canvas scripts
     m_scriptExecutor->setScripts(m_scripts.get());
     m_scriptExecutor->executeEvent(eventName);
+}
+
+void Project::handleAICommand(const QString& prompt) {
+    // Get the Application instance
+    Application* app = Application::instance();
+    if (!app) {
+        m_console->addError("Application instance not available.");
+        return;
+    }
+    
+    // Get the authentication manager from the application
+    AuthenticationManager* authManager = app->authManager();
+    
+    if (!authManager || !authManager->isAuthenticated()) {
+        m_console->addError("You must be authenticated to use the AI assistant. Please log in first.");
+        return;
+    }
+    
+    // Create AI client if not exists
+    if (!m_aiClient) {
+        m_aiClient = std::make_unique<StreamingAIClient>(authManager, app, this);
+    }
+    
+    // Set this project as the target
+    m_aiClient->setTargetProject(this);
+    
+    // Send the prompt to the AI
+    m_aiClient->sendMessage(prompt);
+}
+
+void Project::handleAIContinuationResponse(bool accepted, const QString& feedback) {
+    if (!m_aiClient) {
+        m_console->addError("AI client is not initialized.");
+        return;
+    }
+    
+    // Forward the response to the AI client
+    m_aiClient->handleUserContinuationResponse(accepted, feedback);
+}
+
+void Project::onAICommandReceived(const QString& prompt, QObject* project) {
+    // Only handle if this is the target project
+    if (project == this) {
+        handleAICommand(prompt);
+    }
+}
+
+void Project::onAIContinuationResponse(bool accepted, const QString& feedback, QObject* project) {
+    // Only handle if this is the target project
+    if (project == this) {
+        handleAIContinuationResponse(accepted, feedback);
+    }
+}
+
+void Project::onAIModeDisabled() {
+    // Clear the AI conversation when AI mode is disabled
+    if (m_aiClient) {
+        m_aiClient->clearConversation();
+    }
 }

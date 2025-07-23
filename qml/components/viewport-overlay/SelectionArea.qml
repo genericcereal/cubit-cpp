@@ -31,7 +31,6 @@ Item {
             var window = root.Window.window
             if (window && window.activeFocusItem) {
                 window.activeFocusItem.focus = false
-                console.log("SelectionArea: Cleared focus from", window.activeFocusItem)
             }
             
             // Only start selection if:

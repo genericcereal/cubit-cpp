@@ -10,6 +10,7 @@ ColumnLayout {
     spacing: 10
     
     property var selectedElement
+    property var canvas: null  // Will be set by parent
     
     property var variableProps: [
         {
@@ -223,8 +224,8 @@ ColumnLayout {
             if (!selectedElement || selectedElement.elementType !== "Frame" || !selectedElement.parentId) {
                 return false
             }
-            if (!Application.activeCanvas) return false
-            var model = Application.activeCanvas.elementModel
+            if (!canvas) return false
+            var model = canvas.elementModel
             if (!model) return false
             
             var parentElement = model.getElementById(selectedElement.parentId)

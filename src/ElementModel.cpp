@@ -1,6 +1,7 @@
 #include "ElementModel.h"
 #include "Element.h"
 #include "CanvasElement.h"
+#include "Frame.h"
 #include "UniqueIdGenerator.h"
 
 ElementModel::ElementModel(QObject *parent)
@@ -91,6 +92,11 @@ void ElementModel::addElement(Element *element)
     
     // Set the element's parent to this model so it can find the model later
     element->setParent(this);
+    
+    // If it's a Frame, set the ElementModel so it can connect to our signals
+    if (Frame* frame = qobject_cast<Frame*>(element)) {
+        frame->setElementModel(this);
+    }
     
     beginInsertRows(QModelIndex(), m_elements.size(), m_elements.size());
     m_elements.append(element);

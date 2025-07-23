@@ -57,7 +57,11 @@ Item {
     
     MouseArea {
         anchors.fill: parent
-        enabled: !designControls.isAnyTextEditing
+        enabled: {
+            // CornerResizeJoint -> Item -> Repeater -> DesignControls
+            var designControlsRoot = resizeJointContainer.parent?.parent?.parent
+            return designControlsRoot ? !designControlsRoot.isAnyTextEditing : true
+        }
         cursorShape: {
             if (flexWidthFitContent && !flexHeightFitContent) {
                 // Width fit content - vertical resize only
@@ -83,7 +87,10 @@ Item {
         
         onPressed: (mouse) => {
             // Check if resizing is globally disabled
-            if (!designControls.isResizingEnabled) {
+            // CornerResizeJoint -> Item -> Repeater -> DesignControls
+            var designControlsItem = parent.parent.parent
+            var controller = designControlsItem.getDesignControlsController()
+            if (!controller.isResizingEnabled) {
                 mouse.accepted = false
                 return
             }

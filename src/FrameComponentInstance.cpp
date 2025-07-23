@@ -154,9 +154,14 @@ void FrameComponentInstance::setSourceVariant(Element* variant)
                                 "onSourceVariantPropertyChanged()", m_variantConnections);
             
             // Connect to ElementModel to track child changes
-            Application* app = Application::instance();
-            if (app && app->activeCanvas() && app->activeCanvas()->elementModel()) {
-                ElementModel* elementModel = app->activeCanvas()->elementModel();
+            // Get ElementModel from parent chain
+            ElementModel* elementModel = nullptr;
+            QObject* p = parent();
+            while (p && !elementModel) {
+                elementModel = qobject_cast<ElementModel*>(p);
+                p = p->parent();
+            }
+            if (elementModel) {
                 
                 // Connect to track when new elements are added
                 m_variantConnections.add(
@@ -189,12 +194,16 @@ void FrameComponentInstance::connectToComponent()
     }
     
     // Find the component in the element model
-    Application* app = Application::instance();
-    if (!app || !app->activeCanvas() || !app->activeCanvas()->elementModel()) {
+    // Get ElementModel from parent chain
+    ElementModel* elementModel = nullptr;
+    QObject* p = parent();
+    while (p && !elementModel) {
+        elementModel = qobject_cast<ElementModel*>(p);
+        p = p->parent();
+    }
+    if (!elementModel) {
         return;
     }
-    
-    ElementModel* elementModel = app->activeCanvas()->elementModel();
     Element* element = elementModel->getElementById(m_instanceOf);
     
     m_component = qobject_cast<Component*>(element);
@@ -284,9 +293,14 @@ void FrameComponentInstance::connectToVariant()
     }
     
     // Connect to ElementModel to track parent changes
-    Application* app = Application::instance();
-    if (app && app->activeCanvas() && app->activeCanvas()->elementModel()) {
-        ElementModel* elementModel = app->activeCanvas()->elementModel();
+    // Get ElementModel from parent chain
+    ElementModel* elementModel = nullptr;
+    QObject* p = parent();
+    while (p && !elementModel) {
+        elementModel = qobject_cast<ElementModel*>(p);
+        p = p->parent();
+    }
+    if (elementModel) {
         
         // Connect to track when new elements are added that might be children
         m_variantConnections.add(
@@ -377,12 +391,16 @@ void FrameComponentInstance::createChildInstances()
         return;
     }
     
-    Application* app = Application::instance();
-    if (!app || !app->activeCanvas() || !app->activeCanvas()->elementModel()) {
+    // Get ElementModel from parent chain
+    ElementModel* elementModel = nullptr;
+    QObject* p = parent();
+    while (p && !elementModel) {
+        elementModel = qobject_cast<ElementModel*>(p);
+        p = p->parent();
+    }
+    if (!elementModel) {
         return;
     }
-    
-    ElementModel* elementModel = app->activeCanvas()->elementModel();
     
     // Get all children of the source variant (recursively)
     QList<Element*> variantChildren = elementModel->getChildrenRecursive(m_sourceVariant->getId());
@@ -545,14 +563,19 @@ void FrameComponentInstance::onVariantChildAdded(Element* child)
     connectToSourceElement(childInstance, canvasChild);
     
     // Add to element model
-    Application* app = Application::instance();
-    if (app && app->activeCanvas() && app->activeCanvas()->elementModel()) {
-        app->activeCanvas()->elementModel()->addElement(childInstance);
+    // Get ElementModel from parent chain
+    ElementModel* elementModel = nullptr;
+    QObject* p = parent();
+    while (p && !elementModel) {
+        elementModel = qobject_cast<ElementModel*>(p);
+        p = p->parent();
+    }
+    if (elementModel) {
+        elementModel->addElement(childInstance);
     }
     
     // Handle nested children recursively
-    if (app && app->activeCanvas() && app->activeCanvas()->elementModel()) {
-        ElementModel* elementModel = app->activeCanvas()->elementModel();
+    if (elementModel) {
         QList<Element*> nestedChildren = elementModel->getChildrenRecursive(child->getId());
         
         for (Element* nestedChild : nestedChildren) {
@@ -587,9 +610,14 @@ void FrameComponentInstance::onVariantChildRemoved(Element* child)
              << "from instance" << getId();
     
     // Get element model to remove nested children first
-    Application* app = Application::instance();
-    if (app && app->activeCanvas() && app->activeCanvas()->elementModel()) {
-        ElementModel* elementModel = app->activeCanvas()->elementModel();
+    // Get ElementModel from parent chain
+    ElementModel* elementModel = nullptr;
+    QObject* p = parent();
+    while (p && !elementModel) {
+        elementModel = qobject_cast<ElementModel*>(p);
+        p = p->parent();
+    }
+    if (elementModel) {
         
         // Get all nested children instances that need to be removed
         QList<Element*> nestedInstances = elementModel->getChildrenRecursive(childInstance->getId());

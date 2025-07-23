@@ -10,16 +10,17 @@ Rectangle {
     
     property var elementModel
     property var selectionManager
-    property string currentCanvasType: Application.activeCanvas ? Application.activeCanvas.viewMode : "design"
-    property var editingElement: Application.activeCanvas ? Application.activeCanvas.editingElement : null
+    property var canvas: null  // Will be set by parent
+    property string currentCanvasType: canvas ? canvas.viewMode : "design"
+    property var editingElement: canvas ? canvas.editingElement : null
     
     // Expose the properties panel for external connections
     property alias propertiesPanel: propertiesPanel
     
     // Helper to get the currently selected element for script editing
     function getSelectedElementForScripts() {
-        if (!Application.activeCanvas || !Application.activeCanvas.selectionManager) return null
-        var selectedElements = Application.activeCanvas.selectionManager.selectedElements
+        if (!canvas || !canvas.selectionManager) return null
+        var selectedElements = canvas.selectionManager.selectedElements
         if (selectedElements && selectedElements.length === 1) {
             return selectedElements[0]
         }
@@ -107,6 +108,7 @@ Rectangle {
                                 ElementList {
                                     Layout.fillWidth: true
                                     Layout.fillHeight: true
+                                    canvas: root.canvas
                                     elementModel: root.elementModel
                                     selectionManager: root.selectionManager
                                 }
@@ -152,6 +154,7 @@ Rectangle {
                                     id: propertiesPanel
                                     Layout.fillWidth: true
                                     Layout.fillHeight: true
+                                    canvas: root.canvas
                                     selectionManager: root.selectionManager
                                 }
                             }
@@ -163,14 +166,17 @@ Rectangle {
             // Console tab content
             Console {
                 id: consolePanel
+                canvas: root.canvas
                 
                 Component.onCompleted: {
                     // Initial welcome message removed
                 }
                 
                 onCommandSubmitted: function(command) {
-                    // Process the command through ConsoleMessageRepository
-                    ConsoleMessageRepository.processConsoleCommand(command)
+                    // Process the command through the project's console with canvas context
+                    if (root.canvas && root.canvas.console) {
+                        root.canvas.console.processConsoleCommand(command, root.canvas)
+                    }
                 }
             }
         }

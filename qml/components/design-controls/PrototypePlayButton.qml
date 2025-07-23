@@ -37,7 +37,11 @@ Rectangle {
     
     MouseArea {
         anchors.fill: parent
-        enabled: !designControls.isAnyTextEditing
+        enabled: {
+            // PrototypePlayButton -> DesignControls
+            var designControlsRoot = inlinePrototypePlay.parent
+            return designControlsRoot ? !designControlsRoot.isAnyTextEditing : true
+        }
         cursorShape: Qt.PointingHandCursor
         
         onClicked: (mouse) => {

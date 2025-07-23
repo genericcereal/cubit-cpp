@@ -146,10 +146,13 @@ void WebTextInputComponentInstance::connectToComponent()
 {
     if (m_instanceOf.isEmpty()) return;
     
-    Application* app = Application::instance();
-    if (!app || !app->activeCanvas()) return;
-    
-    ElementModel* model = app->activeCanvas()->elementModel();
+    // Get ElementModel from parent chain
+    ElementModel* model = nullptr;
+    QObject* p = parent();
+    while (p && !model) {
+        model = qobject_cast<ElementModel*>(p);
+        p = p->parent();
+    }
     if (!model) return;
     
     Element* element = model->getElementById(m_instanceOf);
