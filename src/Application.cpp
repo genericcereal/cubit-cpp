@@ -23,6 +23,9 @@
 #include <QStandardPaths>
 #include <QDir>
 #include <QMetaObject>
+#include <QQmlApplicationEngine>
+#include <QQmlComponent>
+#include <QQmlContext>
 #include <QMetaProperty>
 #include <QCoreApplication>
 
@@ -48,8 +51,8 @@ Application::Application(QObject *parent)
     connect(ConsoleMessageRepository::instance(), &ConsoleMessageRepository::aiModeDisabled,
             this, &Application::onAIModeDisabled, Qt::UniqueConnection);
     
-    // Create initial canvas
-    createCanvas("Canvas 1");
+    // Don't create initial canvas - let user start from ProjectList
+    // createCanvas("Canvas 1");
     
 }
 
@@ -70,6 +73,10 @@ void Application::setAuthenticationManager(AuthenticationManager* authManager) {
     m_streamingAIClient = std::make_unique<StreamingAIClient>(m_authManager, this, this);
 }
 
+void Application::setEngine(QQmlApplicationEngine* engine) {
+    m_engine = engine;
+}
+
 QString Application::createCanvas(const QString& name) {
     QString canvasId = generateCanvasId();
     QString canvasName = name.isEmpty() ? QString("Canvas %1").arg(m_canvases.size() + 1) : name;
@@ -79,10 +86,7 @@ QString Application::createCanvas(const QString& name) {
     
     m_canvases.push_back(std::move(canvas));
     
-    // If this is the first canvas or no active canvas, make it active
-    if (m_activeCanvasId.isEmpty()) {
-        setActiveCanvasId(canvasId);
-    }
+    // Don't automatically set as active - let windows manage their own canvases
     
     emit canvasListChanged();
     emit canvasCreated(canvasId);
@@ -129,6 +133,38 @@ void Application::renameCanvas(const QString& canvasId, const QString& newName) 
     if (canvas && !newName.isEmpty()) {
         canvas->setName(newName);
         emit canvasListChanged();
+    }
+}
+
+Project* Application::getCanvas(const QString& canvasId) {
+    return findCanvas(canvasId);
+}
+
+void Application::createNewProject() {
+    // Create a new canvas with a default name
+    QString newCanvasId = createCanvas("New Project");
+    
+    // Don't switch the active canvas - each window manages its own canvas
+    
+    // Create a new window for this project
+    if (m_engine) {
+        QQmlComponent component(m_engine, QUrl(QStringLiteral("qrc:/qml/ProjectWindow.qml")));
+        if (component.isReady()) {
+            QObject* window = component.create();
+            if (window) {
+                // Set the canvas ID property on the window
+                window->setProperty("canvasId", newCanvasId);
+                
+                // The window will show itself due to visible: true in QML
+                qDebug() << "Created new project window for canvas:" << newCanvasId;
+            } else {
+                qWarning() << "Failed to create project window:" << component.errorString();
+            }
+        } else {
+            qWarning() << "ProjectWindow component not ready:" << component.errorString();
+        }
+    } else {
+        qWarning() << "QML engine not set, cannot create new window";
     }
 }
 
