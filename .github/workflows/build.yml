@@ -91,10 +91,8 @@ jobs:
         
         "$MACDEPLOYQT" cubit-quick.app \
           -qmldir=qml \
-          -qmldir="$QT_PATH/qml" \
-          -qmlimportlist=qml_imports.json \
           -always-overwrite \
-          -verbose=3
+          -verbose=1
 
         echo "=== Ensuring QtWebEngineProcess.app is bundled ==="
         WEBENGINE_HELPER="$QT_PATH/libexec/QtWebEngineProcess.app"
@@ -110,25 +108,17 @@ jobs:
         echo "=== Checking signing identity ==="
         security find-identity -v -p codesigning
 
-        # If you have entitlements, use them, otherwise sign normally
-        echo "=== Code signing & hardened runtime ==="
-        if [ -f entitlements.plist ]; then
-          "$MACDEPLOYQT" cubit-quick.app \
-            -dmg \
-            -appstore-compliant \
-            -codesign="${{ secrets.APPLE_DEVELOPER_ID }}" \
-            -hardened-runtime \
-            -timestamp \
-            -sign-for-notarization="${{ secrets.APPLE_DEVELOPER_ID }}"
-        else
-          "$MACDEPLOYQT" cubit-quick.app \
-            -dmg \
-            -appstore-compliant \
-            -codesign="${{ secrets.APPLE_DEVELOPER_ID }}" \
-            -hardened-runtime \
-            -timestamp \
-            -sign-for-notarization="${{ secrets.APPLE_DEVELOPER_ID }}"
-        fi
+        # Sign the app bundle first
+        echo "=== Code signing application bundle ==="
+        codesign --deep --force --verify --verbose \
+          --sign "${{ secrets.APPLE_DEVELOPER_ID }}" \
+          --options runtime \
+          --timestamp \
+          cubit-quick.app
+        
+        # Create DMG separately (faster than using macdeployqt)
+        echo "=== Creating DMG ==="
+        hdiutil create -volname "Cubit" -srcfolder cubit-quick.app -ov -format UDZO cubit-quick.dmg
 
         echo "=== Verifying app bundle signature ==="
         codesign --verify --deep --strict --verbose=2 cubit-quick.app
@@ -160,16 +150,6 @@ jobs:
 
         echo "All binaries are properly signed."
 
-        echo "=== Testing plugin loading (debug mode) ==="
-        # This helps identify missing plugins before notarization
-        echo "Running with QT_DEBUG_PLUGINS=1 to check for missing plugins..."
-        QT_DEBUG_PLUGINS=1 ./cubit-quick.app/Contents/MacOS/cubit-quick --help 2>&1 | head -50 || true
-        echo "Plugin debug complete (exit expected in headless environment)"
-
-        echo "=== Adding fallback for GPU-less environments ==="
-        # This prevents Chromium GPU errors when run on headless macOS
-        echo "export QTWEBENGINE_CHROMIUM_FLAGS='--disable-gpu --disable-software-rasterizer'" > cubit-quick.app/Contents/Resources/env.sh
-        echo "export QT_OPENGL=software" >> cubit-quick.app/Contents/Resources/env.sh
     
     - name: Calculate app bundle hash
       id: app_hash
@@ -448,10 +428,10 @@ jobs:
     - name: Install Qt
       uses: jurplel/install-qt-action@v4  # Update to v4 for better Qt 6.9 support
       with:
-        version: '6.9.0'  # Match local development environment
+        version: '6.8.1'  # Use stable version that's available for Windows
         host: 'windows'
         target: 'desktop'
-        arch: 'win64_msvc2019_64'
+        arch: 'win64_msvc2022_64'  # Use MSVC 2022 for better compatibility
         modules: 'qtwebengine qtwebchannel qtpositioning qtwebsockets'
         cache: true
     

@@ -95,9 +95,12 @@ void ConsoleMessageRepository::processConsoleCommand(const QString& command) {
         setIsUsingAI(!m_isUsingAI);
         
         if (m_isUsingAI) {
-            addInfo("AI mode enabled. All messages will be sent to AI.");
+            addInfo("AI mode enabled. Initializing AI assistant...");
+            // Send initialization message to trigger AI initialization with rules
+            emit aiCommandReceived("INIT_AI_WITH_RULES");
         } else {
             addInfo("AI mode disabled.");
+            emit aiModeDisabled();
         }
         return;
     }

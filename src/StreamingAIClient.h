@@ -34,6 +34,9 @@ public:
     
     /** Handle user response to AI continuation prompt */
     void handleUserContinuationResponse(bool accepted, const QString &feedback = QString());
+    
+    /** Clear the current conversation (useful when AI mode is toggled off) */
+    void clearConversation();
 
 signals:
     void connected();
@@ -60,6 +63,7 @@ private:
     QString getWebSocketUrl() const;
     QString getApiEndpoint() const;
     QString getAuthToken() const;
+    QString getToolRegistryUrl() const;
     void sendConnectionInit();
     void handleConnectionAck();
 
@@ -72,6 +76,7 @@ private:
 
     void sendConversationMessage(const QString &conversationId,
                                  const QString &message);
+    void sendCubitAIRules(const QString &conversationId);
 
     // ==== Subscription Handling ====
     void handleSubscriptionData(const QJsonObject &payload);
@@ -89,6 +94,16 @@ private:
     void startLoadingIndicator();
     void stopLoadingIndicator();
     void updateLoadingIndicator();
+    
+    // ==== JSON Repair ====
+    void requestJsonRepair(const QString &invalidJson, const QString &errorMessage);
+    
+    // ==== Plan Parsing ====
+    QStringList extractPlanSteps(const QString &aiResponse);
+    void executeNextPlanStep();
+    
+    // ==== Tool Registry ====
+    void fetchToolRegistry(const QString &category);
 
 private:
     std::unique_ptr<QWebSocket> m_webSocket;
@@ -113,6 +128,10 @@ private:
     QTimer *m_loadingTimer;
     int m_loadingDots;
     QString m_loadingMessageId;
+    
+    // Plan execution
+    QStringList m_pendingPlanSteps;   // parsed PLAN steps
+    int m_currentStepIndex = 0;       // which step we're on
 
     // Constants
     static constexpr int PING_INTERVAL_MS = 300000; // AWS default keepalive 5 min

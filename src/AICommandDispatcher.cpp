@@ -258,9 +258,10 @@ void AICommandDispatcher::executeCreateElement(const QJsonObject &command)
 
                 activeElementModel()->addElement(textElement);
 
-                // Select the frame (not the text)
+                // Select the text element temporarily for tempId mapping
+                // This allows executeCommands() to map the text element's tempId to its actual ID
                 activeSelectionManager()->clearSelection();
-                activeSelectionManager()->selectElement(frame);
+                activeSelectionManager()->selectElement(textElement);
             }
             else
             {
