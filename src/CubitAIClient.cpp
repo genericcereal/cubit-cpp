@@ -1,4 +1,5 @@
 #include "CubitAIClient.h"
+#include "Config.h"
 #include "ConsoleMessageRepository.h"
 #include "AuthenticationManager.h"
 #include "AICommandDispatcher.h"
@@ -67,9 +68,9 @@ void CubitAIClient::sendMessage(const QString& description) {
 }
 
 void CubitAIClient::makeGraphQLRequest(const QString& queryJson, const QString& /*variables*/) {
-    QString endpoint = getApiEndpoint();
+    QString endpoint = Config::GRAPHQL_ENDPOINT;
     if (endpoint.isEmpty()) {
-        emit errorOccurred("Failed to read API endpoint from amplify_outputs.json");
+        emit errorOccurred("Failed to read API endpoint");
         return;
     }
     
@@ -224,32 +225,6 @@ void CubitAIClient::handleNetworkReply(QNetworkReply* reply) {
     }
 }
 
-QString CubitAIClient::getApiEndpoint() const {
-    // Read the amplify_outputs.json file
-    QFile file("amplify_outputs.json");
-    if (!file.open(QIODevice::ReadOnly)) {
-        qWarning() << "Failed to open amplify_outputs.json";
-        return QString();
-    }
-    
-    QByteArray data = file.readAll();
-    QJsonDocument doc = QJsonDocument::fromJson(data);
-    
-    if (doc.isNull()) {
-        qWarning() << "Failed to parse amplify_outputs.json";
-        return QString();
-    }
-    
-    QJsonObject root = doc.object();
-    if (root.contains("data") && root["data"].isObject()) {
-        QJsonObject dataObj = root["data"].toObject();
-        if (dataObj.contains("url")) {
-            return dataObj["url"].toString();
-        }
-    }
-    
-    return QString();
-}
 
 QString CubitAIClient::getAuthToken() const {
     if (m_authManager && m_authManager->isAuthenticated()) {
