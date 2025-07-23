@@ -7,9 +7,10 @@ import ".."
 ColumnLayout {
     id: root
     spacing: 10
-    visible: !selectedElement && Application.activeCanvas
+    visible: !selectedElement && canvas
     
     property var selectedElement
+    property var canvas: null  // Will be set by parent
     
     // Main platforms management
     PropertyGroup {
@@ -27,10 +28,10 @@ ColumnLayout {
                         id: platformCombo
                         Layout.fillWidth: true
                         model: {
-                            if (!Application.activeCanvas) return []
+                            if (!canvas) return []
                             
                             var allTargets = ["iOS", "Android", "web"]
-                            var currentPlatforms = Application.activeCanvas.platforms
+                            var currentPlatforms = canvas.platforms
                             var availablePlatforms = []
                             
                             for (var i = 0; i < allTargets.length; i++) {
@@ -49,10 +50,10 @@ ColumnLayout {
                         Layout.preferredWidth: 80
                         enabled: platformCombo.count > 0
                         onClicked: {
-                            if (Application.activeCanvas && platformCombo.currentText) {
-                                var platforms = Application.activeCanvas.platforms
+                            if (canvas && platformCombo.currentText) {
+                                var platforms = canvas.platforms
                                 platforms.push(platformCombo.currentText)
-                                Application.activeCanvas.platforms = platforms
+                                canvas.platforms = platforms
                             }
                         }
                     }
@@ -70,23 +71,23 @@ ColumnLayout {
     
     // Added platforms sections
     Repeater {
-        model: Application.activeCanvas ? Application.activeCanvas.platforms : []
+        model: canvas ? canvas.platforms : []
         
         PropertyGroup {
             title: modelData
-            visible: !selectedElement && Application.activeCanvas
+            visible: !selectedElement && canvas
             
             content: [
                 Button {
                     text: "Remove"
                     Layout.alignment: Qt.AlignCenter
                     onClicked: {
-                        if (Application.activeCanvas) {
-                            var platforms = Application.activeCanvas.platforms
+                        if (canvas) {
+                            var platforms = canvas.platforms
                             var index = platforms.indexOf(modelData)
                             if (index > -1) {
                                 platforms.splice(index, 1)
-                                Application.activeCanvas.platforms = platforms
+                                canvas.platforms = platforms
                             }
                         }
                     }

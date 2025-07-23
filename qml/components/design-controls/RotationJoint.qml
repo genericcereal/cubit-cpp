@@ -24,7 +24,11 @@ Rectangle {
     
     MouseArea {
         anchors.fill: parent
-        enabled: !designControls.isAnyTextEditing
+        enabled: {
+            // RotationJoint -> Repeater -> DesignControls
+            var designControlsRoot = rotationJoint.parent?.parent
+            return designControlsRoot ? !designControlsRoot.isAnyTextEditing : true
+        }
         cursorShape: Qt.CrossCursor
         
         property point startMousePos
@@ -32,7 +36,10 @@ Rectangle {
         
         onPressed: (mouse) => {
             // Check if resizing is globally disabled
-            if (!designControls.isResizingEnabled) {
+            // RotationJoint -> Repeater -> DesignControls
+            var designControlsItem = parent.parent
+            var controller = designControlsItem.getDesignControlsController()
+            if (!controller.isResizingEnabled) {
                 mouse.accepted = false
                 return
             }

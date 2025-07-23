@@ -9,9 +9,10 @@ Item {
     property var canvasView
     property var controller
     property var flickable
+    property var canvas
     
     // Access the prototype controller
-    property var prototypeController: Application.activeCanvas ? Application.activeCanvas.prototypeController : null
+    property var prototypeController: canvas ? canvas.prototypeController : null
     
     onPrototypeControllerChanged: {
         // Console log removed - prototypeController changed

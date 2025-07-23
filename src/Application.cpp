@@ -12,7 +12,6 @@
 #include "Node.h"
 #include "Edge.h"
 #include "platforms/web/WebTextInput.h"
-#include "StreamingAIClient.h"
 #include "ConsoleMessageRepository.h"
 #include "AuthenticationManager.h"
 #include "ElementTypeRegistry.h"
@@ -39,18 +38,6 @@ Application::Application(QObject *parent)
     // Create panels manager
     m_panels = std::make_unique<Panels>(this);
     
-    // Connect to console repository for AI commands
-    connect(ConsoleMessageRepository::instance(), &ConsoleMessageRepository::aiCommandReceived,
-            this, &Application::onAICommandReceived, Qt::UniqueConnection);
-    
-    // Connect to console repository for AI continuation responses
-    connect(ConsoleMessageRepository::instance(), &ConsoleMessageRepository::aiContinuationResponse,
-            this, &Application::onAIContinuationResponse, Qt::UniqueConnection);
-    
-    // Connect to console repository for AI mode disabled
-    connect(ConsoleMessageRepository::instance(), &ConsoleMessageRepository::aiModeDisabled,
-            this, &Application::onAIModeDisabled, Qt::UniqueConnection);
-    
     // Don't create initial canvas - let user start from ProjectList
     // createCanvas("Canvas 1");
     
@@ -68,9 +55,6 @@ Application* Application::instance() {
 
 void Application::setAuthenticationManager(AuthenticationManager* authManager) {
     m_authManager = authManager;
-    
-    // Create Streaming AI client now that we have auth manager
-    m_streamingAIClient = std::make_unique<StreamingAIClient>(m_authManager, this, this);
 }
 
 void Application::setEngine(QQmlApplicationEngine* engine) {
@@ -81,8 +65,12 @@ QString Application::createCanvas(const QString& name) {
     QString canvasId = generateCanvasId();
     QString canvasName = name.isEmpty() ? QString("Canvas %1").arg(m_canvases.size() + 1) : name;
     
+    // Creating new canvas
+    
     auto canvas = std::make_unique<Project>(canvasId, canvasName, this);
     canvas->initialize();
+    
+    // Canvas initialized successfully
     
     m_canvases.push_back(std::move(canvas));
     
@@ -99,29 +87,13 @@ void Application::removeCanvas(const QString& canvasId) {
         [&canvasId](const std::unique_ptr<Project>& c) { return c->id() == canvasId; });
     
     if (it != m_canvases.end()) {
-        bool wasActive = (m_activeCanvasId == canvasId);
-        
         m_canvases.erase(it);
         
         emit canvasListChanged();
         emit canvasRemoved(canvasId);
-        
-        // If the removed canvas was active, switch to another
-        if (wasActive) {
-            if (!m_canvases.empty()) {
-                setActiveCanvasId(m_canvases.front()->id());
-            } else {
-                m_activeCanvasId.clear();
-                emit activeCanvasIdChanged();
-                emit activeCanvasChanged();
-            }
-        }
     }
 }
 
-void Application::switchToCanvas(const QString& canvasId) {
-    setActiveCanvasId(canvasId);
-}
 
 QString Application::getCanvasName(const QString& canvasId) const {
     const Project* canvas = findCanvas(canvasId);
@@ -156,7 +128,6 @@ void Application::createNewProject() {
                 window->setProperty("canvasId", newCanvasId);
                 
                 // The window will show itself due to visible: true in QML
-                qDebug() << "Created new project window for canvas:" << newCanvasId;
             } else {
                 qWarning() << "Failed to create project window:" << component.errorString();
             }
@@ -168,13 +139,6 @@ void Application::createNewProject() {
     }
 }
 
-QString Application::activeCanvasId() const {
-    return m_activeCanvasId;
-}
-
-Project* Application::activeCanvas() const {
-    return const_cast<Project*>(findCanvas(m_activeCanvasId));
-}
 
 QStringList Application::canvasIds() const {
     QStringList ids;
@@ -192,20 +156,6 @@ QStringList Application::canvasNames() const {
     return names;
 }
 
-void Application::setActiveCanvasId(const QString& canvasId) {
-    if (m_activeCanvasId != canvasId && findCanvas(canvasId)) {
-        m_activeCanvasId = canvasId;
-        
-        // Clear selection when switching canvases
-        Project* canvas = findCanvas(canvasId);
-        if (canvas && canvas->selectionManager()) {
-            canvas->selectionManager()->clearSelection();
-        }
-        
-        emit activeCanvasIdChanged();
-        emit activeCanvasChanged();
-    }
-}
 
 
 Project* Application::findCanvas(const QString& canvasId) {
@@ -233,14 +183,18 @@ Panels* Application::panels() const {
     return m_panels.get();
 }
 
+AuthenticationManager* Application::authManager() const {
+    return m_authManager;
+}
+
 bool Application::saveAs() {
     // Emit signal to request file save from QML
     emit saveFileRequested();
     return true;
 }
 
-bool Application::saveToFile(const QString& fileName) {
-    if (fileName.isEmpty()) {
+bool Application::saveToFile(const QString& fileName, Project* project) {
+    if (fileName.isEmpty() || !project) {
         return false;
     }
     
@@ -257,23 +211,21 @@ bool Application::saveToFile(const QString& fileName) {
         projectData["version"] = "1.0";
         projectData["createdWith"] = "Cubit";
         
-        // Serialize all canvases
+        // Serialize only the specified project
         QJsonArray canvasesArray;
-        for (const auto& canvas : m_canvases) {
-            QJsonObject canvasObj = serializeCanvas(canvas.get());
-            canvasesArray.append(canvasObj);
-        }
+        QJsonObject canvasObj = serializeCanvas(project);
+        canvasesArray.append(canvasObj);
         projectData["canvases"] = canvasesArray;
         
-        // Store active canvas ID
-        projectData["activeCanvasId"] = m_activeCanvasId;
         
         // Write to file
         QJsonDocument doc(projectData);
         QFile file(actualFileName);
         if (!file.open(QIODevice::WriteOnly)) {
             qDebug() << "Could not open file for writing:" << actualFileName;
-            ConsoleMessageRepository::instance()->addError(QString("Could not open file for writing: %1").arg(actualFileName));
+            if (project && project->console()) {
+                project->console()->addError(QString("Could not open file for writing: %1").arg(actualFileName));
+            }
             return false;
         }
         
@@ -281,12 +233,16 @@ bool Application::saveToFile(const QString& fileName) {
         file.close();
         
         qDebug() << "Project saved successfully to:" << actualFileName;
-        ConsoleMessageRepository::instance()->addOutput(QString("Project saved to: %1").arg(actualFileName));
+        if (project && project->console()) {
+            project->console()->addOutput(QString("Project saved to: %1").arg(actualFileName));
+        }
         return true;
         
     } catch (const std::exception& e) {
         qDebug() << "Error saving project:" << e.what();
-        ConsoleMessageRepository::instance()->addError(QString("Error saving project: %1").arg(e.what()));
+        if (project && project->console()) {
+            project->console()->addError(QString("Error saving project: %1").arg(e.what()));
+        }
         return false;
     }
 }
@@ -397,7 +353,12 @@ bool Application::loadFromFile(const QString& fileName) {
         QFile file(fileName);
         if (!file.open(QIODevice::ReadOnly)) {
             qDebug() << "Could not open file for reading:" << fileName;
-            ConsoleMessageRepository::instance()->addError(QString("Could not open file for reading: %1").arg(fileName));
+            // Log error to all project consoles since we don't have a specific project yet
+            for (const auto& canvas : m_canvases) {
+                if (canvas && canvas->console()) {
+                    canvas->console()->addError(QString("Could not open file for reading: %1").arg(fileName));
+                }
+            }
             return false;
         }
         
@@ -409,7 +370,12 @@ bool Application::loadFromFile(const QString& fileName) {
         QJsonDocument doc = QJsonDocument::fromJson(data, &parseError);
         if (parseError.error != QJsonParseError::NoError) {
             qDebug() << "Invalid JSON format:" << parseError.errorString();
-            ConsoleMessageRepository::instance()->addError(QString("Invalid JSON format: %1").arg(parseError.errorString()));
+            // Log error to all project consoles since we don't have a specific project yet
+            for (const auto& canvas : m_canvases) {
+                if (canvas && canvas->console()) {
+                    canvas->console()->addError(QString("Invalid JSON format: %1").arg(parseError.errorString()));
+                }
+            }
             return false;
         }
         
@@ -418,34 +384,54 @@ bool Application::loadFromFile(const QString& fileName) {
         // Validate file format
         if (!projectData.contains("version") || !projectData.contains("canvases")) {
             qDebug() << "Invalid Cubit project file format";
-            ConsoleMessageRepository::instance()->addError("Invalid Cubit project file format");
+            // Log error to all project consoles since we don't have a specific project yet
+            for (const auto& canvas : m_canvases) {
+                if (canvas && canvas->console()) {
+                    canvas->console()->addError("Invalid Cubit project file format");
+                }
+            }
             return false;
         }
         
-        // Clear existing project and load new one
-        bool success = deserializeProject(projectData);
-        if (success) {
-            qDebug() << "Project loaded successfully from:" << fileName;
-            ConsoleMessageRepository::instance()->addOutput(QString("Project loaded from: %1").arg(fileName));
+        // Load project data and create new projects (don't clear existing ones)
+        QJsonArray canvasesArray = projectData["canvases"].toArray();
+        bool success = true;
+        
+        for (const QJsonValue& canvasValue : canvasesArray) {
+            QJsonObject canvasData = canvasValue.toObject();
+            Project* newCanvas = deserializeCanvas(canvasData);
+            if (newCanvas) {
+                qDebug() << "Project loaded successfully from:" << fileName;
+                if (newCanvas->console()) {
+                    newCanvas->console()->addOutput(QString("Project loaded from: %1").arg(fileName));
+                }
+                
+                // Create a new window for this project
+                if (m_engine) {
+                    m_engine->load(QUrl(QStringLiteral("qrc:/qml/ProjectWindow.qml")));
+                }
+            } else {
+                success = false;
+            }
         }
         
         return success;
         
     } catch (const std::exception& e) {
         qDebug() << "Error opening project:" << e.what();
-        ConsoleMessageRepository::instance()->addError(QString("Error opening project: %1").arg(e.what()));
+        // Log error to all project consoles since we don't have a specific project
+        for (const auto& canvas : m_canvases) {
+            if (canvas && canvas->console()) {
+                canvas->console()->addError(QString("Error opening project: %1").arg(e.what()));
+            }
+        }
         return false;
     }
 }
 
 bool Application::deserializeProject(const QJsonObject& projectData) {
     try {
-        // Clear active canvas first to disconnect QML bindings safely
-        m_activeCanvasId.clear();
-        emit activeCanvasIdChanged();
-        emit activeCanvasChanged();
-        
-        // Process pending events to allow QML to handle the null canvas state
+        // Process pending events to allow QML to handle state changes
         QCoreApplication::processEvents();
         
         // Clear existing canvases
@@ -453,7 +439,6 @@ bool Application::deserializeProject(const QJsonObject& projectData) {
         
         // Load canvases
         QJsonArray canvasesArray = projectData["canvases"].toArray();
-        QString activeCanvasId = projectData["activeCanvasId"].toString();
         
         for (const QJsonValue& canvasValue : canvasesArray) {
             QJsonObject canvasData = canvasValue.toObject();
@@ -463,16 +448,8 @@ bool Application::deserializeProject(const QJsonObject& projectData) {
             }
         }
         
-        // Set active canvas
-        if (!activeCanvasId.isEmpty() && findCanvas(activeCanvasId)) {
-            setActiveCanvasId(activeCanvasId);
-        } else if (!m_canvases.empty()) {
-            setActiveCanvasId(m_canvases.front()->id());
-        }
-        
         // Emit signals to update UI
         emit canvasListChanged();
-        emit activeCanvasChanged();
         
         return true;
         
@@ -493,6 +470,7 @@ Project* Application::deserializeCanvas(const QJsonObject& canvasData) {
         
         // Create new canvas
         Project* canvas = new Project(id, name, this);
+        // Create and initialize project
         canvas->initialize();
         
         // Set canvas properties
@@ -675,37 +653,3 @@ Element* Application::deserializeElement(const QJsonObject& elementData, Element
     }
 }
 
-void Application::onAICommandReceived(const QString& prompt) {
-    // Check if we have authentication
-    if (!m_authManager || !m_authManager->isAuthenticated()) {
-        ConsoleMessageRepository::instance()->addError("You must be authenticated to use the AI assistant. Please log in first.");
-        return;
-    }
-    
-    // Check if Streaming AI client is available
-    if (!m_streamingAIClient) {
-        ConsoleMessageRepository::instance()->addError("AI client is not initialized.");
-        return;
-    }
-    
-    // Send the prompt to the AI
-    m_streamingAIClient->sendMessage(prompt);
-}
-
-void Application::onAIContinuationResponse(bool accepted, const QString& feedback) {
-    // Check if Streaming AI client is available
-    if (!m_streamingAIClient) {
-        ConsoleMessageRepository::instance()->addError("AI client is not initialized.");
-        return;
-    }
-    
-    // Forward the response to the AI client
-    m_streamingAIClient->handleUserContinuationResponse(accepted, feedback);
-}
-
-void Application::onAIModeDisabled() {
-    // Clear the AI conversation when AI mode is disabled
-    if (m_streamingAIClient) {
-        m_streamingAIClient->clearConversation();
-    }
-}

@@ -12,9 +12,12 @@ class QtConsoleLog : public QObject
 {
     Q_OBJECT
 public:
-    explicit QtConsoleLog(QObject *parent = nullptr) : QObject(parent) {}
+    explicit QtConsoleLog(QObject *parent = nullptr, QObject* console = nullptr) : QObject(parent), m_console(console) {}
     
     Q_INVOKABLE void log(const QString& message);
+    
+private:
+    QObject* m_console;
 };
 
 class Scripts;
@@ -32,6 +35,7 @@ public:
     void setScripts(Scripts* scripts);
     void setElementModel(ElementModel* model);
     void setCanvasController(CanvasController* controller);
+    void setConsole(QObject* console);
 
     // Execute a specific event with optional data
     void executeEvent(const QString& eventName, const QVariantMap& eventData = QVariantMap());
@@ -57,6 +61,7 @@ private:
     Scripts* m_scripts;
     ElementModel* m_elementModel;
     CanvasController* m_canvasController;
+    QObject* m_console = nullptr;
     QJsonObject m_compiledScript;
     QString m_currentEventName;
     QVariantMap m_currentEventData;

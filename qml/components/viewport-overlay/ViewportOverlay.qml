@@ -9,15 +9,25 @@ Item {
     id: root
     objectName: "viewportOverlay"
     
-    // Core properties from CanvasView
+    // Core properties
     property var canvasView
+    property var canvas: canvasView?.canvas ?? null
     property real zoomLevel: canvasView?.zoomLevel ?? 1.0
     property var flickable: canvasView?.flickable ?? null
     property var hoveredElement: null
-    property var selectionManager: canvasView?.selectionManager ?? null
+    property var selectionManager: canvas?.selectionManager ?? null
     property var selectedElements: selectionManager?.selectedElements ?? []
-    property var controller: canvasView?.controller ?? null
+    property var controller: canvas?.controller ?? null
     property string canvasType: canvasView?.canvasType ?? "design"
+    property var designControlsController: null
+    
+    Component.onCompleted: {
+        // ViewportOverlay initialized
+    }
+    
+    onCanvasChanged: {
+        // Canvas changed
+    }
     
     // Canvas bounds from canvasView
     property real canvasMinX: canvasView?.canvasMinX ?? 0
@@ -62,6 +72,7 @@ Item {
         canvasMinX: root.canvasMinX
         canvasMinY: root.canvasMinY
         canvasType: root.canvasType
+        designControlsController: root.designControlsController
     }
     
     // Prototype controls (viewable area, play button)
@@ -71,5 +82,6 @@ Item {
         canvasView: root.canvasView
         controller: root.controller
         flickable: root.flickable
+        canvas: root.canvas
     }
 }

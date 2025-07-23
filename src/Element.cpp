@@ -102,8 +102,6 @@ void Element::setParentElementId(const QString &parentId)
                         
                         // Move this element to after the last child
                         model->reorderElement(this, lastChildIndex + 1);
-                        qDebug() << "Element" << elementId << "moved below parent" << parentId 
-                                 << "at index" << (lastChildIndex + 1);
                     }
                 }
             }

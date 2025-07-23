@@ -43,7 +43,7 @@ public:
     bool isLayouting() const { return m_isLayouting; }
     
     // Schedule a layout for a frame (batches multiple requests)
-    void scheduleLayout(Frame* parentFrame, LayoutReason reason = General);
+    void scheduleLayout(Frame* parentFrame, ElementModel* elementModel, LayoutReason reason = General);
                            
 private slots:
     void processPendingLayouts();
@@ -94,6 +94,7 @@ private:
     struct PendingLayout {
         Frame* frame;
         LayoutReason reason;
+        ElementModel* elementModel;
     };
     QMap<Frame*, PendingLayout> m_pendingLayoutFrames;
     

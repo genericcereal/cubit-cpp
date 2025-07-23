@@ -38,8 +38,8 @@ Rectangle {
                 root.y += delta.y
                 
                 // Mark as manually positioned when dragged
-                if (root.parent && root.parent.manuallyPositioned !== undefined) {
-                    root.parent.manuallyPositioned = true
+                if (root.manuallyPositioned !== undefined) {
+                    root.manuallyPositioned = true
                 }
             }
         }

@@ -59,7 +59,11 @@ Rectangle {
     
     MouseArea {
         anchors.fill: parent
-        enabled: !designControls.isAnyTextEditing
+        enabled: {
+            // BorderRadiusControl -> DesignControls
+            var designControlsRoot = borderRadiusControl.parent
+            return designControlsRoot ? !designControlsRoot.isAnyTextEditing : true
+        }
         cursorShape: dragging ? Qt.ClosedHandCursor : Qt.PointingHandCursor
         
         property bool dragging: false
@@ -72,7 +76,7 @@ Rectangle {
             dragging = true
             dragStartMouse = mapToItem(parent.parent, mouse.x, mouse.y)
             dragStartProgress = borderRadiusControl.dragProgress
-            ConsoleMessageRepository.addOutput("BorderRadiusControl drag started")
+            if (parent.canvas && parent.canvas.console) parent.canvas.console.addOutput("BorderRadiusControl drag started")
             mouse.accepted = true
             
             // Update frame border radius immediately when starting drag
@@ -81,7 +85,7 @@ Rectangle {
         
         onReleased: {
             dragging = false
-            ConsoleMessageRepository.addOutput("BorderRadiusControl drag ended at progress: " + borderRadiusControl.dragProgress.toFixed(2))
+            if (parent.canvas && parent.canvas.console) parent.canvas.console.addOutput("BorderRadiusControl drag ended at progress: " + borderRadiusControl.dragProgress.toFixed(2))
         }
         
         onPositionChanged: (mouse) => {

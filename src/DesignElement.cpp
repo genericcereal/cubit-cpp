@@ -52,16 +52,15 @@ void DesignElement::executeScriptEvent(const QString& eventName, const QVariantM
     ScriptExecutor executor(this);
     executor.setScripts(m_scripts.get());
     
-    // Get element model and canvas controller from Application
-    // Since design elements are part of a canvas, we can get the active canvas
-    Application* app = qobject_cast<Application*>(qApp);
-    if (app && app->activeCanvas()) {
-        Project* canvas = app->activeCanvas();
-        if (canvas->elementModel()) {
-            executor.setElementModel(canvas->elementModel());
-        }
-        if (canvas->controller()) {
-            executor.setCanvasController(canvas->controller());
+    // Get element model and canvas controller from the parent hierarchy
+    ElementModel* elementModel = qobject_cast<ElementModel*>(parent());
+    if (elementModel) {
+        executor.setElementModel(elementModel);
+        
+        // Get the Project from the ElementModel's parent
+        Project* project = qobject_cast<Project*>(elementModel->parent());
+        if (project && project->controller()) {
+            executor.setCanvasController(project->controller());
         }
     }
     
@@ -445,15 +444,25 @@ void DesignElement::onParentGeometryChanged() {
 }
 
 Component* DesignElement::createComponent() {
-    // Get the element model from the Application
-    Application* app = Application::instance();
-    if (!app || !app->activeCanvas() || !app->activeCanvas()->elementModel()) {
-        qWarning() << "DesignElement::createComponent - No active canvas or element model";
+    // Get the element model from the parent (which should be the ElementModel)
+    ElementModel* elementModel = qobject_cast<ElementModel*>(parent());
+    if (!elementModel) {
+        qWarning() << "DesignElement::createComponent - Parent is not an ElementModel";
         return nullptr;
     }
     
-    ElementModel* elementModel = app->activeCanvas()->elementModel();
-    SelectionManager* selectionManager = app->activeCanvas()->selectionManager();
+    // Get the Project from the ElementModel's parent
+    Project* project = qobject_cast<Project*>(elementModel->parent());
+    if (!project) {
+        qWarning() << "DesignElement::createComponent - ElementModel has no Project parent";
+        return nullptr;
+    }
+    
+    SelectionManager* selectionManager = project->selectionManager();
+    if (!selectionManager) {
+        qWarning() << "DesignElement::createComponent - Project has no SelectionManager";
+        return nullptr;
+    }
     
     // Create a new Component
     QString componentId = UniqueIdGenerator::generate16DigitId();

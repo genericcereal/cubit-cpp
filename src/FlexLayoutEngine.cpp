@@ -2,7 +2,6 @@
 #include "Element.h"
 #include "CanvasElement.h"
 #include "ElementModel.h"
-#include "Application.h"
 #include "platforms/web/WebTextInput.h"
 #include "Text.h"
 #include <QDebug>
@@ -446,18 +445,9 @@ void FlexLayoutEngine::connectChildGeometrySignals(Frame* parentFrame, ElementMo
                 
                 // Connect to geometry changes
                 QMetaObject::Connection conn = connect(canvasChild, &CanvasElement::geometryChanged,
-                                                     this, [this, parentFrame, canvasChild]() {
+                                                     this, [this, parentFrame, elementModel]() {
                                                          if (parentFrame->flex()) {
-                                                             // Check if this child is currently selected (being resized)
-                                                             Application* app = Application::instance();
-                                                             if (app && app->activeCanvas() && app->activeCanvas()->selectionManager()) {
-                                                                 SelectionManager* selectionManager = app->activeCanvas()->selectionManager();
-                                                                 if (selectionManager->isSelected(canvasChild)) {
-                                                                     qDebug() << "FlexLayoutEngine - Skipping layout for selected child" << canvasChild->getId();
-                                                                     return; // Skip scheduling layout when child is being resized
-                                                                 }
-                                                             }
-                                                             scheduleLayout(parentFrame);
+                                                             scheduleLayout(parentFrame, elementModel);
                                                          }
                                                      });
                 
@@ -468,9 +458,9 @@ void FlexLayoutEngine::connectChildGeometrySignals(Frame* parentFrame, ElementMo
                 if (childFrame) {
                     QString positionConnId = childId + "_position";
                     QMetaObject::Connection posConn = connect(childFrame, &Frame::positionChanged,
-                                                           this, [this, parentFrame]() {
+                                                           this, [this, parentFrame, elementModel]() {
                                                                if (parentFrame->flex()) {
-                                                                   scheduleLayout(parentFrame);
+                                                                   scheduleLayout(parentFrame, elementModel);
                                                                }
                                                            });
                     m_childConnections[positionConnId] = posConn;
@@ -480,9 +470,9 @@ void FlexLayoutEngine::connectChildGeometrySignals(Frame* parentFrame, ElementMo
                     if (webTextInput) {
                         QString positionConnId = childId + "_position";
                         QMetaObject::Connection posConn = connect(webTextInput, &WebTextInput::positionChanged,
-                                                               this, [this, parentFrame]() {
+                                                               this, [this, parentFrame, elementModel]() {
                                                                    if (parentFrame->flex()) {
-                                                                       scheduleLayout(parentFrame);
+                                                                       scheduleLayout(parentFrame, elementModel);
                                                                    }
                                                                });
                         m_childConnections[positionConnId] = posConn;
@@ -492,9 +482,9 @@ void FlexLayoutEngine::connectChildGeometrySignals(Frame* parentFrame, ElementMo
                         if (textElement) {
                             QString positionConnId = childId + "_position";
                             QMetaObject::Connection posConn = connect(textElement, &Text::positionChanged,
-                                                                   this, [this, parentFrame]() {
+                                                                   this, [this, parentFrame, elementModel]() {
                                                                        if (parentFrame->flex()) {
-                                                                           scheduleLayout(parentFrame);
+                                                                           scheduleLayout(parentFrame, elementModel);
                                                                        }
                                                                    });
                             m_childConnections[positionConnId] = posConn;
@@ -634,9 +624,9 @@ QSizeF FlexLayoutEngine::calculateRequiredSize(const QList<Element*>& children,
     return result;
 }
 
-void FlexLayoutEngine::scheduleLayout(Frame* parentFrame, LayoutReason reason)
+void FlexLayoutEngine::scheduleLayout(Frame* parentFrame, ElementModel* elementModel, LayoutReason reason)
 {
-    if (!parentFrame || !parentFrame->flex()) {
+    if (!parentFrame || !parentFrame->flex() || !elementModel) {
         return;
     }
     
@@ -644,7 +634,7 @@ void FlexLayoutEngine::scheduleLayout(Frame* parentFrame, LayoutReason reason)
              << "reason:" << reason;
     
     // Add to pending layouts (update reason if more specific)
-    PendingLayout pending = { parentFrame, reason };
+    PendingLayout pending = { parentFrame, reason, elementModel };
     if (m_pendingLayoutFrames.contains(parentFrame)) {
         // If we already have a pending layout, keep the most specific reason
         if (reason != General) {
@@ -672,21 +662,13 @@ void FlexLayoutEngine::processPendingLayouts()
     QMap<Frame*, PendingLayout> pendingLayouts = m_pendingLayoutFrames;
     m_pendingLayoutFrames.clear();
     
-    // Get the application and element model
-    Application* app = Application::instance();
-    if (!app || !app->activeCanvas() || !app->activeCanvas()->elementModel()) {
-        return;
-    }
-    
-    ElementModel* elementModel = app->activeCanvas()->elementModel();
-    
     // Layout each frame
     for (auto it = pendingLayouts.begin(); it != pendingLayouts.end(); ++it) {
         Frame* frame = it.key();
-        LayoutReason reason = it.value().reason;
-        if (frame && frame->flex()) {
-            qDebug() << "FlexLayoutEngine::processPendingLayouts - Laying out frame" << frame->getId() << "with reason" << reason;
-            layoutChildren(frame, elementModel, reason);
+        PendingLayout pending = it.value();
+        if (frame && frame->flex() && pending.elementModel) {
+            qDebug() << "FlexLayoutEngine::processPendingLayouts - Laying out frame" << frame->getId() << "with reason" << pending.reason;
+            layoutChildren(frame, pending.elementModel, pending.reason);
         }
     }
 }

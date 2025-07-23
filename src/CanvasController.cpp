@@ -23,6 +23,7 @@
 #include "Node.h"
 #include "Edge.h"
 #include "Component.h"
+#include "Project.h"
 #include "DesignElement.h"
 #include "UniqueIdGenerator.h"
 #include <QDebug>
@@ -50,6 +51,11 @@ CanvasController::CanvasController(ElementModel& model,
     m_creationManager->setSelectionManager(&m_selectionManager);
     m_hitTestService->setElementModel(&m_elementModel);
     m_jsonImporter->setElementModel(&m_elementModel);
+    
+    // If parent is a Project, set it on CreationManager
+    if (Project* project = qobject_cast<Project*>(parent)) {
+        m_creationManager->setProject(project);
+    }
     
     // Connect creation manager signals
     connect(m_creationManager.get(), &CreationManager::elementCreated,
@@ -137,12 +143,14 @@ void CanvasController::updateSubcontrollersCanvasType()
 void CanvasController::setMode(Mode mode)
 {
     if (m_mode != mode) {
+        // Mode changing
         m_mode = mode;
         
         // Update current handler
         auto it = m_modeHandlers.find(m_mode);
         if (it != m_modeHandlers.end()) {
             m_currentHandler = it->second.get();
+            // Handler found for mode
         } else {
             m_currentHandler = nullptr;
             qWarning() << "No handler found for mode:" << static_cast<int>(mode);
@@ -182,8 +190,11 @@ Element* CanvasController::hitTestForHover(qreal x, qreal y)
 
 void CanvasController::handleMousePress(qreal x, qreal y)
 {
+    // Handle mouse press
     if (m_currentHandler) {
         m_currentHandler->onPress(x, y);
+    } else {
+        qWarning() << "CanvasController::handleMousePress - No handler for mode" << static_cast<int>(m_mode);
     }
 }
 

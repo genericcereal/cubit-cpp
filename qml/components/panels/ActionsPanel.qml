@@ -21,17 +21,18 @@ Rectangle {
     property alias webElementsButton: webElementsButton
     
     property int currentMode: CanvasController.Select
-    property bool isScriptMode: Application.activeCanvas && Application.activeCanvas.viewMode === "script"
-    property bool isVariantMode: Application.activeCanvas && Application.activeCanvas.viewMode === "variant"
+    property var canvas: null  // Will be set by parent
+    property bool isScriptMode: canvas && canvas.viewMode === "script"
+    property bool isVariantMode: canvas && canvas.viewMode === "variant"
     property bool needsCompilation: {
-        if (!Application.activeCanvas) return false
-        if (!Application.activeCanvas.activeScripts) return false
-        return !Application.activeCanvas.activeScripts.isCompiled
+        if (!canvas) return false
+        if (!canvas.activeScripts) return false
+        return !canvas.activeScripts.isCompiled
     }
     property bool hasWebPlatform: {
-        if (!Application.activeCanvas) return false
-        if (!Application.activeCanvas.platforms) return false
-        return Application.activeCanvas.platforms.indexOf("web") !== -1
+        if (!canvas) return false
+        if (!canvas.platforms) return false
+        return canvas.platforms.indexOf("web") !== -1
     }
     
     
@@ -103,8 +104,8 @@ Rectangle {
             }
             
             onClicked: {
-                if (Application.activeCanvas) {
-                    Application.activeCanvas.setEditingElement(null, "design")
+                if (canvas) {
+                    canvas.setEditingElement(null, "design")
                 }
             }
             
@@ -323,11 +324,13 @@ Rectangle {
             ]
             
             onOptionSelected: function(value) {
-                ConsoleMessageRepository.addInfo("WebElements option selected: " + value)
+                if (canvas && canvas.console) {
+                    canvas.console.addInfo("WebElements option selected: " + value)
+                }
                 webElementsPopoverVisible = false
                 
                 // Switch canvas mode based on selection
-                if (value === "text" && Application.activeCanvas && Application.activeCanvas.controller) {
+                if (value === "text" && canvas && canvas.controller) {
                     currentMode = CanvasController.WebTextInput
                     root.modeChanged(CanvasController.WebTextInput)
                 }

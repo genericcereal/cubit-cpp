@@ -9,6 +9,8 @@
 class AuthenticationManager;
 class Application;
 class AICommandDispatcher;
+class Project;
+class ConsoleMessageRepository;
 
 /**
  * StreamingAIClient handles:
@@ -37,6 +39,9 @@ public:
     
     /** Clear the current conversation (useful when AI mode is toggled off) */
     void clearConversation();
+    
+    /** Set the target project for AI operations */
+    void setTargetProject(Project* project);
 
 signals:
     void connected();
@@ -107,6 +112,8 @@ private:
     std::unique_ptr<QWebSocket> m_webSocket;
     AuthenticationManager *m_authManager;
     Application *m_application;
+    Project *m_targetProject = nullptr;
+    ConsoleMessageRepository *m_console = nullptr;
     std::unique_ptr<AICommandDispatcher> m_commandDispatcher;
 
     QTimer *m_pingTimer;

@@ -117,10 +117,14 @@ void DesignCanvas::updateParentingDuringDrag()
             if (!element) continue;
             
             // Guard: Don't change parentId of children of selected elements
-            if (isChildOfSelected(element)) continue;
+            if (isChildOfSelected(element)) {
+                continue;
+            }
             
             // Guard: ComponentVariants shouldn't have parents
-            if (element->getTypeName() == "FrameComponentVariant") continue;
+            if (element->getTypeName() == "FrameComponentVariant") {
+                continue;
+            }
             
             // Unparent the element by setting parentId to empty string
             if (!element->getParentElementId().isEmpty()) {
@@ -131,29 +135,43 @@ void DesignCanvas::updateParentingDuringDrag()
     }
     
     Element* hovered = qobject_cast<Element*>(m_hoveredElement);
-    if (!hovered) return;
+    if (!hovered) {
+        return;
+    }
     
     for (Element* element : selectedElements) {
         if (!element) continue;
         
         // Guard: Don't change parentId of children of selected elements
-        if (isChildOfSelected(element)) continue;
+        if (isChildOfSelected(element)) {
+            continue;
+        }
         
         // Guard: ComponentVariants shouldn't have parents
-        if (element->getTypeName() == "FrameComponentVariant") continue;
+        if (element->getTypeName() == "FrameComponentVariant") {
+            continue;
+        }
         
         // Guard: Don't set an element as its own parent
-        if (hovered->getId() == element->getId()) continue;
+        if (hovered->getId() == element->getId()) {
+            continue;
+        }
         
         // Guard: Don't create circular dependencies
-        if (isDescendantOf(hovered, element)) continue;
+        if (isDescendantOf(hovered, element)) {
+            continue;
+        }
         
         // Guard: Don't parent to children of selected elements
-        if (isChildOfSelected(hovered)) continue;
+        if (isChildOfSelected(hovered)) {
+            continue;
+        }
         
         // Guard: Check if the hovered element accepts children
         Frame* frameHovered = qobject_cast<Frame*>(hovered);
-        if (frameHovered && !frameHovered->acceptsChildren()) continue;
+        if (frameHovered && !frameHovered->acceptsChildren()) {
+            continue;
+        }
         
         // Guard: Don't parent relatively positioned elements to other relatively positioned elements
         Frame* frameElement = qobject_cast<Frame*>(element);

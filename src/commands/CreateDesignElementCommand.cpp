@@ -51,15 +51,19 @@ void CreateDesignElementCommand::execute()
 {
     if (!m_elementModel) return;
 
+    // Get the Project from the ElementModel's parent
+    Project* project = qobject_cast<Project*>(m_elementModel->parent());
+    if (!project) {
+        qWarning() << "CreateDesignElementCommand: ElementModel has no Project parent";
+        return;
+    }
 
     // Check if we're in variant mode
-    Application* app = Application::instance();
-    Project* activeCanvas = app ? app->activeCanvas() : nullptr;
-    bool isVariantMode = activeCanvas && activeCanvas->viewMode() == "variant";
+    bool isVariantMode = project->viewMode() == "variant";
     Component* editingComponent = nullptr;
     
-    if (isVariantMode && activeCanvas) {
-        QObject* editingElement = activeCanvas->editingElement();
+    if (isVariantMode) {
+        QObject* editingElement = project->editingElement();
         editingComponent = qobject_cast<Component*>(editingElement);
         if (!editingComponent) {
             qWarning() << "CreateDesignElementCommand: In variant mode but editing element is not a Component";
@@ -113,14 +117,19 @@ void CreateDesignElementCommand::undo()
 {
     if (!m_elementModel) return;
 
+    // Get the Project from the ElementModel's parent
+    Project* project = qobject_cast<Project*>(m_elementModel->parent());
+    if (!project) {
+        qWarning() << "CreateDesignElementCommand: ElementModel has no Project parent";
+        return;
+    }
+
     // Check if we're in variant mode
-    Application* app = Application::instance();
-    Project* activeCanvas = app ? app->activeCanvas() : nullptr;
-    bool isVariantMode = activeCanvas && activeCanvas->viewMode() == "variant";
+    bool isVariantMode = project->viewMode() == "variant";
     Component* editingComponent = nullptr;
     
-    if (isVariantMode && activeCanvas) {
-        QObject* editingElement = activeCanvas->editingElement();
+    if (isVariantMode) {
+        QObject* editingElement = project->editingElement();
         editingComponent = qobject_cast<Component*>(editingElement);
     }
 

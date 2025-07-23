@@ -7,7 +7,7 @@ import "."
 BaseCanvas {
     id: root
     
-    canvasType: Application.activeCanvas && Application.activeCanvas.viewMode === "variant" ? "variant" : "design"
+    canvasType: root.canvas && root.canvas.viewMode === "variant" ? "variant" : "design"
     
     // Property to access the viewport overlay's controls
     property var viewportControls: null
@@ -70,6 +70,7 @@ BaseCanvas {
             elementModel: root.elementModel
             canvasMinX: root.canvasMinX
             canvasMinY: root.canvasMinY
+            canvas: root.canvas
         },
         
         // Hover highlight overlay
@@ -91,17 +92,22 @@ BaseCanvas {
             id: scriptExecutor
             elementModel: root.elementModel
             canvasVisible: root.visible
+            canvas: root.canvas
         }
     ]
     
     
     // Implement behavior by overriding handler functions
     function handleDragStart(pt) {
-        if (controller.mode !== CanvasController.Select) {
+        // Handle drag start
+        if (controller && controller.mode !== CanvasController.Select) {
             // In creation modes, start creating element at drag start position
+            // Calling controller.handleMousePress
             controller.handleMousePress(pt.x, pt.y)
             // Set isResizing to true during creation drag
             root.isResizing = true
+        } else {
+            // Skipping, in select mode or no controller
         }
         // In select mode, we don't handle drag - elements can only be moved via controls
     }

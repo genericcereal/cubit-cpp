@@ -18,18 +18,29 @@ Item {
     property real controlHeight: 100
     property real controlRotation: 0
     
+    // Design controls controller - passed from parent
+    property var designControlsController: null
+    // Canvas - passed from parent
+    property var canvas: null
+    
+    // Helper function to get the controller (for child components)
+    function getDesignControlsController() {
+        console.log("DesignControls.getDesignControlsController: designControlsController =", designControlsController)
+        return designControlsController
+    }
+    
     // Check if all selected elements are component-related
     property bool allSelectedAreComponentRelated: false
     property bool selectedIsComponentVariant: false
     
     // Check if resizing is disabled
-    property bool isResizingDisabled: !designControls.isResizingEnabled
+    property bool isResizingDisabled: designControlsController ? !designControlsController.isResizingEnabled : true
     
     // Check if movement is disabled
-    property bool isMovementDisabled: !designControls.isMovementEnabled
+    property bool isMovementDisabled: designControlsController ? !designControlsController.isMovementEnabled : true
     
     // Check if any text is being edited
-    readonly property bool isAnyTextEditing: designControls.isAnyTextEditing
+    readonly property bool isAnyTextEditing: designControlsController ? designControlsController.isAnyTextEditing : false
     
     // Control state
     property bool dragging: false
@@ -150,7 +161,7 @@ Item {
         }
         
         onDoubleClicked: (mouse) => {
-            ConsoleMessageRepository.addOutput("Controls double-clicked")
+            if (root.canvas && root.canvas.console) root.canvas.console.addOutput("Controls double-clicked")
             
             // Access ViewportOverlay through root.parent
             var viewportOverlay = root.parent
@@ -158,7 +169,7 @@ Item {
             // Check if we have a single element selected
             if (viewportOverlay && viewportOverlay.selectedElements && viewportOverlay.selectedElements.length === 1) {
                 var element = viewportOverlay.selectedElements[0]
-                ConsoleMessageRepository.addOutput("Selected element type: " + element.elementType + " (ID: " + element.elementId + ")")
+                if (root.canvas && root.canvas.console) root.canvas.console.addOutput("Selected element type: " + element.elementType + " (ID: " + element.elementId + ")")
                 
                 // Check if it's a Text element, TextComponentVariant, WebTextInput, or text-based ComponentInstance directly selected
                 if (element && (element.elementType === "Text" || element.elementType === "TextComponentVariant" || 
@@ -167,20 +178,20 @@ Item {
                     
                     // Only enable editing for WebTextInput when in prototype mode
                     if (element.elementType === "WebTextInput") {
-                        var prototypeController = Application.activeCanvas ? Application.activeCanvas.prototypeController : null
+                        var prototypeController = root.canvas ? root.canvas.prototypeController : null
                         if (!prototypeController || !prototypeController.isPrototyping) {
-                            ConsoleMessageRepository.addOutput("WebTextInput editing disabled outside of prototype mode")
+                            if (root.canvas && root.canvas.console) root.canvas.console.addOutput("WebTextInput editing disabled outside of prototype mode")
                             mouse.accepted = true
                             return
                         }
                     }
                     
-                    ConsoleMessageRepository.addOutput("Text-based element directly selected - triggering edit mode")
+                    if (root.canvas && root.canvas.console) root.canvas.console.addOutput("Text-based element directly selected - triggering edit mode")
                     element.isEditing = true
                     mouse.accepted = true
                     return
                 } else if (element && element.elementType === "Frame") {
-                    ConsoleMessageRepository.addOutput("Frame selected, checking for Text children...")
+                    if (root.canvas && root.canvas.console) root.canvas.console.addOutput("Frame selected, checking for Text children...")
                     
                     // Check if this frame has any text children
                     if (viewportOverlay.canvasView && viewportOverlay.canvasView.elementModel) {
@@ -191,7 +202,7 @@ Item {
                             var child = allElements[i]
                             if (child.parentId === element.elementId && child.elementType === "Text") {
                                 textChildrenFound++
-                                ConsoleMessageRepository.addOutput("Found Text child: " + child.name + " (ID: " + child.elementId + ")")
+                                if (root.canvas && root.canvas.console) root.canvas.console.addOutput("Found Text child: " + child.name + " (ID: " + child.elementId + ")")
                                 // Trigger edit mode for the first text child found
                                 child.isEditing = true
                                 mouse.accepted = true
@@ -200,18 +211,18 @@ Item {
                         }
                         
                         if (textChildrenFound === 0) {
-                            ConsoleMessageRepository.addOutput("No Text children found in this Frame")
+                            if (root.canvas && root.canvas.console) root.canvas.console.addOutput("No Text children found in this Frame")
                         }
                     } else {
-                        ConsoleMessageRepository.addOutput("Unable to access elementModel")
+                        if (root.canvas && root.canvas.console) root.canvas.console.addOutput("Unable to access elementModel")
                     }
                 } else {
-                    ConsoleMessageRepository.addOutput("Selected element is neither Frame nor Text")
+                    if (root.canvas && root.canvas.console) root.canvas.console.addOutput("Selected element is neither Frame nor Text")
                 }
             } else if (viewportOverlay && viewportOverlay.selectedElements) {
-                ConsoleMessageRepository.addOutput("Multiple elements selected: " + viewportOverlay.selectedElements.length)
+                if (root.canvas && root.canvas.console) root.canvas.console.addOutput("Multiple elements selected: " + viewportOverlay.selectedElements.length)
             } else {
-                ConsoleMessageRepository.addOutput("No elements selected or unable to access selection")
+                if (root.canvas && root.canvas.console) root.canvas.console.addOutput("No elements selected or unable to access selection")
             }
             
             mouse.accepted = true
@@ -851,7 +862,7 @@ Item {
             if (!element || element.elementType !== "Frame") return false
             if (root.dragging) return false
             // Hide when prototyping is active
-            var prototypeController = Application.activeCanvas ? Application.activeCanvas.prototypeController : null
+            var prototypeController = root.canvas ? root.canvas.prototypeController : null
             if (prototypeController && prototypeController.isPrototyping) {
                 return false
             }
@@ -878,32 +889,32 @@ Item {
             // Access the DesignCanvas through the viewport overlay
             var viewportOverlay = root.parent
             if (!viewportOverlay || !viewportOverlay.canvasView) {
-                ConsoleMessageRepository.addError("Cannot access DesignCanvas from controls")
+                if (root.canvas && root.canvas.console) root.canvas.console.addError("Cannot access DesignCanvas from controls")
                 return
             }
             
             var designCanvas = viewportOverlay.canvasView
-            var prototypeController = Application.activeCanvas ? Application.activeCanvas.prototypeController : null
+            var prototypeController = root.canvas ? root.canvas.prototypeController : null
             
             if (!prototypeController) {
-                ConsoleMessageRepository.addError("PrototypeController not available")
-                ConsoleMessageRepository.addOutput("viewportOverlay.prototypeController is: " + viewportOverlay.prototypeController)
-                ConsoleMessageRepository.addOutput("Application.activeCanvas is: " + Application.activeCanvas)
-                if (Application.activeCanvas) {
-                    ConsoleMessageRepository.addOutput("Application.activeCanvas.prototypeController is: " + Application.activeCanvas.prototypeController)
+                if (root.canvas && root.canvas.console) root.canvas.console.addError("PrototypeController not available")
+                if (root.canvas && root.canvas.console) root.canvas.console.addOutput("viewportOverlay.prototypeController is: " + viewportOverlay.prototypeController)
+                if (root.canvas && root.canvas.console) root.canvas.console.addOutput("root.canvas is: " + root.canvas)
+                if (root.canvas) {
+                    if (root.canvas && root.canvas.console) root.canvas.console.addOutput("root.canvas.prototypeController is: " + root.canvas.prototypeController)
                 }
                 return
             }
             
             // Check if we have a selected element (should be a frame)
             if (!viewportOverlay.selectedElements || viewportOverlay.selectedElements.length !== 1) {
-                ConsoleMessageRepository.addError("No single frame selected for prototyping")
+                if (root.canvas && root.canvas.console) root.canvas.console.addError("No single frame selected for prototyping")
                 return
             }
             
             var selectedFrame = viewportOverlay.selectedElements[0]
             if (selectedFrame.elementType !== "Frame") {
-                ConsoleMessageRepository.addError("Selected element is not a frame")
+                if (root.canvas && root.canvas.console) root.canvas.console.addError("Selected element is not a frame")
                 return
             }
             

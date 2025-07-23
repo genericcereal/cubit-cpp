@@ -6,6 +6,7 @@ Item {
 
     required property var elementModel
     required property bool canvasVisible
+    required property var canvas
 
     property bool scriptsExecutedForCurrentLoad: false
 
@@ -13,8 +14,8 @@ Item {
     function executeOnEditorLoad() {
 
         // Execute onEditorLoad for canvas scripts
-        if (Application.activeCanvas) {
-            Application.activeCanvas.executeScriptEvent("onEditorLoad");
+        if (root.canvas) {
+            root.canvas.executeScriptEvent("onEditorLoad");
         }
 
         // Also execute onEditorLoad for all design elements
@@ -60,8 +61,8 @@ Item {
                     Qt.callLater(executeOnEditorLoad);
                 } else {
                     // If no elements yet, just execute canvas scripts
-                    if (Application.activeCanvas) {
-                        Application.activeCanvas.executeScriptEvent("onEditorLoad");
+                    if (root.canvas) {
+                        root.canvas.executeScriptEvent("onEditorLoad");
                     }
                 }
             }
@@ -76,10 +77,10 @@ Item {
         if (canvasVisible && elementModel && elementModel.rowCount() > 0) {
             scriptsExecutedForCurrentLoad = true;
             executeOnEditorLoad();
-        } else if (canvasVisible && Application.activeCanvas) {
+        } else if (canvasVisible && root.canvas) {
             // If no elements yet, just execute canvas scripts
             // Don't set scriptsExecutedForCurrentLoad to true here, as we may get elements later
-            Application.activeCanvas.executeScriptEvent("onEditorLoad");
+            root.canvas.executeScriptEvent("onEditorLoad");
         }
     }
 

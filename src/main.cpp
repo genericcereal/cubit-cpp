@@ -122,18 +122,13 @@ int main(int argc, char *argv[])
     qmlRegisterType<ScriptCompiler>("Cubit", 1, 0, "ScriptCompiler");
     qmlRegisterType<ElementFilterProxy>("Cubit", 1, 0, "ElementFilterProxy");
     qmlRegisterType<PrototypeController>("Cubit", 1, 0, "PrototypeController");
+    qmlRegisterType<DesignControlsController>("Cubit", 1, 0, "DesignControlsController");
 
     // Register authentication types
     qmlRegisterType<AuthenticationManager>("Cubit", 1, 0, "AuthenticationManager");
 
-    // Register singleton ConsoleMessageRepository
-    qmlRegisterSingletonType<ConsoleMessageRepository>("Cubit", 1, 0, "ConsoleMessageRepository",
-                                                       [](QQmlEngine *engine, QJSEngine *scriptEngine) -> QObject *
-                                                       {
-                                                           Q_UNUSED(engine)
-                                                           Q_UNUSED(scriptEngine)
-                                                           return ConsoleMessageRepository::instance();
-                                                       });
+    // Register ConsoleMessageRepository as a regular type (not singleton)
+    qmlRegisterType<ConsoleMessageRepository>("Cubit", 1, 0, "ConsoleMessageRepository");
 
     // Register Application singleton
     Application *appInstance = new Application(&app);
@@ -157,9 +152,7 @@ int main(int argc, char *argv[])
                                               return appInstance;
                                           });
 
-    // Create and register DesignControlsController as context property
-    DesignControlsController *designControlsController = new DesignControlsController(appInstance, &app);
-    engine.rootContext()->setContextProperty("designControls", designControlsController);
+    // No longer creating global DesignControlsController - each window creates its own
 
     // Register authentication manager as context property
     engine.rootContext()->setContextProperty("authManager", authManager);

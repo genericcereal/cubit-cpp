@@ -11,6 +11,7 @@ PropertyGroup {
     
     property var selectedElement
     property var editableProperties: []
+    property var canvas: null  // Will be set by parent
     
     visible: selectedElement
     
@@ -88,18 +89,18 @@ PropertyGroup {
                 }
             },
             model: () => {
-                if (!Application.activeCanvas || !selectedElement || (selectedElement.elementType !== "Frame" && selectedElement.elementType !== "FrameComponentVariant" && selectedElement.elementType !== "FrameComponentInstance" && selectedElement.elementType !== "Variable")) {
+                if (!canvas || !selectedElement || (selectedElement.elementType !== "Frame" && selectedElement.elementType !== "FrameComponentVariant" && selectedElement.elementType !== "FrameComponentInstance" && selectedElement.elementType !== "Variable")) {
                     return ["undefined"]
                 }
                 
                 var platforms = ["undefined"]
-                var canvasPlatforms = Application.activeCanvas.platforms
+                var canvasPlatforms = canvas.platforms
                 for (var i = 0; i < canvasPlatforms.length; i++) {
                     platforms.push(canvasPlatforms[i])
                 }
                 return platforms
             },
-            visible: () => PropertyHelpers.canShowPlatform(selectedElement, editableProperties, Application)
+            visible: () => PropertyHelpers.canShowPlatform(selectedElement, editableProperties, canvas)
         },
         {
             name: "Role",

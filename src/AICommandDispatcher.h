@@ -10,6 +10,7 @@ class CanvasController;
 class ElementModel;
 class SelectionManager;
 class Application;
+class Project;
 
 class AICommandDispatcher : public QObject
 {
@@ -17,6 +18,9 @@ class AICommandDispatcher : public QObject
 
 public:
     explicit AICommandDispatcher(Application* app, QObject* parent = nullptr);
+
+    // Set the target project for AI commands
+    void setTargetProject(Project* project);
 
     // Execute a single command
     void executeCommand(const QJsonObject& command);
@@ -30,6 +34,7 @@ signals:
 
 private:
     Application* m_application;
+    Project* m_targetProject = nullptr;
     
     // Command execution methods
     void executeCreateElement(const QJsonObject& params);

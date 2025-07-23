@@ -26,7 +26,6 @@ public:
     Q_ENUM(MessageType)
     
     explicit ConsoleMessageRepository(QObject *parent = nullptr);
-    static ConsoleMessageRepository* instance();
     
     QVariantList messages() const;
     
@@ -39,7 +38,7 @@ public:
     
     Q_INVOKABLE void clearMessages();
     Q_INVOKABLE QString messageTypeToString(MessageType type) const;
-    Q_INVOKABLE void processConsoleCommand(const QString& command);
+    Q_INVOKABLE void processConsoleCommand(const QString& command, QObject* project = nullptr);
     
     // Message with ID support for updates
     QString addMessageWithId(const QString &text, MessageType type = Output);
@@ -61,16 +60,14 @@ public:
 signals:
     void messagesChanged();
     void messageAdded(const QString &text, MessageType type);
-    void aiCommandReceived(const QString& prompt);
+    void aiCommandReceived(const QString& prompt, QObject* project);
     void isUsingAIChanged();
     void selectedOptionChanged();
     void showAIPromptChanged();
-    void aiContinuationResponse(bool accepted, const QString& feedback);
+    void aiContinuationResponse(bool accepted, const QString& feedback, QObject* project);
     void aiModeDisabled();
     
 private:
-    static ConsoleMessageRepository* s_instance;
-    
     struct Message {
         QString id;
         QString text;

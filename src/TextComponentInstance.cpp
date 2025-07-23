@@ -148,10 +148,14 @@ void TextComponentInstance::connectToComponent()
     if (m_instanceOf.isEmpty()) return;
     
     // Find the component in the element model
-    Application* app = Application::instance();
-    if (!app || !app->activeCanvas() || !app->activeCanvas()->elementModel()) return;
-    
-    ElementModel* model = app->activeCanvas()->elementModel();
+    // Get ElementModel from parent chain
+    ElementModel* model = nullptr;
+    QObject* p = parent();
+    while (p && !model) {
+        model = qobject_cast<ElementModel*>(p);
+        p = p->parent();
+    }
+    if (!model) return;
     Element* element = model->getElementById(m_instanceOf);
     
     if (Component* component = qobject_cast<Component*>(element)) {

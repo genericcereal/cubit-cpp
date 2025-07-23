@@ -93,6 +93,9 @@ public:
     explicit Frame(const QString &id, QObject *parent = nullptr);
     ~Frame();
     
+    // Set the ElementModel for this frame (called after creation)
+    void setElementModel(ElementModel* model);
+    
     // Property getters
     QColor fill() const { return m_fill; }
     ColorFormat colorFormat() const { return m_colorFormat; }
@@ -190,6 +193,9 @@ private:
     
     // Layout engine
     std::unique_ptr<class FlexLayoutEngine> m_layoutEngine;
+    
+    // ElementModel for connections
+    ElementModel* m_elementModel;
     
     // Setup connections to element model
     void setupElementModelConnections();

@@ -190,13 +190,15 @@ void Scripts::clear() {
 }
 
 // Compile the script graph to JSON
-QString Scripts::compile(ElementModel* elementModel) {
+QString Scripts::compile(ElementModel* elementModel, QObject* console) {
     ScriptCompiler compiler;
     QString result = compiler.compile(this, elementModel);
     
     if (result.isEmpty()) {
         QString error = compiler.getLastError();
-        ConsoleMessageRepository::instance()->addError("Compilation failed: " + error);
+        if (console) {
+            QMetaObject::invokeMethod(console, "addError", Q_ARG(QString, "Compilation failed: " + error));
+        }
         m_compiledScript.clear();
         setIsCompiled(false);
         return QString();

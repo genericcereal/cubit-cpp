@@ -10,7 +10,6 @@
 #include "SelectionManager.h"
 #include "Config.h"
 #include "HandleType.h"
-#include "Application.h"
 #include "Project.h"
 #include "Component.h"
 #include "ElementTypeRegistry.h"
@@ -34,13 +33,11 @@ Element* CreationManager::createElement(const QString& type, qreal x, qreal y, q
     }
     
     // Check if we're in variant mode
-    Application* app = Application::instance();
-    Project* activeCanvas = app ? app->activeCanvas() : nullptr;
-    bool isVariantMode = activeCanvas && activeCanvas->viewMode() == "variant";
+    bool isVariantMode = m_project && m_project->viewMode() == "variant";
     Component* editingComponent = nullptr;
     
-    if (isVariantMode && activeCanvas) {
-        QObject* editingElement = activeCanvas->editingElement();
+    if (isVariantMode && m_project) {
+        QObject* editingElement = m_project->editingElement();
         editingComponent = qobject_cast<Component*>(editingElement);
         if (!editingComponent) {
             qWarning() << "CreationManager: In variant mode but editing element is not a Component";

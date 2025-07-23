@@ -7,6 +7,7 @@ class ElementModel;
 class SelectionManager;
 class Node;
 class Edge;
+class Project;
 
 class CreationManager : public QObject {
     Q_OBJECT
@@ -24,6 +25,7 @@ public:
     void setElementModel(ElementModel* elementModel) { m_elementModel = elementModel; }
     void setSelectionManager(SelectionManager* selectionManager) { m_selectionManager = selectionManager; }
     void setCanvasType(CanvasType type) { m_canvasType = type; }
+    void setProject(Project* project) { m_project = project; }
     
     // Design element creation
     Element* createElement(const QString& type, qreal x, qreal y, qreal width, qreal height);
@@ -51,6 +53,7 @@ private:
     ElementModel* m_elementModel = nullptr;
     SelectionManager* m_selectionManager = nullptr;
     CanvasType m_canvasType = CanvasType::Design;
+    Project* m_project = nullptr;
     
     // Drag creation state
     Element* m_dragCreationElement = nullptr;

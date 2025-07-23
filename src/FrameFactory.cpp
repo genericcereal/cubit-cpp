@@ -22,7 +22,7 @@ QList<PropertyDefinition> FrameFactory::propertyDefinitions() const
     props.append(PropertyDefinition("heightType", QMetaType::Int, Frame::SizeFixed, PropertyDefinition::Layout));
     
     // Position properties
-    props.append(PropertyDefinition("position", QMetaType::Int, Frame::Relative, PropertyDefinition::Layout));
+    props.append(PropertyDefinition("position", QMetaType::Int, Frame::Absolute, PropertyDefinition::Layout));
     
     // Flex layout properties
     props.append(PropertyDefinition("orientation", QMetaType::Int, Frame::Row, PropertyDefinition::Layout));

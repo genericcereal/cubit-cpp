@@ -8,6 +8,7 @@ FocusScope {
     // The C++ Element object
     property var element
     property var elementModel
+    property var canvas: null  // Will be set by parent
     property real canvasMinX: 0
     property real canvasMinY: 0
     
@@ -19,7 +20,7 @@ FocusScope {
     property bool selected: element ? element.selected : false
     
     // Track if we're in prototype mode
-    property bool isPrototyping: Application.activeCanvas && Application.activeCanvas.prototypeController ? Application.activeCanvas.prototypeController.isPrototyping : false
+    property bool isPrototyping: root.canvas && root.canvas.prototypeController ? root.canvas.prototypeController.isPrototyping : false
     
     // Force focus to be cleared when isEditing becomes false
     Connections {

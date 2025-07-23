@@ -10,11 +10,12 @@ GroupBox {
     title: "Actions"
     
     property var selectedElement
+    property var canvas: null  // Will be set by parent
     property var selectedDesignElement: selectedElement && selectedElement.isDesignElement ? selectedElement : null
     
     // Show when we have a selected element that can have actions, or when nothing is selected
     visible: {
-        if (!selectedElement) return Application.activeCanvas !== null
+        if (!selectedElement) return canvas !== null
         
         // Show for design elements (Frame, Text)
         if (selectedElement.isDesignElement) return true
@@ -41,12 +42,12 @@ GroupBox {
             Layout.fillWidth: true
             text: "Canvas Scripts"
             font.pixelSize: 14
-            visible: !selectedElement && Application.activeCanvas
+            visible: !selectedElement && canvas
             
             
             onClicked: {
-                if (Application.activeCanvas) {
-                    Application.activeCanvas.setEditingElement(null, "script")
+                if (canvas) {
+                    canvas.setEditingElement(null, "script")
                 }
             }
         }
@@ -66,7 +67,9 @@ GroupBox {
                 if (selectedDesignElement) {
                     var component = selectedDesignElement.createComponent()
                     if (component) {
-                        ConsoleMessageRepository.addOutput("Component created with ID: " + component.elementId)
+                        if (canvas && canvas.console) {
+                            canvas.console.addOutput("Component created with ID: " + component.elementId)
+                        }
                     }
                 }
             }
@@ -89,12 +92,12 @@ GroupBox {
             
             
             onClicked: {
-                if (Application.activeCanvas && selectedElement) {
+                if (canvas && selectedElement) {
                     // Components need special handling
                     if (selectedElement.elementType === "Component") {
-                        Application.activeCanvas.setEditingComponent(selectedElement, "script")
+                        canvas.setEditingComponent(selectedElement, "script")
                     } else {
-                        Application.activeCanvas.setEditingElement(selectedElement, "script")
+                        canvas.setEditingElement(selectedElement, "script")
                     }
                 }
             }
@@ -109,8 +112,8 @@ GroupBox {
             
             
             onClicked: {
-                if (Application.activeCanvas && selectedElement && selectedElement.elementType === "Component") {
-                    Application.activeCanvas.setEditingComponent(selectedElement, "variant")
+                if (canvas && selectedElement && selectedElement.elementType === "Component") {
+                    canvas.setEditingComponent(selectedElement, "variant")
                 }
             }
         }

@@ -47,7 +47,7 @@ public:
     Q_INVOKABLE void clear();
     
     // Compile the script graph to JSON
-    Q_INVOKABLE QString compile(ElementModel* elementModel = nullptr);
+    Q_INVOKABLE QString compile(ElementModel* elementModel = nullptr, QObject* console = nullptr);
 
     // Property getters
     QQmlListProperty<Node> nodes();

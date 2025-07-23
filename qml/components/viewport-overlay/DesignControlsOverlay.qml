@@ -18,6 +18,15 @@ Item {
     property real canvasMinX: 0
     property real canvasMinY: 0
     property string canvasType: "design"
+    property var designControlsController: null
+    
+    Component.onCompleted: {
+        // DesignControlsOverlay initialized
+    }
+    
+    onSelectionManagerChanged: {
+        // SelectionManager changed
+    }
     
     // Bounding box properties
     readonly property real selectionBoundingX: selectionManager?.boundingX ?? 0
@@ -31,6 +40,8 @@ Item {
     // Controls that follow selected elements (for design and variant canvases)
     DesignControls {
         id: selectionControls
+        designControlsController: root.designControlsController
+        canvas: root.canvasView ? root.canvasView.canvas : null
         visible: {
             // Controls visible on design and variant canvases
             if (canvasType !== "design" && canvasType !== "variant") {
@@ -58,6 +69,7 @@ Item {
             enabled: !selectionControls.dragging  // Disable during drag for performance
             
             function onSelectedElementsChanged() {
+                // Handle selection change
                 // Exit edit mode for any text elements that were being edited
                 if (canvasView && canvasView.elementModel) {
                     var allElements = canvasView.elementModel.getAllElements()
@@ -88,6 +100,7 @@ Item {
             enabled: !selectionControls.dragging && selectionManager !== null
             
             function onSelectionChanged() {
+                // Handle selection change from SelectionManager
                 if (selectedElements.length > 0 && selectionControls.visible) {
                     // Use regular selection bounds
                     selectionControls.controlX = selectionBoundingX
@@ -331,7 +344,6 @@ Item {
                         }
                         
                         if (!alreadyCaptured) {
-                            // Capturing parent element state
                             states.push({
                                 element: parentElement,
                                 x: parentElement.x,
@@ -459,17 +471,14 @@ Item {
                     } else if (isDirectlySelected && isRelativeChildInFlexParent && parentElement) {
                         // For relatively positioned children in flex parents, resize the child
                         // Only resize the parent if its width/height type is set to "fit content"
-                        console.log("Resizing relative child:", state.element.elementId, "Parent:", parentElement.elementId)
                         
                         // Calculate the drag distance (difference between new and old control size)
                         var widthDelta = controlWidth - initialControlWidth
                         var heightDelta = controlHeight - initialControlHeight
-                        console.log("Resize deltas - width:", widthDelta, "height:", heightDelta)
                         
                         // First, resize the child by the drag distance
                         var newChildWidth = Math.max(1, state.width + widthDelta)
                         var newChildHeight = Math.max(1, state.height + heightDelta)
-                        console.log("Setting child size to:", newChildWidth, "x", newChildHeight)
                         state.element.width = newChildWidth
                         state.element.height = newChildHeight
                         
@@ -483,30 +492,19 @@ Item {
                         }
                         
                         if (parentInitialState) {
-                            console.log("Found parent initial state - width:", parentInitialState.width, "height:", parentInitialState.height)
-                            console.log("Parent widthType:", parentElement.widthType, "heightType:", parentElement.heightType)
-                            
                             // Only resize parent dimensions that are set to "fit content" (SizeFitContent = 3)
                             var shouldResizeWidth = parentElement.widthType === 3 // SizeFitContent
                             var shouldResizeHeight = parentElement.heightType === 3 // SizeFitContent
                             
                             if (shouldResizeWidth) {
                                 var newParentWidth = Math.max(1, parentInitialState.width + widthDelta)
-                                console.log("Setting parent width to:", newParentWidth, "(widthType is fit-content)")
                                 parentElement.width = newParentWidth
-                            } else {
-                                console.log("Not resizing parent width (widthType is not fit-content)")
                             }
                             
                             if (shouldResizeHeight) {
                                 var newParentHeight = Math.max(1, parentInitialState.height + heightDelta)
-                                console.log("Setting parent height to:", newParentHeight, "(heightType is fit-content)")
                                 parentElement.height = newParentHeight
-                            } else {
-                                console.log("Not resizing parent height (heightType is not fit-content)")
                             }
-                        } else {
-                            console.log("WARNING: Could not find parent initial state!")
                         }
                         
                         // The flex layout engine will handle repositioning

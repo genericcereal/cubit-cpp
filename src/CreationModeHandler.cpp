@@ -25,7 +25,15 @@ CreationModeHandler::CreationModeHandler(Config cfg,
 
 void CreationModeHandler::onPress(qreal x, qreal y)
 {
-    if (!m_commandHistory || !m_elementModel || !m_selectionManager) return;
+    // Handle creation mode press
+    
+    if (!m_commandHistory || !m_elementModel || !m_selectionManager) {
+        qWarning() << "CreationModeHandler::onPress - Missing dependencies:" 
+                   << "commandHistory:" << (m_commandHistory ? "ok" : "null")
+                   << "elementModel:" << (m_elementModel ? "ok" : "null")
+                   << "selectionManager:" << (m_selectionManager ? "ok" : "null");
+        return;
+    }
     
     // Store the start position for drag operation
     m_startPos = QPointF(x, y);
@@ -33,6 +41,7 @@ void CreationModeHandler::onPress(qreal x, qreal y)
     
     // Create element immediately at 1x1 size
     QRectF rect(x, y, 1, 1);
+    // Creating command
     auto command = std::make_unique<CreateDesignElementCommand>(
         m_elementModel, m_selectionManager, 
         m_cfg.elementType, rect, m_cfg.defaultPayload);

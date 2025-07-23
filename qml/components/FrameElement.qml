@@ -13,6 +13,7 @@ Item {
     // The C++ Element object
     property var element
     property var elementModel
+    property var canvas: null  // Will be set by parent
     property Frame frameElement: element as Frame
     property alias contentContainer: contentContainer
     property real canvasMinX: 0
@@ -30,7 +31,7 @@ Item {
     
     // Check if this is the active outer frame during prototyping
     property bool isActiveOuterFrame: {
-        var prototypeController = Application.activeCanvas ? Application.activeCanvas.prototypeController : null
+        var prototypeController = root.canvas ? root.canvas.prototypeController : null
         return prototypeController && 
                prototypeController.isPrototyping && 
                prototypeController.activeOuterFrame === element.elementId
@@ -56,7 +57,7 @@ Item {
         function onYChanged() {
             if (!root.isActiveOuterFrame) return
             
-            var prototypeController = Application.activeCanvas.prototypeController
+            var prototypeController = root.canvas ? root.canvas.prototypeController : null
             var initialPos = prototypeController.getSnapshotElementPosition(root.element.elementId)
             
             // Check if this is the first scroll movement
@@ -188,7 +189,7 @@ Item {
         // Simple approach: The viewable area is always centered horizontally and starts at Y=0 of the frame
         property real viewableX: {
             if (!root.isActiveOuterFrame) return 0
-            var prototypeController = Application.activeCanvas.prototypeController
+            var prototypeController = root.canvas ? root.canvas.prototypeController : null
             var viewableWidth = prototypeController.viewableArea.width
             // Center the viewable area horizontally within the frame
             return (root.width - viewableWidth) / 2
@@ -210,13 +211,13 @@ Item {
         
         property real viewableWidth: {
             if (!root.isActiveOuterFrame) return 0
-            var prototypeController = Application.activeCanvas.prototypeController
+            var prototypeController = root.canvas ? root.canvas.prototypeController : null
             return Math.min(prototypeController.viewableArea.width, root.width)
         }
         
         property real viewableHeight: {
             if (!root.isActiveOuterFrame) return 0
-            var prototypeController = Application.activeCanvas.prototypeController
+            var prototypeController = root.canvas ? root.canvas.prototypeController : null
             var availableHeight = root.height - viewableY
             return Math.min(prototypeController.viewableArea.height, availableHeight)
         }

@@ -8,6 +8,7 @@ Item {
     
     property var elementModel
     property var selectionManager
+    property var canvas: null  // Will be set by parent
     
     ColumnLayout {
         anchors.fill: parent
@@ -43,8 +44,8 @@ Item {
                 ElementFilterProxy {
                     id: elementsFilteredModel
                     sourceModel: root.elementModel
-                    viewMode: Application.activeCanvas ? Application.activeCanvas.viewMode : "design"
-                    editingElement: Application.activeCanvas ? Application.activeCanvas.editingElement : null
+                    viewMode: root.canvas ? root.canvas.viewMode : "design"
+                    editingElement: root.canvas ? root.canvas.editingElement : null
                     filterComponentsOut: true
                 }
                 
@@ -474,8 +475,8 @@ Item {
                 ElementFilterProxy {
                     id: componentsFilteredModel
                     sourceModel: root.elementModel
-                    viewMode: Application.activeCanvas ? Application.activeCanvas.viewMode : "design"
-                    editingElement: Application.activeCanvas ? Application.activeCanvas.editingElement : null
+                    viewMode: root.canvas ? root.canvas.viewMode : "design"
+                    editingElement: root.canvas ? root.canvas.editingElement : null
                     filterComponentsOnly: true
                 }
                 
