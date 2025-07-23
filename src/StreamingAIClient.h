@@ -61,9 +61,7 @@ private:
     void connectToWebSocket();
     void disconnectFromWebSocket();
     QString getWebSocketUrl() const;
-    QString getApiEndpoint() const;
     QString getAuthToken() const;
-    QString getToolRegistryUrl() const;
     void sendConnectionInit();
     void handleConnectionAck();
 

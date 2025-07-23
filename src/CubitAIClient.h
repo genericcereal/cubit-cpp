@@ -33,7 +33,6 @@ private slots:
     
 private:
     void makeGraphQLRequest(const QString& query, const QString& variables);
-    QString getApiEndpoint() const;
     QString getAuthToken() const;
     bool isTokenExpiredError(const QJsonDocument& doc) const;
     QString getCanvasState() const;

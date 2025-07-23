@@ -1,4 +1,5 @@
 #include "StreamingAIClient.h"
+#include "Config.h"
 #include "ConsoleMessageRepository.h"
 #include "AuthenticationManager.h"
 #include "AICommandDispatcher.h"
@@ -173,7 +174,7 @@ void StreamingAIClient::disconnectFromWebSocket()
 
 QString StreamingAIClient::getWebSocketUrl() const
 {
-    QString endpoint = getApiEndpoint();
+    QString endpoint = Config::GRAPHQL_ENDPOINT;
     if (endpoint.isEmpty())
     {
         qWarning() << "No AppSync endpoint found!";
@@ -220,30 +221,6 @@ QString StreamingAIClient::getWebSocketUrl() const
     return finalUrl;
 }
 
-QString StreamingAIClient::getApiEndpoint() const
-{
-    QFile file("amplify_outputs.json");
-    if (!file.open(QIODevice::ReadOnly))
-    {
-        qWarning() << "Failed to open amplify_outputs.json";
-        return QString();
-    }
-    QByteArray data = file.readAll();
-    QJsonDocument doc = QJsonDocument::fromJson(data);
-    if (doc.isNull())
-    {
-        qWarning() << "Failed to parse amplify_outputs.json";
-        return QString();
-    }
-    QJsonObject root = doc.object();
-    if (root.contains("data") && root["data"].isObject())
-    {
-        QJsonObject dataObj = root["data"].toObject();
-        if (dataObj.contains("url"))
-            return dataObj["url"].toString();
-    }
-    return QString();
-}
 
 QString StreamingAIClient::getAuthToken() const
 {
@@ -260,10 +237,6 @@ QString StreamingAIClient::getAuthToken() const
     return QString();
 }
 
-QString StreamingAIClient::getToolRegistryUrl() const
-{
-    return "https://k72mo3oun7sefawjhvilq2ne5a0ybfgr.lambda-url.us-west-2.on.aws/";
-}
 
 void StreamingAIClient::onConnected()
 {
@@ -403,7 +376,7 @@ void StreamingAIClient::createConversation()
     )";
 
     QNetworkAccessManager *manager = new QNetworkAccessManager(this);
-    QNetworkRequest request((QUrl(getApiEndpoint())));
+    QNetworkRequest request((QUrl(Config::GRAPHQL_ENDPOINT)));
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
 
     QString authToken = getAuthToken();
@@ -519,7 +492,7 @@ void StreamingAIClient::sendSubscription(const QString &subId, const QString &qu
     QJsonObject authorization;
     
     // Get the host from the API endpoint
-    QUrl endpointUrl(getApiEndpoint());
+    QUrl endpointUrl(Config::GRAPHQL_ENDPOINT);
     authorization["host"] = endpointUrl.host();
     
     // Add the authorization token
@@ -599,7 +572,7 @@ void StreamingAIClient::sendCubitAIRules(const QString &conversationId)
     body["variables"] = vars;
 
     QNetworkAccessManager *manager = new QNetworkAccessManager(this);
-    QNetworkRequest req((QUrl(getApiEndpoint())));
+    QNetworkRequest req((QUrl(Config::GRAPHQL_ENDPOINT)));
     req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     QString token = getAuthToken();
     if (!token.isEmpty())
@@ -647,7 +620,7 @@ void StreamingAIClient::sendConversationMessage(const QString &conversationId, c
     body["variables"] = vars;
 
     QNetworkAccessManager *manager = new QNetworkAccessManager(this);
-    QNetworkRequest req((QUrl(getApiEndpoint())));
+    QNetworkRequest req((QUrl(Config::GRAPHQL_ENDPOINT)));
     req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     QString token = getAuthToken();
     if (!token.isEmpty())
@@ -1143,9 +1116,9 @@ void StreamingAIClient::requestJsonRepair(const QString &invalidJson, const QStr
 }
 
 void StreamingAIClient::fetchToolRegistry(const QString &category) {
-    QString baseUrl = getToolRegistryUrl();
+    QString baseUrl = Config::TOOL_REGISTRY_URL;
     if (baseUrl.isEmpty()) {
-        ConsoleMessageRepository::instance()->addError("Tool registry URL not configured in amplify_outputs.json");
+        ConsoleMessageRepository::instance()->addError("Tool registry URL not configured");
         return;
     }
     
