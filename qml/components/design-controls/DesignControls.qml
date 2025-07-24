@@ -179,7 +179,7 @@ Item {
         }
         
         onDoubleClicked: (mouse) => {
-            if (root.canvas && root.canvas.console) root.canvas.console.addOutput("Controls double-clicked")
+            // Controls double-clicked
             
             // Access ViewportOverlay through root.parent
             var viewportOverlay = root.parent
@@ -187,7 +187,7 @@ Item {
             // Check if we have a single element selected
             if (viewportOverlay && viewportOverlay.selectedElements && viewportOverlay.selectedElements.length === 1) {
                 var element = viewportOverlay.selectedElements[0]
-                if (root.canvas && root.canvas.console) root.canvas.console.addOutput("Selected element type: " + element.elementType + " (ID: " + element.elementId + ")")
+                // Selected element type logged
                 
                 // Check if it's a Text element, TextComponentVariant, WebTextInput, or text-based ComponentInstance directly selected
                 if (element && (element.elementType === "Text" || element.elementType === "TextComponentVariant" || 
@@ -234,8 +234,17 @@ Item {
                     } else {
                         if (root.canvas && root.canvas.console) root.canvas.console.addOutput("Unable to access elementModel")
                     }
+                } else if (element && element.elementType === "Shape") {
+                    // Shape selected - entering shape edit mode
+                    
+                    // Set isEditingShape on the controller
+                    if (viewportOverlay.controller) {
+                        viewportOverlay.controller.isEditingShape = true
+                        mouse.accepted = true
+                        return
+                    }
                 } else {
-                    if (root.canvas && root.canvas.console) root.canvas.console.addOutput("Selected element is neither Frame nor Text")
+                    if (root.canvas && root.canvas.console) root.canvas.console.addOutput("Selected element is neither Frame, Text, nor Shape")
                 }
             } else if (viewportOverlay && viewportOverlay.selectedElements) {
                 if (root.canvas && root.canvas.console) root.canvas.console.addOutput("Multiple elements selected: " + viewportOverlay.selectedElements.length)

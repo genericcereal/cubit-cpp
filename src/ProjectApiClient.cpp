@@ -452,13 +452,13 @@ void ProjectApiClient::handleGraphQLResponse(QNetworkReply* reply, const Pending
         QJsonObject response = responseDoc.object();
         
         // Debug: Log the parsed response structure
-        qDebug() << "ProjectApiClient: Parsed response keys:" << response.keys();
+        // qDebug() << "ProjectApiClient: Parsed response keys:" << response.keys();
         
         if (response.contains("data")) {
             QJsonObject data = response["data"].toObject();
             
             // Debug: Log the data structure
-            qDebug() << "ProjectApiClient: Data keys:" << data.keys();
+            // qDebug() << "ProjectApiClient: Data keys:" << data.keys();
             
             if (request.operation == "createProject" && data.contains("createProject")) {
                 QJsonObject createdProject = data["createProject"].toObject();
@@ -496,7 +496,7 @@ void ProjectApiClient::handleGraphQLResponse(QNetworkReply* reply, const Pending
                 QString nextToken = listResult["nextToken"].toString();
                 
                 emit projectsListed(projects, nextToken);
-                qDebug() << "ProjectApiClient: Successfully listed" << projects.size() << "projects";
+                // qDebug() << "ProjectApiClient: Successfully listed" << projects.size() << "projects";
                 
             } else if (request.operation == "getProject" && data.contains("getProject")) {
                 QJsonObject project = data["getProject"].toObject();
@@ -515,7 +515,7 @@ void ProjectApiClient::handleGraphQLResponse(QNetworkReply* reply, const Pending
                 }
                 
                 emit projectFetched(request.projectId, project);
-                qDebug() << "ProjectApiClient: Successfully fetched project:" << request.projectId;
+                // qDebug() << "ProjectApiClient: Successfully fetched project:" << request.projectId;
                 
             } else if (request.operation == "updateProject" && data.contains("updateProject")) {
                 QJsonObject updatedProject = data["updateProject"].toObject();

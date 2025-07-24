@@ -2,6 +2,7 @@ import QtQuick
 import Cubit 1.0
 import Cubit.UI 1.0
 import "../design-controls"
+import "../shape-controls"
 import "OverlayUtils.js" as OverlayUtils
 
 // DesignControlsOverlay contains the complex DesignControls block
@@ -51,6 +52,14 @@ Item {
             if (controller && controller.isAnimating) {
                 return false
             }
+            // Hide when editing shapes - this is when ShapeControls are active
+            if (controller && controller.isEditingShape) {
+                return false
+            }
+            // Also hide if ShapeControls are currently dragging
+            if (shapeControls.visible && shapeControls.dragging) {
+                return false
+            }
             // Only show controls if there are visual elements selected
             if (selectionManager && selectionManager.hasVisualSelection) {
                 return true
@@ -66,10 +75,15 @@ Item {
         // Consolidated connections for selection updates
         Connections {
             target: root
-            enabled: !selectionControls.dragging  // Disable during drag for performance
+            enabled: !selectionControls.dragging && !(shapeControls.visible && shapeControls.dragging)  // Disable during drag for performance and during shape editing
             
             function onSelectedElementsChanged() {
                 // Handle selection change
+                // Exit shape editing mode if selection changes
+                if (controller && controller.isEditingShape) {
+                    controller.isEditingShape = false
+                }
+                
                 // Exit edit mode for any text elements that were being edited
                 if (canvasView && canvasView.elementModel) {
                     var allElements = canvasView.elementModel.getAllElements()
@@ -97,7 +111,7 @@ Item {
         // Direct connection to selection manager for bounding box updates
         Connections {
             target: selectionManager
-            enabled: !selectionControls.dragging && selectionManager !== null
+            enabled: !selectionControls.dragging && selectionManager !== null && !(shapeControls.visible && shapeControls.dragging)
             
             function onSelectionChanged() {
                 // Handle selection change from SelectionManager
@@ -116,7 +130,8 @@ Item {
             target: selectionManager
             enabled: canvasView && canvasView.controller && 
                     canvasView.controller.mode !== CanvasController.Select && 
-                    selectionManager !== null
+                    selectionManager !== null &&
+                    !(shapeControls.visible && shapeControls.dragging)
             
             function onSelectionChanged() {
                 if (selectedElements.length > 0 && selectionControls.visible) {
@@ -169,7 +184,7 @@ Item {
             target: selectionControls
             property: "x"
             value: (selectionControls.controlX - canvasMinX) * zoomLevel - (flickable?.contentX ?? 0)
-            when: !selectionControls.dragging && selectionControls.visible
+            when: !selectionControls.dragging && selectionControls.visible && !(shapeControls.visible && shapeControls.dragging)
             restoreMode: Binding.RestoreBinding
         }
         
@@ -177,7 +192,7 @@ Item {
             target: selectionControls
             property: "y"
             value: (selectionControls.controlY - canvasMinY) * zoomLevel - (flickable?.contentY ?? 0)
-            when: !selectionControls.dragging && selectionControls.visible
+            when: !selectionControls.dragging && selectionControls.visible && !(shapeControls.visible && shapeControls.dragging)
             restoreMode: Binding.RestoreBinding
         }
         
@@ -185,7 +200,7 @@ Item {
             target: selectionControls
             property: "width"
             value: Math.abs(selectionControls.controlWidth) * zoomLevel
-            when: !selectionControls.dragging && selectionControls.visible
+            when: !selectionControls.dragging && selectionControls.visible && !(shapeControls.visible && shapeControls.dragging)
             restoreMode: Binding.RestoreBinding
         }
         
@@ -193,7 +208,7 @@ Item {
             target: selectionControls
             property: "height"
             value: Math.abs(selectionControls.controlHeight) * zoomLevel
-            when: !selectionControls.dragging && selectionControls.visible
+            when: !selectionControls.dragging && selectionControls.visible && !(shapeControls.visible && shapeControls.dragging)
             restoreMode: Binding.RestoreBinding
         }
         
@@ -561,6 +576,31 @@ Item {
                 return canvasView ? canvasView.lastMousePosition : {x: 0, y: 0}
             })
             item.z = Config.zHoverBadge
+        }
+    }
+    
+    // Shape controls - shown when editing shapes
+    ShapeControls {
+        id: shapeControls
+        visible: controller && controller.isEditingShape && selectedElements.length === 1
+        selectedElement: selectedElements.length === 1 ? selectedElements[0] : null
+        
+        // Bind position and size to viewport coordinates
+        x: {
+            if (!selectedElement) return 0
+            return (selectedElement.x - canvasMinX) * zoomLevel - (flickable ? flickable.contentX : 0)
+        }
+        y: {
+            if (!selectedElement) return 0
+            return (selectedElement.y - canvasMinY) * zoomLevel - (flickable ? flickable.contentY : 0)
+        }
+        width: {
+            if (!selectedElement) return 0
+            return selectedElement.width * zoomLevel
+        }
+        height: {
+            if (!selectedElement) return 0
+            return selectedElement.height * zoomLevel
         }
     }
 }

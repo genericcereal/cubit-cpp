@@ -21,27 +21,27 @@ Rectangle {
         target: Application
         
         function onProjectsListedFromAPI(projects, nextToken) {
-            console.log("ProjectList: Received", projects.length, "projects from API")
+            // ProjectList: Received projects from API
             updateProjectsModel(projects)
             isLoading = false
             // TODO: Handle nextToken for pagination if needed
         }
         
         function onProjectFetchedFromAPI(projectId, project) {
-            console.log("ProjectList: Received project data:", projectId)
+            // ProjectList: Received project data
             // Extract canvasData from the project object
             let canvasData = project.canvasData
             openProjectWithCanvasData(project, canvasData)
         }
         
         function onProjectCreatedInAPI(projectId, projectName) {
-            console.log("ProjectList: Project created successfully:", projectId, projectName)
+            // ProjectList: Project created successfully
             // Refresh the project list to show the new project
             fetchProjects()
         }
         
         function onProjectDeletedFromAPI(projectId) {
-            console.log("ProjectList: Project deleted successfully:", projectId)
+            // ProjectList: Project deleted successfully
             // Refresh the project list
             fetchProjects()
         }
@@ -58,7 +58,7 @@ Rectangle {
         target: authManager
         
         function onTokensRefreshed() {
-            console.log("ProjectList: Tokens refreshed, retrying fetch...")
+            // ProjectList: Tokens refreshed, retrying fetch...
             fetchProjects()
         }
     }
@@ -111,7 +111,7 @@ Rectangle {
     }
 
     function openProject(projectData) {
-        console.log("ProjectList: Fetching canvas data for project:", projectData.name)
+        // ProjectList: Fetching canvas data for project
         
         if (!projectData.id || !projectData.name) {
             console.error("ProjectList: Invalid project data - missing id or name")
@@ -128,11 +128,11 @@ Rectangle {
     }
     
     function openProjectWithCanvasData(projectData, canvasData) {
-        console.log("ProjectList: Opening API project with canvas data:", projectData.name)
+        // ProjectList: Opening API project with canvas data
         
         try {
             Application.openAPIProject(projectData.id, projectData.name, canvasData)
-            console.log("ProjectList: Successfully opened API project:", projectData.name)
+            // ProjectList: Successfully opened API project
             isLoading = false
         } catch (error) {
             console.error("ProjectList: Error opening API project:", error)
@@ -143,7 +143,7 @@ Rectangle {
 
     // Component initialization
     Component.onCompleted: {
-        console.log("ProjectList: Component loaded, fetching projects...")
+        // ProjectList: Component loaded, fetching projects...
         fetchProjects()
     }
 
@@ -380,7 +380,7 @@ Rectangle {
                     propagateComposedEvents: true
                     
                     onClicked: function(mouse) {
-                        console.log("Delete project clicked:", model.id, model.name)
+                        // Delete project clicked
                         mouse.accepted = true
                         // TODO: Add confirmation dialog
                         Application.deleteProject(model.id)

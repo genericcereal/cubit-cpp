@@ -166,16 +166,26 @@ PropertyGroup {
                         
                         onLoaded: {
                             if (modelData.type === "combobox") {
-                                item.model = Qt.binding(function() { 
-                                    if (!modelData || !item) return []
-                                    return modelData.model() 
-                                })
-                                item.currentIndex = Qt.binding(function() {
-                                    if (!modelData || !item || !item.model) return 0
-                                    var value = modelData.getter()
-                                    var index = item.model.indexOf(value)
-                                    return index >= 0 ? index : 0
-                                })
+                                // Set initial values
+                                item.model = modelData.model()
+                                var value = modelData.getter()
+                                var index = item.model.indexOf(value)
+                                item.currentIndex = index >= 0 ? index : 0
+                                
+                                // Create update function
+                                var updateComboBox = function() {
+                                    if (modelData && item) {
+                                        item.model = modelData.model()
+                                        var value = modelData.getter()
+                                        var index = item.model.indexOf(value)
+                                        item.currentIndex = index >= 0 ? index : 0
+                                    }
+                                }
+                                
+                                // Connect to property changes if the element has a signal
+                                if (root.selectedElement && modelData.property) {
+                                    root.selectedElement[modelData.property + "Changed"].connect(updateComboBox)
+                                }
                                 item.activated.connect(function(index) {
                                     if (modelData && item && item.model) {
                                         var value = item.model[index]
@@ -186,20 +196,40 @@ PropertyGroup {
                                 var spinBox = item.children[0]
                                 var anchorButton = item.children[1]
                                 
-                                spinBox.value = Qt.binding(function() { 
-                                    if (!modelData || !spinBox) return 0
-                                    return modelData.valueGetter() 
-                                })
+                                // Set initial value
+                                spinBox.value = modelData.valueGetter()
+                                
+                                // Create update function
+                                var updateSpinBox = function() {
+                                    if (modelData && spinBox) {
+                                        spinBox.value = modelData.valueGetter()
+                                    }
+                                }
+                                
+                                // Connect to property changes if the element has a signal
+                                if (root.selectedElement && modelData.valueProperty) {
+                                    root.selectedElement[modelData.valueProperty + "Changed"].connect(updateSpinBox)
+                                }
                                 spinBox.valueModified.connect(function() {
                                     if (modelData && spinBox && spinBox.value !== modelData.valueGetter()) {
                                         modelData.valueSetter(spinBox.value)
                                     }
                                 })
                                 
-                                anchorButton.checked = Qt.binding(function() { 
-                                    if (!modelData || !anchorButton) return false
-                                    return modelData.anchorGetter() 
-                                })
+                                // Set initial value
+                                anchorButton.checked = modelData.anchorGetter()
+                                
+                                // Create update function
+                                var updateAnchorButton = function() {
+                                    if (modelData && anchorButton) {
+                                        anchorButton.checked = modelData.anchorGetter()
+                                    }
+                                }
+                                
+                                // Connect to property changes if the element has a signal
+                                if (root.selectedElement && modelData.anchorProperty) {
+                                    root.selectedElement[modelData.anchorProperty + "Changed"].connect(updateAnchorButton)
+                                }
                                 anchorButton.toggled.connect(function() {
                                     if (modelData && anchorButton && spinBox) {
                                         modelData.anchorSetter(anchorButton.checked, spinBox.value)

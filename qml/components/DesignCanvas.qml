@@ -134,6 +134,11 @@ BaseCanvas {
     
     function handleClick(pt) {
         if (root.controller.mode === CanvasController.Select) {
+            // Exit shape editing mode if clicking on background
+            if (root.controller.isEditingShape) {
+                root.controller.isEditingShape = false
+            }
+            
             // In select mode, handle click for selection
             root.controller.handleMousePress(pt.x, pt.y)
             root.controller.handleMouseRelease(pt.x, pt.y)

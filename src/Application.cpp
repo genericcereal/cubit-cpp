@@ -82,7 +82,7 @@ void Application::setAuthenticationManager(AuthenticationManager* authManager) {
         connect(m_projectApiClient.get(), &ProjectApiClient::getProjectFailed,
                 this, [this](const QString& projectId, const QString& error) {
                     emit apiErrorOccurred(QString("Failed to fetch project %1: %2").arg(projectId, error));
-                }, Qt::UniqueConnection);
+                });
         connect(m_projectApiClient.get(), &ProjectApiClient::projectCreated,
                 this, &Application::projectCreatedInAPI, Qt::UniqueConnection);
         connect(m_projectApiClient.get(), &ProjectApiClient::createProjectFailed,
@@ -92,7 +92,7 @@ void Application::setAuthenticationManager(AuthenticationManager* authManager) {
         connect(m_projectApiClient.get(), &ProjectApiClient::deleteProjectFailed,
                 this, [this](const QString& projectId, const QString& error) {
                     emit apiErrorOccurred(QString("Failed to delete project %1: %2").arg(projectId, error));
-                }, Qt::UniqueConnection);
+                });
     }
 }
 
@@ -253,7 +253,7 @@ void Application::createNewProject(const QString& projectName) {
 }
 
 void Application::openAPIProject(const QString& projectId, const QString& projectName, const QJsonObject& canvasData) {
-    qDebug() << "Application::openAPIProject called with ID:" << projectId << "Name:" << projectName;
+    // qDebug() << "Application::openAPIProject called with ID:" << projectId << "Name:" << projectName;
     
     // Use OpenProjectCommand to open and deserialize the project
     // Execute directly without adding to command history (project management operations don't support undo)
