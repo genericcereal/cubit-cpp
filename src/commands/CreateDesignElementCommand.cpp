@@ -1,6 +1,7 @@
 #include "CreateDesignElementCommand.h"
 #include "DesignElement.h"
 #include "Text.h"
+#include "Shape.h"
 #include "ElementModel.h"
 #include "SelectionManager.h"
 #include "Application.h"
@@ -94,6 +95,10 @@ void CreateDesignElementCommand::execute()
             }
         } else if (m_elementType == "webtextinput" && m_initialPayload.isValid() && m_initialPayload.canConvert<QString>()) {
             m_element->setProperty("placeholder", m_initialPayload.toString());
+        } else if (m_elementType == "shape" && m_initialPayload.isValid() && m_initialPayload.canConvert<int>()) {
+            if (Shape* shapeElement = qobject_cast<Shape*>(m_element)) {
+                shapeElement->setShapeType(static_cast<Shape::ShapeType>(m_initialPayload.toInt()));
+            }
         }
     }
 

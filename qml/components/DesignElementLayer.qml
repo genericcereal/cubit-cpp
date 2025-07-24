@@ -49,6 +49,7 @@ Item {
                     case "FrameElement.qml": return frameComponent
                     case "TextElement.qml": return textComponent
                     case "platform/web/WebTextInputElement.qml": return webTextInputComponent
+                    case "ShapeElement.qml": return shapeComponent
                     default: return null
                 }
             }
@@ -81,5 +82,10 @@ Item {
     Component {
         id: webTextInputComponent
         WebTextInputElement {}
+    }
+    
+    Component {
+        id: shapeComponent
+        ShapeElement {}
     }
 }

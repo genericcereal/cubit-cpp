@@ -62,6 +62,7 @@ public:
     Q_INVOKABLE bool saveToFile(const QString& fileName, Project* project = nullptr);
     Q_INVOKABLE bool loadFromFile(const QString& fileName);
     Q_INVOKABLE void deleteProject(const QString& projectId);
+    Q_INVOKABLE void closeProjectWindow(const QString& projectId);
     
     // Public access for commands
     Project* deserializeProjectFromData(const QJsonObject& projectData);

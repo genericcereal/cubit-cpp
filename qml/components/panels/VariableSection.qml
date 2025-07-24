@@ -120,32 +120,51 @@ ColumnLayout {
                                 
                                 onLoaded: {
                                     if (modelData.type === "checkbox") {
-                                        item.checked = Qt.binding(function() { return modelData.getter() })
+                                        item.checked = Qt.binding(function() { 
+                                            if (!modelData || !item) return false
+                                            return modelData.getter() 
+                                        })
                                         item.toggled.connect(function() {
-                                            modelData.setter(item.checked)
+                                            if (modelData && item) {
+                                                modelData.setter(item.checked)
+                                            }
                                         })
                                     } else if (modelData.type === "text") {
-                                        item.text = Qt.binding(function() { return modelData.getter() })
+                                        item.text = Qt.binding(function() { 
+                                            if (!modelData || !item) return ""
+                                            return modelData.getter() 
+                                        })
                                         item.textChanged.connect(function() {
-                                            modelData.setter(item.text)
+                                            if (modelData && item) {
+                                                modelData.setter(item.text)
+                                            }
                                         })
                                     } else if (modelData.type === "combobox") {
                                         // Use model property if available, fallback to options
                                         if (modelData.model) {
-                                            item.model = Qt.binding(function() { return modelData.model() })
+                                            item.model = Qt.binding(function() { 
+                                                if (!modelData || !item) return []
+                                                return modelData.model() 
+                                            })
                                         } else if (modelData.options) {
                                             item.model = modelData.options
                                         }
                                         item.currentIndex = Qt.binding(function() {
+                                            if (!modelData || !item) return 0
                                             var value = modelData.getter()
                                             var model = modelData.model ? modelData.model() : modelData.options
+                                            if (!model) return 0
                                             var index = model.indexOf(value)
                                             return index >= 0 ? index : 0
                                         })
                                         item.activated.connect(function(index) {
-                                            var model = modelData.model ? modelData.model() : modelData.options
-                                            var value = model[index]
-                                            modelData.setter(value)
+                                            if (modelData && item) {
+                                                var model = modelData.model ? modelData.model() : modelData.options
+                                                if (model) {
+                                                    var value = model[index]
+                                                    modelData.setter(value)
+                                                }
+                                            }
                                         })
                                     }
                                 }
@@ -246,9 +265,14 @@ ColumnLayout {
                             sourceComponent: checkboxComp
                             
                             onLoaded: {
-                                item.checked = Qt.binding(modelData.getter)
+                                item.checked = Qt.binding(function() {
+                                    if (!modelData || !item) return false
+                                    return modelData.getter()
+                                })
                                 item.toggled.connect(function() {
-                                    modelData.setter(item.checked)
+                                    if (modelData && item) {
+                                        modelData.setter(item.checked)
+                                    }
                                 })
                             }
                         }
@@ -277,9 +301,14 @@ ColumnLayout {
                             sourceComponent: checkboxComp
                             
                             onLoaded: {
-                                item.checked = Qt.binding(modelData.getter)
+                                item.checked = Qt.binding(function() {
+                                    if (!modelData || !item) return false
+                                    return modelData.getter()
+                                })
                                 item.toggled.connect(function() {
-                                    modelData.setter(item.checked)
+                                    if (modelData && item) {
+                                        modelData.setter(item.checked)
+                                    }
                                 })
                             }
                         }

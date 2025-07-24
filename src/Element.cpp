@@ -38,6 +38,12 @@ QString Element::getTypeName() const
             return "WebTextInputComponentInstance";
         case WebTextInputComponentVariantType:
             return "WebTextInputComponentVariant";
+        case ShapeType:
+            return "Shape";
+        case ShapeComponentInstanceType:
+            return "ShapeComponentInstance";
+        case ShapeComponentVariantType:
+            return "ShapeComponentVariant";
         default:
             return "Unknown";
     }

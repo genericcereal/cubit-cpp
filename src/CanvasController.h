@@ -32,7 +32,11 @@ public:
         Select,
         Frame,
         Text,
-        WebTextInput
+        WebTextInput,
+        Shape,  // Generic shape mode (not used directly)
+        ShapeSquare,
+        ShapeTriangle,
+        ShapeLine
     };
     Q_ENUM(Mode)
     

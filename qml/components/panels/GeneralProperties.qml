@@ -156,22 +156,36 @@ PropertyGroup {
                         
                         onLoaded: {
                             if (modelData.type === "text") {
-                                item.text = Qt.binding(function() { return modelData.getter() })
+                                item.text = Qt.binding(function() { 
+                                    if (!modelData || !item) return ""
+                                    return modelData.getter() 
+                                })
                                 item.textChanged.connect(function() {
-                                    modelData.setter(item.text)
+                                    if (modelData && item) {
+                                        modelData.setter(item.text)
+                                    }
                                 })
                             } else if (modelData.type === "label") {
-                                item.text = Qt.binding(function() { return modelData.getter() })
+                                item.text = Qt.binding(function() { 
+                                    if (!modelData || !item) return ""
+                                    return modelData.getter() 
+                                })
                             } else if (modelData.type === "combobox") {
-                                item.model = Qt.binding(function() { return modelData.model() })
+                                item.model = Qt.binding(function() { 
+                                    if (!modelData || !item) return []
+                                    return modelData.model() 
+                                })
                                 item.currentIndex = Qt.binding(function() {
+                                    if (!modelData || !item || !item.model) return 0
                                     var value = modelData.getter()
                                     var index = item.model.indexOf(value)
                                     return index >= 0 ? index : 0
                                 })
                                 item.activated.connect(function(index) {
-                                    var value = item.model[index]
-                                    modelData.setter(value)
+                                    if (modelData && item && item.model) {
+                                        var value = item.model[index]
+                                        modelData.setter(value)
+                                    }
                                 })
                             }
                         }

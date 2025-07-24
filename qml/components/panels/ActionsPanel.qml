@@ -19,6 +19,7 @@ Rectangle {
     
     // Expose the web elements button for positioning
     property alias webElementsButton: webElementsButton
+    property alias shapeButton: shapeButton
     
     property int currentMode: CanvasController.Select
     property var canvas: null  // Will be set by parent
@@ -213,6 +214,37 @@ Rectangle {
             ToolTip.text: "Text Mode"
         }
         
+        ToolButton {
+            id: shapeButton
+            visible: !isScriptMode
+            Layout.fillHeight: true
+            Layout.preferredWidth: height
+            checkable: false  // Not a toggle button anymore
+            
+            contentItem: Text {
+                text: "Sh"
+                color: parent.hovered ? "#ffffff" : "#aaaaaa"
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                font.pixelSize: 16
+            }
+            
+            background: Rectangle {
+                color: parent.hovered ? Qt.rgba(0.4, 0.4, 0.4, 0.3) : "transparent"
+                radius: 4
+                antialiasing: true
+            }
+            
+            onClicked: {
+                if (!isScriptMode) {
+                    shapePopoverVisible = !shapePopoverVisible
+                }
+            }
+            
+            ToolTip.visible: hovered
+            ToolTip.text: "Shapes"
+        }
+        
         
         ToolButton {
             id: variableButton
@@ -283,6 +315,7 @@ Rectangle {
     
     // Property to track popover visibility
     property bool webElementsPopoverVisible: false
+    property bool shapePopoverVisible: false
     
     // WebElements popover
     Item {
@@ -346,6 +379,79 @@ Rectangle {
     onWebElementsPopoverVisibleChanged: {
         if (webElementsPopoverVisible && popoverContainer.children[1]) {
             popoverContainer.children[1].updatePosition()
+        }
+    }
+    
+    // Shape popover
+    Item {
+        id: shapePopoverContainer
+        visible: shapePopoverVisible
+        
+        // Fill the entire window to catch clicks
+        anchors.fill: parent
+        parent: root.Window.window ? root.Window.window.contentItem : root
+        z: 1000
+        
+        // Transparent background to catch clicks
+        MouseArea {
+            anchors.fill: parent
+            onClicked: {
+                shapePopoverVisible = false
+            }
+        }
+        
+        // The actual popover
+        ActionsSelectPopover {
+            id: shapePopover
+            
+            // Position above the Sh button using manual positioning
+            Component.onCompleted: updatePosition()
+            
+            function updatePosition() {
+                if (shapeButton) {
+                    var buttonPos = shapeButton.mapToItem(parent, 0, 0)
+                    x = buttonPos.x + (shapeButton.width / 2) - (width / 2)
+                    y = buttonPos.y - height - 10
+                }
+            }
+            
+            options: [
+                { text: "Square", value: "square" },
+                { text: "Triangle", value: "triangle" },
+                { text: "Line", value: "line" }
+            ]
+            
+            onOptionSelected: function(value) {
+                if (canvas && canvas.console) {
+                    canvas.console.addInfo("Shape option selected: " + value)
+                }
+                shapePopoverVisible = false
+                
+                // Switch canvas mode based on shape selection
+                if (canvas && canvas.controller) {
+                    if (value === "square") {
+                        currentMode = CanvasController.ShapeSquare
+                        root.modeChanged(CanvasController.ShapeSquare)
+                    } else if (value === "triangle") {
+                        currentMode = CanvasController.ShapeTriangle
+                        root.modeChanged(CanvasController.ShapeTriangle)
+                    } else if (value === "line") {
+                        currentMode = CanvasController.ShapeLine
+                        root.modeChanged(CanvasController.ShapeLine)
+                    }
+                }
+            }
+            
+            onDismissed: {
+                shapePopoverVisible = false
+            }
+        }
+    }
+    
+    // Update shape popover position when visibility changes
+    onShapePopoverVisibleChanged: {
+        if (shapePopoverVisible && shapePopoverContainer.children[1]) {
+            shapePopoverContainer.children[1].updatePosition()
         }
     }
 }

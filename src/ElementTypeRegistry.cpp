@@ -7,6 +7,7 @@
 #include "FrameFactory.h"
 #include "TextFactory.h"
 #include "WebTextInputFactory.h"
+#include "ShapeFactory.h"
 #include <QDebug>
 #include <QMetaEnum>
 
@@ -129,4 +130,6 @@ void ElementTypeRegistry::initializeDefaultTypes()
     // Register WebTextInput factory
     registerFactory(std::make_shared<WebTextInputFactory>());
     
+    // Register Shape factory
+    registerFactory(std::make_shared<ShapeFactory>());
 }

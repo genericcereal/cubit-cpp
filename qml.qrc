@@ -33,6 +33,7 @@
         <file>qml/components/ElementRenderer.qml</file>
         <file>qml/components/FrameElement.qml</file>
         <file>qml/components/TextElement.qml</file>
+        <file>qml/components/ShapeElement.qml</file>
         <file>qml/components/platform/web/WebTextInputElement.qml</file>
         <file>qml/components/NodeElement.qml</file>
         <file>qml/components/EdgeElement.qml</file>

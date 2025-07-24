@@ -16,7 +16,12 @@ QtObject {
         // WebTextInput types
         "WebTextInput": "platform/web/WebTextInputElement.qml",
         "WebTextInputComponentVariant": "platform/web/WebTextInputElement.qml",
-        "WebTextInputComponentInstance": "platform/web/WebTextInputElement.qml"
+        "WebTextInputComponentInstance": "platform/web/WebTextInputElement.qml",
+        
+        // Shape types
+        "Shape": "ShapeElement.qml",
+        "ShapeComponentVariant": "ShapeElement.qml",
+        "ShapeComponentInstance": "ShapeElement.qml"
     })
     
     // Get the component path for an element

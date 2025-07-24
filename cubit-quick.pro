@@ -43,6 +43,7 @@ SOURCES += \
     src/Frame.cpp \
     src/Text.cpp \
     src/platforms/web/WebTextInput.cpp \
+    src/Shape.cpp \
     src/Variable.cpp \
     src/Component.cpp \
     src/ComponentInstance.cpp \
@@ -53,6 +54,8 @@ SOURCES += \
     src/TextComponentInstance.cpp \
     src/WebTextInputComponentVariant.cpp \
     src/WebTextInputComponentInstance.cpp \
+    src/ShapeComponentVariant.cpp \
+    src/ShapeComponentInstance.cpp \
     src/Node.cpp \
     src/Edge.cpp \
     src/CanvasController.cpp \
@@ -73,6 +76,7 @@ SOURCES += \
     src/FrameFactory.cpp \
     src/TextFactory.cpp \
     src/WebTextInputFactory.cpp \
+    src/ShapeFactory.cpp \
     src/QuadTree.cpp \
     src/Command.cpp \
     src/CommandHistory.cpp \
@@ -111,6 +115,7 @@ HEADERS += \
     src/Frame.h \
     src/Text.h \
     src/platforms/web/WebTextInput.h \
+    src/Shape.h \
     src/Variable.h \
     src/Component.h \
     src/ComponentInstance.h \
@@ -121,6 +126,8 @@ HEADERS += \
     src/TextComponentInstance.h \
     src/WebTextInputComponentVariant.h \
     src/WebTextInputComponentInstance.h \
+    src/ShapeComponentVariant.h \
+    src/ShapeComponentInstance.h \
     src/ConnectionManager.h \
     src/PropertySyncer.h \
     src/PropertyCopier.h \
@@ -148,6 +155,7 @@ HEADERS += \
     src/FrameFactory.h \
     src/TextFactory.h \
     src/WebTextInputFactory.h \
+    src/ShapeFactory.h \
     src/QuadTree.h \
     src/Command.h \
     src/CommandHistory.h \
