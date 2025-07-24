@@ -9,6 +9,7 @@ Rectangle {
 
     property bool isLoading: false
     property string errorMessage: ""
+    property var newProjectWindow: null
 
     // Dynamic model for projects from API only
     ListModel {
@@ -31,6 +32,18 @@ Rectangle {
             // Extract canvasData from the project object
             let canvasData = project.canvasData
             openProjectWithCanvasData(project, canvasData)
+        }
+        
+        function onProjectCreatedInAPI(projectId, projectName) {
+            console.log("ProjectList: Project created successfully:", projectId, projectName)
+            // Refresh the project list to show the new project
+            fetchProjects()
+        }
+        
+        function onProjectDeletedFromAPI(projectId) {
+            console.log("ProjectList: Project deleted successfully:", projectId)
+            // Refresh the project list
+            fetchProjects()
         }
         
         function onApiErrorOccurred(error) {
@@ -285,7 +298,25 @@ Rectangle {
                 cursorShape: Qt.PointingHandCursor
                 
                 onClicked: {
-                    Application.createNewProject()
+                    if (root.newProjectWindow && root.newProjectWindow.visible) {
+                        // Window already exists and is visible, just bring it to focus
+                        root.newProjectWindow.raise()
+                        root.newProjectWindow.requestActivate()
+                    } else {
+                        // Create new window or show existing hidden window
+                        if (!root.newProjectWindow) {
+                            var component = Qt.createComponent("NewProjectWindow.qml")
+                            if (component.status === Component.Ready) {
+                                root.newProjectWindow = component.createObject()
+                            } else {
+                                console.error("Error creating new project window:", component.errorString())
+                                return
+                            }
+                        }
+                        root.newProjectWindow.show()
+                        root.newProjectWindow.raise()
+                        root.newProjectWindow.requestActivate()
+                    }
                 }
             }
         }
@@ -299,18 +330,62 @@ Rectangle {
             height: 180
             color: "white"
             radius: 12
-            border.color: "#E0E0E0"
+            border.color: isHovered ? "#1976FF" : "#E0E0E0"
             border.width: 1
+            
+            property bool isHovered: projectHoverArea.containsMouse || deleteMouseArea.containsMouse
 
             MouseArea {
+                id: projectHoverArea
                 anchors.fill: parent
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
 
-                onEntered: parent.border.color = "#1976FF"
-                onExited: parent.border.color = "#E0E0E0"
                 onClicked: {
                     openProject(model)
+                }
+            }
+
+            // Delete button - appears on hover in top right corner
+            Rectangle {
+                id: deleteButton
+                width: 30
+                height: 30
+                anchors.top: parent.top
+                anchors.right: parent.right
+                anchors.margins: 10
+                color: deleteMouseArea.pressed ? "#CC0000" : (deleteMouseArea.containsMouse ? "#FF3333" : "#FF5555")
+                radius: 6
+                visible: parent.isHovered
+                opacity: visible ? 1.0 : 0.0
+                z: 10  // Ensure button is above all other content
+                
+                Behavior on opacity {
+                    NumberAnimation { duration: 150 }
+                }
+
+                Text {
+                    anchors.centerIn: parent
+                    text: "✕"
+                    font.pixelSize: 16
+                    color: "white"
+                    font.weight: Font.Bold
+                }
+
+                MouseArea {
+                    id: deleteMouseArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    propagateComposedEvents: true
+                    
+                    onClicked: function(mouse) {
+                        console.log("Delete project clicked:", model.id, model.name)
+                        mouse.accepted = true
+                        // TODO: Add confirmation dialog
+                        Application.deleteProject(model.id)
+                        // Don't refresh immediately - wait for API confirmation
+                    }
                 }
             }
 

@@ -83,6 +83,16 @@ void Application::setAuthenticationManager(AuthenticationManager* authManager) {
                 this, [this](const QString& projectId, const QString& error) {
                     emit apiErrorOccurred(QString("Failed to fetch project %1: %2").arg(projectId, error));
                 }, Qt::UniqueConnection);
+        connect(m_projectApiClient.get(), &ProjectApiClient::projectCreated,
+                this, &Application::projectCreatedInAPI, Qt::UniqueConnection);
+        connect(m_projectApiClient.get(), &ProjectApiClient::createProjectFailed,
+                this, &Application::apiErrorOccurred, Qt::UniqueConnection);
+        connect(m_projectApiClient.get(), &ProjectApiClient::projectDeleted,
+                this, &Application::projectDeletedFromAPI, Qt::UniqueConnection);
+        connect(m_projectApiClient.get(), &ProjectApiClient::deleteProjectFailed,
+                this, [this](const QString& projectId, const QString& error) {
+                    emit apiErrorOccurred(QString("Failed to delete project %1: %2").arg(projectId, error));
+                }, Qt::UniqueConnection);
     }
 }
 
@@ -144,14 +154,26 @@ QString Application::createProject(const QString& name) {
 }
 
 void Application::removeProject(const QString& projectId) {
+    // Check if this is an API project (API projects have UUIDs as IDs)
+    bool isApiProject = projectId.contains('-') && projectId.length() == 36;
+    
+    // Look for the project in the open canvases
     auto it = std::find_if(m_canvases.begin(), m_canvases.end(),
         [&projectId](const std::unique_ptr<Project>& c) { return c->id() == projectId; });
     
     if (it != m_canvases.end()) {
+        // Project is currently open, remove it from the canvas list
         m_canvases.erase(it);
         
         emit canvasListChanged();
         emit canvasRemoved(projectId);
+    }
+    
+    // If it's an API project, delete it from the API regardless of whether it's open
+    if (isApiProject && m_projectApiClient) {
+        qDebug() << "Deleting API project:" << projectId;
+        m_projectApiClient->deleteProject(projectId);
+        // Don't emit projectDeletedFromAPI here - wait for the API response
     }
 }
 
@@ -194,10 +216,11 @@ void Application::addProject(Project* project) {
     qDebug() << "Application::addProject: Added project" << project->name() << "with ID" << project->id();
 }
 
-void Application::createNewProject() {
+void Application::createNewProject(const QString& projectName) {
     // Use CreateProjectCommand to create and sync with API
     // Execute directly without adding to command history (project management operations don't support undo)
-    auto command = std::make_unique<CreateProjectCommand>(this, "New Project");
+    QString name = projectName.isEmpty() ? "New Project" : projectName;
+    auto command = std::make_unique<CreateProjectCommand>(this, name);
     CreateProjectCommand* commandPtr = command.get();
     
     // Execute the command directly
@@ -540,6 +563,23 @@ bool Application::loadFromFile(const QString& fileName) {
         }
         return false;
     }
+}
+
+void Application::deleteProject(const QString& projectId) {
+    // Check if the project is currently open
+    auto it = std::find_if(m_canvases.begin(), m_canvases.end(),
+        [&projectId](const std::unique_ptr<Project>& c) { return c->id() == projectId; });
+    
+    if (it != m_canvases.end()) {
+        // Project is currently open, don't allow deletion
+        qWarning() << "Cannot delete project" << projectId << "- project is currently open";
+        emit apiErrorOccurred("Cannot delete an open project. Please close it first.");
+        return;
+    }
+    
+    // Project deletion is a permanent operation that should not be undoable
+    // Directly remove the project without using the command pattern
+    removeProject(projectId);
 }
 
 bool Application::deserializeApplication(const QJsonObject& projectData) {
