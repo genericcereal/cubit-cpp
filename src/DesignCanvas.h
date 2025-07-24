@@ -7,6 +7,7 @@ class DesignCanvas : public CanvasController {
     Q_PROPERTY(bool isAnimating READ isAnimating WRITE setIsAnimating NOTIFY isAnimatingChanged)
     Q_PROPERTY(bool isDesignControlsResizingDisabled READ isDesignControlsResizingDisabled WRITE setIsDesignControlsResizingDisabled NOTIFY isDesignControlsResizingDisabledChanged)
     Q_PROPERTY(bool isDesignControlsMovementDisabled READ isDesignControlsMovementDisabled WRITE setIsDesignControlsMovementDisabled NOTIFY isDesignControlsMovementDisabledChanged)
+    Q_PROPERTY(bool isEditingShape READ isEditingShape WRITE setIsEditingShape NOTIFY isEditingShapeChanged)
     
 public:
     explicit DesignCanvas(ElementModel& model,
@@ -29,6 +30,9 @@ public:
     bool isDesignControlsMovementDisabled() const { return m_isDesignControlsMovementDisabled; }
     void setIsDesignControlsMovementDisabled(bool disabled);
     
+    bool isEditingShape() const { return m_isEditingShape; }
+    void setIsEditingShape(bool editing);
+    
     // Design-specific mouse handling
     Q_INVOKABLE void updateHover(qreal x, qreal y);
     
@@ -42,6 +46,7 @@ signals:
     void isAnimatingChanged();
     void isDesignControlsResizingDisabledChanged();
     void isDesignControlsMovementDisabledChanged();
+    void isEditingShapeChanged();
     
 private slots:
     void onSelectionChanged();
@@ -52,6 +57,7 @@ private:
     bool m_isAnimating = false;
     bool m_isDesignControlsResizingDisabled = false;
     bool m_isDesignControlsMovementDisabled = false;
+    bool m_isEditingShape = false;
     
     // Clear hover when appropriate
     void clearHoverIfSelected();

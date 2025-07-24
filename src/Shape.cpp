@@ -39,12 +39,23 @@ void Shape::setJoints(const QList<QPointF>& joints)
 {
     if (m_joints != joints) {
         m_joints = joints;
-        qDebug() << "Shape joints updated - count:" << joints.size();
-        for (int i = 0; i < joints.size(); ++i) {
-            qDebug() << "  Joint" << i << ":" << joints[i];
-        }
+        // qDebug() << "Shape joints updated - count:" << joints.size();
+        // for (int i = 0; i < joints.size(); ++i) {
+        //     qDebug() << "  Joint" << i << ":" << joints[i];
+        // }
         emit jointsChanged();
     }
+}
+
+void Shape::setJoints(const QVariantList& joints)
+{
+    QList<QPointF> newJoints;
+    for (const QVariant& joint : joints) {
+        if (joint.canConvert<QPointF>()) {
+            newJoints.append(joint.toPointF());
+        }
+    }
+    setJoints(newJoints);
 }
 
 void Shape::setEdgeWidth(qreal width)
@@ -104,12 +115,12 @@ void Shape::initializeShape()
 
 void Shape::updateJointsForShape()
 {
-    qDebug() << "Shape::updateJointsForShape - type:" << m_shapeType 
-             << "width:" << width() << "height:" << height();
+    // qDebug() << "Shape::updateJointsForShape - type:" << m_shapeType 
+    //          << "width:" << width() << "height:" << height();
     
     // Don't update joints if we have no size
     if (width() <= 0 || height() <= 0) {
-        qDebug() << "Shape has no size yet, skipping joint update";
+        // qDebug() << "Shape has no size yet, skipping joint update";
         return;
     }
     

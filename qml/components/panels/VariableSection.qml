@@ -120,43 +120,81 @@ ColumnLayout {
                                 
                                 onLoaded: {
                                     if (modelData.type === "checkbox") {
-                                        item.checked = Qt.binding(function() { 
-                                            if (!modelData || !item) return false
-                                            return modelData.getter() 
-                                        })
+                                        // Set initial value
+                                        item.checked = modelData.getter()
+                                        
+                                        // Create update function
+                                        var updateCheckbox = function() {
+                                            if (modelData && item) {
+                                                item.checked = modelData.getter()
+                                            }
+                                        }
+                                        
+                                        // Connect to property changes if the element has a signal
+                                        if (root.selectedElement && modelData.property) {
+                                            // Try to connect to the property changed signal
+                                            try {
+                                                root.selectedElement[modelData.property + "Changed"].connect(updateCheckbox)
+                                            } catch (e) {
+                                                // Signal may not exist, ignore
+                                            }
+                                        }
                                         item.toggled.connect(function() {
                                             if (modelData && item) {
                                                 modelData.setter(item.checked)
                                             }
                                         })
                                     } else if (modelData.type === "text") {
-                                        item.text = Qt.binding(function() { 
-                                            if (!modelData || !item) return ""
-                                            return modelData.getter() 
-                                        })
+                                        // Set initial value
+                                        item.text = modelData.getter()
+                                        
+                                        // Create update function
+                                        var updateText = function() {
+                                            if (modelData && item) {
+                                                item.text = modelData.getter()
+                                            }
+                                        }
+                                        
+                                        // Connect to property changes if the element has a signal
+                                        if (root.selectedElement && modelData.property) {
+                                            try {
+                                                root.selectedElement[modelData.property + "Changed"].connect(updateText)
+                                            } catch (e) {
+                                                // Signal may not exist, ignore
+                                            }
+                                        }
                                         item.textChanged.connect(function() {
                                             if (modelData && item) {
                                                 modelData.setter(item.text)
                                             }
                                         })
                                     } else if (modelData.type === "combobox") {
-                                        // Use model property if available, fallback to options
-                                        if (modelData.model) {
-                                            item.model = Qt.binding(function() { 
-                                                if (!modelData || !item) return []
-                                                return modelData.model() 
-                                            })
-                                        } else if (modelData.options) {
-                                            item.model = modelData.options
+                                        // Set initial values
+                                        var model = modelData.model ? modelData.model() : modelData.options
+                                        item.model = model || []
+                                        var value = modelData.getter()
+                                        var index = model ? model.indexOf(value) : 0
+                                        item.currentIndex = index >= 0 ? index : 0
+                                        
+                                        // Create update function
+                                        var updateCombobox = function() {
+                                            if (modelData && item) {
+                                                var model = modelData.model ? modelData.model() : modelData.options
+                                                item.model = model || []
+                                                var value = modelData.getter()
+                                                var index = model ? model.indexOf(value) : 0
+                                                item.currentIndex = index >= 0 ? index : 0
+                                            }
                                         }
-                                        item.currentIndex = Qt.binding(function() {
-                                            if (!modelData || !item) return 0
-                                            var value = modelData.getter()
-                                            var model = modelData.model ? modelData.model() : modelData.options
-                                            if (!model) return 0
-                                            var index = model.indexOf(value)
-                                            return index >= 0 ? index : 0
-                                        })
+                                        
+                                        // Connect to property changes if the element has a signal
+                                        if (root.selectedElement && modelData.property) {
+                                            try {
+                                                root.selectedElement[modelData.property + "Changed"].connect(updateCombobox)
+                                            } catch (e) {
+                                                // Signal may not exist, ignore
+                                            }
+                                        }
                                         item.activated.connect(function(index) {
                                             if (modelData && item) {
                                                 var model = modelData.model ? modelData.model() : modelData.options
@@ -265,10 +303,25 @@ ColumnLayout {
                             sourceComponent: checkboxComp
                             
                             onLoaded: {
-                                item.checked = Qt.binding(function() {
-                                    if (!modelData || !item) return false
-                                    return modelData.getter()
-                                })
+                                // Set initial value
+                                item.checked = modelData.getter()
+                                
+                                // Create update function
+                                var updateCheckbox3 = function() {
+                                    if (modelData && item) {
+                                        item.checked = modelData.getter()
+                                    }
+                                }
+                                
+                                // Connect to property changes if the element has a signal
+                                if (root.selectedElement && modelData.property) {
+                                    try {
+                                        root.selectedElement[modelData.property + "Changed"].connect(updateCheckbox3)
+                                    } catch (e) {
+                                        // Signal may not exist, ignore
+                                    }
+                                }
+                                
                                 item.toggled.connect(function() {
                                     if (modelData && item) {
                                         modelData.setter(item.checked)
@@ -301,10 +354,25 @@ ColumnLayout {
                             sourceComponent: checkboxComp
                             
                             onLoaded: {
-                                item.checked = Qt.binding(function() {
-                                    if (!modelData || !item) return false
-                                    return modelData.getter()
-                                })
+                                // Set initial value
+                                item.checked = modelData.getter()
+                                
+                                // Create update function
+                                var updateCheckbox3 = function() {
+                                    if (modelData && item) {
+                                        item.checked = modelData.getter()
+                                    }
+                                }
+                                
+                                // Connect to property changes if the element has a signal
+                                if (root.selectedElement && modelData.property) {
+                                    try {
+                                        root.selectedElement[modelData.property + "Changed"].connect(updateCheckbox3)
+                                    } catch (e) {
+                                        // Signal may not exist, ignore
+                                    }
+                                }
+                                
                                 item.toggled.connect(function() {
                                     if (modelData && item) {
                                         modelData.setter(item.checked)

@@ -156,31 +156,87 @@ PropertyGroup {
                         
                         onLoaded: {
                             if (modelData.type === "text") {
-                                item.text = Qt.binding(function() { 
-                                    if (!modelData || !item) return ""
-                                    return modelData.getter() 
-                                })
+                                // Set initial value
+                                item.text = modelData.getter()
+                                
+                                // Create a connection to update the text when the source changes
+                                var updateText = function() {
+                                    if (modelData && item) {
+                                        item.text = modelData.getter()
+                                    }
+                                }
+                                
+                                // Connect to property changes if the element has a signal
+                                if (root.selectedElement && modelData.property) {
+                                    try {
+                                        var signalName = modelData.property + "Changed"
+                                        var signal = root.selectedElement[signalName]
+                                        if (signal && typeof signal.connect === "function") {
+                                            signal.connect(updateText)
+                                        }
+                                    } catch (e) {
+                                        // Signal doesn't exist, ignore
+                                    }
+                                }
+                                
                                 item.textChanged.connect(function() {
                                     if (modelData && item) {
                                         modelData.setter(item.text)
                                     }
                                 })
                             } else if (modelData.type === "label") {
-                                item.text = Qt.binding(function() { 
-                                    if (!modelData || !item) return ""
-                                    return modelData.getter() 
-                                })
+                                // Set initial value
+                                item.text = modelData.getter()
+                                
+                                // Create a connection to update the text when the source changes
+                                var updateLabel = function() {
+                                    if (modelData && item) {
+                                        item.text = modelData.getter()
+                                    }
+                                }
+                                
+                                // Connect to property changes if the element has a signal
+                                if (root.selectedElement && modelData.property) {
+                                    try {
+                                        var signalName = modelData.property + "Changed"
+                                        var signal = root.selectedElement[signalName]
+                                        if (signal && typeof signal.connect === "function") {
+                                            signal.connect(updateLabel)
+                                        }
+                                    } catch (e) {
+                                        // Signal doesn't exist, ignore
+                                    }
+                                }
                             } else if (modelData.type === "combobox") {
-                                item.model = Qt.binding(function() { 
-                                    if (!modelData || !item) return []
-                                    return modelData.model() 
-                                })
-                                item.currentIndex = Qt.binding(function() {
-                                    if (!modelData || !item || !item.model) return 0
-                                    var value = modelData.getter()
-                                    var index = item.model.indexOf(value)
-                                    return index >= 0 ? index : 0
-                                })
+                                // Set initial values
+                                item.model = modelData.model()
+                                var value = modelData.getter()
+                                var index = item.model.indexOf(value)
+                                item.currentIndex = index >= 0 ? index : 0
+                                
+                                // Create a connection to update when the source changes
+                                var updateComboBox = function() {
+                                    if (modelData && item) {
+                                        item.model = modelData.model()
+                                        var value = modelData.getter()
+                                        var index = item.model.indexOf(value)
+                                        item.currentIndex = index >= 0 ? index : 0
+                                    }
+                                }
+                                
+                                // Connect to property changes if the element has a signal
+                                if (root.selectedElement && modelData.property) {
+                                    try {
+                                        var signalName = modelData.property + "Changed"
+                                        var signal = root.selectedElement[signalName]
+                                        if (signal && typeof signal.connect === "function") {
+                                            signal.connect(updateComboBox)
+                                        }
+                                    } catch (e) {
+                                        // Signal doesn't exist, ignore
+                                    }
+                                }
+                                
                                 item.activated.connect(function(index) {
                                     if (modelData && item && item.model) {
                                         var value = item.model[index]

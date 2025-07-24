@@ -54,6 +54,14 @@ void DesignCanvas::setIsDesignControlsMovementDisabled(bool disabled)
     }
 }
 
+void DesignCanvas::setIsEditingShape(bool editing)
+{
+    if (m_isEditingShape != editing) {
+        m_isEditingShape = editing;
+        emit isEditingShapeChanged();
+    }
+}
+
 void DesignCanvas::updateHover(qreal x, qreal y)
 {
     // Update hover in select mode

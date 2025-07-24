@@ -36,7 +36,7 @@ void OpenProjectCommand::execute()
         return;
     }
 
-    qDebug() << "OpenProjectCommand: Opening project" << m_projectName << "with ID" << m_projectId;
+    // qDebug() << "OpenProjectCommand: Opening project" << m_projectName << "with ID" << m_projectId;
     
     // Check if project already exists
     Project* existingProject = m_application->getProject(m_projectId);
@@ -66,7 +66,7 @@ void OpenProjectCommand::execute()
     
     // Deserialize the canvas data into the project
     if (!m_canvasData.isEmpty()) {
-        qDebug() << "OpenProjectCommand: Deserializing canvas data for project";
+        // qDebug() << "OpenProjectCommand: Deserializing canvas data for project";
         
         // Set project properties if available
         if (m_canvasData.contains("viewMode")) {
@@ -95,7 +95,7 @@ void OpenProjectCommand::execute()
                         model->addElement(element);
                     }
                 }
-                qDebug() << "OpenProjectCommand: Loaded" << elementsArray.size() << "elements from project data";
+                // qDebug() << "OpenProjectCommand: Loaded" << elementsArray.size() << "elements from project data";
             }
         }
     }
@@ -115,7 +115,7 @@ void OpenProjectCommand::execute()
                 // Set the canvas ID property on the window
                 window->setProperty("canvasId", m_projectId);
                 
-                qDebug() << "OpenProjectCommand: Successfully opened project in new window";
+                // qDebug() << "OpenProjectCommand: Successfully opened project in new window";
             } else {
                 qWarning() << "OpenProjectCommand: Failed to create project window:" << component.errorString();
             }

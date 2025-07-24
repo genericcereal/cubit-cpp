@@ -35,6 +35,7 @@ public:
     QVariantList joints() const;
     QList<QPointF> jointsAsPoints() const { return m_joints; }
     void setJoints(const QList<QPointF>& joints);
+    Q_INVOKABLE void setJoints(const QVariantList& joints);
 
     // Edge properties
     qreal edgeWidth() const { return m_edgeWidth; }

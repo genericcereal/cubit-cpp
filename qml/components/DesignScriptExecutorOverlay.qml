@@ -27,7 +27,7 @@ Item {
                     continue;
                 var elementType = element.elementType || "unknown";
 
-                console.log("DesignScriptExecutorOverlay - Checking element:", element.elementId, "type:", elementType);
+                // DesignScriptExecutorOverlay - Checking element
 
                 // Only DesignElements (Frame, Text, WebTextInput, and their ComponentInstance variants) can execute scripts
                 if (elementType === "Frame" || elementType === "Text" || elementType === "WebTextInput" ||
