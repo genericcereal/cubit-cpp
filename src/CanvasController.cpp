@@ -20,6 +20,7 @@
 #include "WebTextInputComponentVariant.h"
 #include "Frame.h"
 #include "Text.h"
+#include "Shape.h"
 #include "Node.h"
 #include "Edge.h"
 #include "Component.h"
@@ -107,6 +108,33 @@ void CanvasController::initializeModeHandlers()
         CreationModeHandler::Config{
             "webtextinput",
             QVariant("Enter text...")  // Default placeholder
+        },
+        &m_elementModel, &m_selectionManager,
+        m_commandHistory.get(), setModeFunc);
+    
+    // Shape Square mode
+    m_modeHandlers[Mode::ShapeSquare] = std::make_unique<CreationModeHandler>(
+        CreationModeHandler::Config{
+            "shape",
+            QVariant::fromValue(static_cast<int>(Shape::Square))
+        },
+        &m_elementModel, &m_selectionManager,
+        m_commandHistory.get(), setModeFunc);
+    
+    // Shape Triangle mode
+    m_modeHandlers[Mode::ShapeTriangle] = std::make_unique<CreationModeHandler>(
+        CreationModeHandler::Config{
+            "shape",
+            QVariant::fromValue(static_cast<int>(Shape::Triangle))
+        },
+        &m_elementModel, &m_selectionManager,
+        m_commandHistory.get(), setModeFunc);
+    
+    // Shape Line mode
+    m_modeHandlers[Mode::ShapeLine] = std::make_unique<CreationModeHandler>(
+        CreationModeHandler::Config{
+            "shape",
+            QVariant::fromValue(static_cast<int>(Shape::Line))
         },
         &m_elementModel, &m_selectionManager,
         m_commandHistory.get(), setModeFunc);

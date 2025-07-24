@@ -582,6 +582,15 @@ void Application::deleteProject(const QString& projectId) {
     removeProject(projectId);
 }
 
+void Application::closeProjectWindow(const QString& projectId) {
+    // This method is called when a project window is closed
+    // It only emits the signal to close the window, but does NOT delete the project data
+    emit canvasRemoved(projectId);
+    
+    // Note: We do NOT remove the project from m_canvases
+    // The project remains in memory and can be reopened later
+}
+
 bool Application::deserializeApplication(const QJsonObject& projectData) {
     try {
         // Process pending events to allow QML to handle state changes

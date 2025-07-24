@@ -25,7 +25,10 @@ public:
         TextVariantType,
         WebTextInputType,
         WebTextInputComponentInstanceType,
-        WebTextInputComponentVariantType
+        WebTextInputComponentVariantType,
+        ShapeType,
+        ShapeComponentInstanceType,
+        ShapeComponentVariantType
     };
     Q_ENUM(ElementType)
 

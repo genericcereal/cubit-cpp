@@ -166,30 +166,44 @@ PropertyGroup {
                         
                         onLoaded: {
                             if (modelData.type === "combobox") {
-                                item.model = Qt.binding(function() { return modelData.model() })
+                                item.model = Qt.binding(function() { 
+                                    if (!modelData || !item) return []
+                                    return modelData.model() 
+                                })
                                 item.currentIndex = Qt.binding(function() {
+                                    if (!modelData || !item || !item.model) return 0
                                     var value = modelData.getter()
                                     var index = item.model.indexOf(value)
                                     return index >= 0 ? index : 0
                                 })
                                 item.activated.connect(function(index) {
-                                    var value = item.model[index]
-                                    modelData.setter(value)
+                                    if (modelData && item && item.model) {
+                                        var value = item.model[index]
+                                        modelData.setter(value)
+                                    }
                                 })
                             } else if (modelData.type === "spinbox_anchor") {
                                 var spinBox = item.children[0]
                                 var anchorButton = item.children[1]
                                 
-                                spinBox.value = Qt.binding(function() { return modelData.valueGetter() })
+                                spinBox.value = Qt.binding(function() { 
+                                    if (!modelData || !spinBox) return 0
+                                    return modelData.valueGetter() 
+                                })
                                 spinBox.valueModified.connect(function() {
-                                    if (spinBox.value !== modelData.valueGetter()) {
+                                    if (modelData && spinBox && spinBox.value !== modelData.valueGetter()) {
                                         modelData.valueSetter(spinBox.value)
                                     }
                                 })
                                 
-                                anchorButton.checked = Qt.binding(function() { return modelData.anchorGetter() })
+                                anchorButton.checked = Qt.binding(function() { 
+                                    if (!modelData || !anchorButton) return false
+                                    return modelData.anchorGetter() 
+                                })
                                 anchorButton.toggled.connect(function() {
-                                    modelData.anchorSetter(anchorButton.checked, spinBox.value)
+                                    if (modelData && anchorButton && spinBox) {
+                                        modelData.anchorSetter(anchorButton.checked, spinBox.value)
+                                    }
                                 })
                             }
                         }
