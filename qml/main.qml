@@ -51,13 +51,13 @@ ApplicationWindow {
     }
     // Note: PropertyPopoverPanel and its components have been moved to CanvasScreen
     
-    // Authentication overlay - covers entire window when not authenticated
+    // Authentication/Loading overlay - covers entire window when loading or not authenticated
     Rectangle {
         id: authOverlay
         anchors.fill: parent
         color: "white"
         opacity: 0.95
-        visible: !authManager.isAuthenticated
+        visible: !authManager.isAuthenticated || authManager.isLoading
         z: 9999 // Above everything else
         
         // Prevent interaction with underlying content
@@ -76,7 +76,7 @@ ApplicationWindow {
             spacing: 20
             
             Text {
-                text: "Authentication Required"
+                text: authManager.isLoading && authManager.isAuthenticated ? "Loading..." : "Authentication Required"
                 font.pixelSize: 24
                 font.weight: Font.Medium
                 color: "#333333"
@@ -84,7 +84,7 @@ ApplicationWindow {
             }
             
             Text {
-                text: authManager.isLoading ? "Authenticating..." : "Please log in to continue"
+                text: authManager.isLoading ? "Checking authentication..." : "Please log in to continue"
                 font.pixelSize: 14
                 color: "#666666"
                 anchors.horizontalCenter: parent.horizontalCenter

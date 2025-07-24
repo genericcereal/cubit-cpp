@@ -345,7 +345,9 @@ void DesignControlsController::endMoveOperation(const QPointF& totalDelta)
     }
     
     qDebug() << "DesignControlsController::endMoveOperation - Firing move command for" << m_dragStartSelectedElements.size() << "elements";
-    designCanvas->moveElements(m_dragStartSelectedElements, totalDelta);
+    
+    // Pass the original positions we stored at drag start
+    designCanvas->moveElementsWithOriginalPositions(m_dragStartSelectedElements, totalDelta, m_dragStartElementPositions);
 }
 
 void DesignControlsController::endResizeOperation()
@@ -372,17 +374,24 @@ void DesignControlsController::endResizeOperation()
         if (!canvasElement) continue;
         
         auto oldSize = m_dragStartElementSizes.value(element->getId());
+        auto oldPos = m_dragStartElementPositions.value(element->getId());
         QSizeF newSize(canvasElement->width(), canvasElement->height());
+        QPointF newPos(canvasElement->x(), canvasElement->y());
         
         qDebug() << "DesignControlsController::endResizeOperation - Element" << element->getId()
-                 << "oldSize:" << oldSize.width() << "x" << oldSize.height() 
-                 << "newSize:" << newSize.width() << "x" << newSize.height();
+                 << "oldPos:" << oldPos << "oldSize:" << oldSize.width() << "x" << oldSize.height() 
+                 << "newPos:" << newPos << "newSize:" << newSize.width() << "x" << newSize.height();
         
-        // Only fire command if size actually changed
+        // Only fire command if size or position actually changed
         if (qAbs(newSize.width() - oldSize.width()) > 0.001 || 
-            qAbs(newSize.height() - oldSize.height()) > 0.001) {
+            qAbs(newSize.height() - oldSize.height()) > 0.001 ||
+            qAbs(newPos.x() - oldPos.x()) > 0.001 ||
+            qAbs(newPos.y() - oldPos.y()) > 0.001) {
             qDebug() << "DesignControlsController::endResizeOperation - Firing resize command for element" << element->getId();
-            designCanvas->resizeElement(canvasElement, oldSize, newSize);
+            // Create full rectangles with original and new positions/sizes
+            QRectF oldRect(oldPos, oldSize);
+            QRectF newRect(newPos, newSize);
+            designCanvas->resizeElement(canvasElement, oldRect, newRect);
         } else {
             qDebug() << "DesignControlsController::endResizeOperation - Size didn't change enough for element" << element->getId();
         }

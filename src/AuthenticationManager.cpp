@@ -29,14 +29,16 @@ AuthenticationManager::~AuthenticationManager() = default;
 
 void AuthenticationManager::checkAutoLogin()
 {
-    // Skip auto-login if already authenticated with valid tokens
+    // If we have stored tokens, verify they're still valid
     if (m_isAuthenticated && !m_accessToken.isEmpty()) {
         qDebug() << "User already authenticated, skipping login";
+        // Set loading to false since we're done checking
+        setIsLoading(false);
         return;
     }
     
     // Auto-login on startup if not already authenticated
-    if (!m_isAuthenticated && !m_isLoading) {
+    if (!m_isAuthenticated) {
         login();
     }
 }

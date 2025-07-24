@@ -389,8 +389,12 @@ bool CanvasController::canRedo() const
 
 void CanvasController::undo()
 {
+    qDebug() << "CanvasController::undo() called";
     if (m_commandHistory) {
+        qDebug() << "CanvasController::undo() - calling m_commandHistory->undo()";
         m_commandHistory->undo();
+    } else {
+        qDebug() << "CanvasController::undo() - m_commandHistory is null!";
     }
 }
 
@@ -461,15 +465,20 @@ void CanvasController::moveElements(const QList<Element*>& elements, const QPoin
     m_commandHistory->execute(std::move(command));
 }
 
-void CanvasController::resizeElement(CanvasElement* element, const QSizeF& oldSize, const QSizeF& newSize)
+void CanvasController::moveElementsWithOriginalPositions(const QList<Element*>& elements, const QPointF& delta, const QHash<QString, QPointF>& originalPositions)
+{
+    if (elements.isEmpty()) return;
+    
+    // Create and execute move command with original positions
+    auto command = std::make_unique<MoveElementsCommand>(elements, delta, originalPositions);
+    m_commandHistory->execute(std::move(command));
+}
+
+void CanvasController::resizeElement(CanvasElement* element, const QRectF& oldRect, const QRectF& newRect)
 {
     if (!element) return;
     
-    // Create rects with the provided old and new sizes
-    QRectF oldRect(element->x(), element->y(), oldSize.width(), oldSize.height());
-    QRectF newRect(element->x(), element->y(), newSize.width(), newSize.height());
-    
-    // Create and execute resize command
+    // Create and execute resize command with full rectangles (position + size)
     auto command = std::make_unique<ResizeElementCommand>(element, oldRect, newRect);
     m_commandHistory->execute(std::move(command));
 }

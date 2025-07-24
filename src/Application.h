@@ -42,6 +42,8 @@ public:
     void addProject(Project* project);  // For command undo operations
     Q_INVOKABLE void createNewProject();
     Q_INVOKABLE void fetchProjectsFromAPI();  // Fetch projects from API
+    Q_INVOKABLE void listProjects(const QString& filter = QString(), int limit = 100, const QString& nextToken = QString());
+    Q_INVOKABLE void fetchProjectFromAPI(const QString& projectId);
     Q_INVOKABLE void openAPIProject(const QString& projectId, const QString& projectName, const QJsonObject& canvasData);
     
     // Engine management for multi-window support
@@ -73,6 +75,8 @@ signals:
     void saveFileRequested();
     void openFileRequested();
     void projectsFetchedFromAPI(const QJsonArray& projects);
+    void projectsListedFromAPI(const QJsonArray& projects, const QString& nextToken);
+    void projectFetchedFromAPI(const QString& projectId, const QJsonObject& project);
     void apiErrorOccurred(const QString& error);
 
 private slots:

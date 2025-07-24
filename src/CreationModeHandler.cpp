@@ -45,6 +45,9 @@ void CreationModeHandler::onPress(qreal x, qreal y)
     auto command = std::make_unique<CreateDesignElementCommand>(
         m_elementModel, m_selectionManager, 
         m_cfg.elementType, rect, m_cfg.defaultPayload);
+    
+    // Store raw pointer before moving ownership
+    m_currentCommand = command.get();
     m_commandHistory->execute(std::move(command));
     
     // The element is now created and selected, ready for resize
@@ -97,6 +100,12 @@ void CreationModeHandler::onRelease(qreal x, qreal y)
     if (element && (element->width() < 10 || element->height() < 10)) {
         element->setWidth(qMax(element->width(), qreal(::Config::DEFAULT_ELEMENT_WIDTH)));
         element->setHeight(qMax(element->height(), qreal(::Config::DEFAULT_ELEMENT_HEIGHT)));
+    }
+    
+    // Notify the command that creation is complete with final size
+    if (m_currentCommand) {
+        m_currentCommand->creationCompleted();
+        m_currentCommand = nullptr; // Clear the reference
     }
     
     // Switch back to select mode

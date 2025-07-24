@@ -92,6 +92,67 @@ void ProjectApiClient::fetchProjects()
     sendGraphQLRequest(query, variables, "fetchProjects");
 }
 
+void ProjectApiClient::listProjects(const QString& filter, int limit, const QString& nextToken)
+{
+    if (!m_authManager || !m_authManager->isAuthenticated()) {
+        emit listProjectsFailed("Not authenticated");
+        return;
+    }
+
+    QString query = R"(
+        query ListProjects($filter: ModelProjectFilterInput, $limit: Int, $nextToken: String) {
+            listProjects(filter: $filter, limit: $limit, nextToken: $nextToken) {
+                items {
+                    id
+                    name
+                    teamId
+                    createdAt
+                    updatedAt
+                }
+                nextToken
+            }
+        }
+    )";
+
+    QJsonObject variables;
+    if (!filter.isEmpty()) {
+        QJsonDocument filterDoc = QJsonDocument::fromJson(filter.toUtf8());
+        if (!filterDoc.isNull()) {
+            variables["filter"] = filterDoc.object();
+        }
+    }
+    variables["limit"] = limit;
+    if (!nextToken.isEmpty()) {
+        variables["nextToken"] = nextToken;
+    }
+    sendGraphQLRequest(query, variables, "listProjects");
+}
+
+void ProjectApiClient::getProject(const QString& projectId)
+{
+    if (!m_authManager || !m_authManager->isAuthenticated()) {
+        emit getProjectFailed(projectId, "Not authenticated");
+        return;
+    }
+
+    QString query = R"(
+        query GetProject($id: ID!) {
+            getProject(id: $id) {
+                id
+                name
+                teamId
+                canvasData
+                createdAt
+                updatedAt
+            }
+        }
+    )";
+
+    QJsonObject variables;
+    variables["id"] = projectId;
+    sendGraphQLRequest(query, variables, "getProject", projectId);
+}
+
 void ProjectApiClient::updateProject(const QString& apiProjectId, const QString& name, const QJsonObject& canvasData)
 {
     if (!m_authManager || !m_authManager->isAuthenticated()) {
@@ -178,7 +239,7 @@ void ProjectApiClient::syncCreateElement(const QString& apiProjectId, const QJso
     emit elementCreated(apiProjectId, elementId);
 }
 
-void ProjectApiClient::syncUpdateElement(const QString& apiProjectId, const QString& elementId, const QJsonObject& elementData)
+void ProjectApiClient::syncUpdateElement(const QString& apiProjectId, const QString& elementId)
 {
     if (!m_authManager || !m_authManager->isAuthenticated()) {
         emit syncUpdateElementFailed(apiProjectId, elementId, "Not authenticated");
@@ -207,7 +268,7 @@ void ProjectApiClient::syncUpdateElement(const QString& apiProjectId, const QStr
     emit elementUpdated(apiProjectId, elementId);
 }
 
-void ProjectApiClient::syncMoveElements(const QString& apiProjectId, const QJsonArray& elementIds, const QJsonObject& deltaData)
+void ProjectApiClient::syncMoveElements(const QString& apiProjectId, const QJsonArray& elementIds)
 {
     if (!m_authManager || !m_authManager->isAuthenticated()) {
         emit syncMoveElementsFailed(apiProjectId, "Not authenticated");
@@ -303,6 +364,10 @@ void ProjectApiClient::sendGraphQLRequest(const QString& query, const QJsonObjec
         connect(reply, &QNetworkReply::finished, this, &ProjectApiClient::onCreateProjectFinished);
     } else if (operation == "fetchProjects") {
         connect(reply, &QNetworkReply::finished, this, &ProjectApiClient::onFetchProjectsFinished);
+    } else if (operation == "listProjects") {
+        connect(reply, &QNetworkReply::finished, this, &ProjectApiClient::onListProjectsFinished);
+    } else if (operation == "getProject") {
+        connect(reply, &QNetworkReply::finished, this, &ProjectApiClient::onGetProjectFinished);
     } else if (operation == "updateProject") {
         connect(reply, &QNetworkReply::finished, this, &ProjectApiClient::onUpdateProjectFinished);
     } else if (operation == "deleteProject") {
@@ -323,6 +388,28 @@ void ProjectApiClient::onCreateProjectFinished()
 }
 
 void ProjectApiClient::onFetchProjectsFinished()
+{
+    QNetworkReply* reply = qobject_cast<QNetworkReply*>(sender());
+    if (!reply || !m_pendingRequests.contains(reply)) {
+        return;
+    }
+
+    PendingRequest request = m_pendingRequests[reply];
+    handleGraphQLResponse(reply, request);
+}
+
+void ProjectApiClient::onListProjectsFinished()
+{
+    QNetworkReply* reply = qobject_cast<QNetworkReply*>(sender());
+    if (!reply || !m_pendingRequests.contains(reply)) {
+        return;
+    }
+
+    PendingRequest request = m_pendingRequests[reply];
+    handleGraphQLResponse(reply, request);
+}
+
+void ProjectApiClient::onGetProjectFinished()
 {
     QNetworkReply* reply = qobject_cast<QNetworkReply*>(sender());
     if (!reply || !m_pendingRequests.contains(reply)) {
@@ -403,6 +490,33 @@ void ProjectApiClient::handleGraphQLResponse(QNetworkReply* reply, const Pending
                 emit projectsFetched(processedProjects);
                 qDebug() << "ProjectApiClient: Successfully fetched" << processedProjects.size() << "projects";
                 
+            } else if (request.operation == "listProjects" && data.contains("listProjects")) {
+                QJsonObject listResult = data["listProjects"].toObject();
+                QJsonArray projects = listResult["items"].toArray();
+                QString nextToken = listResult["nextToken"].toString();
+                
+                emit projectsListed(projects, nextToken);
+                qDebug() << "ProjectApiClient: Successfully listed" << projects.size() << "projects";
+                
+            } else if (request.operation == "getProject" && data.contains("getProject")) {
+                QJsonObject project = data["getProject"].toObject();
+                
+                // Parse canvasData string back to JSON object if it's a string
+                if (project.contains("canvasData") && project["canvasData"].isString()) {
+                    QString canvasDataStr = project["canvasData"].toString();
+                    QJsonDocument canvasDoc = QJsonDocument::fromJson(canvasDataStr.toUtf8());
+                    if (!canvasDoc.isNull()) {
+                        project["canvasData"] = canvasDoc.object();
+                    } else {
+                        emit getProjectFailed(request.projectId, "Failed to parse canvas data");
+                        qDebug() << "ProjectApiClient: Failed to parse canvas data for project:" << request.projectId;
+                        return;
+                    }
+                }
+                
+                emit projectFetched(request.projectId, project);
+                qDebug() << "ProjectApiClient: Successfully fetched project:" << request.projectId;
+                
             } else if (request.operation == "updateProject" && data.contains("updateProject")) {
                 QJsonObject updatedProject = data["updateProject"].toObject();
                 QString apiProjectId = updatedProject["id"].toString();
@@ -433,6 +547,16 @@ void ProjectApiClient::handleGraphQLResponse(QNetworkReply* reply, const Pending
                        .arg(reply->errorString())
                        .arg(QString(responseData));
         qWarning() << "ProjectApiClient: Network error for" << request.operation << "-" << error;
+        
+        // Check if this is an authentication error
+        if (error.contains("Token has expired") || error.contains("UnauthorizedException")) {
+            // Trigger token refresh
+            qDebug() << "ProjectApiClient: Token expired, triggering refresh";
+            if (m_authManager) {
+                m_authManager->refreshAccessToken();
+            }
+        }
+        
         emitErrorForOperation(request.operation, request.projectId, error);
     }
 
@@ -489,6 +613,10 @@ void ProjectApiClient::emitErrorForOperation(const QString& operation, const QSt
         emit createProjectFailed(error);
     } else if (operation == "fetchProjects") {
         emit fetchProjectsFailed(error);
+    } else if (operation == "listProjects") {
+        emit listProjectsFailed(error);
+    } else if (operation == "getProject") {
+        emit getProjectFailed(projectId, error);
     } else if (operation == "updateProject") {
         emit updateProjectFailed(projectId, error);
     } else if (operation == "deleteProject") {

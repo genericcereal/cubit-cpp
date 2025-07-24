@@ -375,9 +375,11 @@ void AICommandDispatcher::executeResizeElement(const QJsonObject &command)
     Element *element = activeElementModel()->getElementById(elementId);
     if (auto canvasElement = qobject_cast<CanvasElement *>(element))
     {
-        // Get current size as old size
-        QSizeF oldSize(canvasElement->width(), canvasElement->height());
-        controller->resizeElement(canvasElement, oldSize, QSizeF(width, height));
+        // Get current rectangle as old rect
+        QRectF oldRect(canvasElement->x(), canvasElement->y(), canvasElement->width(), canvasElement->height());
+        // Keep same position, just change size
+        QRectF newRect(canvasElement->x(), canvasElement->y(), width, height);
+        controller->resizeElement(canvasElement, oldRect, newRect);
     }
     else
     {

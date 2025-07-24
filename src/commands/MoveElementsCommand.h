@@ -5,6 +5,7 @@
 #include <QList>
 #include <QPointF>
 #include <QMap>
+#include <QHash>
 
 class Element;
 class CanvasElement;
@@ -15,6 +16,7 @@ class MoveElementsCommand : public Command
 
 public:
     MoveElementsCommand(const QList<Element*>& elements, const QPointF& delta, QObject *parent = nullptr);
+    MoveElementsCommand(const QList<Element*>& elements, const QPointF& delta, const QHash<QString, QPointF>& originalPositions, QObject *parent = nullptr);
     ~MoveElementsCommand();
 
     void execute() override;
