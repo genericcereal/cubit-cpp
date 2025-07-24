@@ -109,7 +109,7 @@ QJsonObject ScriptSerializer::serializeOutputs(const ScriptInvokeBuilder::BuildC
 }
 
 QJsonObject ScriptSerializer::serializeFunctions(const ScriptInvokeBuilder::BuildContext& context,
-                                                Scripts* scripts)
+                                                Scripts* /*scripts*/)
 {
     QJsonObject functions;
     
