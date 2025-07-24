@@ -447,20 +447,98 @@ jobs:
     
     - name: Package application
       run: |
-        windeployqt --release --dir deploy release\cubit-quick.exe
+        mkdir deploy
+        windeployqt --release --qmldir=qml --dir deploy release\cubit-quick.exe
         copy release\cubit-quick.exe deploy\
     
-    - name: Create installer (optional)
+    - name: Install NSIS
       run: |
-        # You can add NSIS or other installer creation here
-        # For now, we'll just package the deployed files
-        Compress-Archive -Path deploy\* -DestinationPath cubit-windows.zip
+        choco install nsis -y
+        $env:PATH = "C:\Program Files (x86)\NSIS;$env:PATH"
+    
+    - name: Create installer script
+      run: |
+        @'
+        !include "MUI2.nsh"
+        
+        Name "Cubit"
+        OutFile "cubit-installer.exe"
+        InstallDir "$PROGRAMFILES64\Cubit"
+        RequestExecutionLevel admin
+        
+        !define MUI_ABORTWARNING
+        
+        !insertmacro MUI_PAGE_LICENSE "LICENSE"
+        !insertmacro MUI_PAGE_DIRECTORY
+        !insertmacro MUI_PAGE_INSTFILES
+        
+        !insertmacro MUI_UNPAGE_CONFIRM
+        !insertmacro MUI_UNPAGE_INSTFILES
+        
+        !insertmacro MUI_LANGUAGE "English"
+        
+        Section "Main"
+          SetOutPath "$INSTDIR"
+          File /r "deploy\*.*"
+          
+          WriteUninstaller "$INSTDIR\Uninstall.exe"
+          
+          ; Create start menu shortcut
+          CreateDirectory "$SMPROGRAMS\Cubit"
+          CreateShortcut "$SMPROGRAMS\Cubit\Cubit.lnk" "$INSTDIR\cubit-quick.exe"
+          CreateShortcut "$SMPROGRAMS\Cubit\Uninstall.lnk" "$INSTDIR\Uninstall.exe"
+          
+          ; Create desktop shortcut
+          CreateShortcut "$DESKTOP\Cubit.lnk" "$INSTDIR\cubit-quick.exe"
+          
+          ; Write registry keys
+          WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Cubit" "DisplayName" "Cubit"
+          WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Cubit" "UninstallString" "$INSTDIR\Uninstall.exe"
+        SectionEnd
+        
+        Section "Uninstall"
+          Delete "$INSTDIR\*.*"
+          RMDir /r "$INSTDIR"
+          Delete "$SMPROGRAMS\Cubit\*.*"
+          RMDir "$SMPROGRAMS\Cubit"
+          Delete "$DESKTOP\Cubit.lnk"
+          DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Cubit"
+        SectionEnd
+        '@ | Out-File -Encoding ASCII installer.nsi
+    
+    - name: Create LICENSE file
+      run: |
+        @'
+        Copyright (c) 2024 Cubit Contributors
+        
+        Permission is hereby granted, free of charge, to any person obtaining a copy
+        of this software and associated documentation files (the "Software"), to deal
+        in the Software without restriction, including without limitation the rights
+        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+        copies of the Software, and to permit persons to whom the Software is
+        furnished to do so, subject to the following conditions:
+        
+        The above copyright notice and this permission notice shall be included in all
+        copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+        SOFTWARE.
+        '@ | Out-File -Encoding ASCII LICENSE
+    
+    - name: Build installer
+      run: |
+        & "C:\Program Files (x86)\NSIS\makensis.exe" installer.nsi
     
     - name: Upload Windows artifact
       uses: actions/upload-artifact@v4
       with:
         name: cubit-windows
-        path: cubit-windows.zip
+        path: cubit-installer.exe
         retention-days: 7
 
   create-release:
@@ -483,6 +561,6 @@ jobs:
         prerelease: true
         files: |
           artifacts/cubit-macos/cubit-quick.dmg
-          artifacts/cubit-windows/cubit-windows.zip
+          artifacts/cubit-windows/cubit-installer.exe
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
