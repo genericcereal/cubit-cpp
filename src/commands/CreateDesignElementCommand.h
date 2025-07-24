@@ -24,6 +24,9 @@ public:
 
     void execute() override;
     void undo() override;
+    
+    // Call this after the element has been resized to its final dimensions
+    void creationCompleted();
 
 private:
     void syncWithAPI();

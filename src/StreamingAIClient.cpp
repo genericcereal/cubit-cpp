@@ -589,7 +589,7 @@ void StreamingAIClient::sendCubitAIRules(const QString &conversationId)
         req.setRawHeader("Authorization", token.toUtf8());
 
     QNetworkReply *reply = manager->post(req, QJsonDocument(body).toJson(QJsonDocument::Compact));
-    connect(reply, &QNetworkReply::finished, this, [this, reply, manager]() {
+    connect(reply, &QNetworkReply::finished, this, [reply, manager]() {
         if (reply->error() != QNetworkReply::NoError) {
             qWarning() << "Failed to send CubitAI rules:" << reply->errorString();
         }

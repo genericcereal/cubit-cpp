@@ -1,4 +1,9 @@
-import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
+import {
+  type ClientSchema,
+  a,
+  defineData,
+  defineFunction,
+} from "@aws-amplify/backend";
 import { CUBITAI_SYSTEM_PROMPT } from "./cubitai-system-prompt";
 
 /*== STEP 1 ===============================================================
@@ -20,24 +25,7 @@ const schema = a.schema({
     .authorization((allow) => allow.owner()),
 
   // Legacy cubitAi for backward compatibility (can be removed later)
-  cubitAi: a
-    .generation({
-      aiModel: a.ai.model("Claude 3 Haiku"),
-      systemPrompt: CUBITAI_SYSTEM_PROMPT,
-    })
-    .arguments({
-      description: a.string(),
-      canvasState: a.string(), // Current canvas state as JSON string
-    })
-    .returns(
-      a.customType({
-        message: a.string(), // Human-readable response
-        commands: a.string(), // Array of command objects as JSON string
-        shouldContinue: a.boolean(), // Whether AI should continue with more commands
-        continuationContext: a.string(), // Context for the next turn (optional)
-      })
-    )
-    .authorization((allow) => allow.authenticated()),
+
   Team: a
     .model({
       name: a.string().required(),

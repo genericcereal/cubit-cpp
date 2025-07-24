@@ -112,11 +112,8 @@ void ResizeElementCommand::syncWithAPI()
     // Get the project's API ID
     QString apiProjectId = project->id();
     
-    // Serialize the updated element data
-    QJsonObject elementData = app->serializeElement(m_element);
-    
     // Sync with API
-    apiClient->syncUpdateElement(apiProjectId, m_element->getId(), elementData);
+    apiClient->syncUpdateElement(apiProjectId, m_element->getId());
     
     qDebug() << "ResizeElementCommand: Syncing element resize with API for project" << apiProjectId 
              << "element:" << m_element->getId() << "new size:" << m_newRect.size();

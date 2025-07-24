@@ -19,10 +19,18 @@ Rectangle {
     Connections {
         target: Application
         
-        function onProjectsFetchedFromAPI(projects) {
+        function onProjectsListedFromAPI(projects, nextToken) {
             console.log("ProjectList: Received", projects.length, "projects from API")
             updateProjectsModel(projects)
             isLoading = false
+            // TODO: Handle nextToken for pagination if needed
+        }
+        
+        function onProjectFetchedFromAPI(projectId, project) {
+            console.log("ProjectList: Received project data:", projectId)
+            // Extract canvasData from the project object
+            let canvasData = project.canvasData
+            openProjectWithCanvasData(project, canvasData)
         }
         
         function onApiErrorOccurred(error) {
@@ -31,19 +39,30 @@ Rectangle {
             isLoading = false
         }
     }
+    
+    // Connect to AuthenticationManager to retry after token refresh
+    Connections {
+        target: authManager
+        
+        function onTokensRefreshed() {
+            console.log("ProjectList: Tokens refreshed, retrying fetch...")
+            fetchProjects()
+        }
+    }
 
     // JavaScript functions
     function fetchProjects() {
         isLoading = true
         errorMessage = ""
-        Application.fetchProjectsFromAPI()
+        // List projects without filter, with default limit
+        Application.listProjects()
     }
 
     function updateProjectsModel(apiProjects) {
         // Clear existing model
         projectsModel.clear()
         
-        // Add projects from API only
+        // Add projects from API
         for (let i = 0; i < apiProjects.length; i++) {
             let project = apiProjects[i]
             let lastModified = formatLastModified(project.updatedAt || project.createdAt)
@@ -54,7 +73,6 @@ Rectangle {
                 "lastModified": lastModified,
                 "createdAt": project.createdAt,
                 "updatedAt": project.updatedAt,
-                "canvasData": project.canvasData,
                 "teamId": project.teamId
             })
         }
@@ -80,7 +98,7 @@ Rectangle {
     }
 
     function openProject(projectData) {
-        console.log("ProjectList: Opening API project:", projectData.name)
+        console.log("ProjectList: Fetching canvas data for project:", projectData.name)
         
         if (!projectData.id || !projectData.name) {
             console.error("ProjectList: Invalid project data - missing id or name")
@@ -88,18 +106,25 @@ Rectangle {
             return
         }
         
-        if (!projectData.canvasData) {
-            console.error("ProjectList: No canvas data available for project:", projectData.name)
-            errorMessage = "Project has no canvas data"
-            return
-        }
+        // Show loading state
+        isLoading = true
+        errorMessage = ""
+        
+        // Always fetch the latest project data to ensure we have the most up-to-date version
+        Application.fetchProjectFromAPI(projectData.id)
+    }
+    
+    function openProjectWithCanvasData(projectData, canvasData) {
+        console.log("ProjectList: Opening API project with canvas data:", projectData.name)
         
         try {
-            Application.openAPIProject(projectData.id, projectData.name, projectData.canvasData)
+            Application.openAPIProject(projectData.id, projectData.name, canvasData)
             console.log("ProjectList: Successfully opened API project:", projectData.name)
+            isLoading = false
         } catch (error) {
             console.error("ProjectList: Error opening API project:", error)
             errorMessage = "Failed to open project: " + error.message
+            isLoading = false
         }
     }
 

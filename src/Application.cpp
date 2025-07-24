@@ -73,6 +73,16 @@ void Application::setAuthenticationManager(AuthenticationManager* authManager) {
                 this, &Application::projectsFetchedFromAPI, Qt::UniqueConnection);
         connect(m_projectApiClient.get(), &ProjectApiClient::fetchProjectsFailed, 
                 this, &Application::apiErrorOccurred, Qt::UniqueConnection);
+        connect(m_projectApiClient.get(), &ProjectApiClient::projectsListed,
+                this, &Application::projectsListedFromAPI, Qt::UniqueConnection);
+        connect(m_projectApiClient.get(), &ProjectApiClient::listProjectsFailed,
+                this, &Application::apiErrorOccurred, Qt::UniqueConnection);
+        connect(m_projectApiClient.get(), &ProjectApiClient::projectFetched,
+                this, &Application::projectFetchedFromAPI, Qt::UniqueConnection);
+        connect(m_projectApiClient.get(), &ProjectApiClient::getProjectFailed,
+                this, [this](const QString& projectId, const QString& error) {
+                    emit apiErrorOccurred(QString("Failed to fetch project %1: %2").arg(projectId, error));
+                }, Qt::UniqueConnection);
     }
 }
 
@@ -88,6 +98,28 @@ void Application::fetchProjectsFromAPI()
     }
 
     m_projectApiClient->fetchProjects();
+}
+
+void Application::listProjects(const QString& filter, int limit, const QString& nextToken)
+{
+    if (!m_projectApiClient) {
+        qWarning() << "Application::listProjects: No API client available";
+        emit apiErrorOccurred("API client not available");
+        return;
+    }
+
+    m_projectApiClient->listProjects(filter, limit, nextToken);
+}
+
+void Application::fetchProjectFromAPI(const QString& projectId)
+{
+    if (!m_projectApiClient) {
+        qWarning() << "Application::fetchProjectFromAPI: No API client available";
+        emit apiErrorOccurred("API client not available");
+        return;
+    }
+
+    m_projectApiClient->getProject(projectId);
 }
 
 QString Application::createProject(const QString& name) {

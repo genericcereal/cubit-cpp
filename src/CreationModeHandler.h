@@ -11,6 +11,7 @@ class SelectionManager;
 class CommandHistory;
 class CanvasElement;
 class CanvasController;
+class CreateDesignElementCommand;
 
 class CreationModeHandler : public IModeHandler {
 public:
@@ -38,6 +39,7 @@ private:
 
     QPointF               m_startPos;
     bool                  m_isDragging = false;
+    CreateDesignElementCommand* m_currentCommand = nullptr;
 
     CanvasElement* currentElement() const;
 };

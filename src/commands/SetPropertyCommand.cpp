@@ -124,11 +124,8 @@ void SetPropertyCommand::syncWithAPI()
     // Get the project's API ID
     QString apiProjectId = project->id();
     
-    // Serialize the updated element data
-    QJsonObject elementData = app->serializeElement(element);
-    
     // Sync with API
-    apiClient->syncUpdateElement(apiProjectId, element->getId(), elementData);
+    apiClient->syncUpdateElement(apiProjectId, element->getId());
     
     qDebug() << "SetPropertyCommand: Syncing property change with API for project" << apiProjectId 
              << "element:" << element->getId() << "property:" << m_propertyName << "new value:" << m_newValue;

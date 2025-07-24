@@ -120,8 +120,7 @@ void CreateDesignElementCommand::execute()
                 .arg(m_rect.x())
                 .arg(m_rect.y());
     
-    // Sync with API if project has an API client
-    syncWithAPI();
+    // Don't sync with API here - it will be synced after resize is complete
 }
 
 void CreateDesignElementCommand::undo()
@@ -159,6 +158,12 @@ void CreateDesignElementCommand::undo()
             editingComponent->removeVariant(m_element);
         }
     }
+}
+
+void CreateDesignElementCommand::creationCompleted()
+{
+    // Sync with API now that the element has its final size
+    syncWithAPI();
 }
 
 void CreateDesignElementCommand::syncWithAPI()
