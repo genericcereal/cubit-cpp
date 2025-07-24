@@ -7,7 +7,6 @@
 #include "FrameFactory.h"
 #include <QTimer>
 #include <QDebug>
-#include <execinfo.h>
 
 Frame::Frame(const QString &id, QObject *parent)
     : DesignElement(id, parent)
