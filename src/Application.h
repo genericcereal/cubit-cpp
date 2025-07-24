@@ -40,7 +40,7 @@ public:
     Q_INVOKABLE void renameProject(const QString& projectId, const QString& newName);
     Q_INVOKABLE Project* getProject(const QString& projectId);
     void addProject(Project* project);  // For command undo operations
-    Q_INVOKABLE void createNewProject();
+    Q_INVOKABLE void createNewProject(const QString& projectName = QString());
     Q_INVOKABLE void fetchProjectsFromAPI();  // Fetch projects from API
     Q_INVOKABLE void listProjects(const QString& filter = QString(), int limit = 100, const QString& nextToken = QString());
     Q_INVOKABLE void fetchProjectFromAPI(const QString& projectId);
@@ -61,6 +61,7 @@ public:
     Q_INVOKABLE bool openFile();
     Q_INVOKABLE bool saveToFile(const QString& fileName, Project* project = nullptr);
     Q_INVOKABLE bool loadFromFile(const QString& fileName);
+    Q_INVOKABLE void deleteProject(const QString& projectId);
     
     // Public access for commands
     Project* deserializeProjectFromData(const QJsonObject& projectData);
@@ -77,6 +78,8 @@ signals:
     void projectsFetchedFromAPI(const QJsonArray& projects);
     void projectsListedFromAPI(const QJsonArray& projects, const QString& nextToken);
     void projectFetchedFromAPI(const QString& projectId, const QJsonObject& project);
+    void projectCreatedInAPI(const QString& projectId, const QString& projectName);
+    void projectDeletedFromAPI(const QString& projectId);
     void apiErrorOccurred(const QString& error);
 
 private slots:
