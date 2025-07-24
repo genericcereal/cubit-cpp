@@ -117,12 +117,12 @@ void CommandHistory::clear()
 
 int CommandHistory::undoStackSize() const
 {
-    return m_undoStack.size();
+    return static_cast<int>(m_undoStack.size());
 }
 
 int CommandHistory::redoStackSize() const
 {
-    return m_redoStack.size();
+    return static_cast<int>(m_redoStack.size());
 }
 
 void CommandHistory::setMaxUndoCount(int count)
