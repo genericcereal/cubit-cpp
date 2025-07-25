@@ -6,8 +6,9 @@ import Cubit.UI 1.0
 Item {
     id: root
     
-    width: viewableArea.width
-    height: viewableArea.height
+    // Scale the viewable area by zoom level, just like DesignControls
+    width: (prototypeController ? prototypeController.viewableArea.width : 400) * canvasZoom
+    height: (prototypeController ? prototypeController.viewableArea.height : 400) * canvasZoom
     
     // Properties passed from ViewportOverlay
     property var designCanvas: null
@@ -15,7 +16,7 @@ Item {
     property var prototypeController: null
     
     // Explicit bindings for canvas properties we need
-    property real canvasZoom: designCanvas ? (designCanvas.zoom || designCanvas.zoomLevel || 1.0) : 1.0
+    property real canvasZoom: designCanvas ? (designCanvas.zoomLevel || 1.0) : 1.0
     property real canvasContentX: flickable ? (flickable.contentX || 0) : 0
     property real canvasContentY: flickable ? (flickable.contentY || 0) : 0
     property real canvasMinX: designCanvas ? (designCanvas.canvasMinX || 0) : 0
@@ -28,55 +29,69 @@ Item {
     
     // Get the active outer frame element
     property var activeFrameElement: {
-        if (!prototypeController || !prototypeController.activeOuterFrame || !designCanvas || !designCanvas.elementModel) {
+        if (!prototypeController || !prototypeController.activeOuterFrame) {
             return null
         }
-        return designCanvas.elementModel.getElementById(prototypeController.activeOuterFrame)
+        
+        // designCanvas is actually the canvasView, so we need to get the canvas from it
+        var canvas = designCanvas?.canvas
+        if (!canvas || !canvas.elementModel) {
+            return null
+        }
+        
+        var element = canvas.elementModel.getElementById(prototypeController.activeOuterFrame)
+        return element
     }
     
-    // Position to follow the active outer frame
-    x: {
-        // When simulating scroll, use frozen position
-        if (isSimulatingScroll) {
-            return frozenX
+    // Use Binding objects for position, following the same pattern as DesignControls
+    Binding {
+        target: root
+        property: "x"
+        value: {
+            if (root.isSimulatingScroll) {
+                return root.frozenX
+            }
+            
+            if (!root.visible || !root.activeFrameElement || !root.flickable || !root.designCanvas) {
+                return (parent.width - root.width) / 2
+            }
+            
+            // Use the same formula as DesignControls
+            var frameX = root.activeFrameElement.x
+            var frameViewportX = (frameX - root.canvasMinX) * root.canvasZoom - root.canvasContentX
+            
+            // Center the viewable area on the frame horizontally
+            return frameViewportX + (root.activeFrameElement.width * root.canvasZoom - root.width) / 2
         }
-        
-        if (!visible || !activeFrameElement || !flickable || !designCanvas) {
-            return (parent.width - width) / 2
-        }
-        
-        // Calculate the frame's viewport position
-        var frameX = activeFrameElement.x
-        
-        // Convert frame canvas position to viewport position
-        var frameViewportX = (frameX - canvasMinX) * canvasZoom - canvasContentX
-        
-        // Center the viewable area on the frame horizontally
-        return frameViewportX + (activeFrameElement.width * canvasZoom - width) / 2
+        when: root.visible
+        restoreMode: Binding.RestoreBinding
     }
     
-    y: {
-        // When simulating scroll, use frozen position
-        if (isSimulatingScroll) {
-            return frozenY
+    Binding {
+        target: root
+        property: "y"
+        value: {
+            if (root.isSimulatingScroll) {
+                return root.frozenY
+            }
+            
+            if (!root.visible || !root.activeFrameElement || !root.flickable || !root.designCanvas) {
+                return (parent.height - root.height) / 2
+            }
+            
+            // Use the same formula as DesignControls
+            var frameY = root.activeFrameElement.y
+            var frameViewportY = (frameY - root.canvasMinY) * root.canvasZoom - root.canvasContentY
+            
+            // Now that the Rectangle is at (0,0) in the parent, we can directly align the tops
+            return frameViewportY
         }
-        
-        if (!visible || !activeFrameElement || !flickable || !designCanvas) {
-            return (parent.height - height) / 2
-        }
-        
-        // Calculate the frame's viewport position
-        var frameY = activeFrameElement.y
-        
-        // Convert frame canvas position to viewport position
-        var frameViewportY = (frameY - canvasMinY) * canvasZoom - canvasContentY
-        
-        // Align the viewable area's top edge with the frame's top edge
-        return frameViewportY
+        when: root.visible
+        restoreMode: Binding.RestoreBinding
     }
     
     Component.onCompleted: {
-        // Console log removed - PrototypeViewableArea created
+        // PrototypeViewableArea created
     }
     
     onVisibleChanged: {
@@ -99,14 +114,11 @@ Item {
     Rectangle {
         id: viewableArea
         
-        width: root.prototypeController ? root.prototypeController.viewableArea.width : 400
-        height: root.prototypeController ? root.prototypeController.viewableArea.height : 400
+        // Fill the parent which is already scaled
+        anchors.fill: parent
         color: "transparent"
         border.color: "red"
         border.width: 3
-        
-        // Center in parent
-        anchors.centerIn: parent
         
         // MouseArea to intercept all mouse events and prevent canvas panning
         MouseArea {

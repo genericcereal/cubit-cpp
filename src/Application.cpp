@@ -30,9 +30,12 @@
 #include <QStandardPaths>
 #include <QDir>
 #include <QMetaObject>
+#include <QFile>
+#include <QTextStream>
 #include <QQmlApplicationEngine>
 #include <QQmlComponent>
 #include <QQmlContext>
+#include <QJsonObject>
 #include <QMetaProperty>
 #include <QCoreApplication>
 
@@ -273,6 +276,83 @@ void Application::createNewProject(const QString& projectName) {
         }
     } else {
         qWarning() << "Failed to get project ID from CreateProjectCommand";
+    }
+    
+    // Keep the command alive until API sync completes
+    m_pendingCommands.push_back(std::move(command));
+}
+
+void Application::createNewProjectWithTemplate(const QString& projectName, const QString& templatePath) {
+    QString name = projectName.isEmpty() ? "New Project" : projectName;
+    QJsonObject canvasData;
+    
+    // Load the template QML file
+    QString fullPath = "qrc:/" + templatePath;
+    qDebug() << "Loading template from:" << fullPath;
+    
+    QQmlComponent component(m_engine, QUrl(fullPath));
+    
+    if (component.isReady()) {
+        QObject* templateObject = component.create();
+        if (templateObject) {
+            // Get the canvasDataJson property from the QML object
+            QVariant canvasDataVar = templateObject->property("canvasDataJson");
+            if (canvasDataVar.isValid() && canvasDataVar.typeId() == QMetaType::QString) {
+                QString jsonString = canvasDataVar.toString();
+                qDebug() << "Found canvasDataJson property:" << jsonString;
+                
+                // Parse the JSON string
+                QJsonDocument doc = QJsonDocument::fromJson(jsonString.toUtf8());
+                canvasData = doc.object();
+                
+                qDebug() << "Converted to JSON:" << canvasData;
+            } else {
+                qWarning() << "Template file does not have a valid canvasDataJson property";
+            }
+            delete templateObject;
+        } else {
+            qWarning() << "Failed to create template object from:" << fullPath;
+        }
+    } else {
+        qWarning() << "Failed to load template component:" << component.errorString();
+    }
+    
+    // Create the project with initial canvas data
+    auto command = std::make_unique<CreateProjectCommand>(this, name, canvasData);
+    CreateProjectCommand* commandPtr = command.get();
+    
+    // Connect to apiSyncComplete signal to clean up when done
+    connect(commandPtr, &CreateProjectCommand::apiSyncComplete, this, [this, commandPtr]() {
+        // Remove the command from pending commands when sync is complete
+        auto it = std::find_if(m_pendingCommands.begin(), m_pendingCommands.end(),
+            [commandPtr](const std::unique_ptr<Command>& cmd) {
+                return cmd.get() == commandPtr;
+            });
+        if (it != m_pendingCommands.end()) {
+            m_pendingCommands.erase(it);
+        }
+    });
+    
+    // Execute the command directly
+    command->execute();
+    
+    // Get the project ID and create window
+    QString projectId = commandPtr->getCreatedProjectId();
+    if (!projectId.isEmpty()) {
+        // Create a new window for this project
+        if (m_engine) {
+            QQmlComponent component(m_engine, QUrl(QStringLiteral("qrc:/qml/ProjectWindow.qml")));
+            if (component.isReady()) {
+                QObject* window = component.create();
+                if (window) {
+                    window->setProperty("canvasId", projectId);
+                } else {
+                    qWarning() << "Failed to create ProjectWindow:" << component.errorString();
+                }
+            } else {
+                qWarning() << "ProjectWindow.qml component not ready:" << component.errorString();
+            }
+        }
     }
     
     // Keep the command alive until API sync completes

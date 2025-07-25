@@ -230,7 +230,14 @@ void HitTestService::setUseQuadTree(bool use)
 void HitTestService::onElementAdded(Element* element)
 {
     m_visualsCacheValid = false;  // Invalidate cache
-    insertElement(element);
+    
+    // For programmatically created elements, we need to ensure the spatial index
+    // is properly updated. Instead of just inserting, rebuild if needed.
+    if (m_needsRebuild || !m_quadTree) {
+        rebuildSpatialIndex();
+    } else {
+        insertElement(element);
+    }
 }
 
 void HitTestService::onElementRemoved(const QString& elementId)

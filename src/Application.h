@@ -46,6 +46,7 @@ public:
     Q_INVOKABLE Project* getProject(const QString& projectId);
     void addProject(Project* project);  // For command undo operations
     Q_INVOKABLE void createNewProject(const QString& projectName = QString());
+    Q_INVOKABLE void createNewProjectWithTemplate(const QString& projectName, const QString& templatePath);
     Q_INVOKABLE void fetchProjectsFromAPI();  // Fetch projects from API
     Q_INVOKABLE void listProjects(const QString& filter = QString(), int limit = 100, const QString& nextToken = QString());
     Q_INVOKABLE void fetchProjectFromAPI(const QString& projectId);

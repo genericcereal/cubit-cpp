@@ -2,12 +2,22 @@
 #include "../Application.h"
 #include "../ProjectApiClient.h"
 #include "../Project.h"
+#include "../ElementModel.h"
+#include "../Element.h"
+#include "../Serializer.h"
+#include "../CanvasController.h"
+#include "../HitTestService.h"
 #include <QDebug>
+#include <QJsonArray>
+#include <QJsonObject>
+#include <QStringList>
 
-CreateProjectCommand::CreateProjectCommand(Application* application, const QString& projectName, QObject *parent)
+CreateProjectCommand::CreateProjectCommand(Application* application, const QString& projectName, 
+                                         const QJsonObject& initialCanvasData, QObject *parent)
     : Command(parent)
     , m_application(application)
     , m_projectName(projectName.isEmpty() ? "New Project" : projectName)
+    , m_initialCanvasData(initialCanvasData)
 {
     setDescription(QString("Create project '%1'").arg(m_projectName));
 }
@@ -34,6 +44,60 @@ void CreateProjectCommand::execute()
     }
     
     qDebug() << "CreateProjectCommand: Created project" << m_projectName << "with ID" << m_projectId;
+    
+    // Load initial canvas data if provided
+    if (!m_initialCanvasData.isEmpty()) {
+        Project* project = m_application->getProject(m_projectId);
+        if (project) {
+            // Set platforms if provided
+            if (m_initialCanvasData.contains("platforms") && m_initialCanvasData["platforms"].isArray()) {
+                QJsonArray platformsArray = m_initialCanvasData["platforms"].toArray();
+                QStringList platforms;
+                for (const QJsonValue& value : platformsArray) {
+                    if (value.isString()) {
+                        platforms.append(value.toString());
+                    }
+                }
+                project->setPlatforms(platforms);
+                qDebug() << "CreateProjectCommand: Set platforms:" << platforms;
+            }
+            
+            // Load elements if provided
+            if (m_initialCanvasData.contains("elements") && m_initialCanvasData["elements"].isArray()) {
+                QJsonArray elementsArray = m_initialCanvasData["elements"].toArray();
+                qDebug() << "CreateProjectCommand: Loading" << elementsArray.size() << "initial elements";
+                
+                for (const QJsonValue& value : elementsArray) {
+                    if (value.isObject()) {
+                        QJsonObject elementData = value.toObject();
+                        
+                        // Add missing required fields for deserialization
+                        if (!elementData.contains("elementId")) {
+                            elementData["elementId"] = project->elementModel()->generateId();
+                        }
+                        if (!elementData.contains("elementType") && elementData.contains("type")) {
+                            elementData["elementType"] = elementData["type"];
+                        }
+                        if (!elementData.contains("name")) {
+                            elementData["name"] = elementData["elementType"].toString();
+                        }
+                        
+                        Element* element = m_application->serializer()->deserializeElement(elementData, project->elementModel());
+                        if (element) {
+                            project->elementModel()->addElement(element);
+                        }
+                    }
+                }
+                
+                // Force spatial index rebuild after batch element creation
+                // This ensures all programmatically created frames are clickable
+                if (project->controller() && project->controller()->hitTestService()) {
+                    project->controller()->hitTestService()->rebuildSpatialIndex();
+                    qDebug() << "CreateProjectCommand: Forced spatial index rebuild after loading elements";
+                }
+            }
+        }
+    }
     
     // Sync with API
     syncWithAPI();

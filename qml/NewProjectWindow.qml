@@ -8,15 +8,16 @@ ApplicationWindow {
     id: newProjectWindow
     title: "New Project"
     width: 400
-    height: 200
+    height: 350
     minimumWidth: 400
-    minimumHeight: 200
+    minimumHeight: 350
     maximumWidth: 400
-    maximumHeight: 200
+    maximumHeight: 350
     
     flags: Qt.Dialog
     
     property alias projectName: projectNameField.text
+    property string selectedTemplate: "blank"
     
     // Center the window on screen
     Component.onCompleted: {
@@ -29,6 +30,99 @@ ApplicationWindow {
         anchors.fill: parent
         anchors.margins: 30
         spacing: 20
+        
+        // Template selection grid
+        GridLayout {
+            columns: 3
+            columnSpacing: 20
+            rowSpacing: 10
+            Layout.fillWidth: true
+            
+            // Blank template
+            ColumnLayout {
+                spacing: 5
+                
+                Rectangle {
+                    width: 80
+                    height: 80
+                    color: selectedTemplate === "blank" ? "#007AFF" : "#f0f0f0"
+                    border.color: selectedTemplate === "blank" ? "#0051D5" : "#d0d0d0"
+                    border.width: selectedTemplate === "blank" ? 2 : 1
+                    radius: 8
+                    
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: selectedTemplate = "blank"
+                    }
+                    
+                    Image {
+                        anchors.centerIn: parent
+                        width: 40
+                        height: 40
+                        source: "qrc:/icons/blank-template.svg"
+                        visible: false // We'll use a placeholder for now
+                    }
+                    
+                    Text {
+                        anchors.centerIn: parent
+                        text: "📄"
+                        font.pixelSize: 32
+                    }
+                }
+                
+                Label {
+                    text: "Blank"
+                    horizontalAlignment: Text.AlignHCenter
+                    Layout.fillWidth: true
+                    font.pixelSize: 12
+                }
+            }
+            
+            // iOS template
+            ColumnLayout {
+                spacing: 5
+                
+                Rectangle {
+                    width: 80
+                    height: 80
+                    color: selectedTemplate === "ios" ? "#007AFF" : "#f0f0f0"
+                    border.color: selectedTemplate === "ios" ? "#0051D5" : "#d0d0d0"
+                    border.width: selectedTemplate === "ios" ? 2 : 1
+                    radius: 8
+                    
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: selectedTemplate = "ios"
+                    }
+                    
+                    Image {
+                        anchors.centerIn: parent
+                        width: 40
+                        height: 40
+                        source: "qrc:/icons/ios-template.svg"
+                        visible: false // We'll use a placeholder for now
+                    }
+                    
+                    Text {
+                        anchors.centerIn: parent
+                        text: "📱"
+                        font.pixelSize: 32
+                    }
+                }
+                
+                Label {
+                    text: "iOS"
+                    horizontalAlignment: Text.AlignHCenter
+                    Layout.fillWidth: true
+                    font.pixelSize: 12
+                }
+            }
+            
+            // Spacer
+            Item {
+                Layout.fillWidth: true
+            }
+        }
         
         Label {
             text: "Enter a name for your new project:"
@@ -92,7 +186,11 @@ ApplicationWindow {
     
     function acceptProject() {
         if (projectName.trim() !== "") {
-            Application.createNewProject(projectName.trim())
+            if (selectedTemplate === "ios") {
+                Application.createNewProjectWithTemplate(projectName.trim(), "qml/components/project-templates/ios-project-template.qml")
+            } else {
+                Application.createNewProject(projectName.trim())
+            }
             newProjectWindow.close()
         }
     }

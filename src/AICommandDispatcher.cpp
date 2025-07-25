@@ -1,6 +1,7 @@
 #include "AICommandDispatcher.h"
 #include "Application.h"
 #include "CanvasController.h"
+#include "HitTestService.h"
 #include "ElementModel.h"
 #include "SelectionManager.h"
 #include "Frame.h"
@@ -87,6 +88,7 @@ void AICommandDispatcher::executeCommands(const QJsonArray &commands)
 {
     // Keep track of newly created elements in this batch
     QMap<QString, QString> tempIdMapping; // temp ID -> actual ID
+    bool hasCreatedElements = false;
 
     for (int i = 0; i < commands.size(); ++i)
     {
@@ -95,6 +97,12 @@ void AICommandDispatcher::executeCommands(const QJsonArray &commands)
             continue;
 
         QJsonObject command = value.toObject();
+        
+        // Track if we're creating elements
+        QString type = command["type"].toString();
+        if (type == "createElement") {
+            hasCreatedElements = true;
+        }
 
         // Replace any temp IDs in the command with actual IDs
         if (command.contains("elementId"))
@@ -151,6 +159,16 @@ void AICommandDispatcher::executeCommands(const QJsonArray &commands)
         // Process events to ensure the element is fully registered
         QCoreApplication::processEvents();
     }
+    
+    // If we created any elements, force a spatial index rebuild
+    // This ensures all programmatically created frames are immediately clickable
+    if (hasCreatedElements) {
+        auto controller = activeController();
+        if (controller && controller->hitTestService()) {
+            controller->hitTestService()->rebuildSpatialIndex();
+            qDebug() << "AICommandDispatcher: Forced spatial index rebuild after batch element creation";
+        }
+    }
 }
 
 void AICommandDispatcher::executeCreateElement(const QJsonObject &command)
@@ -201,6 +219,12 @@ void AICommandDispatcher::executeCreateElement(const QJsonObject &command)
             {
                 frame->setProperty("overflow", params["overflow"].toVariant());
             }
+        }
+        
+        // Force spatial index update for single frame creation
+        // This ensures the frame is immediately clickable
+        if (controller->hitTestService()) {
+            controller->hitTestService()->rebuildSpatialIndex();
         }
     }
     else if (elementType == "text")

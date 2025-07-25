@@ -1,0 +1,5 @@
+import QtQuick 2.15
+
+QtObject {
+    property string canvasDataJson: '{"platforms":["iOS"],"elements":[{"elementId":"frame1","elementType":"Frame","name":"iPhone 1","x":50,"y":100,"width":375,"height":812,"fill":"#E3F2FD","borderColor":"#90CAF9","borderWidth":1,"borderRadius":20,"overflow":"Hidden","platform":"iOS","role":"container"},{"elementId":"frame2","elementType":"Frame","name":"iPhone 2","x":475,"y":100,"width":375,"height":812,"fill":"#E3F2FD","borderColor":"#90CAF9","borderWidth":1,"borderRadius":20,"overflow":"Hidden","platform":"iOS","role":"container"},{"elementId":"frame3","elementType":"Frame","name":"iPhone 3","x":900,"y":100,"width":375,"height":812,"fill":"#E3F2FD","borderColor":"#90CAF9","borderWidth":1,"borderRadius":20,"overflow":"Hidden","platform":"iOS","role":"container"}]}'
+}
