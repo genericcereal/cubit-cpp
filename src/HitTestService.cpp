@@ -8,6 +8,7 @@
 #include "Component.h"
 #include "FrameComponentVariant.h"
 #include "FrameComponentInstance.h"
+#include "PlatformConfig.h"
 #include <QElapsedTimer>
 
 HitTestService::HitTestService(QObject *parent)
@@ -379,12 +380,14 @@ bool HitTestService::shouldTestElement(Element* element) const
     }
     else if (m_canvasType == CanvasType::Variant) {
         // In variant mode, only test elements that belong to the editing component's variants
+        // or to the editing platform's globalElements
         if (!canvasElement->isDesignElement()) {
             return false;
         }
         
-        // Check if we have an editing component
+        // Check if we have an editing element
         if (m_editingElement) {
+            // Check if editing a Component
             Component* component = qobject_cast<Component*>(m_editingElement);
             if (component) {
                 // Test elements that are in this component's variants array or descendants of variants
@@ -405,9 +408,18 @@ bool HitTestService::shouldTestElement(Element* element) const
                     }
                 }
             }
+            
+            // Check if editing a PlatformConfig (for globalElements mode)
+            PlatformConfig* platform = qobject_cast<PlatformConfig*>(m_editingElement);
+            if (platform) {
+                // Test elements that are in the platform's globalElements
+                if (ElementModel* globalElements = platform->globalElements()) {
+                    return globalElements->getElementById(element->getId()) != nullptr;
+                }
+            }
         }
         
-        // If no editing component, don't test any elements
+        // If no editing element or element not found, don't test any elements
         return false;
     }
     

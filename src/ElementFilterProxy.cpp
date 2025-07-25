@@ -5,6 +5,8 @@
 #include "Component.h"
 #include "Variable.h"
 #include "ElementModel.h"
+#include "PlatformConfig.h"
+#include "Project.h"
 #include <QDebug>
 
 ElementFilterProxy::ElementFilterProxy(QObject *parent)
@@ -233,6 +235,23 @@ bool ElementFilterProxy::shouldShowElementInMode(Element* element) const {
                 }
             }
         }
+        
+        // Check if this element is in any platform's globalElements
+        // Get the Project from the ElementModel's parent
+        if (ElementModel* model = qobject_cast<ElementModel*>(sourceModel())) {
+            if (Project* project = qobject_cast<Project*>(model->parent())) {
+                QList<PlatformConfig*> platforms = project->getAllPlatforms();
+                for (PlatformConfig* platform : platforms) {
+                    if (platform && platform->globalElements()) {
+                        // Check if this element exists in the platform's globalElements
+                        if (platform->globalElements()->getElementById(element->getId())) {
+                            return false; // Exclude from design mode
+                        }
+                    }
+                }
+            }
+        }
+        
         return true;
     } else if (m_viewMode == "script") {
         // In script mode, show only script elements (nodes and edges)
@@ -261,6 +280,22 @@ bool ElementFilterProxy::shouldShowElementInMode(Element* element) const {
             }
         }
         // If no component is being edited or element not in variants, don't show
+        return false;
+    } else if (m_viewMode == "globalElements") {
+        // In globalElements mode, show only elements that belong to the platform's globalElements
+        if (!canvasElement->isDesignElement()) {
+            return false;
+        }
+        
+        // Check if we're editing a platform
+        if (PlatformConfig* platform = qobject_cast<PlatformConfig*>(m_editingElement)) {
+            // Get the platform's global elements
+            if (ElementModel* globalElements = platform->globalElements()) {
+                // Check if this element is in the platform's globalElements
+                return globalElements->getElementById(element->getId()) != nullptr;
+            }
+        }
+        
         return false;
     }
     

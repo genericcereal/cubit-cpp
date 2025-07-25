@@ -31,7 +31,8 @@ class Frame : public DesignElement {
 public:
     enum Role {
         undefined,
-        container
+        container,
+        appContainer
     };
     Q_ENUM(Role)
     enum ColorFormat {

@@ -2,6 +2,8 @@
 #include "Scripts.h"
 #include "Node.h"
 #include "UniqueIdGenerator.h"
+#include "ElementModel.h"
+#include "Frame.h"
 #include <QDebug>
 
 PlatformConfig::PlatformConfig(Type type, QObject* parent)
@@ -13,8 +15,14 @@ PlatformConfig::PlatformConfig(Type type, QObject* parent)
     // Create platform-specific scripts
     m_scripts = std::make_unique<Scripts>(this);
     
+    // Create global elements model
+    m_globalElements = std::make_unique<ElementModel>(this);
+    
     // Create platform-specific onLoad node
     createPlatformOnLoadNode();
+    
+    // Create initial global elements
+    createInitialGlobalElements();
 }
 
 PlatformConfig::~PlatformConfig() = default;
@@ -33,6 +41,10 @@ QString PlatformConfig::displayName() const {
 
 PlatformConfig::Type PlatformConfig::type() const {
     return m_type;
+}
+
+ElementModel* PlatformConfig::globalElements() const {
+    return m_globalElements.get();
 }
 
 PlatformConfig* PlatformConfig::create(const QString& platformName, QObject* parent) {
@@ -120,4 +132,44 @@ void PlatformConfig::createPlatformOnLoadNode() {
     
     // Add the node to scripts
     m_scripts->addNode(onLoadNode);
+}
+
+void PlatformConfig::createInitialGlobalElements() {
+    if (!m_globalElements) return;
+    
+    qDebug() << "Creating initial global elements for" << m_name;
+    
+    // Create a default frame
+    QString frameId = UniqueIdGenerator::generate16DigitId();
+    Frame* frame = new Frame(frameId, m_globalElements.get());
+    
+    // Set frame properties
+    frame->setName("Global Frame");
+    frame->setX(100);
+    frame->setY(100);
+    
+    // Set the platform for this frame
+    frame->setPlatform(m_name);
+    
+    // Set role to appContainer - this is exclusive to global elements
+    frame->setRole(Frame::appContainer);
+    
+    // Set size based on platform type
+    if (m_type == iOS) {
+        // iPhone viewport size
+        frame->setWidth(375);
+        frame->setHeight(812);
+    } else {
+        // Default size for web and Android (for now)
+        frame->setWidth(400);
+        frame->setHeight(400);
+    }
+    
+    frame->setFill(QColor("#4287f5")); // Blue background
+    frame->setBorderColor(QColor("#2563eb")); // Darker blue border
+    frame->setBorderWidth(1);
+    frame->setBorderRadius(4);
+    
+    // Add the frame to the global elements model
+    m_globalElements->addElement(frame);
 }

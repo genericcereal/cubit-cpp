@@ -7,7 +7,12 @@ import "."
 BaseCanvas {
     id: root
     
-    canvasType: root.canvas && root.canvas.viewMode === "variant" ? "variant" : "design"
+    canvasType: {
+        if (!root.canvas) return "design"
+        if (root.canvas.viewMode === "variant") return "variant"
+        if (root.canvas.viewMode === "globalElements") return "variant" // Treat globalElements like variant for controls
+        return "design"
+    }
     
     // Property to access the viewport overlay's controls
     property var viewportControls: null

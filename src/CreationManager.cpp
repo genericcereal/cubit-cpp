@@ -13,6 +13,7 @@
 #include "Project.h"
 #include "Component.h"
 #include "ElementTypeRegistry.h"
+#include "PlatformConfig.h"
 #include <QDebug>
 #include <QtMath>
 
@@ -32,15 +33,23 @@ Element* CreationManager::createElement(const QString& type, qreal x, qreal y, q
         return nullptr;
     }
     
-    // Check if we're in variant mode
+    // Check if we're in variant mode or globalElements mode
     bool isVariantMode = m_project && m_project->viewMode() == "variant";
+    bool isGlobalElementsMode = m_project && m_project->viewMode() == "globalElements";
     Component* editingComponent = nullptr;
+    PlatformConfig* editingPlatform = nullptr;
     
     if (isVariantMode && m_project) {
         QObject* editingElement = m_project->editingElement();
         editingComponent = qobject_cast<Component*>(editingElement);
         if (!editingComponent) {
             qWarning() << "CreationManager: In variant mode but editing element is not a Component";
+        }
+    } else if (isGlobalElementsMode && m_project) {
+        QObject* editingElement = m_project->editingElement();
+        editingPlatform = qobject_cast<PlatformConfig*>(editingElement);
+        if (!editingPlatform) {
+            qWarning() << "CreationManager: In globalElements mode but editing element is not a PlatformConfig";
         }
     }
     
@@ -82,6 +91,17 @@ Element* CreationManager::createElement(const QString& type, qreal x, qreal y, q
             editingComponent->addVariant(element);
             // Still add to model for visibility
             m_elementModel->addElement(element);
+        } else if (isGlobalElementsMode && editingPlatform) {
+            // In globalElements mode, add to the PlatformConfig's globalElements
+            ElementModel* globalElements = editingPlatform->globalElements();
+            if (globalElements) {
+                globalElements->addElement(element);
+                // Also add to main model for visibility (it will be filtered by ElementFilterProxy)
+                m_elementModel->addElement(element);
+            } else {
+                qWarning() << "CreationManager: Platform has no globalElements model";
+                m_elementModel->addElement(element);
+            }
         } else {
             // Normal mode, just add to model
             m_elementModel->addElement(element);

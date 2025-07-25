@@ -41,7 +41,7 @@ QJsonObject Serializer::serializeProject(Project* project) const {
     QJsonObject projectObj;
     projectObj["id"] = project->id();
     projectObj["name"] = project->name();
-    projectObj["viewMode"] = project->viewMode();
+    // Don't serialize viewMode - it's app state, not persistent data
     // Serialize platforms with their scripts
     QJsonArray platformsArray;
     QList<PlatformConfig*> platforms = project->getAllPlatforms();
@@ -79,17 +79,38 @@ QJsonObject Serializer::serializeProject(Project* project) const {
             qDebug() << "  Platform" << platform->name() << "has no scripts object!";
         }
         
+        // Serialize platform-specific global elements
+        if (platform->globalElements()) {
+            QJsonArray globalElementsArray;
+            QList<Element*> globalElements = platform->globalElements()->getAllElements();
+            qDebug() << "  Platform" << platform->name() << "has" << globalElements.size() << "global elements to serialize";
+            for (Element* element : globalElements) {
+                if (element) {
+                    QJsonObject elementObj = serializeElement(element);
+                    globalElementsArray.append(elementObj);
+                }
+            }
+            platformObj["globalElements"] = globalElementsArray;
+        }
+        
         platformsArray.append(platformObj);
     }
     projectObj["platforms"] = platformsArray;
     
-    // Serialize all elements from the ElementModel
+    // Serialize all elements from the ElementModel (excluding globalElements)
     QJsonArray elementsArray;
     if (project->elementModel()) {
         QList<Element*> elements = project->elementModel()->getAllElements();
         qDebug() << "Serializer::serializeProject - Project" << project->id() << "has" << elements.size() << "elements to serialize";
         for (Element* element : elements) {
             if (element) {
+                // Skip globalElements (they have role == appContainer and are serialized with their platform)
+                if (Frame* frame = qobject_cast<Frame*>(element)) {
+                    if (frame->role() == Frame::appContainer) {
+                        qDebug() << "  Skipping global element:" << frame->getId() << "- will be serialized with platform";
+                        continue;
+                    }
+                }
                 QJsonObject elementObj = serializeElement(element);
                 elementsArray.append(elementObj);
             }
@@ -233,10 +254,8 @@ Project* Serializer::deserializeProject(const QJsonObject& projectData) {
         // Create and initialize project
         project->initialize();
         
-        // Set project properties
-        if (projectData.contains("viewMode")) {
-            project->setViewMode(projectData["viewMode"].toString());
-        }
+        // Don't restore viewMode from serialized data - it's app state
+        // The project will use its default viewMode ("design")
         
         if (projectData.contains("platforms")) {
             QJsonArray platformsArray = projectData["platforms"].toArray();
@@ -295,6 +314,34 @@ Project* Serializer::deserializeProject(const QJsonObject& projectData) {
                             }
                         } else {
                             qDebug() << "  No scripts found for platform:" << platformName;
+                        }
+                        
+                        // Load platform-specific global elements if present
+                        if (platformObj.contains("globalElements")) {
+                            qDebug() << "Deserializing global elements for platform:" << platformName;
+                            QJsonArray globalElementsArray = platformObj["globalElements"].toArray();
+                            
+                            // Get the platform's global elements model
+                            PlatformConfig* platformConfig = project->getPlatform(platformName);
+                            if (platformConfig && platformConfig->globalElements()) {
+                                ElementModel* globalElementsModel = platformConfig->globalElements();
+                                
+                                // Clear existing global elements (except the default ones created on platform init)
+                                globalElementsModel->clear();
+                                
+                                qDebug() << "  Loading" << globalElementsArray.size() << "global elements for platform:" << platformName;
+                                for (const QJsonValue& elementValue : globalElementsArray) {
+                                    QJsonObject elementData = elementValue.toObject();
+                                    Element* element = deserializeElement(elementData, globalElementsModel);
+                                    if (element) {
+                                        globalElementsModel->addElement(element);
+                                    }
+                                }
+                            } else {
+                                qWarning() << "  Failed to get global elements model for platform:" << platformName;
+                            }
+                        } else {
+                            qDebug() << "  No global elements found for platform:" << platformName;
                         }
                     }
                 }
