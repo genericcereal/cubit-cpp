@@ -9,6 +9,9 @@ class Project;
 class Element;
 class ElementModel;
 class Application;
+class Node;
+class Edge;
+class Scripts;
 
 class Serializer : public QObject
 {
@@ -24,6 +27,12 @@ public:
     // Deserialization methods
     Project* deserializeProject(const QJsonObject& projectData);
     Element* deserializeElement(const QJsonObject& elementData, ElementModel* model);
+    
+    // Script element serialization
+    QJsonObject serializeNode(Node* node) const;
+    QJsonObject serializeEdge(Edge* edge) const;
+    Node* deserializeNode(const QJsonObject& nodeData, Scripts* scripts);
+    Edge* deserializeEdge(const QJsonObject& edgeData, Scripts* scripts);
     
 private:
     Application* m_application;

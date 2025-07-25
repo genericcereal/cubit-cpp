@@ -39,6 +39,7 @@
 #include "AuthenticationManager.h"
 #include "UrlSchemeHandler.h"
 #include "ElementTypeRegistry.h"
+#include "PlatformConfig.h"
 
 int main(int argc, char *argv[])
 {
@@ -126,6 +127,7 @@ int main(int argc, char *argv[])
     qmlRegisterType<Panels>("Cubit", 1, 0, "Panels");
     qmlRegisterType<Scripts>("Cubit", 1, 0, "Scripts");
     qmlRegisterType<ScriptCompiler>("Cubit", 1, 0, "ScriptCompiler");
+    qmlRegisterType<PlatformConfig>("Cubit", 1, 0, "PlatformConfig");
     qmlRegisterType<ElementFilterProxy>("Cubit", 1, 0, "ElementFilterProxy");
     qmlRegisterType<PrototypeController>("Cubit", 1, 0, "PrototypeController");
     qmlRegisterType<DesignControlsController>("Cubit", 1, 0, "DesignControlsController");

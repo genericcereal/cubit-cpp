@@ -265,6 +265,12 @@ void PrototypeController::stopPrototyping() {
         emit activeElementChanged();
     }
     
+    // Reset scroll simulation state
+    setIsSimulatingScroll(false);
+    setScrollOffsetX(0.0);
+    setScrollOffsetY(0.0);
+    setPreviousActiveFrameId("");
+    
     // Clear any animated bounds
     m_animatedBoundingX = 0;
     m_animatedBoundingY = 0;
@@ -333,6 +339,19 @@ void PrototypeController::updateAnimatedBounds(const QList<QRectF>& elementBound
 
 void PrototypeController::setActiveOuterFrame(const QString& frameId) {
     if (m_activeOuterFrame != frameId) {
+        // If we're simulating scroll and changing frames, reset the previous frame
+        if (m_isSimulatingScroll && !m_activeOuterFrame.isEmpty()) {
+            resetFrameScrollPosition(m_activeOuterFrame);
+            
+            // Reset scroll simulation state
+            setIsSimulatingScroll(false);
+            setScrollOffsetX(0.0);
+            setScrollOffsetY(0.0);
+        }
+        
+        // Store the previous frame ID
+        setPreviousActiveFrameId(m_activeOuterFrame);
+        
         m_activeOuterFrame = frameId;
         
         // Update selected frame position for centering
@@ -546,5 +565,51 @@ void PrototypeController::clearActiveInput() {
         }
         m_activeElement.clear();
         emit activeElementChanged();
+    }
+}
+
+void PrototypeController::setIsSimulatingScroll(bool value) {
+    if (m_isSimulatingScroll != value) {
+        m_isSimulatingScroll = value;
+        emit isSimulatingScrollChanged();
+    }
+}
+
+void PrototypeController::setScrollOffsetX(qreal offset) {
+    if (m_scrollOffsetX != offset) {
+        m_scrollOffsetX = offset;
+        emit scrollOffsetXChanged();
+    }
+}
+
+void PrototypeController::setScrollOffsetY(qreal offset) {
+    if (m_scrollOffsetY != offset) {
+        m_scrollOffsetY = offset;
+        emit scrollOffsetYChanged();
+    }
+}
+
+void PrototypeController::setPreviousActiveFrameId(const QString& frameId) {
+    if (m_previousActiveFrameId != frameId) {
+        m_previousActiveFrameId = frameId;
+        emit previousActiveFrameIdChanged();
+    }
+}
+
+void PrototypeController::resetFrameScrollPosition(const QString& frameId) {
+    if (frameId.isEmpty() || !m_prototypingStartSnapshot) {
+        return;
+    }
+    
+    Element* element = m_elementModel.getElementById(frameId);
+    if (element && element->isVisual()) {
+        CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+        if (canvasElement) {
+            // Get the original position from snapshot
+            QRectF snapshotRect = m_prototypingStartSnapshot->elementPositions.value(frameId, QRectF());
+            if (snapshotRect.width() > 0 && snapshotRect.height() > 0) {
+                canvasElement->setY(snapshotRect.y());
+            }
+        }
     }
 }

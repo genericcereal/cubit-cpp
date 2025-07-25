@@ -15,6 +15,7 @@ Scripts::Scripts(QObject *parent, bool isComponentInstance)
     } else {
         loadInitialNodes();
     }
+    qDebug() << "Scripts constructor - created with" << nodeCount() << "initial nodes";
 }
 
 Scripts::~Scripts() {

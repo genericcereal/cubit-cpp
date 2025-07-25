@@ -31,11 +31,18 @@ ColumnLayout {
                             if (!canvas) return []
                             
                             var allTargets = ["iOS", "Android", "web"]
-                            var currentPlatforms = canvas.platforms
                             var availablePlatforms = []
                             
+                            // Check which platforms are already added
                             for (var i = 0; i < allTargets.length; i++) {
-                                if (currentPlatforms.indexOf(allTargets[i]) === -1) {
+                                var platformExists = false
+                                for (var j = 0; j < canvas.platforms.length; j++) {
+                                    if (canvas.platforms[j].name === allTargets[i]) {
+                                        platformExists = true
+                                        break
+                                    }
+                                }
+                                if (!platformExists) {
                                     availablePlatforms.push(allTargets[i])
                                 }
                             }
@@ -51,9 +58,7 @@ ColumnLayout {
                         enabled: platformCombo.count > 0
                         onClicked: {
                             if (canvas && platformCombo.currentText) {
-                                var platforms = canvas.platforms
-                                platforms.push(platformCombo.currentText)
-                                canvas.platforms = platforms
+                                canvas.addPlatform(platformCombo.currentText)
                             }
                         }
                     }
@@ -74,20 +79,50 @@ ColumnLayout {
         model: canvas ? canvas.platforms : []
         
         PropertyGroup {
-            title: modelData
+            title: modelData ? modelData.displayName : ""
             visible: !selectedElement && canvas
             
+            required property var modelData
+            
             content: [
-                Button {
-                    text: "Remove"
-                    Layout.alignment: Qt.AlignCenter
-                    onClicked: {
-                        if (canvas) {
-                            var platforms = canvas.platforms
-                            var index = platforms.indexOf(modelData)
-                            if (index > -1) {
-                                platforms.splice(index, 1)
-                                canvas.platforms = platforms
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 10
+                    
+                    Label {
+                        text: {
+                            if (!modelData || !modelData.scripts) {
+                                return "Scripts: 0 nodes, 0 edges"
+                            }
+                            return "Scripts: " + modelData.scripts.nodeCount + " nodes, " + 
+                                  modelData.scripts.edgeCount + " edges"
+                        }
+                        color: "#666666"
+                        font.italic: true
+                    }
+                    
+                    RowLayout {
+                        Layout.fillWidth: true
+                        
+                        Button {
+                            text: "Edit Scripts"
+                            Layout.fillWidth: true
+                            enabled: modelData && modelData.scripts
+                            onClicked: {
+                                if (canvas && modelData) {
+                                    // Switch to script canvas view mode
+                                    canvas.setEditingPlatform(modelData, "script")
+                                }
+                            }
+                        }
+                        
+                        Button {
+                            text: "Remove"
+                            Layout.preferredWidth: 80
+                            onClicked: {
+                                if (canvas && modelData) {
+                                    canvas.removePlatform(modelData.name)
+                                }
                             }
                         }
                     }

@@ -52,14 +52,12 @@ void CreateProjectCommand::execute()
             // Set platforms if provided
             if (m_initialCanvasData.contains("platforms") && m_initialCanvasData["platforms"].isArray()) {
                 QJsonArray platformsArray = m_initialCanvasData["platforms"].toArray();
-                QStringList platforms;
                 for (const QJsonValue& value : platformsArray) {
                     if (value.isString()) {
-                        platforms.append(value.toString());
+                        project->addPlatform(value.toString());
                     }
                 }
-                project->setPlatforms(platforms);
-                qDebug() << "CreateProjectCommand: Set platforms:" << platforms;
+                qDebug() << "CreateProjectCommand: Added platforms from initial data";
             }
             
             // Load elements if provided

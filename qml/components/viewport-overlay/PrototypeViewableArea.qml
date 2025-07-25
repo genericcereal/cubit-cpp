@@ -22,10 +22,10 @@ Item {
     property real canvasMinX: designCanvas ? (designCanvas.canvasMinX || 0) : 0
     property real canvasMinY: designCanvas ? (designCanvas.canvasMinY || 0) : 0
     
-    // Track if we're simulating scrolling
-    property bool isSimulatingScroll: false
-    property real frozenX: 0
-    property real frozenY: 0
+    // Use scroll state from the controller
+    property bool isSimulatingScroll: prototypeController ? prototypeController.isSimulatingScroll : false
+    property real scrollOffsetX: prototypeController ? prototypeController.scrollOffsetX : 0
+    property real scrollOffsetY: prototypeController ? prototypeController.scrollOffsetY : 0
     
     // Get the active outer frame element
     property var activeFrameElement: {
@@ -43,71 +43,71 @@ Item {
         return element
     }
     
-    // Use Binding objects for position, following the same pattern as DesignControls
-    Binding {
-        target: root
-        property: "x"
-        value: {
-            if (root.isSimulatingScroll) {
-                return root.frozenX
-            }
-            
-            if (!root.visible || !root.activeFrameElement || !root.flickable || !root.designCanvas) {
-                return (parent.width - root.width) / 2
-            }
-            
-            // Use the same formula as DesignControls
-            var frameX = root.activeFrameElement.x
-            var frameViewportX = (frameX - root.canvasMinX) * root.canvasZoom - root.canvasContentX
-            
-            // Center the viewable area on the frame horizontally
-            return frameViewportX + (root.activeFrameElement.width * root.canvasZoom - root.width) / 2
+    // Function to update position based on active frame
+    function updatePosition() {
+        if (!root.visible || !root.activeFrameElement || !root.flickable || !root.designCanvas) {
+            root.x = (parent.width - root.width) / 2
+            root.y = (parent.height - root.height) / 2
+            return
         }
-        when: root.visible
-        restoreMode: Binding.RestoreBinding
+        
+        // Use the same formula as DesignControls
+        var frameX = root.activeFrameElement.x
+        var frameY = root.activeFrameElement.y
+        var frameViewportX = (frameX - root.canvasMinX) * root.canvasZoom - root.canvasContentX
+        var frameViewportY = (frameY - root.canvasMinY) * root.canvasZoom - root.canvasContentY
+        
+        // Center the viewable area on the frame horizontally
+        root.x = frameViewportX + (root.activeFrameElement.width * root.canvasZoom - root.width) / 2
+        
+        // For Y position, apply scroll offset if simulating scroll
+        if (root.isSimulatingScroll) {
+            // Apply the scroll offset in viewport space
+            root.y = frameViewportY - root.scrollOffsetY * root.canvasZoom
+        } else {
+            // Normal alignment to frame top
+            root.y = frameViewportY
+        }
+        
+        // Update width and height based on zoom
+        root.width = (prototypeController ? prototypeController.viewableArea.width : 400) * root.canvasZoom
+        root.height = (prototypeController ? prototypeController.viewableArea.height : 400) * root.canvasZoom
     }
     
-    Binding {
-        target: root
-        property: "y"
-        value: {
-            if (root.isSimulatingScroll) {
-                return root.frozenY
-            }
-            
-            if (!root.visible || !root.activeFrameElement || !root.flickable || !root.designCanvas) {
-                return (parent.height - root.height) / 2
-            }
-            
-            // Use the same formula as DesignControls
-            var frameY = root.activeFrameElement.y
-            var frameViewportY = (frameY - root.canvasMinY) * root.canvasZoom - root.canvasContentY
-            
-            // Now that the Rectangle is at (0,0) in the parent, we can directly align the tops
-            return frameViewportY
-        }
-        when: root.visible
-        restoreMode: Binding.RestoreBinding
-    }
+    // Update position when relevant properties change
+    onCanvasZoomChanged: updatePosition()
+    onCanvasContentXChanged: updatePosition()
+    onCanvasContentYChanged: updatePosition()
     
     Component.onCompleted: {
         // PrototypeViewableArea created
+        
+        // Initialize position
+        updatePosition()
+        
+        // Connect to prototyping stopped signal
+        if (prototypeController) {
+            prototypeController.prototypingStopped.connect(function() {
+                // Update position after prototyping stops
+                updatePosition()
+            })
+        }
     }
     
     onVisibleChanged: {
-        // Reset scroll state when visibility changes
         if (!visible) {
-            isSimulatingScroll = false
-            frozenX = 0
-            frozenY = 0
+            // Controller will handle resetting frame positions
+        } else {
+            // Update position when becoming visible
+            updatePosition()
         }
     }
     
     // Reset scroll state when active frame changes
     onActiveFrameElementChanged: {
-        isSimulatingScroll = false
-        frozenX = 0
-        frozenY = 0
+        // Controller now handles resetting previous frame position
+        // Just update position for the new active frame
+        updatePosition()
     }
     
     // The actual viewable area
@@ -197,13 +197,9 @@ Item {
                 // Move the activeOuterFrame based on scroll to simulate device scrolling
                 if (root.activeFrameElement && root.prototypeController) {
                     // Freeze position if not already simulating
-                    if (!root.isSimulatingScroll) {
-                        // Get the current computed x and y values
-                        var currentX = root.x
-                        var currentY = root.y
-                        root.frozenX = currentX
-                        root.frozenY = currentY
-                        root.isSimulatingScroll = true
+                    if (!root.prototypeController.isSimulatingScroll) {
+                        root.prototypeController.isSimulatingScroll = true
+                        root.prototypeController.scrollOffsetY = 0  // Initialize scroll offset
                     }
                     
                     // Invert the scroll direction to match natural scrolling behavior
@@ -211,32 +207,38 @@ Item {
                     var scrollSpeed = 1.0  // Adjust this value to control scroll sensitivity
                     var deltaY = -wheel.angleDelta.y / 8 * scrollSpeed  // Divide by 8 to convert from wheel units to pixels
                     
-                    // Calculate the new Y position
-                    var newY = root.activeFrameElement.y + deltaY
+                    // Calculate the proposed scroll offset
+                    var proposedScrollOffset = root.prototypeController.scrollOffsetY + deltaY
                     
-                    // Get frame and viewable area bounds in canvas coordinates
+                    // Get frame and viewable area dimensions
                     var frameHeight = root.activeFrameElement.height
-                    var viewableHeight = root.height  // Use root.height instead of viewableArea.height
-                    var zoom = root.canvasZoom
+                    var viewableHeightInCanvas = root.height / root.canvasZoom
                     
-                    // Convert viewable area position to canvas coordinates
-                    var viewableTopInCanvas = (root.frozenY + root.canvasContentY) / zoom + root.canvasMinY
-                    var viewableBottomInCanvas = viewableTopInCanvas + viewableHeight / zoom
-                    
-                    // Apply constraints:
-                    // 1. Top edge of frame cannot go below top edge of viewable area
-                    if (newY > viewableTopInCanvas) {
-                        newY = viewableTopInCanvas
+                    // Apply constraints to the scroll offset:
+                    // 1. When scrolling down (positive deltaY), the frame moves down relative to viewable area
+                    //    The top of the frame cannot go below the top of the viewable area (scrollOffset cannot be positive)
+                    if (proposedScrollOffset > 0) {
+                        proposedScrollOffset = 0
                     }
                     
-                    // 2. Bottom edge of frame cannot go above bottom edge of viewable area
-                    var frameBottom = newY + frameHeight
-                    if (frameBottom < viewableBottomInCanvas) {
-                        newY = viewableBottomInCanvas - frameHeight
+                    // 2. When scrolling up (negative deltaY), the frame moves up relative to viewable area
+                    //    The bottom of the frame cannot go above the bottom of the viewable area
+                    var maxNegativeOffset = -(frameHeight - viewableHeightInCanvas)
+                    if (proposedScrollOffset < maxNegativeOffset) {
+                        proposedScrollOffset = maxNegativeOffset
                     }
                     
-                    // Update the frame's y position with constraints
-                    root.activeFrameElement.y = newY
+                    // Only update if the offset actually changed
+                    if (proposedScrollOffset !== root.prototypeController.scrollOffsetY) {
+                        // Calculate the actual delta that will be applied
+                        var actualDelta = proposedScrollOffset - root.prototypeController.scrollOffsetY
+                        
+                        // Update the frame position
+                        root.activeFrameElement.y += actualDelta
+                        
+                        // Update the scroll offset
+                        root.prototypeController.scrollOffsetY = proposedScrollOffset
+                    }
                 }
             }
             
@@ -246,13 +248,8 @@ Item {
                     root.prototypeController.updateHoveredElement(Qt.point(-1, -1))
                 }
                 
-                // Reset scroll simulation state when mouse leaves
-                if (root.isSimulatingScroll) {
-                    root.isSimulatingScroll = false
-                    root.frozenX = 0
-                    root.frozenY = 0
-                    // Console log removed - Reset scroll simulation on mouse exit
-                }
+                // Note: We don't reset scroll simulation when mouse leaves
+                // Scroll position persists until prototyping stops, viewableArea becomes invisible, or active frame changes
             }
         }
     }

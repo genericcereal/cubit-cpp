@@ -80,8 +80,8 @@ Rectangle {
                 // var startPos = prototypeController.getSnapshotCanvasPosition()
                 // var startZoom = prototypeController.getSnapshotCanvasZoom()
                 
-                // Element position restoration is disabled for now
-                // prototypeController.restoreElementPositionsFromSnapshot()
+                // Restore element positions to their original state (including scroll positions)
+                prototypeController.restoreElementPositionsFromSnapshot()
                 
                 // Stop prototyping mode through the controller
                 prototypeController.stopPrototyping()

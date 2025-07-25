@@ -17,6 +17,42 @@ QtObject {
                 }
             ]
         },
+        "onWebLoad": {
+            "id": "onWebLoad",
+            "name": "On Web Load",
+            "type": "Event",
+            "sources": [
+                {
+                    "id": "done",
+                    "type": "Flow",
+                    "label": "Done"
+                }
+            ]
+        },
+        "oniOSLoad": {
+            "id": "oniOSLoad",
+            "name": "On iOS Load",
+            "type": "Event",
+            "sources": [
+                {
+                    "id": "done",
+                    "type": "Flow",
+                    "label": "Done"
+                }
+            ]
+        },
+        "onAndroidLoad": {
+            "id": "onAndroidLoad",
+            "name": "On Android Load",
+            "type": "Event",
+            "sources": [
+                {
+                    "id": "done",
+                    "type": "Flow",
+                    "label": "Done"
+                }
+            ]
+        },
         "consoleLog": {
             "id": "consoleLog",
             "name": "Console Log",
