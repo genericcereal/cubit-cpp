@@ -6,6 +6,7 @@
 #include "../Serializer.h"
 #include <QDebug>
 #include <QJsonArray>
+#include <QJsonDocument>
 #include <QQmlApplicationEngine>
 #include <QQmlComponent>
 
