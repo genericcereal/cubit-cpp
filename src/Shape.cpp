@@ -15,17 +15,21 @@ Shape::Shape(const QString &id, QObject *parent)
 void Shape::setShapeType(ShapeType type)
 {
     if (m_shapeType != type) {
+        qDebug() << "Shape::setShapeType changing from" << m_shapeType << "to" << type;
+        qDebug() << "  Current joints count:" << m_joints.size();
         m_shapeType = type;
         updateJointsForShape();
         updateName();
         emit shapeTypeChanged();
+        qDebug() << "  After shape type change, joints count:" << m_joints.size();
     }
 }
 
 QVariantList Shape::joints() const
 {
     QVariantList result;
-    for (const QPointF& point : m_joints) {
+    for (int i = 0; i < m_joints.size(); ++i) {
+        const QPointF& point = m_joints[i];
         // Joints are already in normalized coordinates (0-1 range)
         QVariantMap jointMap;
         jointMap["x"] = point.x();
@@ -38,11 +42,11 @@ QVariantList Shape::joints() const
 void Shape::setJoints(const QList<QPointF>& joints)
 {
     if (m_joints != joints) {
+        qDebug() << "Shape::setJoints() called - changing from" << m_joints.size() << "to" << joints.size() << "joints";
+        for (int i = 0; i < joints.size(); ++i) {
+            qDebug() << "  New joint" << i << ":" << joints[i];
+        }
         m_joints = joints;
-        // qDebug() << "Shape joints updated - count:" << joints.size();
-        // for (int i = 0; i < joints.size(); ++i) {
-        //     qDebug() << "  Joint" << i << ":" << joints[i];
-        // }
         emit jointsChanged();
     }
 }
@@ -53,6 +57,14 @@ void Shape::setJoints(const QVariantList& joints)
     for (const QVariant& joint : joints) {
         if (joint.canConvert<QPointF>()) {
             newJoints.append(joint.toPointF());
+        } else if (joint.canConvert<QVariantMap>()) {
+            // Handle QVariantMap with "x" and "y" keys (from deserialization)
+            QVariantMap jointMap = joint.toMap();
+            if (jointMap.contains("x") && jointMap.contains("y")) {
+                qreal x = jointMap["x"].toDouble();
+                qreal y = jointMap["y"].toDouble();
+                newJoints.append(QPointF(x, y));
+            }
         }
     }
     setJoints(newJoints);
@@ -115,12 +127,8 @@ void Shape::initializeShape()
 
 void Shape::updateJointsForShape()
 {
-    // qDebug() << "Shape::updateJointsForShape - type:" << m_shapeType 
-    //          << "width:" << width() << "height:" << height();
-    
     // Don't update joints if we have no size
     if (width() <= 0 || height() <= 0) {
-        // qDebug() << "Shape has no size yet, skipping joint update";
         return;
     }
     
@@ -160,11 +168,34 @@ void Shape::updateTriangleJoints()
 
 void Shape::updateLineJoints()
 {
-    QList<QPointF> newJoints;
-    // Two endpoints of the line (diagonal from top-left to bottom-right) in normalized coordinates
-    newJoints.append(QPointF(0.0, 0.0));    // Start point
-    newJoints.append(QPointF(1.0, 1.0));    // End point
-    setJoints(newJoints);
+    qDebug() << "Shape::updateLineJoints() called, current joints:" << m_joints.size();
+    
+    // Check if we have square corner joints that need to be replaced with line joints
+    bool hasSquareCornerJoints = (m_joints.size() == 4 &&
+                                  m_joints[0] == QPointF(0.0, 0.0) &&
+                                  m_joints[1] == QPointF(1.0, 0.0) &&
+                                  m_joints[2] == QPointF(1.0, 1.0) &&
+                                  m_joints[3] == QPointF(0.0, 1.0));
+    
+    // For lines, set default joints if we don't have any joints yet OR if we have square corner joints
+    // This preserves custom joints created by LineModeHandler or loaded from file, but replaces square corner joints
+    if (m_joints.isEmpty()) {
+        qDebug() << "  Line has no joints, setting default diagonal line";
+        QList<QPointF> newJoints;
+        // Two endpoints of the line (diagonal from top-left to bottom-right) in normalized coordinates
+        newJoints.append(QPointF(0.0, 0.0));    // Start point
+        newJoints.append(QPointF(1.0, 1.0));    // End point
+        setJoints(newJoints);
+    } else if (hasSquareCornerJoints) {
+        qDebug() << "  Line has square corner joints, replacing with default line joints";
+        QList<QPointF> newJoints;
+        // Two endpoints of the line (diagonal from top-left to bottom-right) in normalized coordinates
+        newJoints.append(QPointF(0.0, 0.0));    // Start point
+        newJoints.append(QPointF(1.0, 1.0));    // End point
+        setJoints(newJoints);
+    } else {
+        qDebug() << "  Line already has" << m_joints.size() << "custom joints, preserving them";
+    }
 }
 
 void Shape::updateName()

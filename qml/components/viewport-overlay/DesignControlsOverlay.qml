@@ -56,6 +56,10 @@ Item {
             if (controller && controller.isEditingShape) {
                 return false
             }
+            // Hide during line creation mode
+            if (controller && controller.mode === CanvasController.ShapeLine) {
+                return false
+            }
             // Also hide if ShapeControls are currently dragging
             if (shapeControls.visible && shapeControls.dragging) {
                 return false
@@ -579,10 +583,24 @@ Item {
         }
     }
     
-    // Shape controls - shown when editing shapes
+    // Shape controls - shown when editing shapes or during line creation
     ShapeControls {
         id: shapeControls
-        visible: controller && controller.isEditingShape && selectedElements.length === 1
+        visible: {
+            if (!controller || selectedElements.length !== 1) return false
+            
+            // Show during line creation mode (ShapeLine)
+            if (controller.mode === CanvasController.ShapeLine && selectedElements[0] && selectedElements[0].elementType === "Shape") {
+                return true
+            }
+            
+            // Show when explicitly editing shapes
+            if (controller.isEditingShape) {
+                return true
+            }
+            
+            return false
+        }
         selectedElement: selectedElements.length === 1 ? selectedElements[0] : null
         
         // Bind position and size to viewport coordinates

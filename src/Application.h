@@ -13,6 +13,7 @@ class Element;
 class AuthenticationManager;
 class ProjectApiClient;
 class CommandHistory;
+class Command;
 Q_DECLARE_OPAQUE_POINTER(AuthenticationManager*)
 class QQmlApplicationEngine;
 
@@ -68,6 +69,7 @@ public:
     Project* deserializeProjectFromData(const QJsonObject& projectData);
     QJsonObject serializeProjectData(Project* project) const;
     QJsonObject serializeElement(Element* element) const;
+    void updateProjectId(const QString& oldId, const QString& newId);
     
 
 signals:
@@ -93,6 +95,7 @@ private:
     QQmlApplicationEngine* m_engine = nullptr;
     std::unique_ptr<ProjectApiClient> m_projectApiClient;
     std::unique_ptr<CommandHistory> m_commandHistory;
+    std::vector<std::unique_ptr<Command>> m_pendingCommands;  // Keep async commands alive
     
     Project* findProject(const QString& projectId);
     const Project* findProject(const QString& projectId) const;

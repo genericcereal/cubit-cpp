@@ -224,12 +224,23 @@ void ProjectApiClient::syncCreateElement(const QString& apiProjectId, const QJso
     // Find the project by its ID (which should be the API project ID for API projects)
     Project* project = m_application->getProject(apiProjectId);
     if (!project) {
+        qDebug() << "ProjectApiClient::syncCreateElement - Project not found for ID:" << apiProjectId;
         emit syncCreateElementFailed(apiProjectId, "Project not found");
         return;
     }
     
+    qDebug() << "ProjectApiClient::syncCreateElement - Found project:" << project->name() << "with ID:" << project->id();
+    
     // Get current project data
     QJsonObject currentProjectData = m_application->serializeProjectData(project);
+    
+    // Debug: Check if the element is in the serialized data
+    if (currentProjectData.contains("elements")) {
+        QJsonArray elements = currentProjectData["elements"].toArray();
+        qDebug() << "ProjectApiClient::syncCreateElement - Project has" << elements.size() << "elements in serialized data";
+    } else {
+        qDebug() << "ProjectApiClient::syncCreateElement - No elements array in serialized data!";
+    }
     
     // Update the project via API using the project's ID (which is the API project ID)
     updateProject(apiProjectId, project->name(), currentProjectData);

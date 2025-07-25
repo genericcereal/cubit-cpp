@@ -88,15 +88,22 @@ void OpenProjectCommand::execute()
             ElementModel* model = project->elementModel();
             
             if (model) {
-                for (const QJsonValue& elementValue : elementsArray) {
+                for (int i = 0; i < elementsArray.size(); ++i) {
+                    const QJsonValue& elementValue = elementsArray[i];
                     QJsonObject elementData = elementValue.toObject();
+                    qDebug() << "OpenProjectCommand: Processing element" << i << ":";
+                    qDebug() << "  Raw JSON:" << QJsonDocument(elementData).toJson(QJsonDocument::Compact);
+                    qDebug() << "  Keys in element data:" << elementData.keys();
+                    
                     Element* element = m_application->deserializeElement(elementData, model);
                     if (element) {
                         model->addElement(element);
                     }
                 }
-                // qDebug() << "OpenProjectCommand: Loaded" << elementsArray.size() << "elements from project data";
+                qDebug() << "OpenProjectCommand: Loaded" << model->getAllElements().size() << "elements from API data (attempted" << elementsArray.size() << ")";
             }
+        } else {
+            qDebug() << "OpenProjectCommand: No elements array found in API data";
         }
     }
     

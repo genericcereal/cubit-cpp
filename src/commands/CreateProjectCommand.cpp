@@ -94,12 +94,24 @@ void CreateProjectCommand::onApiProjectCreated(const QString& apiProjectId, cons
     if (name == m_projectName) {
         m_apiProjectId = apiProjectId;
         qDebug() << "CreateProjectCommand: Successfully synced project to API with ID:" << m_apiProjectId;
+        qDebug() << "CreateProjectCommand: Original local project ID was:" << m_projectId;
+        
+        // Update the project to use the API ID
+        m_application->updateProjectId(m_projectId, m_apiProjectId);
+        
+        // Update our stored project ID to the API ID
+        m_projectId = m_apiProjectId;
+        
+        qDebug() << "CreateProjectCommand: Updated project to use API ID:" << m_apiProjectId;
         
         // Disconnect signals to avoid handling other projects
         if (m_application && m_application->projectApiClient()) {
             disconnect(m_application->projectApiClient(), &ProjectApiClient::projectCreated, this, &CreateProjectCommand::onApiProjectCreated);
             disconnect(m_application->projectApiClient(), &ProjectApiClient::createProjectFailed, this, &CreateProjectCommand::onApiCreateFailed);
         }
+        
+        // Emit signal to indicate sync is complete
+        emit apiSyncComplete();
     }
 }
 
@@ -112,4 +124,7 @@ void CreateProjectCommand::onApiCreateFailed(const QString& error)
         disconnect(m_application->projectApiClient(), &ProjectApiClient::projectCreated, this, &CreateProjectCommand::onApiProjectCreated);
         disconnect(m_application->projectApiClient(), &ProjectApiClient::createProjectFailed, this, &CreateProjectCommand::onApiCreateFailed);
     }
+    
+    // Emit signal to indicate sync is complete (even on failure)
+    emit apiSyncComplete();
 }

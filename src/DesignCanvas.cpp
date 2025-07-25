@@ -2,6 +2,7 @@
 #include "Element.h"
 #include "DesignElement.h"
 #include "Frame.h"
+#include "Shape.h"
 #include "SelectionManager.h"
 #include "ElementModel.h"
 #include <QDebug>
@@ -200,6 +201,11 @@ void DesignCanvas::updateParentingDuringDrag()
 void DesignCanvas::onSelectionChanged()
 {
     clearHoverIfSelected();
+    
+    // Don't automatically enter shape editing mode on selection
+    // Shape editing mode should be activated explicitly (e.g., double-click)
+    // For now, always disable shape editing when selection changes
+    setIsEditingShape(false);
 }
 
 void DesignCanvas::onModeChanged()

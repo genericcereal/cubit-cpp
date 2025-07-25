@@ -22,6 +22,9 @@ public:
 
     QString getCreatedProjectId() const { return m_projectId; }
 
+signals:
+    void apiSyncComplete();
+
 private slots:
     void onApiProjectCreated(const QString& apiProjectId, const QString& name);
     void onApiCreateFailed(const QString& error);

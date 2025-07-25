@@ -28,9 +28,14 @@ Rectangle {
         }
         
         function onProjectFetchedFromAPI(projectId, project) {
-            // ProjectList: Received project data
+            console.log("ProjectList: Received project data for ID:", projectId)
             // Extract canvasData from the project object
             let canvasData = project.canvasData
+            if (canvasData && canvasData.elements) {
+                console.log("ProjectList: Canvas data contains", canvasData.elements.length, "elements")
+            } else {
+                console.log("ProjectList: No elements found in canvas data")
+            }
             openProjectWithCanvasData(project, canvasData)
         }
         

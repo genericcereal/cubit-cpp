@@ -412,10 +412,14 @@ Item {
     Shortcut {
         sequence: "Escape"
         onActivated: {
-            if (selectionManager) {
-                selectionManager.clearSelection()
-            }
             if (controller) {
+                // First handle specialized escape behavior (like line creation)
+                controller.handleEscapeKey()
+                
+                // Then handle default escape behavior
+                if (selectionManager) {
+                    selectionManager.clearSelection()
+                }
                 controller.mode = CanvasController.Select
             }
         }
