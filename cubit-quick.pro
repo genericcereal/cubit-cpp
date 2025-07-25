@@ -107,7 +107,8 @@ SOURCES += \
     src/AICommandDispatcher.cpp \
     src/ProjectApiClient.cpp \
     src/FileManager.cpp \
-    src/Serializer.cpp
+    src/Serializer.cpp \
+    src/PlatformConfig.cpp
 
 HEADERS += \
     src/Element.h \
@@ -189,7 +190,8 @@ HEADERS += \
     src/AICommandDispatcher.h \
     src/ProjectApiClient.h \
     src/FileManager.h \
-    src/Serializer.h
+    src/Serializer.h \
+    src/PlatformConfig.h
 
 RESOURCES += qml.qrc
 

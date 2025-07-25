@@ -96,7 +96,7 @@ PropertyGroup {
                 var platforms = ["undefined"]
                 var canvasPlatforms = canvas.platforms
                 for (var i = 0; i < canvasPlatforms.length; i++) {
-                    platforms.push(canvasPlatforms[i])
+                    platforms.push(canvasPlatforms[i].name)
                 }
                 return platforms
             },

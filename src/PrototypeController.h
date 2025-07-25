@@ -46,6 +46,10 @@ class PrototypeController : public QObject {
     Q_PROPERTY(QString activeOuterFrame READ activeOuterFrame WRITE setActiveOuterFrame NOTIFY activeOuterFrameChanged)
     Q_PROPERTY(QString hoveredElement READ hoveredElement NOTIFY hoveredElementChanged)
     Q_PROPERTY(QString activeElement READ activeElement NOTIFY activeElementChanged)
+    Q_PROPERTY(bool isSimulatingScroll READ isSimulatingScroll WRITE setIsSimulatingScroll NOTIFY isSimulatingScrollChanged)
+    Q_PROPERTY(qreal scrollOffsetX READ scrollOffsetX WRITE setScrollOffsetX NOTIFY scrollOffsetXChanged)
+    Q_PROPERTY(qreal scrollOffsetY READ scrollOffsetY WRITE setScrollOffsetY NOTIFY scrollOffsetYChanged)
+    Q_PROPERTY(QString previousActiveFrameId READ previousActiveFrameId WRITE setPreviousActiveFrameId NOTIFY previousActiveFrameIdChanged)
     
 public:
     explicit PrototypeController(ElementModel& model,
@@ -110,6 +114,22 @@ public:
     // Method to clear any active WebTextInput
     Q_INVOKABLE void clearActiveInput();
     
+    // Scroll simulation properties
+    bool isSimulatingScroll() const { return m_isSimulatingScroll; }
+    void setIsSimulatingScroll(bool value);
+    
+    qreal scrollOffsetX() const { return m_scrollOffsetX; }
+    void setScrollOffsetX(qreal offset);
+    
+    qreal scrollOffsetY() const { return m_scrollOffsetY; }
+    void setScrollOffsetY(qreal offset);
+    
+    QString previousActiveFrameId() const { return m_previousActiveFrameId; }
+    void setPreviousActiveFrameId(const QString& frameId);
+    
+    // Method to reset scroll position for a specific frame
+    Q_INVOKABLE void resetFrameScrollPosition(const QString& frameId);
+    
 private:
     void setDeviceFrames(bool isModeChange = false, qreal oldViewableHeight = 0.0);
     void updateChildLayouts(CanvasElement* parent);
@@ -127,6 +147,10 @@ signals:
     void hoveredElementChanged();
     void activeElementChanged();
     void requestCanvasMove(const QPointF& canvasPoint, bool animated);
+    void isSimulatingScrollChanged();
+    void scrollOffsetXChanged();
+    void scrollOffsetYChanged();
+    void previousActiveFrameIdChanged();
     
 private:
     ElementModel& m_elementModel;
@@ -157,6 +181,12 @@ private:
     
     // Currently active element (e.g., WebTextInput being edited)
     QString m_activeElement;
+    
+    // Scroll simulation state
+    bool m_isSimulatingScroll = false;
+    qreal m_scrollOffsetX = 0.0;
+    qreal m_scrollOffsetY = 0.0;
+    QString m_previousActiveFrameId;
     
     // Default viewable area dimensions for different platforms
     static constexpr qreal IOS_WIDTH = 375.0;

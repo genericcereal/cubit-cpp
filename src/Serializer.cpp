@@ -12,9 +12,13 @@
 #include "ScriptElement.h"
 #include "Node.h"
 #include "Edge.h"
+#include "Scripts.h"
 #include "platforms/web/WebTextInput.h"
+#include "PlatformConfig.h"
 #include "ElementTypeRegistry.h"
 #include "ConsoleMessageRepository.h"
+#include "CanvasController.h"
+#include "HitTestService.h"
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
@@ -38,7 +42,46 @@ QJsonObject Serializer::serializeProject(Project* project) const {
     projectObj["id"] = project->id();
     projectObj["name"] = project->name();
     projectObj["viewMode"] = project->viewMode();
-    projectObj["platforms"] = QJsonArray::fromStringList(project->platforms());
+    // Serialize platforms with their scripts
+    QJsonArray platformsArray;
+    QList<PlatformConfig*> platforms = project->getAllPlatforms();
+    qDebug() << "Serializing" << platforms.size() << "platforms for project" << project->id();
+    for (PlatformConfig* platform : platforms) {
+        QJsonObject platformObj;
+        platformObj["name"] = platform->name();
+        
+        // Serialize platform-specific scripts
+        if (platform->scripts()) {
+            QJsonObject scriptsObj;
+            
+            // Serialize nodes
+            QJsonArray nodesArray;
+            QList<Node*> nodes = platform->scripts()->getAllNodes();
+            qDebug() << "  Platform" << platform->name() << "has" << nodes.size() << "nodes to serialize";
+            for (Node* node : nodes) {
+                QJsonObject nodeObj = serializeNode(node);
+                nodesArray.append(nodeObj);
+            }
+            scriptsObj["nodes"] = nodesArray;
+            
+            // Serialize edges
+            QJsonArray edgesArray;
+            QList<Edge*> edges = platform->scripts()->getAllEdges();
+            qDebug() << "  Platform" << platform->name() << "has" << edges.size() << "edges to serialize";
+            for (Edge* edge : edges) {
+                QJsonObject edgeObj = serializeEdge(edge);
+                edgesArray.append(edgeObj);
+            }
+            scriptsObj["edges"] = edgesArray;
+            
+            platformObj["scripts"] = scriptsObj;
+        } else {
+            qDebug() << "  Platform" << platform->name() << "has no scripts object!";
+        }
+        
+        platformsArray.append(platformObj);
+    }
+    projectObj["platforms"] = platformsArray;
     
     // Serialize all elements from the ElementModel
     QJsonArray elementsArray;
@@ -197,11 +240,65 @@ Project* Serializer::deserializeProject(const QJsonObject& projectData) {
         
         if (projectData.contains("platforms")) {
             QJsonArray platformsArray = projectData["platforms"].toArray();
-            QStringList platforms;
-            for (const QJsonValue& platform : platformsArray) {
-                platforms << platform.toString();
+            qDebug() << "Deserializing" << platformsArray.size() << "platforms for project" << id;
+            for (const QJsonValue& platformValue : platformsArray) {
+                if (platformValue.isString()) {
+                    // Legacy format: just platform names
+                    qDebug() << "  Loading platform (legacy format):" << platformValue.toString();
+                    project->addPlatform(platformValue.toString());
+                } else if (platformValue.isObject()) {
+                    // New format: platform objects with scripts
+                    QJsonObject platformObj = platformValue.toObject();
+                    QString platformName = platformObj["name"].toString();
+                    
+                    if (!platformName.isEmpty()) {
+                        project->addPlatform(platformName);
+                        
+                        // Load platform-specific scripts if present
+                        if (platformObj.contains("scripts")) {
+                            qDebug() << "Deserializing scripts for platform:" << platformName;
+                            QJsonObject scriptsObj = platformObj["scripts"].toObject();
+                            Scripts* platformScripts = project->getPlatformScripts(platformName);
+                            
+                            if (platformScripts) {
+                                // Clear existing default nodes
+                                qDebug() << "  Clearing existing nodes for platform:" << platformName;
+                                platformScripts->clear();
+                                
+                                // Load nodes
+                                if (scriptsObj.contains("nodes")) {
+                                    QJsonArray nodesArray = scriptsObj["nodes"].toArray();
+                                    qDebug() << "  Loading" << nodesArray.size() << "nodes for platform:" << platformName;
+                                    for (const QJsonValue& nodeValue : nodesArray) {
+                                        Node* node = deserializeNode(nodeValue.toObject(), platformScripts);
+                                        if (node) {
+                                            platformScripts->addNode(node);
+                                        }
+                                    }
+                                }
+                                
+                                // Load edges
+                                if (scriptsObj.contains("edges")) {
+                                    QJsonArray edgesArray = scriptsObj["edges"].toArray();
+                                    qDebug() << "  Loading" << edgesArray.size() << "edges for platform:" << platformName;
+                                    for (const QJsonValue& edgeValue : edgesArray) {
+                                        Edge* edge = deserializeEdge(edgeValue.toObject(), platformScripts);
+                                        if (edge) {
+                                            platformScripts->addEdge(edge);
+                                        }
+                                    }
+                                }
+                                
+                                qDebug() << "  Platform" << platformName << "now has" << platformScripts->nodeCount() << "nodes and" << platformScripts->edgeCount() << "edges";
+                            } else {
+                                qWarning() << "  Failed to get scripts for platform:" << platformName;
+                            }
+                        } else {
+                            qDebug() << "  No scripts found for platform:" << platformName;
+                        }
+                    }
+                }
             }
-            project->setPlatforms(platforms);
         }
         
         // Add to application's project list
@@ -217,6 +314,13 @@ Project* Serializer::deserializeProject(const QJsonObject& projectData) {
                     project->elementModel()->addElement(element);
                 }
             }
+        }
+        
+        // Rebuild spatial index after all elements are loaded
+        CanvasController* controller = project->controller();
+        if (controller && controller->hitTestService()) {
+            controller->hitTestService()->rebuildSpatialIndex();
+            qDebug() << "Rebuilt spatial index for loaded project:" << name;
         }
         
         return project;
@@ -456,4 +560,141 @@ Element* Serializer::deserializeElement(const QJsonObject& elementData, ElementM
         qDebug() << "Error deserializing element:" << e.what();
         return nullptr;
     }
+}
+
+QJsonObject Serializer::serializeNode(Node* node) const {
+    QJsonObject nodeObj;
+    
+    // Serialize basic properties from Element base class
+    nodeObj["id"] = node->getId();
+    nodeObj["name"] = node->getName();
+    nodeObj["x"] = node->x();
+    nodeObj["y"] = node->y();
+    nodeObj["width"] = node->width();
+    nodeObj["height"] = node->height();
+    
+    // Serialize Node-specific properties
+    nodeObj["nodeType"] = node->nodeType();
+    nodeObj["nodeTitle"] = node->nodeTitle();
+    nodeObj["nodeColor"] = node->nodeColor().name();
+    nodeObj["value"] = node->value();
+    nodeObj["sourceElementId"] = node->sourceElementId();
+    
+    // Serialize ports
+    QJsonArray inputPortsArray = QJsonArray::fromStringList(node->inputPorts());
+    nodeObj["inputPorts"] = inputPortsArray;
+    
+    QJsonArray outputPortsArray = QJsonArray::fromStringList(node->outputPorts());
+    nodeObj["outputPorts"] = outputPortsArray;
+    
+    return nodeObj;
+}
+
+QJsonObject Serializer::serializeEdge(Edge* edge) const {
+    QJsonObject edgeObj;
+    
+    // Serialize basic properties from Element base class
+    edgeObj["id"] = edge->getId();
+    edgeObj["name"] = edge->getName();
+    
+    // Serialize Edge-specific properties
+    edgeObj["sourceNodeId"] = edge->sourceNodeId();
+    edgeObj["targetNodeId"] = edge->targetNodeId();
+    edgeObj["sourcePortIndex"] = edge->sourcePortIndex();
+    edgeObj["targetPortIndex"] = edge->targetPortIndex();
+    edgeObj["sourcePortType"] = edge->sourcePortType();
+    edgeObj["targetPortType"] = edge->targetPortType();
+    edgeObj["edgeColor"] = edge->edgeColor().name();
+    edgeObj["edgeWidth"] = edge->edgeWidth();
+    
+    // Serialize points
+    QJsonObject sourcePoint;
+    sourcePoint["x"] = edge->sourcePoint().x();
+    sourcePoint["y"] = edge->sourcePoint().y();
+    edgeObj["sourcePoint"] = sourcePoint;
+    
+    QJsonObject targetPoint;
+    targetPoint["x"] = edge->targetPoint().x();
+    targetPoint["y"] = edge->targetPoint().y();
+    edgeObj["targetPoint"] = targetPoint;
+    
+    return edgeObj;
+}
+
+Node* Serializer::deserializeNode(const QJsonObject& nodeData, Scripts* scripts) {
+    if (!scripts) return nullptr;
+    
+    QString id = nodeData["id"].toString();
+    if (id.isEmpty()) return nullptr;
+    
+    Node* node = new Node(id, scripts);
+    
+    // Set basic properties from Element base class
+    if (nodeData.contains("name")) node->setName(nodeData["name"].toString());
+    if (nodeData.contains("x")) node->setX(nodeData["x"].toDouble());
+    if (nodeData.contains("y")) node->setY(nodeData["y"].toDouble());
+    if (nodeData.contains("width")) node->setWidth(nodeData["width"].toDouble());
+    if (nodeData.contains("height")) node->setHeight(nodeData["height"].toDouble());
+    
+    // Set Node-specific properties
+    if (nodeData.contains("nodeTitle")) node->setNodeTitle(nodeData["nodeTitle"].toString());
+    if (nodeData.contains("nodeColor")) node->setNodeColor(QColor(nodeData["nodeColor"].toString()));
+    if (nodeData.contains("value")) node->setValue(nodeData["value"].toString());
+    if (nodeData.contains("sourceElementId")) node->setSourceElementId(nodeData["sourceElementId"].toString());
+    
+    // Set ports
+    if (nodeData.contains("inputPorts")) {
+        QJsonArray inputPortsArray = nodeData["inputPorts"].toArray();
+        QStringList inputPorts;
+        for (const QJsonValue& port : inputPortsArray) {
+            inputPorts << port.toString();
+        }
+        node->setInputPorts(inputPorts);
+    }
+    
+    if (nodeData.contains("outputPorts")) {
+        QJsonArray outputPortsArray = nodeData["outputPorts"].toArray();
+        QStringList outputPorts;
+        for (const QJsonValue& port : outputPortsArray) {
+            outputPorts << port.toString();
+        }
+        node->setOutputPorts(outputPorts);
+    }
+    
+    return node;
+}
+
+Edge* Serializer::deserializeEdge(const QJsonObject& edgeData, Scripts* scripts) {
+    if (!scripts) return nullptr;
+    
+    QString id = edgeData["id"].toString();
+    if (id.isEmpty()) return nullptr;
+    
+    Edge* edge = new Edge(id, scripts);
+    
+    // Set basic properties from Element base class
+    if (edgeData.contains("name")) edge->setName(edgeData["name"].toString());
+    
+    // Set Edge-specific properties
+    if (edgeData.contains("sourceNodeId")) edge->setSourceNodeId(edgeData["sourceNodeId"].toString());
+    if (edgeData.contains("targetNodeId")) edge->setTargetNodeId(edgeData["targetNodeId"].toString());
+    if (edgeData.contains("sourcePortIndex")) edge->setSourcePortIndex(edgeData["sourcePortIndex"].toInt());
+    if (edgeData.contains("targetPortIndex")) edge->setTargetPortIndex(edgeData["targetPortIndex"].toInt());
+    if (edgeData.contains("sourcePortType")) edge->setSourcePortType(edgeData["sourcePortType"].toString());
+    if (edgeData.contains("targetPortType")) edge->setTargetPortType(edgeData["targetPortType"].toString());
+    if (edgeData.contains("edgeColor")) edge->setEdgeColor(QColor(edgeData["edgeColor"].toString()));
+    if (edgeData.contains("edgeWidth")) edge->setEdgeWidth(edgeData["edgeWidth"].toDouble());
+    
+    // Set points
+    if (edgeData.contains("sourcePoint")) {
+        QJsonObject sourcePoint = edgeData["sourcePoint"].toObject();
+        edge->setSourcePoint(QPointF(sourcePoint["x"].toDouble(), sourcePoint["y"].toDouble()));
+    }
+    
+    if (edgeData.contains("targetPoint")) {
+        QJsonObject targetPoint = edgeData["targetPoint"].toObject();
+        edge->setTargetPoint(QPointF(targetPoint["x"].toDouble(), targetPoint["y"].toDouble()));
+    }
+    
+    return edge;
 }

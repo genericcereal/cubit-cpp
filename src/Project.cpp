@@ -13,13 +13,13 @@
 #include "StreamingAIClient.h"
 #include "ConsoleMessageRepository.h"
 #include "AuthenticationManager.h"
+#include "PlatformConfig.h"
 
 Project::Project(const QString& id, const QString& name, QObject *parent)
     : QObject(parent)
     , m_name(name.isEmpty() ? "Untitled Canvas" : name)
     , m_id(id)
     , m_viewMode("design")
-    , m_platforms()
 {
     // Create per-project console
     m_console = std::make_unique<ConsoleMessageRepository>(this);
@@ -83,8 +83,65 @@ QString Project::viewMode() const {
     return m_viewMode;
 }
 
-QStringList Project::platforms() const {
-    return m_platforms;
+QQmlListProperty<PlatformConfig> Project::platforms() {
+    return QQmlListProperty<PlatformConfig>(
+        this, this,
+        &Project::appendPlatform,
+        &Project::platformCount,
+        &Project::platformAt,
+        &Project::clearPlatforms
+    );
+}
+
+void Project::addPlatform(const QString& platformName) {
+    // Check if platform already exists
+    for (const auto& platform : m_platforms) {
+        if (platform->name() == platformName) {
+            qWarning() << "Platform" << platformName << "already exists in project";
+            return;
+        }
+    }
+    
+    // Create new platform config
+    auto platformConfig = std::unique_ptr<PlatformConfig>(PlatformConfig::create(platformName, this));
+    m_platforms.push_back(std::move(platformConfig));
+    emit platformsChanged();
+}
+
+void Project::removePlatform(const QString& platformName) {
+    auto it = std::find_if(m_platforms.begin(), m_platforms.end(),
+        [&platformName](const std::unique_ptr<PlatformConfig>& platform) {
+            return platform->name() == platformName;
+        }
+    );
+    
+    if (it != m_platforms.end()) {
+        m_platforms.erase(it);
+        emit platformsChanged();
+    }
+}
+
+PlatformConfig* Project::getPlatform(const QString& platformName) const {
+    auto it = std::find_if(m_platforms.begin(), m_platforms.end(),
+        [&platformName](const std::unique_ptr<PlatformConfig>& platform) {
+            return platform->name() == platformName;
+        }
+    );
+    
+    return (it != m_platforms.end()) ? it->get() : nullptr;
+}
+
+QList<PlatformConfig*> Project::getAllPlatforms() const {
+    QList<PlatformConfig*> result;
+    for (const auto& platform : m_platforms) {
+        result.append(platform.get());
+    }
+    return result;
+}
+
+Scripts* Project::getPlatformScripts(const QString& platformName) const {
+    PlatformConfig* platform = getPlatform(platformName);
+    return platform ? platform->scripts() : nullptr;
 }
 
 void Project::setName(const QString& name) {
@@ -160,10 +217,31 @@ void Project::setViewMode(const QString& viewMode) {
     }
 }
 
-void Project::setPlatforms(const QStringList& platforms) {
-    if (m_platforms != platforms) {
-        m_platforms = platforms;
-        emit platformsChanged();
+// QML list property helpers
+void Project::appendPlatform(QQmlListProperty<PlatformConfig>* list, PlatformConfig* platform) {
+    Q_UNUSED(list)
+    Q_UNUSED(platform)
+    // Not implemented - use addPlatform() instead
+}
+
+qsizetype Project::platformCount(QQmlListProperty<PlatformConfig>* list) {
+    Project* project = qobject_cast<Project*>(list->object);
+    return project ? project->m_platforms.size() : 0;
+}
+
+PlatformConfig* Project::platformAt(QQmlListProperty<PlatformConfig>* list, qsizetype index) {
+    Project* project = qobject_cast<Project*>(list->object);
+    if (project && index >= 0 && index < static_cast<qsizetype>(project->m_platforms.size())) {
+        return project->m_platforms[index].get();
+    }
+    return nullptr;
+}
+
+void Project::clearPlatforms(QQmlListProperty<PlatformConfig>* list) {
+    Project* project = qobject_cast<Project*>(list->object);
+    if (project) {
+        project->m_platforms.clear();
+        emit project->platformsChanged();
     }
 }
 
@@ -285,6 +363,12 @@ Scripts* Project::activeScripts() const {
                 return designElement->scripts();
             }
         }
+        // Check if it's a PlatformConfig
+        else if (PlatformConfig* platform = qobject_cast<PlatformConfig*>(m_editingElement)) {
+            if (platform->scripts()) {
+                return platform->scripts();
+            }
+        }
     }
     // Otherwise return the canvas's global scripts
     return m_scripts.get();
@@ -343,6 +427,24 @@ void Project::setEditingComponent(Component* component, const QString& viewMode)
         // Update the canvas controller's hit test service
         if (m_controller) {
             m_controller->setEditingElement(m_editingElement);
+        }
+    }
+    
+    // If a viewMode is specified, switch to that mode
+    if (!viewMode.isEmpty() && m_viewMode != viewMode) {
+        setViewMode(viewMode);
+    }
+}
+
+void Project::setEditingPlatform(PlatformConfig* platform, const QString& viewMode) {
+    if (m_editingElement != platform) {
+        m_editingElement = platform;
+        emit editingElementChanged();
+        updateActiveScripts();
+        
+        // Update the canvas controller's hit test service
+        if (m_controller) {
+            m_controller->setEditingElement(nullptr); // Platforms don't have visual elements
         }
     }
     

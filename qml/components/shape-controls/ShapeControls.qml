@@ -80,6 +80,8 @@ Item {
         // Redraw when joints change
         Connections {
             target: selectedElement
+            enabled: selectedElement !== null
+            ignoreUnknownSignals: true
             function onJointsChanged() {
                 // Canvas: Joints changed, requesting repaint
                 shapeCanvas.requestPaint()

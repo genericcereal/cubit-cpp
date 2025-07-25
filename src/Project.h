@@ -12,6 +12,7 @@
 #include "DesignElement.h"
 #include "ScriptExecutor.h"
 #include "PrototypeController.h"
+#include "PlatformConfig.h"
 
 class StreamingAIClient;
 class AuthenticationManager;
@@ -33,7 +34,7 @@ class Project : public QObject {
     Q_PROPERTY(QString viewMode READ viewMode WRITE setViewMode NOTIFY viewModeChanged)
     Q_PROPERTY(QObject* editingElement READ editingElement NOTIFY editingElementChanged)
     Q_PROPERTY(Scripts* activeScripts READ activeScripts NOTIFY activeScriptsChanged)
-    Q_PROPERTY(QStringList platforms READ platforms WRITE setPlatforms NOTIFY platformsChanged)
+    Q_PROPERTY(QQmlListProperty<PlatformConfig> platforms READ platforms NOTIFY platformsChanged)
     Q_PROPERTY(ConsoleMessageRepository* console READ console CONSTANT)
 
 public:
@@ -51,16 +52,23 @@ public:
     QString viewMode() const;
     QObject* editingElement() const;
     Scripts* activeScripts() const;
-    QStringList platforms() const;
+    QQmlListProperty<PlatformConfig> platforms();
     ConsoleMessageRepository* console() const;
+    
+    // Platform management
+    Q_INVOKABLE void addPlatform(const QString& platformName);
+    Q_INVOKABLE void removePlatform(const QString& platformName);
+    Q_INVOKABLE PlatformConfig* getPlatform(const QString& platformName) const;
+    Q_INVOKABLE QList<PlatformConfig*> getAllPlatforms() const;
+    Q_INVOKABLE Scripts* getPlatformScripts(const QString& platformName) const;
 
     // Property setters
     void setName(const QString& name);
     void setViewMode(const QString& viewMode);
-    void setPlatforms(const QStringList& platforms);
     void setId(const QString& id);  // Update project ID (e.g., after API sync)
     Q_INVOKABLE void setEditingElement(DesignElement* element, const QString& viewMode = QString());
     Q_INVOKABLE void setEditingComponent(Component* component, const QString& viewMode = QString());
+    Q_INVOKABLE void setEditingPlatform(PlatformConfig* platform, const QString& viewMode = QString());
 
     // Initialize the canvas components
     void initialize();
@@ -99,7 +107,13 @@ private:
     QString m_id;
     QString m_viewMode;
     QObject* m_editingElement = nullptr; // Can be DesignElement* or Component*
-    QStringList m_platforms;
+    std::vector<std::unique_ptr<PlatformConfig>> m_platforms;
+    
+    // QML list property helpers
+    static void appendPlatform(QQmlListProperty<PlatformConfig>* list, PlatformConfig* platform);
+    static qsizetype platformCount(QQmlListProperty<PlatformConfig>* list);
+    static PlatformConfig* platformAt(QQmlListProperty<PlatformConfig>* list, qsizetype index);
+    static void clearPlatforms(QQmlListProperty<PlatformConfig>* list);
     
     void updateActiveScripts();
     void loadScriptsIntoElementModel();

@@ -60,52 +60,22 @@ void OpenProjectCommand::execute()
         return;
     }
     
-    // Create a new project with the API project ID and name
-    auto project = std::make_unique<Project>(m_projectId, m_projectName, m_application);
+    // Use the Serializer to deserialize the project data properly
+    // This will handle the new platform format with scripts
+    qDebug() << "OpenProjectCommand: Using serializer to deserialize project data";
     
-    // Initialize the project first (this creates controller, elementModel, etc.)
-    project->initialize();
+    // Ensure the canvas data has the required ID and name
+    QJsonObject projectData = m_canvasData;
+    projectData["id"] = m_projectId;
+    projectData["name"] = m_projectName;
     
-    // Deserialize the canvas data into the project
-    if (!m_canvasData.isEmpty()) {
-        // qDebug() << "OpenProjectCommand: Deserializing canvas data for project";
-        
-        // Set project properties if available
-        if (m_canvasData.contains("viewMode")) {
-            project->setViewMode(m_canvasData["viewMode"].toString());
-        }
-        
-        if (m_canvasData.contains("platforms")) {
-            QJsonArray platformsArray = m_canvasData["platforms"].toArray();
-            QStringList platforms;
-            for (const QJsonValue& value : platformsArray) {
-                platforms.append(value.toString());
-            }
-            project->setPlatforms(platforms);
-        }
-        
-        // Load elements
-        if (m_canvasData.contains("elements")) {
-            QJsonArray elementsArray = m_canvasData["elements"].toArray();
-            ElementModel* model = project->elementModel();
-            
-            if (model) {
-                for (int i = 0; i < elementsArray.size(); ++i) {
-                    const QJsonValue& elementValue = elementsArray[i];
-                    QJsonObject elementData = elementValue.toObject();
-                    
-                    Element* element = m_application->serializer()->deserializeElement(elementData, model);
-                    if (element) {
-                        model->addElement(element);
-                    }
-                }
-            }
-        } else {
-        }
+    Project* project = m_application->serializer()->deserializeProject(projectData);
+    
+    if (!project) {
+        qWarning() << "OpenProjectCommand: Failed to deserialize project";
+        return;
     }
     
-    // Add to application's projects list
-    m_application->m_canvases.push_back(std::move(project));
     m_projectWasCreated = true;
     
     emit m_application->canvasListChanged();
