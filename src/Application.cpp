@@ -7,6 +7,7 @@
 #include "DesignElement.h"
 #include "Frame.h"
 #include "Text.h"
+#include "Shape.h"
 #include "Variable.h"
 #include "ScriptElement.h"
 #include "Node.h"
@@ -19,6 +20,7 @@
 #include "commands/CreateProjectCommand.h"
 #include "commands/OpenProjectCommand.h"
 #include "CommandHistory.h"
+#include "Command.h"
 #include <QDebug>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -223,6 +225,18 @@ void Application::createNewProject(const QString& projectName) {
     auto command = std::make_unique<CreateProjectCommand>(this, name);
     CreateProjectCommand* commandPtr = command.get();
     
+    // Connect to apiSyncComplete signal to clean up when done
+    connect(commandPtr, &CreateProjectCommand::apiSyncComplete, this, [this, commandPtr]() {
+        // Remove the command from pending commands when sync is complete
+        auto it = std::find_if(m_pendingCommands.begin(), m_pendingCommands.end(),
+            [commandPtr](const std::unique_ptr<Command>& cmd) {
+                return cmd.get() == commandPtr;
+            });
+        if (it != m_pendingCommands.end()) {
+            m_pendingCommands.erase(it);
+        }
+    });
+    
     // Execute the command directly
     command->execute();
     
@@ -250,6 +264,9 @@ void Application::createNewProject(const QString& projectName) {
     } else {
         qWarning() << "Failed to get project ID from CreateProjectCommand";
     }
+    
+    // Keep the command alive until API sync completes
+    m_pendingCommands.push_back(std::move(command));
 }
 
 void Application::openAPIProject(const QString& projectId, const QString& projectName, const QJsonObject& canvasData) {
@@ -396,12 +413,15 @@ QJsonObject Application::serializeProject(Project* project) const {
     QJsonArray elementsArray;
     if (project->elementModel()) {
         QList<Element*> elements = project->elementModel()->getAllElements();
+        qDebug() << "Application::serializeProject - Project" << project->id() << "has" << elements.size() << "elements to serialize";
         for (Element* element : elements) {
             if (element) {
                 QJsonObject elementObj = serializeElement(element);
                 elementsArray.append(elementObj);
             }
         }
+    } else {
+        qDebug() << "Application::serializeProject - Project" << project->id() << "has no elementModel!";
     }
     projectObj["elements"] = elementsArray;
     
@@ -442,15 +462,91 @@ QJsonObject Application::serializeElement(Element* element) const {
         
         QVariant value = property.read(element);
         
+        // Debug joints property specifically
+        if (QString(name) == "joints") {
+            qDebug() << "  Reading 'joints' property:";
+            qDebug() << "    Type:" << value.typeName() << "TypeId:" << value.metaType().id();
+            qDebug() << "    Value:" << value;
+            if (value.canConvert<QVariantList>()) {
+                QVariantList list = value.toList();
+                qDebug() << "    Converted to QVariantList, size:" << list.size();
+            }
+        }
+        
+        // Debug which conversion path is taken for joints
+        if (QString(name) == "joints") {
+            qDebug() << "  Joints conversion path:";
+            qDebug() << "    canConvert<QString>:" << value.canConvert<QString>();
+            qDebug() << "    canConvert<int>:" << value.canConvert<int>();
+            qDebug() << "    canConvert<double>:" << value.canConvert<double>();
+            qDebug() << "    canConvert<bool>:" << value.canConvert<bool>();
+            qDebug() << "    canConvert<QStringList>:" << value.canConvert<QStringList>();
+            qDebug() << "    canConvert<QVariantList>:" << value.canConvert<QVariantList>();
+        }
+        
         // Convert QVariant to JSON-compatible value
-        if (value.canConvert<QString>()) {
+        // IMPORTANT: Check specific types BEFORE generic conversions
+        if (value.metaType().id() == QMetaType::QString) {
+            // Handle QString directly to avoid conversion issues
             elementObj[name] = value.toString();
-        } else if (value.canConvert<int>()) {
-            elementObj[name] = value.toInt();
-        } else if (value.canConvert<double>()) {
-            elementObj[name] = value.toDouble();
-        } else if (value.canConvert<bool>()) {
-            elementObj[name] = value.toBool();
+        } else if (value.metaType().id() == QMetaType::QVariantList || value.canConvert<QVariantList>()) {
+            // Handle QVariantList FIRST before string conversion
+            QVariantList list = value.toList();
+            QJsonArray jsonArray;
+            
+            // Debug for joints
+            if (QString(name) == "joints") {
+                qDebug() << "  Processing joints QVariantList:";
+                qDebug() << "    List size:" << list.size();
+            }
+            
+            for (int idx = 0; idx < list.size(); ++idx) {
+                const QVariant& item = list[idx];
+                if (item.canConvert<QVariantMap>()) {
+                    QVariantMap map = item.toMap();
+                    
+                    if (QString(name) == "joints") {
+                        qDebug() << "    Joint" << idx << "map keys:" << map.keys();
+                        qDebug() << "      x value:" << map["x"] << "type:" << map["x"].typeName();
+                        qDebug() << "      y value:" << map["y"] << "type:" << map["y"].typeName();
+                    }
+                    
+                    QJsonObject jsonObj;
+                    for (auto it = map.begin(); it != map.end(); ++it) {
+                        QVariant val = it.value();
+                        
+                        // Force conversion to double for numeric values
+                        bool ok = false;
+                        double dblVal = val.toDouble(&ok);
+                        
+                        if (ok) {
+                            jsonObj[it.key()] = dblVal;
+                        } else if (val.canConvert<QString>()) {
+                            jsonObj[it.key()] = val.toString();
+                        } else if (val.canConvert<bool>()) {
+                            jsonObj[it.key()] = val.toBool();
+                        } else {
+                            // Last resort - force to double
+                            jsonObj[it.key()] = val.toDouble();
+                        }
+                    }
+                    
+                    if (QString(name) == "joints") {
+                        qDebug() << "    Created JSON object for joint" << idx << ":" << jsonObj;
+                    }
+                    
+                    jsonArray.append(jsonObj);
+                } else if (item.canConvert<QString>()) {
+                    jsonArray.append(item.toString());
+                } else if (item.canConvert<double>()) {
+                    jsonArray.append(item.toDouble());
+                } else if (item.canConvert<int>()) {
+                    jsonArray.append(item.toInt());
+                } else if (item.canConvert<bool>()) {
+                    jsonArray.append(item.toBool());
+                }
+            }
+            elementObj[name] = jsonArray;
         } else if (value.metaType().id() == QMetaType::QColor) {
             QColor color = value.value<QColor>();
             elementObj[name] = color.name(QColor::HexArgb);
@@ -463,9 +559,23 @@ QJsonObject Application::serializeElement(Element* element) const {
             fontObj["italic"] = font.italic();
             fontObj["weight"] = font.weight();
             elementObj[name] = fontObj;
+        } else if (value.metaType().id() == QMetaType::Int) {
+            elementObj[name] = value.toInt();
+        } else if (value.metaType().id() == QMetaType::Double || value.metaType().id() == QMetaType::Float) {
+            elementObj[name] = value.toDouble();
+        } else if (value.metaType().id() == QMetaType::Bool) {
+            elementObj[name] = value.toBool();
         } else if (value.canConvert<QStringList>()) {
             QStringList list = value.toStringList();
             elementObj[name] = QJsonArray::fromStringList(list);
+        } else if (value.canConvert<QString>()) {
+            elementObj[name] = value.toString();
+        } else if (value.canConvert<int>()) {
+            elementObj[name] = value.toInt();
+        } else if (value.canConvert<double>()) {
+            elementObj[name] = value.toDouble();
+        } else if (value.canConvert<bool>()) {
+            elementObj[name] = value.toBool();
         }
         // Add more type conversions as needed
     }
@@ -678,12 +788,39 @@ Project* Application::deserializeProject(const QJsonObject& projectData) {
 
 Element* Application::deserializeElement(const QJsonObject& elementData, ElementModel* model) {
     try {
-        QString elementId = elementData["elementId"].toString();
-        QString elementType = elementData["elementType"].toString();
-        QString name = elementData["name"].toString();
-        QString parentId = elementData["parentId"].toString();
+        // Handle case where strings are stored as character arrays
+        QString elementId;
+        QString elementType;
+        QString name;
+        QString parentId;
+        
+        auto getStringFromJsonValue = [](const QJsonValue& value) -> QString {
+            if (value.isString()) {
+                return value.toString();
+            } else if (value.isArray()) {
+                // Handle case where string is stored as array of characters
+                QJsonArray arr = value.toArray();
+                QString result;
+                for (const QJsonValue& val : arr) {
+                    result += val.toString();
+                }
+                return result;
+            }
+            return QString();
+        };
+        
+        elementId = getStringFromJsonValue(elementData["elementId"]);
+        elementType = getStringFromJsonValue(elementData["elementType"]);
+        name = getStringFromJsonValue(elementData["name"]);
+        parentId = getStringFromJsonValue(elementData["parentId"]);
+        
+        qDebug() << "Application::deserializeElement:";
+        qDebug() << "  elementId:" << elementId;
+        qDebug() << "  elementType:" << elementType;
+        qDebug() << "  name:" << name;
         
         if (elementId.isEmpty() || elementType.isEmpty()) {
+            qDebug() << "  ERROR: elementId or elementType is empty";
             return nullptr;
         }
         
@@ -693,10 +830,17 @@ Element* Application::deserializeElement(const QJsonObject& elementData, Element
         ElementTypeRegistry& registry = ElementTypeRegistry::instance();
         QString lowerTypeName = elementType.toLower();
         
+        qDebug() << "  Checking registry for type:" << lowerTypeName;
+        
         if (registry.hasType(lowerTypeName)) {
+            qDebug() << "  Found type in registry, creating element";
             // Registry uses lowercase type names
             element = registry.createElement(lowerTypeName, elementId);
+            if (!element) {
+                qDebug() << "  ERROR: Registry failed to create element";
+            }
         } else {
+            qDebug() << "  Type not found in registry, trying fallback";
             // Fall back to direct creation for types not in registry yet
             // (Variable, Node, Edge)
             if (elementType == "Variable") {
@@ -712,12 +856,50 @@ Element* Application::deserializeElement(const QJsonObject& elementData, Element
         }
         
         if (!element) {
+            qDebug() << "  ERROR: Failed to create element";
             return nullptr;
         }
+        
+        qDebug() << "  Successfully created element of type:" << element->getTypeName();
         
         // Set basic properties
         element->setName(name);
         element->setParentElementId(parentId);
+        
+        // For Shape elements, we need to set shapeType and joints before geometry to avoid losing custom joints
+        if (elementType == "Shape") {
+            if (elementData.contains("shapeType")) {
+                QString shapeTypeStr = getStringFromJsonValue(elementData["shapeType"]);
+                if (Shape* shape = qobject_cast<Shape*>(element)) {
+                    if (shapeTypeStr == "Square") {
+                        shape->setShapeType(Shape::Square);
+                    } else if (shapeTypeStr == "Triangle") {
+                        shape->setShapeType(Shape::Triangle);
+                    } else if (shapeTypeStr == "Line") {
+                        shape->setShapeType(Shape::Line);
+                    }
+                    qDebug() << "  Set shape type to:" << shapeTypeStr << "before loading other properties";
+                }
+            }
+            
+            // Load joints immediately after shape type and before geometry
+            if (elementData.contains("joints")) {
+                QJsonArray jointsArray = elementData["joints"].toArray();
+                QList<QPointF> joints;
+                for (const QJsonValue& jointValue : jointsArray) {
+                    if (jointValue.isObject()) {
+                        QJsonObject jointObj = jointValue.toObject();
+                        double x = jointObj["x"].toDouble();
+                        double y = jointObj["y"].toDouble();
+                        joints.append(QPointF(x, y));
+                    }
+                }
+                if (Shape* shape = qobject_cast<Shape*>(element)) {
+                    shape->setJoints(joints);
+                    qDebug() << "  Loaded" << joints.size() << "joints before setting geometry";
+                }
+            }
+        }
         
         // Restore all other properties using Qt's meta-object system
         const QMetaObject* metaObj = element->metaObject();
@@ -733,7 +915,9 @@ Element* Application::deserializeElement(const QJsonObject& elementData, Element
                 propNameStr == "elementType" ||
                 propNameStr == "name" ||
                 propNameStr == "parentId" ||
-                propNameStr == "parentElement") {
+                propNameStr == "parentElement" ||
+                (elementType == "Shape" && propNameStr == "shapeType") ||  // Already handled above
+                (elementType == "Shape" && propNameStr == "joints")) {     // Already handled above
                 continue;
             }
             
@@ -780,13 +964,43 @@ Element* Application::deserializeElement(const QJsonObject& elementData, Element
                         value = font;
                     }
                 } else if (jsonValue.isArray()) {
-                    // Handle string lists
                     QJsonArray array = jsonValue.toArray();
-                    QStringList list;
-                    for (const QJsonValue& val : array) {
-                        list.append(val.toString());
+                    
+                    // Check if property expects QVariantList (like joints)
+                    if (property.metaType().id() == QMetaType::QVariantList) {
+                        QVariantList list;
+                        for (const QJsonValue& val : array) {
+                            if (val.isObject()) {
+                                // Convert JSON object to QVariantMap
+                                QJsonObject obj = val.toObject();
+                                QVariantMap map;
+                                for (auto it = obj.begin(); it != obj.end(); ++it) {
+                                    if (it.value().isDouble()) {
+                                        map[it.key()] = it.value().toDouble();
+                                    } else if (it.value().isString()) {
+                                        map[it.key()] = it.value().toString();
+                                    } else if (it.value().isBool()) {
+                                        map[it.key()] = it.value().toBool();
+                                    } // integers will be handled as doubles
+                                }
+                                list.append(map);
+                            } else if (val.isString()) {
+                                list.append(val.toString());
+                            } else if (val.isDouble()) {
+                                list.append(val.toDouble());
+                            } else if (val.isBool()) {
+                                list.append(val.toBool());
+                            }
+                        }
+                        value = list;
+                    } else {
+                        // Handle as string lists for backwards compatibility
+                        QStringList list;
+                        for (const QJsonValue& val : array) {
+                            list.append(val.toString());
+                        }
+                        value = list;
                     }
-                    value = list;
                 }
                 
                 // Handle color strings (hex format)
@@ -813,5 +1027,24 @@ Element* Application::deserializeElement(const QJsonObject& elementData, Element
         qDebug() << "Error deserializing element:" << e.what();
         return nullptr;
     }
+}
+
+void Application::updateProjectId(const QString& oldId, const QString& newId) {
+    qDebug() << "Application::updateProjectId - Updating project ID from" << oldId << "to" << newId;
+    
+    // Find the project with the old ID
+    Project* project = findProject(oldId);
+    if (!project) {
+        qWarning() << "Application::updateProjectId - Project not found with ID:" << oldId;
+        return;
+    }
+    
+    // Update the project's ID
+    project->setId(newId);
+    
+    // The project is now accessible by the new ID
+    // No need to update m_canvases as it stores by pointer, not by ID
+    
+    emit canvasListChanged();  // Notify UI of the change
 }
 

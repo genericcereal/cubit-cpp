@@ -85,10 +85,7 @@ void CreateDesignElementCommand::execute()
             return;
         }
         
-        // Set position and size
-        m_element->setRect(m_rect);
-        
-        // Apply initial payload based on element type
+        // Apply initial payload BEFORE setting geometry to avoid wrong joint creation
         if (m_elementType == "text" && m_initialPayload.isValid() && m_initialPayload.canConvert<QString>()) {
             if (Text* textElement = qobject_cast<Text*>(m_element)) {
                 textElement->setContent(m_initialPayload.toString());
@@ -97,9 +94,13 @@ void CreateDesignElementCommand::execute()
             m_element->setProperty("placeholder", m_initialPayload.toString());
         } else if (m_elementType == "shape" && m_initialPayload.isValid() && m_initialPayload.canConvert<int>()) {
             if (Shape* shapeElement = qobject_cast<Shape*>(m_element)) {
+                qDebug() << "CreateDesignElementCommand: Setting shape type to" << m_initialPayload.toInt() << "BEFORE setting geometry";
                 shapeElement->setShapeType(static_cast<Shape::ShapeType>(m_initialPayload.toInt()));
             }
         }
+        
+        // Set position and size AFTER shape type is set
+        m_element->setRect(m_rect);
     }
 
     // Add element to appropriate container
@@ -167,30 +168,49 @@ void CreateDesignElementCommand::undo()
 
 void CreateDesignElementCommand::creationCompleted()
 {
+    qDebug() << "CreateDesignElementCommand::creationCompleted() called for element type:" << m_elementType;
+    if (m_element) {
+        qDebug() << "  Element ID:" << m_element->getId();
+        if (m_elementType == "shape") {
+            if (Shape* shape = qobject_cast<Shape*>(m_element)) {
+                qDebug() << "  Shape type:" << shape->shapeType();
+                qDebug() << "  Current joints count:" << shape->jointsAsPoints().size();
+                for (int i = 0; i < shape->jointsAsPoints().size(); ++i) {
+                    qDebug() << "    Joint" << i << ":" << shape->jointsAsPoints()[i];
+                }
+            }
+        }
+    }
     // Sync with API now that the element has its final size
     syncWithAPI();
 }
 
 void CreateDesignElementCommand::syncWithAPI()
 {
+    qDebug() << "CreateDesignElementCommand::syncWithAPI() starting for element type:" << m_elementType;
+    
     if (!m_elementModel || !m_element) {
+        qDebug() << "  Sync aborted: missing elementModel or element";
         return;
     }
 
     // Get the Project from the ElementModel's parent
     Project* project = qobject_cast<Project*>(m_elementModel->parent());
     if (!project) {
+        qDebug() << "  Sync aborted: no project found";
         return;
     }
 
     // Get the Application instance and its API client
     Application* app = Application::instance();
     if (!app) {
+        qDebug() << "  Sync aborted: no application instance";
         return;
     }
 
     ProjectApiClient* apiClient = app->projectApiClient();
     if (!apiClient) {
+        qDebug() << "  Sync aborted: no API client";
         return;
     }
 
@@ -200,8 +220,34 @@ void CreateDesignElementCommand::syncWithAPI()
     // Serialize the element data
     QJsonObject elementData = app->serializeElement(m_element);
     
+    // Log what we're about to sync
+    qDebug() << "CreateDesignElementCommand: About to sync element with API";
+    qDebug() << "  Project ID:" << apiProjectId;
+    qDebug() << "  Element ID:" << m_element->getId();
+    qDebug() << "  Element Type:" << m_elementType;
+    
+    if (m_elementType == "shape") {
+        if (Shape* shape = qobject_cast<Shape*>(m_element)) {
+            qDebug() << "  Shape details:";
+            qDebug() << "    Shape type:" << shape->shapeType();
+            qDebug() << "    Joints being synced:" << shape->jointsAsPoints().size();
+            
+            // Check if joints are in the serialized data
+            if (elementData.contains("joints")) {
+                QJsonArray jointsArray = elementData["joints"].toArray();
+                qDebug() << "    Serialized joints count:" << jointsArray.size();
+                for (int i = 0; i < jointsArray.size(); ++i) {
+                    QJsonObject joint = jointsArray[i].toObject();
+                    qDebug() << "      Joint" << i << ": x=" << joint["x"].toDouble() << ", y=" << joint["y"].toDouble();
+                }
+            } else {
+                qDebug() << "    WARNING: No 'joints' property found in serialized data!";
+            }
+        }
+    }
+    
     // Sync with API
     apiClient->syncCreateElement(apiProjectId, elementData);
     
-    qDebug() << "CreateDesignElementCommand: Syncing element creation with API for project" << apiProjectId;
+    qDebug() << "CreateDesignElementCommand: API sync request sent for project" << apiProjectId;
 }

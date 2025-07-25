@@ -12,6 +12,7 @@ class HitTestService;
 class JsonImporter;
 class CommandHistory;
 struct IModeHandler;
+class LineModeHandler;
 class Frame;
 class CanvasElement;
 
@@ -93,6 +94,9 @@ public slots:
     void handleMousePress(qreal x, qreal y);
     void handleMouseMove(qreal x, qreal y);
     void handleMouseRelease(qreal x, qreal y);
+    
+    // Keyboard handling
+    Q_INVOKABLE void handleEscapeKey();
     
     // Element creation (delegated to CreationManager)
     void createElement(const QString &type, qreal x, qreal y, qreal width = 200, qreal height = 150);

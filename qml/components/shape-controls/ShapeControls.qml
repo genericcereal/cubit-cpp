@@ -58,12 +58,17 @@ Item {
             ctx.strokeStyle = edgeColor
             ctx.lineWidth = 2
             
-            // For shapes with N joints, draw N edges
-            for (var i = 0; i < joints.length; i++) {
+            // Draw edges based on shape type
+            var isClosedShape = selectedElement.shapeType !== 2 // 2 = Line (from Shape.h enum)
+            var edgeCount = isClosedShape ? joints.length : joints.length - 1
+            
+            for (var i = 0; i < edgeCount; i++) {
                 ctx.beginPath()
                 
                 var currentJoint = joints[i]
-                var nextJoint = joints[(i + 1) % joints.length] // Wrap around to first joint
+                var nextJoint = isClosedShape ? 
+                    joints[(i + 1) % joints.length] :  // Closed: wrap around to first joint
+                    joints[i + 1]                       // Open: just next joint
                 
                 ctx.moveTo(currentJoint.x * width, currentJoint.y * height)
                 ctx.lineTo(nextJoint.x * width, nextJoint.y * height)

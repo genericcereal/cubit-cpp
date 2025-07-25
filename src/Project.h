@@ -58,6 +58,7 @@ public:
     void setName(const QString& name);
     void setViewMode(const QString& viewMode);
     void setPlatforms(const QStringList& platforms);
+    void setId(const QString& id);  // Update project ID (e.g., after API sync)
     Q_INVOKABLE void setEditingElement(DesignElement* element, const QString& viewMode = QString());
     Q_INVOKABLE void setEditingComponent(Component* component, const QString& viewMode = QString());
 

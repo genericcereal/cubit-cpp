@@ -15,6 +15,7 @@
 #include "IModeHandler.h"
 #include "SelectModeHandler.h"
 #include "CreationModeHandler.h"
+#include "LineModeHandler.h"
 #include "FrameComponentVariant.h"
 #include "TextComponentVariant.h"
 #include "WebTextInputComponentVariant.h"
@@ -130,12 +131,8 @@ void CanvasController::initializeModeHandlers()
         &m_elementModel, &m_selectionManager,
         m_commandHistory.get(), setModeFunc);
     
-    // Shape Line mode
-    m_modeHandlers[Mode::ShapeLine] = std::make_unique<CreationModeHandler>(
-        CreationModeHandler::Config{
-            "shape",
-            QVariant::fromValue(static_cast<int>(Shape::Line))
-        },
+    // Shape Line mode - use specialized LineModeHandler
+    m_modeHandlers[Mode::ShapeLine] = std::make_unique<LineModeHandler>(
         &m_elementModel, &m_selectionManager,
         m_commandHistory.get(), setModeFunc);
     
@@ -172,13 +169,14 @@ void CanvasController::setMode(Mode mode)
 {
     if (m_mode != mode) {
         // Mode changing
+        qDebug() << "CanvasController::setMode changing from" << (int)m_mode << "to" << (int)mode;
         m_mode = mode;
         
         // Update current handler
         auto it = m_modeHandlers.find(m_mode);
         if (it != m_modeHandlers.end()) {
             m_currentHandler = it->second.get();
-            // Handler found for mode
+            qDebug() << "Handler found for mode" << (int)mode;
         } else {
             m_currentHandler = nullptr;
             qWarning() << "No handler found for mode:" << static_cast<int>(mode);
@@ -219,7 +217,9 @@ Element* CanvasController::hitTestForHover(qreal x, qreal y)
 void CanvasController::handleMousePress(qreal x, qreal y)
 {
     // Handle mouse press
+    qDebug() << "CanvasController::handleMousePress at" << x << y << "mode:" << (int)m_mode;
     if (m_currentHandler) {
+        qDebug() << "Calling handler onPress";
         m_currentHandler->onPress(x, y);
     } else {
         qWarning() << "CanvasController::handleMousePress - No handler for mode" << static_cast<int>(m_mode);
@@ -237,6 +237,17 @@ void CanvasController::handleMouseRelease(qreal x, qreal y)
 {
     if (m_currentHandler) {
         m_currentHandler->onRelease(x, y);
+    }
+}
+
+void CanvasController::handleEscapeKey()
+{
+    // Handle escape key - currently only used for line creation mode
+    if (m_mode == Mode::ShapeLine) {
+        LineModeHandler* lineHandler = static_cast<LineModeHandler*>(m_currentHandler);
+        if (lineHandler) {
+            lineHandler->onEscapePressed();
+        }
     }
 }
 

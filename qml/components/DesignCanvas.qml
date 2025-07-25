@@ -142,8 +142,11 @@ BaseCanvas {
             // In select mode, handle click for selection
             root.controller.handleMousePress(pt.x, pt.y)
             root.controller.handleMouseRelease(pt.x, pt.y)
+        } else if (root.controller.mode === CanvasController.ShapeLine) {
+            // Line creation mode - handle clicks to add joints
+            root.controller.handleMousePress(pt.x, pt.y)
         }
-        // In creation modes, don't create on click - require drag
+        // Other creation modes don't create on click - require drag
     }
     
     function handleHover(pt) {
