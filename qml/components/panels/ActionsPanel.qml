@@ -25,6 +25,7 @@ Rectangle {
     property var canvas: null  // Will be set by parent
     property bool isScriptMode: canvas && canvas.viewMode === "script"
     property bool isVariantMode: canvas && canvas.viewMode === "variant"
+    property bool isGlobalElementsMode: canvas && canvas.viewMode === "globalElements"
     property bool needsCompilation: {
         if (!canvas) return false
         if (!canvas.activeScripts) return false
@@ -32,8 +33,15 @@ Rectangle {
     }
     property bool hasWebPlatform: {
         if (!canvas) return false
-        if (!canvas.platforms) return false
-        return canvas.platforms.indexOf("web") !== -1
+        if (!canvas.project) return false
+        if (!canvas.project.platforms) return false
+        // Check if any platform has name "web"
+        for (var i = 0; i < canvas.project.platforms.length; i++) {
+            if (canvas.project.platforms[i].name === "web") {
+                return true
+            }
+        }
+        return false
     }
     
     
@@ -86,7 +94,7 @@ Rectangle {
         // Back to Design Canvas button
         ToolButton {
             id: backButton
-            visible: isScriptMode || isVariantMode
+            visible: isScriptMode || isVariantMode || isGlobalElementsMode
             Layout.fillHeight: true
             Layout.preferredWidth: height
             

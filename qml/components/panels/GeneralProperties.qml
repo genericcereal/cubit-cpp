@@ -15,6 +15,23 @@ PropertyGroup {
     
     visible: selectedElement
     
+    // Update all fields when selection changes
+    onSelectedElementChanged: {
+        // Force update of all comboboxes to refresh their enabled states
+        for (var i = 0; i < repeater.count; i++) {
+            var item = repeater.itemAt(i)
+            if (item && item.children.length > 0) {
+                var loader = item.children[0]
+                if (loader && loader.item && generalProps[i].type === "combobox") {
+                    // Update enabled state for comboboxes with readOnly property
+                    if (generalProps[i].readOnly && typeof generalProps[i].readOnly === "function") {
+                        loader.item.enabled = !generalProps[i].readOnly()
+                    }
+                }
+            }
+        }
+    }
+    
     property var generalProps: [
         { 
             name: "Name", 
@@ -85,12 +102,21 @@ PropertyGroup {
             },
             setter: v => {
                 if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance" || selectedElement.elementType === "Variable")) {
+                    // Don't allow changing platform for appContainer frames
+                    if (selectedElement.elementType === "Frame" && selectedElement.role === 2) { // appContainer
+                        return
+                    }
                     selectedElement.platform = v === "undefined" ? "" : v
                 }
             },
             model: () => {
                 if (!canvas || !selectedElement || (selectedElement.elementType !== "Frame" && selectedElement.elementType !== "FrameComponentVariant" && selectedElement.elementType !== "FrameComponentInstance" && selectedElement.elementType !== "Variable")) {
                     return ["undefined"]
+                }
+                
+                // For appContainer frames, only show the current platform (read-only)
+                if (selectedElement.elementType === "Frame" && selectedElement.role === 2) {
+                    return [selectedElement.platform || "undefined"]
                 }
                 
                 var platforms = ["undefined"]
@@ -100,19 +126,51 @@ PropertyGroup {
                 }
                 return platforms
             },
-            visible: () => PropertyHelpers.canShowPlatform(selectedElement, editableProperties, canvas)
+            visible: () => PropertyHelpers.canShowPlatform(selectedElement, editableProperties, canvas),
+            property: "platform",
+            readOnly: () => selectedElement && selectedElement.elementType === "Frame" && selectedElement.role === 2 // appContainer
         },
         {
             name: "Role",
             type: "combobox",
-            getter: () => "container",
+            getter: () => {
+                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
+                    // Return the role enum name based on the role value
+                    switch(selectedElement.role) {
+                        case 0: return "undefined"
+                        case 1: return "container"
+                        case 2: return "appContainer"
+                        default: return "undefined"
+                    }
+                }
+                return "undefined"
+            },
             setter: v => {
                 if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
-                    selectedElement.role = 1
+                    // Don't allow changing appContainer role
+                    if (selectedElement.role === 2) { // appContainer
+                        return
+                    }
+                    // Set role based on string value
+                    switch(v) {
+                        case "undefined": selectedElement.role = 0; break
+                        case "container": selectedElement.role = 1; break
+                        // appContainer (2) is not settable through UI
+                    }
                 }
             },
-            model: () => ["container"],
-            visible: () => PropertyHelpers.canShowRole(selectedElement, editableProperties)
+            model: () => {
+                if (selectedElement && selectedElement.role === 2) {
+                    // If it's appContainer, only show that option (read-only)
+                    return ["appContainer"]
+                }
+                // For regular frames, don't show appContainer as an option
+                return ["undefined", "container"]
+            },
+            visible: () => PropertyHelpers.canShowRole(selectedElement, editableProperties),
+            // Make the combobox read-only for appContainer
+            property: "role",
+            readOnly: () => selectedElement && selectedElement.role === 2
         }
     ]
     
@@ -139,6 +197,7 @@ PropertyGroup {
     
     content: [
         Repeater {
+            id: repeater
             model: generalProps.filter(prop => !prop.visible || prop.visible())
             
             delegate: LabeledField {
@@ -214,6 +273,11 @@ PropertyGroup {
                                 var index = item.model.indexOf(value)
                                 item.currentIndex = index >= 0 ? index : 0
                                 
+                                // Set enabled state based on readOnly property
+                                if (modelData.readOnly && typeof modelData.readOnly === "function") {
+                                    item.enabled = !modelData.readOnly()
+                                }
+                                
                                 // Create a connection to update when the source changes
                                 var updateComboBox = function() {
                                     if (modelData && item) {
@@ -221,6 +285,10 @@ PropertyGroup {
                                         var value = modelData.getter()
                                         var index = item.model.indexOf(value)
                                         item.currentIndex = index >= 0 ? index : 0
+                                        // Update enabled state
+                                        if (modelData.readOnly && typeof modelData.readOnly === "function") {
+                                            item.enabled = !modelData.readOnly()
+                                        }
                                     }
                                 }
                                 
@@ -231,6 +299,17 @@ PropertyGroup {
                                         var signal = root.selectedElement[signalName]
                                         if (signal && typeof signal.connect === "function") {
                                             signal.connect(updateComboBox)
+                                        }
+                                    } catch (e) {
+                                        // Signal doesn't exist, ignore
+                                    }
+                                }
+                                
+                                // Also connect to roleChanged for platform dropdown to update enabled state
+                                if (root.selectedElement && modelData.name === "Platform") {
+                                    try {
+                                        if (root.selectedElement.roleChanged && typeof root.selectedElement.roleChanged.connect === "function") {
+                                            root.selectedElement.roleChanged.connect(updateComboBox)
                                         }
                                     } catch (e) {
                                         // Signal doesn't exist, ignore

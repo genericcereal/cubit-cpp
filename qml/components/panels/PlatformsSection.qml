@@ -101,27 +101,44 @@ ColumnLayout {
                         font.italic: true
                     }
                     
-                    RowLayout {
+                    ColumnLayout {
                         Layout.fillWidth: true
+                        spacing: 5
                         
                         Button {
-                            text: "Edit Scripts"
+                            text: "Edit Global Elements"
                             Layout.fillWidth: true
-                            enabled: modelData && modelData.scripts
+                            enabled: modelData && modelData.globalElements
                             onClicked: {
                                 if (canvas && modelData) {
-                                    // Switch to script canvas view mode
-                                    canvas.setEditingPlatform(modelData, "script")
+                                    // Switch to global elements view mode
+                                    canvas.setEditingPlatform(modelData, "globalElements")
                                 }
                             }
                         }
                         
-                        Button {
-                            text: "Remove"
-                            Layout.preferredWidth: 80
-                            onClicked: {
-                                if (canvas && modelData) {
-                                    canvas.removePlatform(modelData.name)
+                        RowLayout {
+                            Layout.fillWidth: true
+                            
+                            Button {
+                                text: "Edit Scripts"
+                                Layout.fillWidth: true
+                                enabled: modelData && modelData.scripts
+                                onClicked: {
+                                    if (canvas && modelData) {
+                                        // Switch to script canvas view mode
+                                        canvas.setEditingPlatform(modelData, "script")
+                                    }
+                                }
+                            }
+                            
+                            Button {
+                                text: "Remove"
+                                Layout.preferredWidth: 80
+                                onClicked: {
+                                    if (canvas && modelData) {
+                                        canvas.removePlatform(modelData.name)
+                                    }
                                 }
                             }
                         }

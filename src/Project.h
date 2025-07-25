@@ -108,6 +108,7 @@ private:
     QString m_viewMode;
     QObject* m_editingElement = nullptr; // Can be DesignElement* or Component*
     std::vector<std::unique_ptr<PlatformConfig>> m_platforms;
+    QStringList m_globalElementIds; // Track global elements temporarily added to model
     
     // QML list property helpers
     static void appendPlatform(QQmlListProperty<PlatformConfig>* list, PlatformConfig* platform);
@@ -119,6 +120,8 @@ private:
     void loadScriptsIntoElementModel();
     void saveElementModelToScripts();
     void clearScriptElementsFromModel();
+    void loadGlobalElementsIntoModel();
+    void clearGlobalElementsFromModel();
 };
 
 #endif // PROJECT_H

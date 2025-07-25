@@ -14,6 +14,7 @@
 #include "ConsoleMessageRepository.h"
 #include "AuthenticationManager.h"
 #include "PlatformConfig.h"
+#include "HitTestService.h"
 
 Project::Project(const QString& id, const QString& name, QObject *parent)
     : QObject(parent)
@@ -167,11 +168,16 @@ void Project::setViewMode(const QString& viewMode) {
             // Load scripts into ElementModel
             loadScriptsIntoElementModel();
         } else if (viewMode == "design") {
-            // Save any changes back to scripts (either editing element's or canvas's)
-            saveElementModelToScripts();
-            
-            // Clear script elements from ElementModel
-            clearScriptElementsFromModel();
+            // Save any changes back to scripts if coming from script mode
+            if (previousMode == "script") {
+                saveElementModelToScripts();
+                clearScriptElementsFromModel();
+            } else if (previousMode == "globalElements") {
+                // Remove the temporarily added global elements
+                clearGlobalElementsFromModel();
+            }
+            // Note: When coming from variant mode, we don't need to clear
+            // The ElementFilterProxy will handle showing the correct elements
             
             // Emit signal to restore viewport state after switching to design mode
             emit viewportStateShouldBeRestored();
@@ -188,6 +194,24 @@ void Project::setViewMode(const QString& viewMode) {
             // Log the editing element when switching to variant mode
             qDebug() << "Switching to variant mode, editingElement:" << m_editingElement;
             // Variant canvas will show component variants
+        } else if (viewMode == "globalElements") {
+            // Global elements mode: show global elements from platform
+            // Save any changes back to scripts if coming from script mode
+            if (previousMode == "script") {
+                saveElementModelToScripts();
+                clearScriptElementsFromModel();
+            }
+            
+            // Load global elements into ElementModel
+            loadGlobalElementsIntoModel();
+            
+            // Rebuild spatial index after loading global elements
+            if (m_controller && m_controller->hitTestService()) {
+                m_controller->hitTestService()->rebuildSpatialIndex();
+            }
+            
+            // Emit signal to restore viewport state after switching to global elements mode
+            emit viewportStateShouldBeRestored();
         }
         
         // Clear selection when switching view modes
@@ -200,7 +224,7 @@ void Project::setViewMode(const QString& viewMode) {
             CanvasController::CanvasType canvasType;
             if (viewMode == "script") {
                 canvasType = CanvasController::CanvasType::Script;
-            } else if (viewMode == "variant") {
+            } else if (viewMode == "variant" || viewMode == "globalElements") {
                 canvasType = CanvasController::CanvasType::Variant;
             } else {
                 canvasType = CanvasController::CanvasType::Design;
@@ -444,7 +468,8 @@ void Project::setEditingPlatform(PlatformConfig* platform, const QString& viewMo
         
         // Update the canvas controller's hit test service
         if (m_controller) {
-            m_controller->setEditingElement(nullptr); // Platforms don't have visual elements
+            // For globalElements mode, we need to pass the platform to the hit test service
+            m_controller->setEditingElement(platform);
         }
     }
     
@@ -543,6 +568,61 @@ void Project::clearScriptElementsFromModel() {
             m_elementModel->removeElementWithoutDelete(element);
         }
     }
+}
+
+void Project::loadGlobalElementsIntoModel() {
+    if (!m_elementModel) return;
+    
+    qDebug() << "Project::loadGlobalElementsIntoModel - Starting";
+    
+    // Don't clear existing elements - we'll keep them in the model
+    // and use the filter to show only globalElements
+    
+    // Get the platform config if editing one
+    PlatformConfig* platform = qobject_cast<PlatformConfig*>(m_editingElement);
+    if (!platform) {
+        qDebug() << "Project::loadGlobalElementsIntoModel - No platform being edited";
+        return;
+    }
+    
+    // Get the global elements from the platform
+    ElementModel* globalElements = platform->globalElements();
+    if (!globalElements) {
+        qDebug() << "Project::loadGlobalElementsIntoModel - Platform has no global elements";
+        return;
+    }
+    
+    // Store the current element IDs so we know what was added
+    m_globalElementIds.clear();
+    
+    // Add all global elements to the element model temporarily
+    auto elements = globalElements->getAllElements();
+    qDebug() << "Project::loadGlobalElementsIntoModel - Loading" << elements.size() << "global elements";
+    for (Element* element : elements) {
+        if (element) {
+            // Track which elements we're adding
+            m_globalElementIds.append(element->getId());
+            // Add to model but platform's globalElements retains ownership
+            m_elementModel->addElement(element);
+        }
+    }
+}
+
+void Project::clearGlobalElementsFromModel() {
+    if (!m_elementModel) return;
+    
+    qDebug() << "Project::clearGlobalElementsFromModel - Removing" << m_globalElementIds.size() << "global elements";
+    
+    // Remove the global elements we temporarily added
+    for (const QString& elementId : m_globalElementIds) {
+        Element* element = m_elementModel->getElementById(elementId);
+        if (element) {
+            m_elementModel->removeElementWithoutDelete(element);
+        }
+    }
+    
+    // Clear the tracking list
+    m_globalElementIds.clear();
 }
 
 void Project::executeScriptEvent(const QString& eventName) {

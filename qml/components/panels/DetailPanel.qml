@@ -17,6 +17,20 @@ Rectangle {
     // Expose the properties panel for external connections
     property alias propertiesPanel: propertiesPanel
     
+    // MouseArea to clear hoveredElement when hovering over DetailPanel
+    MouseArea {
+        anchors.fill: parent
+        hoverEnabled: true
+        acceptedButtons: Qt.NoButton  // Don't interfere with other mouse interactions
+        
+        onEntered: {
+            // Clear hoveredElement when entering the detail panel
+            if (root.canvas && root.canvas.controller && root.canvas.controller.hoveredElement) {
+                root.canvas.controller.hoveredElement = null
+            }
+        }
+    }
+    
     // Helper to get the currently selected element for script editing
     function getSelectedElementForScripts() {
         if (!canvas || !canvas.selectionManager) return null
