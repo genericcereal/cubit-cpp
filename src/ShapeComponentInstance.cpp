@@ -80,11 +80,6 @@ void ShapeComponentInstance::setFillColor(const QColor &color)
     Shape::setFillColor(color);
 }
 
-void ShapeComponentInstance::setHasFill(bool hasFill)
-{
-    m_overriddenProperties.insert("hasFill");
-    Shape::setHasFill(hasFill);
-}
 
 bool ShapeComponentInstance::setProperty(const char *name, const QVariant &value)
 {
@@ -128,10 +123,6 @@ void ShapeComponentInstance::connectToVariant()
         connect(shapeVariant, &Shape::fillColorChanged,
                 this, &ShapeComponentInstance::onVariantPropertyChanged)
     );
-    m_connections.add(
-        connect(shapeVariant, &Shape::hasFillChanged,
-                this, &ShapeComponentInstance::onVariantPropertyChanged)
-    );
 }
 
 void ShapeComponentInstance::updateFromVariant()
@@ -151,9 +142,6 @@ void ShapeComponentInstance::updateFromVariant()
     }
     if (!m_overriddenProperties.contains("fillColor")) {
         Shape::setFillColor(shapeVariant->fillColor());
-    }
-    if (!m_overriddenProperties.contains("hasFill")) {
-        Shape::setHasFill(shapeVariant->hasFill());
     }
 }
 

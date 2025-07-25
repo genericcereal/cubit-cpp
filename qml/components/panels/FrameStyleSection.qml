@@ -24,38 +24,18 @@ PropertyGroup {
     property var frameStyleProps: [
         {
             name: "Fill",
-            type: "property_popover",
+            type: "object_input",
             popoverType: "fill",
-            elementFillColor: () => selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || (selectedElement.elementType === "FrameComponentInstance" && selectedElement.hasOwnProperty("fill"))) && selectedElement.fill !== undefined ? selectedElement.fill : "#add8e6",
-            textGetter: () => {
-                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance") && selectedElement.fill !== undefined) {
-                    var color = selectedElement.fill
-                    var format = selectedElement.colorFormat !== undefined ? selectedElement.colorFormat : 1
-                    
-                    switch (format) {
-                        case 0:
-                            var r = Math.round(color.r * 255)
-                            var g = Math.round(color.g * 255)
-                            var b = Math.round(color.b * 255)
-                            return "rgb(" + r + ", " + g + ", " + b + ")"
-                            
-                        case 1:
-                            var rh = Math.round(color.r * 255).toString(16).padStart(2, '0')
-                            var gh = Math.round(color.g * 255).toString(16).padStart(2, '0')
-                            var bh = Math.round(color.b * 255).toString(16).padStart(2, '0')
-                            return "#" + rh + gh + bh
-                            
-                        case 2:
-                            var h = Math.round(color.hslHue * 360)
-                            var s = Math.round(color.hslSaturation * 100)
-                            var l = Math.round(color.hslLightness * 100)
-                            return "hsl(" + h + ", " + s + "%, " + l + "%)"
-                            
-                        default:
-                            return root.frameStyleProps[0].elementFillColor().toString()
+            placeholderText: "Add fill",
+            valueGetter: () => {
+                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || (selectedElement.elementType === "FrameComponentInstance" && selectedElement.hasOwnProperty("fill"))) && selectedElement.fill !== undefined) {
+                    // Check if color is transparent
+                    if (selectedElement.fill.a === 0) {
+                        return null; // Return null for transparent colors
                     }
+                    return selectedElement.fill;
                 }
-                return root.frameStyleProps[0].elementFillColor().toString()
+                return null;
             },
             visible: () => PropertyHelpers.canShowFill(selectedElement, editableProperties)
         },
@@ -138,6 +118,13 @@ PropertyGroup {
         }
     }
     
+    Component {
+        id: objectInputComp
+        ObjectInput {
+            Layout.fillWidth: true
+        }
+    }
+    
     content: [
         Repeater {
             model: frameStyleProps.filter(prop => !prop.visible || prop.visible())
@@ -153,6 +140,7 @@ PropertyGroup {
                         sourceComponent: modelData.type === "combobox" ? comboBoxComp
                                        : modelData.type === "spinbox" ? spinBoxComp
                                        : modelData.type === "property_popover" ? propertyPopoverComp
+                                       : modelData.type === "object_input" ? objectInputComp
                                        : null
                         
                         onLoaded: {
@@ -186,6 +174,34 @@ PropertyGroup {
                                 }
                                 item.panelRequested.connect(function() {
                                     root.panelSelectorClicked(item, modelData.popoverType)
+                                })
+                            } else if (modelData.type === "object_input") {
+                                if (modelData.valueGetter) {
+                                    item.value = Qt.binding(modelData.valueGetter)
+                                }
+                                if (modelData.placeholderText) {
+                                    item.placeholderText = modelData.placeholderText
+                                }
+                                item.displayText = Qt.binding(function() {
+                                    var val = item.value
+                                    if (val && val.a !== undefined && val.a > 0) {
+                                        var format = selectedElement && selectedElement.colorFormat !== undefined ? selectedElement.colorFormat : 1
+                                        return item.formatColor(val, format)
+                                    }
+                                    return ""
+                                })
+                                item.previewType = ObjectInput.PreviewType.Color
+                                item.clicked.connect(function() {
+                                    // If no value, set default color before opening picker
+                                    if (!item.value && selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
+                                        selectedElement.fill = Qt.rgba(173/255, 216/255, 230/255, 1) // Default light blue
+                                    }
+                                    root.panelSelectorClicked(item, modelData.popoverType)
+                                })
+                                item.cleared.connect(function() {
+                                    if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
+                                        selectedElement.fill = Qt.rgba(0, 0, 0, 0) // Fully transparent
+                                    }
                                 })
                             }
                         }

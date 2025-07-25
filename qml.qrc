@@ -22,9 +22,11 @@
         <file>qml/components/PortTypeConfig.qml</file>
         <file>qml/components/PortInput.qml</file>
         <file>qml/components/PropertyPopover.qml</file>
+        <file>qml/components/ObjectInput.qml</file>
         <file>qml/components/FontPicker.qml</file>
         <file>qml/components/LabeledField.qml</file>
         <file>qml/components/PropertyGroup.qml</file>
+        <file>qml/components/CollapsibleGroup.qml</file>
         <file>qml/components/color-picker/ColorPicker.qml</file>
         <file>qml/components/color-picker/HueSlider.qml</file>
         <file>qml/components/color-picker/ShadeSelector.qml</file>
@@ -71,6 +73,7 @@
         <file>qml/components/panels/FrameStyleSection.qml</file>
         <file>qml/components/panels/FlexLayoutSection.qml</file>
         <file>qml/components/panels/TextSection.qml</file>
+        <file>qml/components/panels/ShapeSection.qml</file>
         <file>qml/components/panels/VariableSection.qml</file>
         <file>qml/components/panels/ActionsPanel.qml</file>
         <file>qml/components/panels/ActionsSelectPopover.qml</file>

@@ -105,7 +105,9 @@ SOURCES += \
     src/UrlSchemeHandler.cpp \
     src/StreamingAIClient.cpp \
     src/AICommandDispatcher.cpp \
-    src/ProjectApiClient.cpp
+    src/ProjectApiClient.cpp \
+    src/FileManager.cpp \
+    src/Serializer.cpp
 
 HEADERS += \
     src/Element.h \
@@ -185,7 +187,9 @@ HEADERS += \
     src/UrlSchemeHandler.h \
     src/StreamingAIClient.h \
     src/AICommandDispatcher.h \
-    src/ProjectApiClient.h
+    src/ProjectApiClient.h \
+    src/FileManager.h \
+    src/Serializer.h
 
 RESOURCES += qml.qrc
 

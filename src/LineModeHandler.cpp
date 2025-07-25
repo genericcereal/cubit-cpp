@@ -119,15 +119,6 @@ void LineModeHandler::addJointToLine(const QPointF& newPoint)
     
     m_currentLine->setJoints(normalizedJoints);
     
-    qDebug() << "LineModeHandler: Added joint at" << newPoint << "Total joints:" << m_joints.size();
-    
-    // Debug: Verify joints were set correctly
-    QVariantList jointsFromShape = m_currentLine->joints();
-    qDebug() << "  Joints from shape after setJoints:" << jointsFromShape.size();
-    for (int i = 0; i < jointsFromShape.size(); ++i) {
-        QVariantMap jointMap = jointsFromShape[i].toMap();
-        qDebug() << "    Joint" << i << "- x:" << jointMap["x"] << "y:" << jointMap["y"];
-    }
 }
 
 void LineModeHandler::finishLineCreation()
@@ -136,7 +127,6 @@ void LineModeHandler::finishLineCreation()
         return;
     }
     
-    qDebug() << "LineModeHandler: Finishing line creation with" << m_joints.size() << "joints";
     
     // Ensure we have at least 2 points for a valid line
     if (m_joints.size() < 2) {
@@ -162,21 +152,6 @@ void LineModeHandler::finishLineCreation()
     
     // Notify the command that creation is complete
     if (m_currentCommand) {
-        qDebug() << "LineModeHandler: Calling creationCompleted() - line has" << m_joints.size() << "joints";
-        if (m_currentLine) {
-            qDebug() << "  Final line joints count:" << m_currentLine->jointsAsPoints().size();
-            for (int i = 0; i < m_currentLine->jointsAsPoints().size(); ++i) {
-                qDebug() << "    Final joint" << i << ":" << m_currentLine->jointsAsPoints()[i];
-            }
-            
-            // Debug: Check joints() property that will be serialized
-            QVariantList jointsProperty = m_currentLine->joints();
-            qDebug() << "  Joints property for serialization:" << jointsProperty.size();
-            for (int i = 0; i < jointsProperty.size(); ++i) {
-                QVariantMap jointMap = jointsProperty[i].toMap();
-                qDebug() << "    Serializable joint" << i << "- x:" << jointMap["x"] << "y:" << jointMap["y"];
-            }
-        }
         m_currentCommand->creationCompleted();
         m_currentCommand = nullptr;
     }

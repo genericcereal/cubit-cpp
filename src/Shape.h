@@ -14,7 +14,6 @@ class Shape : public DesignElement
     Q_PROPERTY(qreal edgeWidth READ edgeWidth WRITE setEdgeWidth NOTIFY edgeWidthChanged)
     Q_PROPERTY(QColor edgeColor READ edgeColor WRITE setEdgeColor NOTIFY edgeColorChanged)
     Q_PROPERTY(QColor fillColor READ fillColor WRITE setFillColor NOTIFY fillColorChanged)
-    Q_PROPERTY(bool hasFill READ hasFill WRITE setHasFill NOTIFY hasFillChanged)
 
 public:
     enum ShapeType {
@@ -48,9 +47,6 @@ public:
     QColor fillColor() const { return m_fillColor; }
     void setFillColor(const QColor& color);
 
-    bool hasFill() const { return m_hasFill; }
-    void setHasFill(bool hasFill);
-
     // Override geometry setters to update joints
     void setWidth(qreal w) override;
     void setHeight(qreal h) override;
@@ -65,7 +61,6 @@ signals:
     void edgeWidthChanged();
     void edgeColorChanged();
     void fillColorChanged();
-    void hasFillChanged();
 
 private:
     void updateJointsForShape();
@@ -78,8 +73,7 @@ private:
     QList<QPointF> m_joints;
     qreal m_edgeWidth = 2.0;
     QColor m_edgeColor = QColor(0, 0, 0, 255); // Black
-    QColor m_fillColor = QColor(255, 255, 255, 0); // Transparent
-    bool m_hasFill = false;
+    QColor m_fillColor = QColor(0, 120, 255, 255); // Blue
 };
 
 #endif // SHAPE_H

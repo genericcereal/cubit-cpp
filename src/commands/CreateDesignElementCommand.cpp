@@ -174,10 +174,6 @@ void CreateDesignElementCommand::creationCompleted()
         if (m_elementType == "shape") {
             if (Shape* shape = qobject_cast<Shape*>(m_element)) {
                 qDebug() << "  Shape type:" << shape->shapeType();
-                qDebug() << "  Current joints count:" << shape->jointsAsPoints().size();
-                for (int i = 0; i < shape->jointsAsPoints().size(); ++i) {
-                    qDebug() << "    Joint" << i << ":" << shape->jointsAsPoints()[i];
-                }
             }
         }
     }
@@ -228,21 +224,6 @@ void CreateDesignElementCommand::syncWithAPI()
     
     if (m_elementType == "shape") {
         if (Shape* shape = qobject_cast<Shape*>(m_element)) {
-            qDebug() << "  Shape details:";
-            qDebug() << "    Shape type:" << shape->shapeType();
-            qDebug() << "    Joints being synced:" << shape->jointsAsPoints().size();
-            
-            // Check if joints are in the serialized data
-            if (elementData.contains("joints")) {
-                QJsonArray jointsArray = elementData["joints"].toArray();
-                qDebug() << "    Serialized joints count:" << jointsArray.size();
-                for (int i = 0; i < jointsArray.size(); ++i) {
-                    QJsonObject joint = jointsArray[i].toObject();
-                    qDebug() << "      Joint" << i << ": x=" << joint["x"].toDouble() << ", y=" << joint["y"].toDouble();
-                }
-            } else {
-                qDebug() << "    WARNING: No 'joints' property found in serialized data!";
-            }
         }
     }
     

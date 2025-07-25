@@ -60,7 +60,9 @@ ScrollView {
         
         FrameStyleSection {
             selectedElement: root.selectedElement
-            onPanelSelectorClicked: root.panelSelectorClicked(selector, type)
+            onPanelSelectorClicked: function(selector, type) {
+                root.panelSelectorClicked(selector, type)
+            }
         }
         
         FlexLayoutSection {
@@ -70,7 +72,16 @@ ScrollView {
         
         TextSection {
             selectedElement: root.selectedElement
-            onPanelSelectorClicked: root.panelSelectorClicked(selector, type)
+            onPanelSelectorClicked: function(selector, type) {
+                root.panelSelectorClicked(selector, type)
+            }
+        }
+        
+        ShapeSection {
+            selectedElement: root.selectedElement
+            onPanelSelectorClicked: function(selector, type) {
+                root.panelSelectorClicked(selector, type)
+            }
         }
         
         VariableSection {

@@ -14,6 +14,8 @@ class AuthenticationManager;
 class ProjectApiClient;
 class CommandHistory;
 class Command;
+class FileManager;
+class Serializer;
 Q_DECLARE_OPAQUE_POINTER(AuthenticationManager*)
 class QQmlApplicationEngine;
 
@@ -25,6 +27,8 @@ class Application : public QObject {
     Q_PROPERTY(AuthenticationManager* authManager READ authManager CONSTANT)
     
     friend class OpenProjectCommand;
+    friend class FileManager;
+    friend class Serializer;
 
 public:
     explicit Application(QObject *parent = nullptr);
@@ -56,8 +60,13 @@ public:
     Panels* panels() const;
     AuthenticationManager* authManager() const;
     ProjectApiClient* projectApiClient() const;
+    FileManager* fileManager() const;
+    Serializer* serializer() const;
+    QQmlApplicationEngine* qmlEngine() const { return m_engine; }
+    const std::vector<std::unique_ptr<Project>>& canvases() const { return m_canvases; }
+    void addCanvas(Project* project); // For use by Serializer
 
-    // File operations
+    // File operations (delegated to FileManager)
     Q_INVOKABLE bool saveAs();
     Q_INVOKABLE bool openFile();
     Q_INVOKABLE bool saveToFile(const QString& fileName, Project* project = nullptr);
@@ -65,7 +74,7 @@ public:
     Q_INVOKABLE void deleteProject(const QString& projectId);
     Q_INVOKABLE void closeProjectWindow(const QString& projectId);
     
-    // Public access for commands
+    // Public access for commands (delegated to Serializer)
     Project* deserializeProjectFromData(const QJsonObject& projectData);
     QJsonObject serializeProjectData(Project* project) const;
     QJsonObject serializeElement(Element* element) const;
@@ -95,19 +104,13 @@ private:
     QQmlApplicationEngine* m_engine = nullptr;
     std::unique_ptr<ProjectApiClient> m_projectApiClient;
     std::unique_ptr<CommandHistory> m_commandHistory;
+    std::unique_ptr<FileManager> m_fileManager;
+    std::unique_ptr<Serializer> m_serializer;
     std::vector<std::unique_ptr<Command>> m_pendingCommands;  // Keep async commands alive
     
     Project* findProject(const QString& projectId);
     const Project* findProject(const QString& projectId) const;
     QString generateProjectId() const;
-    
-    // Serialization methods
-    QJsonObject serializeProject(Project* project) const;
-    
-    // Deserialization methods
-    bool deserializeApplication(const QJsonObject& projectData);
-    Project* deserializeProject(const QJsonObject& projectData);
-    Element* deserializeElement(const QJsonObject& elementData, ElementModel* model);
 };
 
 #endif // APPLICATION_H

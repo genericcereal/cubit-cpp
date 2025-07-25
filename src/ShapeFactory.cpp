@@ -25,7 +25,7 @@ QList<PropertyDefinition> ShapeFactory::propertyDefinitions() const
     props.append(PropertyDefinition("edgeColor", QMetaType::QColor, QColor(0, 0, 0, 255), PropertyDefinition::Appearance));
     
     // Fill color property
-    props.append(PropertyDefinition("fillColor", QMetaType::QColor, QColor(255, 255, 255, 0), PropertyDefinition::Appearance));
+    props.append(PropertyDefinition("fillColor", QMetaType::QColor, QColor(0, 120, 255, 255), PropertyDefinition::Appearance));
     
     // Has fill property
     props.append(PropertyDefinition("hasFill", QMetaType::Bool, false, PropertyDefinition::Appearance));

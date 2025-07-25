@@ -51,7 +51,6 @@ public:
     void setEdgeWidth(qreal width);
     void setEdgeColor(const QColor &color);
     void setFillColor(const QColor &color);
-    void setHasFill(bool hasFill);
     
 signals:
     void instanceOfChanged();

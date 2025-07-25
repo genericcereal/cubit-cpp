@@ -282,6 +282,8 @@ Item {
             contentComponent: {
                 switch (selectorPanel.currentType) {
                     case "fill":
+                    case "edgeColor":
+                    case "fillColor":
                         return fillComponent
                     case "style":
                         return styleComponent
@@ -301,41 +303,53 @@ Item {
             property var selectedElement: root.canvas && root.canvas.selectionManager 
                 ? root.canvas.selectionManager.selectedElements[0] : null
             
-            hue: {
-                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
-                    var color = selectedElement.fill
-                    return color.hslHue * 360  // Qt returns hue as 0-1, convert to 0-360
+            // Get the current color based on the popover type
+            property var currentColor: {
+                if (!selectedElement) return Qt.rgba(0.8, 0.8, 0.8, 1)
+                
+                switch (selectorPanel.currentType) {
+                    case "fill":
+                        if (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance") {
+                            return selectedElement.fill || Qt.rgba(0.8, 0.8, 0.8, 1)
+                        }
+                        break
+                    case "edgeColor":
+                        if (selectedElement.elementType === "Shape") {
+                            return selectedElement.edgeColor || Qt.rgba(0, 0, 0, 1)
+                        }
+                        break
+                    case "fillColor":
+                        if (selectedElement.elementType === "Shape") {
+                            return selectedElement.fillColor || Qt.rgba(1, 1, 1, 1)
+                        }
+                        break
                 }
-                return 200  // Default to light blue hue
+                return Qt.rgba(0.8, 0.8, 0.8, 1)
             }
             
-            saturation: {
-                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
-                    var color = selectedElement.fill
-                    return color.hslSaturation
+            Component.onCompleted: {
+                // Set initial values to avoid binding loops
+                if (currentColor) {
+                    hue = currentColor.hslHue * 360  // Qt returns hue as 0-1, convert to 0-360
+                    saturation = currentColor.hslSaturation
+                    lightness = currentColor.hslLightness
+                    alphaValue = currentColor.a  // Alpha channel
                 }
-                return 1.0
             }
             
-            lightness: {
-                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
-                    var color = selectedElement.fill
-                    return color.hslLightness
+            onCurrentColorChanged: {
+                // Update values when color changes to avoid binding loops
+                if (currentColor) {
+                    hue = currentColor.hslHue * 360
+                    saturation = currentColor.hslSaturation
+                    lightness = currentColor.hslLightness
+                    alphaValue = currentColor.a
                 }
-                return 0.5
-            }
-            
-            alphaValue: {
-                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
-                    var color = selectedElement.fill
-                    return color.a  // Alpha channel
-                }
-                return 1.0
             }
             
             colorFormat: {
-                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant")) {
-                    return selectedElement.colorFormat !== undefined ? selectedElement.colorFormat : 1
+                if (selectedElement && selectedElement.colorFormat !== undefined) {
+                    return selectedElement.colorFormat
                 }
                 return 1  // Default to HEX
             }
@@ -343,13 +357,29 @@ Item {
             fillType: 0  // Default to Solid for now
             
             onColorChanged: function(newColor) {
-                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
-                    selectedElement.fill = newColor
+                if (!selectedElement) return
+                
+                switch (selectorPanel.currentType) {
+                    case "fill":
+                        if (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance") {
+                            selectedElement.fill = newColor
+                        }
+                        break
+                    case "edgeColor":
+                        if (selectedElement.elementType === "Shape") {
+                            selectedElement.edgeColor = newColor
+                        }
+                        break
+                    case "fillColor":
+                        if (selectedElement.elementType === "Shape") {
+                            selectedElement.fillColor = newColor
+                        }
+                        break
                 }
             }
             
             onColorFormatChanged: function(newFormat) {
-                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
+                if (selectedElement && selectedElement.colorFormat !== undefined) {
                     selectedElement.colorFormat = newFormat
                 }
             }

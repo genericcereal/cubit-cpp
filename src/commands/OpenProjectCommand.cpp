@@ -3,6 +3,7 @@
 #include "../Project.h"
 #include "../ElementModel.h"
 #include "../Element.h"
+#include "../Serializer.h"
 #include <QDebug>
 #include <QJsonArray>
 #include <QQmlApplicationEngine>
@@ -91,19 +92,14 @@ void OpenProjectCommand::execute()
                 for (int i = 0; i < elementsArray.size(); ++i) {
                     const QJsonValue& elementValue = elementsArray[i];
                     QJsonObject elementData = elementValue.toObject();
-                    qDebug() << "OpenProjectCommand: Processing element" << i << ":";
-                    qDebug() << "  Raw JSON:" << QJsonDocument(elementData).toJson(QJsonDocument::Compact);
-                    qDebug() << "  Keys in element data:" << elementData.keys();
                     
-                    Element* element = m_application->deserializeElement(elementData, model);
+                    Element* element = m_application->serializer()->deserializeElement(elementData, model);
                     if (element) {
                         model->addElement(element);
                     }
                 }
-                qDebug() << "OpenProjectCommand: Loaded" << model->getAllElements().size() << "elements from API data (attempted" << elementsArray.size() << ")";
             }
         } else {
-            qDebug() << "OpenProjectCommand: No elements array found in API data";
         }
     }
     
