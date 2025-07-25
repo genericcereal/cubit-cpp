@@ -59,7 +59,6 @@ void ShapeComponentVariant::applyToInstance(ComponentInstance* instance)
     shapeInstance->setEdgeWidth(edgeWidth());
     shapeInstance->setEdgeColor(edgeColor());
     shapeInstance->setFillColor(fillColor());
-    shapeInstance->setHasFill(hasFill());
     
     // The joints will be automatically updated based on the shape type and size
 }
@@ -76,7 +75,6 @@ ComponentVariant* ShapeComponentVariant::clone(const QString& newId) const
     cloned->setEdgeWidth(edgeWidth());
     cloned->setEdgeColor(edgeColor());
     cloned->setFillColor(fillColor());
-    cloned->setHasFill(hasFill());
     
     // Copy variant properties
     cloned->setEditableProperties(editableProperties());

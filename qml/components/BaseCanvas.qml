@@ -114,9 +114,10 @@ Item {
             if (root.canvasType === "script" && root.isEdgePreview) {
                 return false
             }
-            // Disable for design/variant canvas creation modes
+            // Disable for design/variant canvas creation modes (except Line mode)
             if ((root.canvasType === "design" || root.canvasType === "variant") && 
-                controller && controller.mode !== CanvasController.Select) {
+                controller && controller.mode !== CanvasController.Select && 
+                controller.mode !== CanvasController.ShapeLine) {
                 return false
             }
             return true
@@ -164,10 +165,11 @@ Item {
             anchors.fill: parent
             acceptedButtons: Qt.MiddleButton
             
-            // Disable middle-button panning during creation modes
+            // Disable middle-button panning during creation modes (except Line mode)
             enabled: {
                 if ((root.canvasType === "design" || root.canvasType === "variant") && 
-                    controller && controller.mode !== CanvasController.Select) {
+                    controller && controller.mode !== CanvasController.Select && 
+                    controller.mode !== CanvasController.ShapeLine) {
                     return false
                 }
                 return true

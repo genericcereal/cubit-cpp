@@ -21,6 +21,8 @@
 #include "commands/OpenProjectCommand.h"
 #include "CommandHistory.h"
 #include "Command.h"
+#include "FileManager.h"
+#include "Serializer.h"
 #include <QDebug>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -46,6 +48,14 @@ Application::Application(QObject *parent)
     
     // Create command history for application-level operations
     m_commandHistory = std::make_unique<CommandHistory>(this);
+    
+    // Create file manager and serializer
+    m_fileManager = std::make_unique<FileManager>(this, this);
+    m_serializer = std::make_unique<Serializer>(this, this);
+    
+    // Connect file manager signals
+    connect(m_fileManager.get(), &FileManager::saveFileRequested, this, &Application::saveFileRequested);
+    connect(m_fileManager.get(), &FileManager::openFileRequested, this, &Application::openFileRequested);
     
     // Don't create initial project - let user start from ProjectList
     // createProject("Project 1")
@@ -330,349 +340,50 @@ ProjectApiClient* Application::projectApiClient() const {
     return m_projectApiClient.get();
 }
 
+FileManager* Application::fileManager() const {
+    return m_fileManager.get();
+}
+
+Serializer* Application::serializer() const {
+    return m_serializer.get();
+}
+
+void Application::addCanvas(Project* project) {
+    if (!project) return;
+    m_canvases.push_back(std::unique_ptr<Project>(project));
+    emit canvasListChanged();
+    emit canvasCreated(project->id());
+}
+
 Project* Application::deserializeProjectFromData(const QJsonObject& projectData)
 {
-    return deserializeProject(projectData);
+    return m_serializer->deserializeProject(projectData);
 }
 
 QJsonObject Application::serializeProjectData(Project* project) const
 {
-    return serializeProject(project);
+    return m_serializer->serializeProject(project);
+}
+
+QJsonObject Application::serializeElement(Element* element) const
+{
+    return m_serializer->serializeElement(element);
 }
 
 bool Application::saveAs() {
-    // Emit signal to request file save from QML
-    emit saveFileRequested();
-    return true;
+    return m_fileManager->saveAs();
 }
 
 bool Application::saveToFile(const QString& fileName, Project* project) {
-    if (fileName.isEmpty() || !project) {
-        return false;
-    }
-    
-    QString actualFileName = fileName;
-    
-    // Ensure .cbt extension
-    if (!actualFileName.endsWith(".cbt", Qt::CaseInsensitive)) {
-        actualFileName += ".cbt";
-    }
-    
-    try {
-        // Create the main project JSON object
-        QJsonObject projectData;
-        projectData["version"] = "1.0";
-        projectData["createdWith"] = "Cubit";
-        
-        // Serialize only the specified project
-        QJsonArray canvasesArray;
-        QJsonObject projectObj = serializeProject(project);
-        canvasesArray.append(projectObj);
-        projectData["canvases"] = canvasesArray;
-        
-        
-        // Write to file
-        QJsonDocument doc(projectData);
-        QFile file(actualFileName);
-        if (!file.open(QIODevice::WriteOnly)) {
-            qDebug() << "Could not open file for writing:" << actualFileName;
-            if (project && project->console()) {
-                project->console()->addError(QString("Could not open file for writing: %1").arg(actualFileName));
-            }
-            return false;
-        }
-        
-        file.write(doc.toJson());
-        file.close();
-        
-        qDebug() << "Project saved successfully to:" << actualFileName;
-        if (project && project->console()) {
-            project->console()->addOutput(QString("Project saved to: %1").arg(actualFileName));
-        }
-        return true;
-        
-    } catch (const std::exception& e) {
-        qDebug() << "Error saving project:" << e.what();
-        if (project && project->console()) {
-            project->console()->addError(QString("Error saving project: %1").arg(e.what()));
-        }
-        return false;
-    }
-}
-
-QJsonObject Application::serializeProject(Project* project) const {
-    if (!project) return QJsonObject();
-    
-    QJsonObject projectObj;
-    projectObj["id"] = project->id();
-    projectObj["name"] = project->name();
-    projectObj["viewMode"] = project->viewMode();
-    projectObj["platforms"] = QJsonArray::fromStringList(project->platforms());
-    
-    // Serialize all elements from the ElementModel
-    QJsonArray elementsArray;
-    if (project->elementModel()) {
-        QList<Element*> elements = project->elementModel()->getAllElements();
-        qDebug() << "Application::serializeProject - Project" << project->id() << "has" << elements.size() << "elements to serialize";
-        for (Element* element : elements) {
-            if (element) {
-                QJsonObject elementObj = serializeElement(element);
-                elementsArray.append(elementObj);
-            }
-        }
-    } else {
-        qDebug() << "Application::serializeProject - Project" << project->id() << "has no elementModel!";
-    }
-    projectObj["elements"] = elementsArray;
-    
-    // Serialize scripts/nodes if present
-    if (project->scripts()) {
-        QJsonObject scriptsObj;
-        // Note: We don't save the compiled output, just the node structure
-        // The Scripts class would need serialization methods for this
-        projectObj["scripts"] = scriptsObj;
-    }
-    
-    return projectObj;
-}
-
-QJsonObject Application::serializeElement(Element* element) const {
-    if (!element) return QJsonObject();
-    
-    QJsonObject elementObj;
-    
-    // Basic element properties
-    elementObj["elementId"] = element->getId();
-    elementObj["elementType"] = element->getTypeName();
-    elementObj["name"] = element->getName();
-    elementObj["parentId"] = element->getParentElementId();
-    
-    // Use Qt's meta-object system to serialize all properties
-    const QMetaObject* metaObj = element->metaObject();
-    for (int i = 0; i < metaObj->propertyCount(); ++i) {
-        QMetaProperty property = metaObj->property(i);
-        const char* name = property.name();
-        
-        // Skip properties we don't want to save
-        if (QString(name) == "objectName" || 
-            QString(name) == "selected" ||
-            QString(name) == "parentElement") {
-            continue;
-        }
-        
-        QVariant value = property.read(element);
-        
-        // Debug joints property specifically
-        if (QString(name) == "joints") {
-            qDebug() << "  Reading 'joints' property:";
-            qDebug() << "    Type:" << value.typeName() << "TypeId:" << value.metaType().id();
-            qDebug() << "    Value:" << value;
-            if (value.canConvert<QVariantList>()) {
-                QVariantList list = value.toList();
-                qDebug() << "    Converted to QVariantList, size:" << list.size();
-            }
-        }
-        
-        // Debug which conversion path is taken for joints
-        if (QString(name) == "joints") {
-            qDebug() << "  Joints conversion path:";
-            qDebug() << "    canConvert<QString>:" << value.canConvert<QString>();
-            qDebug() << "    canConvert<int>:" << value.canConvert<int>();
-            qDebug() << "    canConvert<double>:" << value.canConvert<double>();
-            qDebug() << "    canConvert<bool>:" << value.canConvert<bool>();
-            qDebug() << "    canConvert<QStringList>:" << value.canConvert<QStringList>();
-            qDebug() << "    canConvert<QVariantList>:" << value.canConvert<QVariantList>();
-        }
-        
-        // Convert QVariant to JSON-compatible value
-        // IMPORTANT: Check specific types BEFORE generic conversions
-        if (value.metaType().id() == QMetaType::QString) {
-            // Handle QString directly to avoid conversion issues
-            elementObj[name] = value.toString();
-        } else if (value.metaType().id() == QMetaType::QVariantList || value.canConvert<QVariantList>()) {
-            // Handle QVariantList FIRST before string conversion
-            QVariantList list = value.toList();
-            QJsonArray jsonArray;
-            
-            // Debug for joints
-            if (QString(name) == "joints") {
-                qDebug() << "  Processing joints QVariantList:";
-                qDebug() << "    List size:" << list.size();
-            }
-            
-            for (int idx = 0; idx < list.size(); ++idx) {
-                const QVariant& item = list[idx];
-                if (item.canConvert<QVariantMap>()) {
-                    QVariantMap map = item.toMap();
-                    
-                    if (QString(name) == "joints") {
-                        qDebug() << "    Joint" << idx << "map keys:" << map.keys();
-                        qDebug() << "      x value:" << map["x"] << "type:" << map["x"].typeName();
-                        qDebug() << "      y value:" << map["y"] << "type:" << map["y"].typeName();
-                    }
-                    
-                    QJsonObject jsonObj;
-                    for (auto it = map.begin(); it != map.end(); ++it) {
-                        QVariant val = it.value();
-                        
-                        // Force conversion to double for numeric values
-                        bool ok = false;
-                        double dblVal = val.toDouble(&ok);
-                        
-                        if (ok) {
-                            jsonObj[it.key()] = dblVal;
-                        } else if (val.canConvert<QString>()) {
-                            jsonObj[it.key()] = val.toString();
-                        } else if (val.canConvert<bool>()) {
-                            jsonObj[it.key()] = val.toBool();
-                        } else {
-                            // Last resort - force to double
-                            jsonObj[it.key()] = val.toDouble();
-                        }
-                    }
-                    
-                    if (QString(name) == "joints") {
-                        qDebug() << "    Created JSON object for joint" << idx << ":" << jsonObj;
-                    }
-                    
-                    jsonArray.append(jsonObj);
-                } else if (item.canConvert<QString>()) {
-                    jsonArray.append(item.toString());
-                } else if (item.canConvert<double>()) {
-                    jsonArray.append(item.toDouble());
-                } else if (item.canConvert<int>()) {
-                    jsonArray.append(item.toInt());
-                } else if (item.canConvert<bool>()) {
-                    jsonArray.append(item.toBool());
-                }
-            }
-            elementObj[name] = jsonArray;
-        } else if (value.metaType().id() == QMetaType::QColor) {
-            QColor color = value.value<QColor>();
-            elementObj[name] = color.name(QColor::HexArgb);
-        } else if (value.metaType().id() == QMetaType::QFont) {
-            QFont font = value.value<QFont>();
-            QJsonObject fontObj;
-            fontObj["family"] = font.family();
-            fontObj["pointSize"] = font.pointSize();
-            fontObj["bold"] = font.bold();
-            fontObj["italic"] = font.italic();
-            fontObj["weight"] = font.weight();
-            elementObj[name] = fontObj;
-        } else if (value.metaType().id() == QMetaType::Int) {
-            elementObj[name] = value.toInt();
-        } else if (value.metaType().id() == QMetaType::Double || value.metaType().id() == QMetaType::Float) {
-            elementObj[name] = value.toDouble();
-        } else if (value.metaType().id() == QMetaType::Bool) {
-            elementObj[name] = value.toBool();
-        } else if (value.canConvert<QStringList>()) {
-            QStringList list = value.toStringList();
-            elementObj[name] = QJsonArray::fromStringList(list);
-        } else if (value.canConvert<QString>()) {
-            elementObj[name] = value.toString();
-        } else if (value.canConvert<int>()) {
-            elementObj[name] = value.toInt();
-        } else if (value.canConvert<double>()) {
-            elementObj[name] = value.toDouble();
-        } else if (value.canConvert<bool>()) {
-            elementObj[name] = value.toBool();
-        }
-        // Add more type conversions as needed
-    }
-    
-    return elementObj;
+    return m_fileManager->saveToFile(fileName, project);
 }
 
 bool Application::openFile() {
-    // Emit signal to request file open from QML
-    emit openFileRequested();
-    return true;
+    return m_fileManager->openFile();
 }
 
 bool Application::loadFromFile(const QString& fileName) {
-    if (fileName.isEmpty()) {
-        return false;
-    }
-    
-    try {
-        // Read the file
-        QFile file(fileName);
-        if (!file.open(QIODevice::ReadOnly)) {
-            qDebug() << "Could not open file for reading:" << fileName;
-            // Log error to all project consoles since we don't have a specific project yet
-            for (const auto& canvas : m_canvases) {
-                if (canvas && canvas->console()) {
-                    canvas->console()->addError(QString("Could not open file for reading: %1").arg(fileName));
-                }
-            }
-            return false;
-        }
-        
-        QByteArray data = file.readAll();
-        file.close();
-        
-        // Parse JSON
-        QJsonParseError parseError;
-        QJsonDocument doc = QJsonDocument::fromJson(data, &parseError);
-        if (parseError.error != QJsonParseError::NoError) {
-            qDebug() << "Invalid JSON format:" << parseError.errorString();
-            // Log error to all project consoles since we don't have a specific project yet
-            for (const auto& canvas : m_canvases) {
-                if (canvas && canvas->console()) {
-                    canvas->console()->addError(QString("Invalid JSON format: %1").arg(parseError.errorString()));
-                }
-            }
-            return false;
-        }
-        
-        QJsonObject projectData = doc.object();
-        
-        // Validate file format
-        if (!projectData.contains("version") || !projectData.contains("canvases")) {
-            qDebug() << "Invalid Cubit project file format";
-            // Log error to all project consoles since we don't have a specific project yet
-            for (const auto& canvas : m_canvases) {
-                if (canvas && canvas->console()) {
-                    canvas->console()->addError("Invalid Cubit project file format");
-                }
-            }
-            return false;
-        }
-        
-        // Load project data and create new projects (don't clear existing ones)
-        QJsonArray canvasesArray = projectData["canvases"].toArray();
-        bool success = true;
-        
-        for (const QJsonValue& canvasValue : canvasesArray) {
-            QJsonObject canvasData = canvasValue.toObject();
-            Project* newProject = deserializeProject(canvasData);
-            if (newProject) {
-                qDebug() << "Project loaded successfully from:" << fileName;
-                if (newProject->console()) {
-                    newProject->console()->addOutput(QString("Project loaded from: %1").arg(fileName));
-                }
-                
-                // Create a new window for this project
-                if (m_engine) {
-                    m_engine->load(QUrl(QStringLiteral("qrc:/qml/ProjectWindow.qml")));
-                }
-            } else {
-                success = false;
-            }
-        }
-        
-        return success;
-        
-    } catch (const std::exception& e) {
-        qDebug() << "Error opening project:" << e.what();
-        // Log error to all project consoles since we don't have a specific project
-        for (const auto& canvas : m_canvases) {
-            if (canvas && canvas->console()) {
-                canvas->console()->addError(QString("Error opening project: %1").arg(e.what()));
-            }
-        }
-        return false;
-    }
+    return m_fileManager->loadFromFile(fileName);
 }
 
 void Application::deleteProject(const QString& projectId) {
@@ -689,343 +400,22 @@ void Application::deleteProject(const QString& projectId) {
     
     // Project deletion is a permanent operation that should not be undoable
     // Directly remove the project without using the command pattern
-    removeProject(projectId);
+    
+    // Delete from API if it's an API project
+    if (m_projectApiClient) {
+        m_projectApiClient->deleteProject(projectId);
+    }
 }
 
 void Application::closeProjectWindow(const QString& projectId) {
-    // This method is called when a project window is closed
-    // It only emits the signal to close the window, but does NOT delete the project data
-    emit canvasRemoved(projectId);
+    // Find and remove the project from the open canvases
+    auto it = std::find_if(m_canvases.begin(), m_canvases.end(),
+        [&projectId](const std::unique_ptr<Project>& c) { return c->id() == projectId; });
     
-    // Note: We do NOT remove the project from m_canvases
-    // The project remains in memory and can be reopened later
-}
-
-bool Application::deserializeApplication(const QJsonObject& projectData) {
-    try {
-        // Process pending events to allow QML to handle state changes
-        QCoreApplication::processEvents();
-        
-        // Clear existing canvases
-        m_canvases.clear();
-        
-        // Load canvases
-        QJsonArray canvasesArray = projectData["canvases"].toArray();
-        
-        for (const QJsonValue& canvasValue : canvasesArray) {
-            QJsonObject canvasData = canvasValue.toObject();
-            Project* project = deserializeProject(canvasData);
-            if (project) {
-                m_canvases.push_back(std::unique_ptr<Project>(project));
-            }
-        }
-        
-        // Emit signals to update UI
+    if (it != m_canvases.end()) {
+        m_canvases.erase(it);
         emit canvasListChanged();
-        
-        return true;
-        
-    } catch (const std::exception& e) {
-        qDebug() << "Error deserializing project:" << e.what();
-        return false;
-    }
-}
-
-Project* Application::deserializeProject(const QJsonObject& projectData) {
-    try {
-        QString id = projectData["id"].toString();
-        QString name = projectData["name"].toString();
-        
-        if (id.isEmpty()) {
-            return nullptr;
-        }
-        
-        // Create new project
-        Project* project = new Project(id, name, this);
-        // Create and initialize project
-        project->initialize();
-        
-        // Set project properties
-        if (projectData.contains("viewMode")) {
-            project->setViewMode(projectData["viewMode"].toString());
-        }
-        
-        if (projectData.contains("platforms")) {
-            QJsonArray platformsArray = projectData["platforms"].toArray();
-            QStringList platforms;
-            for (const QJsonValue& value : platformsArray) {
-                platforms.append(value.toString());
-            }
-            project->setPlatforms(platforms);
-        }
-        
-        // Load elements
-        if (projectData.contains("elements")) {
-            QJsonArray elementsArray = projectData["elements"].toArray();
-            ElementModel* model = project->elementModel();
-            
-            if (!model) {
-                delete project;
-                return nullptr;
-            }
-            
-            for (const QJsonValue& elementValue : elementsArray) {
-                QJsonObject elementData = elementValue.toObject();
-                Element* element = deserializeElement(elementData, model);
-                if (element) {
-                    model->addElement(element);
-                }
-            }
-        }
-        
-        return project;
-        
-    } catch (const std::exception& e) {
-        qDebug() << "Error deserializing project:" << e.what();
-        return nullptr;
-    }
-}
-
-Element* Application::deserializeElement(const QJsonObject& elementData, ElementModel* model) {
-    try {
-        // Handle case where strings are stored as character arrays
-        QString elementId;
-        QString elementType;
-        QString name;
-        QString parentId;
-        
-        auto getStringFromJsonValue = [](const QJsonValue& value) -> QString {
-            if (value.isString()) {
-                return value.toString();
-            } else if (value.isArray()) {
-                // Handle case where string is stored as array of characters
-                QJsonArray arr = value.toArray();
-                QString result;
-                for (const QJsonValue& val : arr) {
-                    result += val.toString();
-                }
-                return result;
-            }
-            return QString();
-        };
-        
-        elementId = getStringFromJsonValue(elementData["elementId"]);
-        elementType = getStringFromJsonValue(elementData["elementType"]);
-        name = getStringFromJsonValue(elementData["name"]);
-        parentId = getStringFromJsonValue(elementData["parentId"]);
-        
-        qDebug() << "Application::deserializeElement:";
-        qDebug() << "  elementId:" << elementId;
-        qDebug() << "  elementType:" << elementType;
-        qDebug() << "  name:" << name;
-        
-        if (elementId.isEmpty() || elementType.isEmpty()) {
-            qDebug() << "  ERROR: elementId or elementType is empty";
-            return nullptr;
-        }
-        
-        Element* element = nullptr;
-        
-        // Try to create element using registry first
-        ElementTypeRegistry& registry = ElementTypeRegistry::instance();
-        QString lowerTypeName = elementType.toLower();
-        
-        qDebug() << "  Checking registry for type:" << lowerTypeName;
-        
-        if (registry.hasType(lowerTypeName)) {
-            qDebug() << "  Found type in registry, creating element";
-            // Registry uses lowercase type names
-            element = registry.createElement(lowerTypeName, elementId);
-            if (!element) {
-                qDebug() << "  ERROR: Registry failed to create element";
-            }
-        } else {
-            qDebug() << "  Type not found in registry, trying fallback";
-            // Fall back to direct creation for types not in registry yet
-            // (Variable, Node, Edge)
-            if (elementType == "Variable") {
-                element = new Variable(elementId, model);
-            } else if (elementType == "Node") {
-                element = new Node(elementId, model);
-            } else if (elementType == "Edge") {
-                element = new Edge(elementId, model);
-            } else {
-                qWarning() << "Unknown element type in deserialization:" << elementType;
-                return nullptr;
-            }
-        }
-        
-        if (!element) {
-            qDebug() << "  ERROR: Failed to create element";
-            return nullptr;
-        }
-        
-        qDebug() << "  Successfully created element of type:" << element->getTypeName();
-        
-        // Set basic properties
-        element->setName(name);
-        element->setParentElementId(parentId);
-        
-        // For Shape elements, we need to set shapeType and joints before geometry to avoid losing custom joints
-        if (elementType == "Shape") {
-            if (elementData.contains("shapeType")) {
-                QString shapeTypeStr = getStringFromJsonValue(elementData["shapeType"]);
-                if (Shape* shape = qobject_cast<Shape*>(element)) {
-                    if (shapeTypeStr == "Square") {
-                        shape->setShapeType(Shape::Square);
-                    } else if (shapeTypeStr == "Triangle") {
-                        shape->setShapeType(Shape::Triangle);
-                    } else if (shapeTypeStr == "Line") {
-                        shape->setShapeType(Shape::Line);
-                    }
-                    qDebug() << "  Set shape type to:" << shapeTypeStr << "before loading other properties";
-                }
-            }
-            
-            // Load joints immediately after shape type and before geometry
-            if (elementData.contains("joints")) {
-                QJsonArray jointsArray = elementData["joints"].toArray();
-                QList<QPointF> joints;
-                for (const QJsonValue& jointValue : jointsArray) {
-                    if (jointValue.isObject()) {
-                        QJsonObject jointObj = jointValue.toObject();
-                        double x = jointObj["x"].toDouble();
-                        double y = jointObj["y"].toDouble();
-                        joints.append(QPointF(x, y));
-                    }
-                }
-                if (Shape* shape = qobject_cast<Shape*>(element)) {
-                    shape->setJoints(joints);
-                    qDebug() << "  Loaded" << joints.size() << "joints before setting geometry";
-                }
-            }
-        }
-        
-        // Restore all other properties using Qt's meta-object system
-        const QMetaObject* metaObj = element->metaObject();
-        for (int i = 0; i < metaObj->propertyCount(); ++i) {
-            QMetaProperty property = metaObj->property(i);
-            const char* propName = property.name();
-            QString propNameStr(propName);
-            
-            // Skip properties we don't want to restore or already handled
-            if (propNameStr == "objectName" || 
-                propNameStr == "selected" ||
-                propNameStr == "elementId" ||
-                propNameStr == "elementType" ||
-                propNameStr == "name" ||
-                propNameStr == "parentId" ||
-                propNameStr == "parentElement" ||
-                (elementType == "Shape" && propNameStr == "shapeType") ||  // Already handled above
-                (elementType == "Shape" && propNameStr == "joints")) {     // Already handled above
-                continue;
-            }
-            
-            if (elementData.contains(propName)) {
-                QJsonValue jsonValue = elementData[propName];
-                QVariant value;
-                
-                // Convert JSON value to appropriate QVariant type
-                if (jsonValue.isString()) {
-                    QString stringValue = jsonValue.toString();
-                    
-                    // Try to convert numeric strings to proper types
-                    bool isNumber;
-                    double numberValue = stringValue.toDouble(&isNumber);
-                    if (isNumber && (property.metaType().id() == QMetaType::Double || 
-                                    property.metaType().id() == QMetaType::Float ||
-                                    property.metaType().id() == QMetaType::Int)) {
-                        if (property.metaType().id() == QMetaType::Int) {
-                            value = QVariant(static_cast<int>(numberValue));
-                        } else {
-                            value = QVariant(numberValue);
-                        }
-                    } else if (stringValue == "true" || stringValue == "false") {
-                        // Convert boolean strings
-                        value = QVariant(stringValue == "true");
-                    } else {
-                        value = stringValue;
-                    }
-                } else if (jsonValue.isDouble()) {
-                    value = jsonValue.toDouble();
-                } else if (jsonValue.isBool()) {
-                    value = jsonValue.toBool();
-                } else if (jsonValue.isObject()) {
-                    // Handle complex types like fonts
-                    QJsonObject obj = jsonValue.toObject();
-                    if (obj.contains("family")) {
-                        // It's a font
-                        QFont font;
-                        font.setFamily(obj["family"].toString());
-                        font.setPointSize(obj["pointSize"].toInt());
-                        font.setBold(obj["bold"].toBool());
-                        font.setItalic(obj["italic"].toBool());
-                        font.setWeight(QFont::Weight(obj["weight"].toInt()));
-                        value = font;
-                    }
-                } else if (jsonValue.isArray()) {
-                    QJsonArray array = jsonValue.toArray();
-                    
-                    // Check if property expects QVariantList (like joints)
-                    if (property.metaType().id() == QMetaType::QVariantList) {
-                        QVariantList list;
-                        for (const QJsonValue& val : array) {
-                            if (val.isObject()) {
-                                // Convert JSON object to QVariantMap
-                                QJsonObject obj = val.toObject();
-                                QVariantMap map;
-                                for (auto it = obj.begin(); it != obj.end(); ++it) {
-                                    if (it.value().isDouble()) {
-                                        map[it.key()] = it.value().toDouble();
-                                    } else if (it.value().isString()) {
-                                        map[it.key()] = it.value().toString();
-                                    } else if (it.value().isBool()) {
-                                        map[it.key()] = it.value().toBool();
-                                    } // integers will be handled as doubles
-                                }
-                                list.append(map);
-                            } else if (val.isString()) {
-                                list.append(val.toString());
-                            } else if (val.isDouble()) {
-                                list.append(val.toDouble());
-                            } else if (val.isBool()) {
-                                list.append(val.toBool());
-                            }
-                        }
-                        value = list;
-                    } else {
-                        // Handle as string lists for backwards compatibility
-                        QStringList list;
-                        for (const QJsonValue& val : array) {
-                            list.append(val.toString());
-                        }
-                        value = list;
-                    }
-                }
-                
-                // Handle color strings (hex format)
-                if (value.metaType().id() == QMetaType::QString && propNameStr.contains("color", Qt::CaseInsensitive)) {
-                    QString colorStr = value.toString();
-                    if (colorStr.startsWith("#")) {
-                        QColor color(colorStr);
-                        if (color.isValid()) {
-                            value = color;
-                        }
-                    }
-                }
-                
-                // Set the property if the value is valid and writable
-                if (value.isValid() && property.isWritable()) {
-                    property.write(element, value);
-                }
-            }
-        }
-        
-        return element;
-        
-    } catch (const std::exception& e) {
-        qDebug() << "Error deserializing element:" << e.what();
-        return nullptr;
+        emit canvasRemoved(projectId);
     }
 }
 
