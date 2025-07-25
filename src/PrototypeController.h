@@ -159,8 +159,8 @@ private:
     QString m_activeElement;
     
     // Default viewable area dimensions for different platforms
-    static constexpr qreal IOS_WIDTH = 200.0;
-    static constexpr qreal IOS_HEIGHT = 400.0;
+    static constexpr qreal IOS_WIDTH = 375.0;
+    static constexpr qreal IOS_HEIGHT = 812.0;
     static constexpr qreal WEB_WIDTH = 800.0;
     static constexpr qreal WEB_HEIGHT = 400.0;
     static constexpr qreal ANDROID_WIDTH = 200.0;

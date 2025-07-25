@@ -37,25 +37,20 @@ Rectangle {
                 id: prototypingModeDropdown
                 Layout.preferredWidth: 100
                 Layout.preferredHeight: 30
+                enabled: false  // Disabled - mode is dictated by the platform of the launching element
                 
                 model: Config.platformOptions
                 currentIndex: {
                     if (root.canvas && 
                         root.canvas.prototypeController) {
-                        var mode = root.canvas.prototypeController.prototypeMode
+                        var mode = root.canvas.prototypeController.prototypeMode.toLowerCase()
                         if (mode === "ios") return 1
                         if (mode === "android") return 2
                     }
                     return 0
                 }
                 
-                onCurrentTextChanged: {
-                    if (root.canvas && 
-                        root.canvas.prototypeController && 
-                        currentText !== root.canvas.prototypeController.prototypeMode) {
-                        root.canvas.prototypeController.prototypeMode = currentText
-                    }
-                }
+                // Removed onCurrentTextChanged handler since dropdown is disabled
             }
             
             Item {
@@ -81,25 +76,25 @@ Rectangle {
                 
                 var prototypeController = root.canvas.prototypeController
                 
-                // Get the snapshot values from prototype controller BEFORE stopping
-                var startPos = prototypeController.getSnapshotCanvasPosition()
-                var startZoom = prototypeController.getSnapshotCanvasZoom()
+                // Canvas restoration is disabled for now
+                // var startPos = prototypeController.getSnapshotCanvasPosition()
+                // var startZoom = prototypeController.getSnapshotCanvasZoom()
                 
-                // First restore all element positions (without animation)
-                prototypeController.restoreElementPositionsFromSnapshot()
+                // Element position restoration is disabled for now
+                // prototypeController.restoreElementPositionsFromSnapshot()
                 
-                // Stop prototyping mode through the controller BEFORE animating
+                // Stop prototyping mode through the controller
                 prototypeController.stopPrototyping()
                 
-                // Then animate back to the canvas position if we have one
-                if (startPos !== null && startPos !== undefined) {
-                    // First restore the zoom level
-                    root.canvasView.zoom = startZoom
-                    
-                    // Then move to the original position without animation
-                    // The moveToPoint function will set isAnimating = false
-                    root.canvasView.moveToPoint(startPos, false)
-                }
+                // Canvas position restoration is disabled for now
+                // if (startPos !== null && startPos !== undefined) {
+                //     // First restore the zoom level
+                //     root.canvasView.zoom = startZoom
+                //     
+                //     // Then move to the original position without animation
+                //     // The moveToPoint function will set isAnimating = false
+                //     root.canvasView.moveToPoint(startPos, false)
+                // }
             }
         }
     }

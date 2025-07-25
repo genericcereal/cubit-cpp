@@ -230,15 +230,19 @@ void PrototypeController::startPrototyping(const QPointF& canvasCenter, qreal cu
     m_isInitializingPrototype = true;
     setIsPrototyping(true);
     
+    
+    // Ensure viewable area is set based on the current prototype mode
+    setViewableArea(calculateViewportForMode(m_prototypeMode));
+    
     // This will update the layout based on the viewable area
     setDeviceFrames();
     
-    // The rest of the setup (onSelectionChanged) will happen when selection changes
-    // We add a small delay to ensure the frame scaling has completed before we move the canvas
-    QTimer::singleShot(50, this, [this]() {
-        m_isInitializingPrototype = false;
-        onSelectionChanged();
-    });
+    // Mark initialization as complete without triggering canvas movement
+    m_isInitializingPrototype = false;
+    
+    // Set the active outer frame based on current selection
+    // This won't trigger canvas movement since isInitializingPrototype was just set to false
+    onSelectionChanged();
 }
 
 void PrototypeController::stopPrototyping() {
@@ -270,12 +274,21 @@ void PrototypeController::stopPrototyping() {
     
     // Set isPrototyping to false
     setIsPrototyping(false);
+    
+    // Rebuild spatial index since elements may have moved during prototyping
+    if (m_canvasController) {
+        HitTestService* hitTestService = m_canvasController->hitTestService();
+        if (hitTestService) {
+            hitTestService->rebuildSpatialIndex();
+        }
+    }
 }
 
 QRectF PrototypeController::calculateViewportForMode(const QString& mode) const {
-    if (mode == "ios") {
+    QString lowerMode = mode.toLower();
+    if (lowerMode == "ios") {
         return QRectF(0, 0, IOS_WIDTH, IOS_HEIGHT);
-    } else if (mode == "android") {
+    } else if (lowerMode == "android") {
         return QRectF(0, 0, ANDROID_WIDTH, ANDROID_HEIGHT);
     } else {
         // Default to web
@@ -332,20 +345,19 @@ void PrototypeController::setActiveOuterFrame(const QString& frameId) {
                     m_selectedFrameHeight = canvasElement->height();
                     emit selectedFramePositionChanged();
                     
-                    // If we're in prototyping mode and not initializing, request canvas move
-                    // to center the frame in the viewable area
-                    if (m_isPrototyping && !m_isInitializingPrototype) {
-                        // Calculate the point to center in the viewport
-                        // X: Center of the frame horizontally
-                        // Y: Top edge of the frame (we want to align top edges)
-                        QPointF alignmentPoint(
-                            canvasElement->x() + canvasElement->width() / 2.0,
-                            canvasElement->y()  // Just the top edge
-                        );
-                        
-                        // Request the canvas to move to this point with animation
-                        emit requestCanvasMove(alignmentPoint, true);
-                    }
+                    // Canvas movement when activeOuterFrame changes is disabled for now
+                    // if (m_isPrototyping && !m_isInitializingPrototype) {
+                    //     // Calculate the point to center in the viewport
+                    //     // X: Center of the frame horizontally
+                    //     // Y: Top edge of the frame (we want to align top edges)
+                    //     QPointF alignmentPoint(
+                    //         canvasElement->x() + canvasElement->width() / 2.0,
+                    //         canvasElement->y()  // Just the top edge
+                    //     );
+                    //     
+                    //     // Request the canvas to move to this point with animation
+                    //     emit requestCanvasMove(alignmentPoint, true);
+                    // }
                 }
             }
         } else {

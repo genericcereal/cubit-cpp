@@ -81,5 +81,6 @@
         <file>qml/components/panels/PropertyPopoverPanel.qml</file>
         <file>qml/components/panels/PrototypePanel.qml</file>
         <file>shaders/roundedmask.frag.qsb</file>
+        <file>qml/components/project-templates/ios-project-template.qml</file>
     </qresource>
 </RCC>
