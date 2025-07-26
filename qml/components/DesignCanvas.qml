@@ -23,6 +23,10 @@ BaseCanvas {
     // Signal emitted when move animation completes
     signal moveAnimationCompleted()
     
+    // Additional properties for design canvas
+    property var hoveredElement: controller && controller.hoveredElement ? controller.hoveredElement : null
+    
+    
     // Update parentId of selected elements when hovering ONLY during controls drag
     onHoveredElementChanged: {
         // Only update parentId if the viewport controls are actively dragging
@@ -35,9 +39,6 @@ BaseCanvas {
             controller.updateParentingDuringDrag()
         }
     }
-    
-    // Additional properties for design canvas
-    property var hoveredElement: controller && controller.hoveredElement ? controller.hoveredElement : null
     
     // Add elements into the default contentData
     contentData: [
@@ -90,6 +91,7 @@ BaseCanvas {
             border.color: "#ffaa00"
             border.width: 2 / root.zoom
             opacity: 0.5
+            
         },
         
         // Script executor overlay

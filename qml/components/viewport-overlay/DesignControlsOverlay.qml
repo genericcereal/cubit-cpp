@@ -37,6 +37,7 @@ Item {
     
     // Expose the selection controls for external access
     property alias selectionControls: selectionControls
+    property alias shapeControls: shapeControls
     
     // Controls that follow selected elements (for design and variant canvases)
     DesignControls {

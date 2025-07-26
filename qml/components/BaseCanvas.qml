@@ -48,7 +48,9 @@ Item {
     
     // Mouse tracking
     property point lastMousePosition: Qt.point(0, 0)
+    property bool cursorInCanvas: false
     property bool isResizing: false
+    
     
     // Expose internal components for viewport overlay
     property alias flickable: flick
@@ -210,7 +212,7 @@ Item {
             id: hoverArea
             anchors.fill: parent
             acceptedButtons: Qt.NoButton
-            hoverEnabled: true
+            hoverEnabled: false  // Hover is handled by ViewportOverlay
             
             property real throttleDelay: 16 // 60fps
             property point pendingMousePosition
@@ -233,17 +235,21 @@ Item {
                 }
             }
             
-            onPositionChanged: (mouse) => {
-                // Update last mouse position immediately for hover badge
-                root.lastMousePosition = Qt.point(mouse.x, mouse.y)
-                
-                // Throttle hover events
-                pendingMousePosition = Qt.point(mouse.x, mouse.y)
-                hasPendingMouseMove = true
-                if (!throttleTimer.running) {
-                    throttleTimer.start()
-                }
+            onEntered: {
+                root.cursorInCanvas = true
             }
+            
+            // onPositionChanged: (mouse) => {
+            //     // Update last mouse position immediately for hover badge
+            //     root.lastMousePosition = Qt.point(mouse.x, mouse.y)
+            //     
+            //     // Throttle hover events
+            //     pendingMousePosition = Qt.point(mouse.x, mouse.y)
+            //     hasPendingMouseMove = true
+            //     if (!throttleTimer.running) {
+            //         throttleTimer.start()
+            //     }
+            // }
             
             onExited: {
                 root.handleExit()
@@ -352,7 +358,12 @@ Item {
     }
     
     function handleExit() {
-        // Override in subclasses
+        // Clear cursor state when mouse exits canvas
+        root.cursorInCanvas = false
+        if (root.canvas) {
+            root.canvas.hoveredElement = null
+        }
+        // Override in subclasses if additional behavior needed
     }
     
     // Get content layer for backward compatibility
@@ -445,4 +456,5 @@ Item {
             }
         }
     }
+    
 }

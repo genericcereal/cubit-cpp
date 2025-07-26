@@ -30,12 +30,12 @@ public:
     void setEditingElement(QObject* editingElement);
     
     // Hit testing
-    Element* hitTest(const QPointF& point) const;
-    Element* hitTest(qreal x, qreal y) const { return hitTest(QPointF(x, y)); }
+    Q_INVOKABLE Element* hitTest(const QPointF& point) const;
+    Q_INVOKABLE Element* hitTest(qreal x, qreal y) const { return hitTest(QPointF(x, y)); }
     
     // Hit testing for hover (excludes selected elements)
-    Element* hitTestForHover(const QPointF& point) const;
-    Element* hitTestForHover(qreal x, qreal y) const { return hitTestForHover(QPointF(x, y)); }
+    Q_INVOKABLE Element* hitTestForHover(const QPointF& point) const;
+    Q_INVOKABLE Element* hitTestForHover(qreal x, qreal y) const { return hitTestForHover(QPointF(x, y)); }
     
     // Spatial queries
     std::vector<Element*> elementsInRect(const QRectF& rect) const;

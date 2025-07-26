@@ -4,6 +4,7 @@
 #include <memory>
 #include <unordered_map>
 #include "Element.h"
+#include "HitTestService.h"
 
 class ElementModel;
 class SelectionManager;
@@ -26,6 +27,7 @@ class CanvasController : public QObject {
     Q_PROPERTY(qreal savedContentX READ savedContentX WRITE setSavedContentX NOTIFY savedContentXChanged)
     Q_PROPERTY(qreal savedContentY READ savedContentY WRITE setSavedContentY NOTIFY savedContentYChanged)
     Q_PROPERTY(qreal savedZoom READ savedZoom WRITE setSavedZoom NOTIFY savedZoomChanged)
+    Q_PROPERTY(HitTestService* hitTestService READ hitTestService CONSTANT)
     
 public:
     // Enum for canvas interaction modes
