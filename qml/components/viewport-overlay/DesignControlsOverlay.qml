@@ -259,18 +259,6 @@ Item {
             }
         }
         
-        // Frame throttling for drag updates
-        property bool updateFramePending: false
-        
-        function scheduleUpdateFrame() {
-            if (!updateFramePending) {
-                updateFramePending = true
-                Qt.callLater(function() {
-                    updateElements()
-                    updateFramePending = false
-                })
-            }
-        }
         
         onDraggingChanged: {
             if (dragging) {
@@ -297,12 +285,12 @@ Item {
             }
         }
         
-        // Update elements when controls change during drag - throttled to once per frame
-        onControlXChanged: if (dragging) scheduleUpdateFrame()
-        onControlYChanged: if (dragging) scheduleUpdateFrame()
-        onControlWidthChanged: if (dragging) scheduleUpdateFrame()
-        onControlHeightChanged: if (dragging) scheduleUpdateFrame()
-        onControlRotationChanged: if (dragging) scheduleUpdateFrame()
+        // Update elements when controls change during drag
+        onControlXChanged: if (dragging) updateElements()
+        onControlYChanged: if (dragging) updateElements()
+        onControlWidthChanged: if (dragging) updateElements()
+        onControlHeightChanged: if (dragging) updateElements()
+        onControlRotationChanged: if (dragging) updateElements()
         
         function captureInitialStates() {
             // Store initial control bounds
