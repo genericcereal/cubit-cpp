@@ -118,6 +118,12 @@ Item {
                 root.canvasView.lastMousePosition = Qt.point(mouse.x, mouse.y)
             }
             
+            // Skip hit testing if controls are being dragged
+            if (designControlsOverlay.selectionControls.dragging || 
+                (designControlsOverlay.shapeControls && designControlsOverlay.shapeControls.dragging)) {
+                return
+            }
+            
             // Convert to canvas coordinates
             var canvasPoint = OverlayUtils.toCanvas(Qt.point(mouse.x, mouse.y), 
                 flickable, zoomLevel, canvasMinX, canvasMinY)
