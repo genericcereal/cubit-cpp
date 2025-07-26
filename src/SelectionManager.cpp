@@ -1,4 +1,5 @@
 #include "SelectionManager.h"
+#include "DesignElement.h"
 #include "Element.h"
 #include "CanvasElement.h"
 #include "Component.h"
@@ -174,6 +175,13 @@ void SelectionManager::updateElementSelection(Element *element, bool selected)
         element->setSelected(selected);
         
         if (selected) {
+            // For DesignElements with parents, ensure anchor values are up to date
+            if (DesignElement* designElement = qobject_cast<DesignElement*>(element)) {
+                if (!designElement->getParentElementId().isEmpty() && designElement->parentElement()) {
+                    designElement->recalculateAnchors();
+                }
+            }
+            
             // Connect to geometry changes when selected - single connection with UniqueConnection flag
             if (element->isVisual()) {
                 CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);

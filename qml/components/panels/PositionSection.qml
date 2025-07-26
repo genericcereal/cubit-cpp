@@ -14,6 +14,10 @@ PropertyGroup {
     
     visible: selectedElement && selectedElement.isDesignElement === true && selectedElement.parentId !== undefined && selectedElement.parentId !== ""
     
+    onSelectedDesignElementChanged: {
+        // Removed - anchor recalculation is now handled in C++ when element is selected
+    }
+    
     property var positionProps: [
         {
             name: "Position",
@@ -196,43 +200,58 @@ PropertyGroup {
                                 var spinBox = item.children[0]
                                 var anchorButton = item.children[1]
                                 
+                                // Capture modelData in closure
+                                var currentModelData = modelData
+                                
                                 // Set initial value
-                                spinBox.value = modelData.valueGetter()
+                                spinBox.value = currentModelData.valueGetter()
                                 
                                 // Create update function
                                 var updateSpinBox = function() {
-                                    if (modelData && spinBox) {
-                                        spinBox.value = modelData.valueGetter()
+                                    if (currentModelData && spinBox) {
+                                        spinBox.value = currentModelData.valueGetter()
                                     }
                                 }
                                 
-                                // Connect to property changes if the element has a signal
-                                if (root.selectedElement && modelData.valueProperty) {
-                                    root.selectedElement[modelData.valueProperty + "Changed"].connect(updateSpinBox)
+                                // Connect to property changes
+                                if (root.selectedDesignElement) {
+                                    root.selectedDesignElement.leftChanged.connect(updateSpinBox)
+                                    root.selectedDesignElement.rightChanged.connect(updateSpinBox)
+                                    root.selectedDesignElement.topChanged.connect(updateSpinBox)
+                                    root.selectedDesignElement.bottomChanged.connect(updateSpinBox)
                                 }
+                                
+                                // Also update when selectedDesignElement changes
+                                root.selectedDesignElementChanged.connect(updateSpinBox)
                                 spinBox.valueModified.connect(function() {
-                                    if (modelData && spinBox && spinBox.value !== modelData.valueGetter()) {
-                                        modelData.valueSetter(spinBox.value)
+                                    if (currentModelData && spinBox && spinBox.value !== currentModelData.valueGetter()) {
+                                        currentModelData.valueSetter(spinBox.value)
                                     }
                                 })
                                 
                                 // Set initial value
-                                anchorButton.checked = modelData.anchorGetter()
+                                anchorButton.checked = currentModelData.anchorGetter()
                                 
                                 // Create update function
                                 var updateAnchorButton = function() {
-                                    if (modelData && anchorButton) {
-                                        anchorButton.checked = modelData.anchorGetter()
+                                    if (currentModelData && anchorButton) {
+                                        anchorButton.checked = currentModelData.anchorGetter()
                                     }
                                 }
                                 
-                                // Connect to property changes if the element has a signal
-                                if (root.selectedElement && modelData.anchorProperty) {
-                                    root.selectedElement[modelData.anchorProperty + "Changed"].connect(updateAnchorButton)
+                                // Connect to property changes
+                                if (root.selectedDesignElement) {
+                                    root.selectedDesignElement.leftAnchoredChanged.connect(updateAnchorButton)
+                                    root.selectedDesignElement.rightAnchoredChanged.connect(updateAnchorButton)
+                                    root.selectedDesignElement.topAnchoredChanged.connect(updateAnchorButton)
+                                    root.selectedDesignElement.bottomAnchoredChanged.connect(updateAnchorButton)
                                 }
+                                
+                                // Also update when selectedDesignElement changes
+                                root.selectedDesignElementChanged.connect(updateAnchorButton)
                                 anchorButton.toggled.connect(function() {
-                                    if (modelData && anchorButton && spinBox) {
-                                        modelData.anchorSetter(anchorButton.checked, spinBox.value)
+                                    if (currentModelData && anchorButton && spinBox) {
+                                        currentModelData.anchorSetter(anchorButton.checked, spinBox.value)
                                     }
                                 })
                             }

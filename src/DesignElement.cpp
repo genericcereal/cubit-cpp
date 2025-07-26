@@ -166,13 +166,10 @@ void DesignElement::setLeftAnchored(bool anchored) {
         m_leftAnchored = anchored;
         emit leftAnchoredChanged();
         
-        qDebug() << "DesignElement" << getId() << "leftAnchored set to" << anchored;
-        
         // If enabling anchor, calculate the current left distance
         if (anchored && parentElement()) {
             m_left = qRound(x() - parentElement()->x());
             emit leftChanged();
-            qDebug() << "  Left distance:" << m_left;
         }
         
         updateFromParentGeometry();
@@ -308,6 +305,10 @@ void DesignElement::updateAnchorsFromGeometry() {
     emit rightChanged();
     emit topChanged();
     emit bottomChanged();
+}
+
+void DesignElement::recalculateAnchors() {
+    updateAnchorsFromGeometry();
 }
 
 void DesignElement::setX(qreal x) {
