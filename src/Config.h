@@ -92,4 +92,10 @@ namespace Config {
     // API URLs
     constexpr const char* TOOL_REGISTRY_URL = "https://k72mo3oun7sefawjhvilq2ne5a0ybfgr.lambda-url.us-west-2.on.aws/";
     constexpr const char* GRAPHQL_ENDPOINT = "https://enrxjqdgdvc7pkragdib6abhyy.appsync-api.us-west-2.amazonaws.com/graphql";
+    
+    // Authentication
+    constexpr const char* COGNITO_DOMAIN = "https://us-west-2jequuy6sn.auth.us-west-2.amazoncognito.com";
+    constexpr const char* COGNITO_CLIENT_ID = "2l40nv8rncp41ur8ql5httl8ni";
+    constexpr const char* COGNITO_REDIRECT_URI = "cubitapp://callback";
+    constexpr const char* COGNITO_SCOPE = "email openid phone";
 }

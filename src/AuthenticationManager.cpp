@@ -1,4 +1,5 @@
 #include "AuthenticationManager.h"
+#include "Config.h"
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QUrlQuery>
@@ -7,15 +8,21 @@
 #include <QApplication>
 #include <QSettings>
 
+#ifdef Q_OS_WIN
+#include <windows.h>
+#include <shellapi.h>
+#endif
+
 AuthenticationManager::AuthenticationManager(QObject *parent)
     : QObject(parent)
     , m_networkManager(std::make_unique<QNetworkAccessManager>())
     , m_callbackTimer(new QTimer(this))
 {
-    // Configure default values from the provided URL
-    m_cognitoDomain = "https://us-west-2jequuy6sn.auth.us-west-2.amazoncognito.com";
-    m_clientId = "2l40nv8rncp41ur8ql5httl8ni";
-    m_redirectUri = "cubitapp://callback";
+    // Configure default values from Config
+    m_cognitoDomain = Config::COGNITO_DOMAIN;
+    m_clientId = Config::COGNITO_CLIENT_ID;
+    m_redirectUri = Config::COGNITO_REDIRECT_URI;
+    m_scope = Config::COGNITO_SCOPE;
     
     // Setup callback timer for checking if authentication completed
     m_callbackTimer->setInterval(1000); // Check every second
@@ -67,7 +74,30 @@ void AuthenticationManager::login()
     qDebug() << "Opening authentication URL:" << authUrl.toString();
     
     // Open the URL in the default browser
-    QDesktopServices::openUrl(authUrl);
+    bool opened = QDesktopServices::openUrl(authUrl);
+    
+    if (!opened) {
+        qWarning() << "Failed to open URL with QDesktopServices::openUrl()";
+        
+#ifdef Q_OS_WIN
+        // Windows-specific fallback using ShellExecute
+        QString urlString = authUrl.toString();
+        HINSTANCE result = ShellExecuteW(nullptr, L"open", 
+            reinterpret_cast<const wchar_t*>(urlString.utf16()), 
+            nullptr, nullptr, SW_SHOWNORMAL);
+        
+        if (reinterpret_cast<INT_PTR>(result) <= 32) {
+            qCritical() << "ShellExecute failed with error code:" << reinterpret_cast<INT_PTR>(result);
+            emit authenticationError("Failed to open login URL in browser. Please use the 'Open Login URL in Browser' button.");
+        } else {
+            qDebug() << "Successfully opened URL using ShellExecute";
+        }
+#else
+        emit authenticationError("Failed to open login URL in browser. Please use the 'Open Login URL in Browser' button.");
+#endif
+    } else {
+        qDebug() << "Successfully opened URL using QDesktopServices";
+    }
     
     // Start checking for callback
     m_callbackTimer->start();
@@ -409,4 +439,23 @@ void AuthenticationManager::refreshAccessToken() {
         
         setIsLoading(false);
     });
+}
+
+QString AuthenticationManager::getLoginUrl() const
+{
+    // Generate random state for CSRF protection
+    QString state = const_cast<AuthenticationManager*>(this)->generateRandomState();
+    const_cast<AuthenticationManager*>(this)->m_currentState = state;
+    
+    // Build the authorization URL
+    QUrl authUrl(m_cognitoDomain + "/login");
+    QUrlQuery query;
+    query.addQueryItem("client_id", m_clientId);
+    query.addQueryItem("response_type", "code");
+    query.addQueryItem("scope", m_scope);
+    query.addQueryItem("redirect_uri", m_redirectUri);
+    query.addQueryItem("state", state);
+    authUrl.setQuery(query);
+    
+    return authUrl.toString();
 }
