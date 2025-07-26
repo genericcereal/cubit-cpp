@@ -53,6 +53,9 @@ public slots:
     
     // Refresh the access token using refresh token
     void refreshAccessToken();
+    
+    // Get the login URL for manual opening
+    QString getLoginUrl() const;
 
 signals:
     void isAuthenticatedChanged();

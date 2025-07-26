@@ -56,7 +56,7 @@ ApplicationWindow {
         id: authOverlay
         anchors.fill: parent
         color: "white"
-        opacity: 0.95
+        opacity: 1.0
         visible: !authManager.isAuthenticated || authManager.isLoading
         z: 9999 // Above everything else
         
@@ -96,6 +96,18 @@ ApplicationWindow {
                 anchors.horizontalCenter: parent.horizontalCenter
                 onClicked: authManager.login()
                 
+            }
+            
+            Button {
+                text: "Open Login URL in Browser"
+                visible: !authManager.isLoading
+                anchors.horizontalCenter: parent.horizontalCenter
+                onClicked: {
+                    var url = authManager.getLoginUrl()
+                    Qt.openUrlExternally(url)
+                    // Start checking for callback
+                    authManager.login()
+                }
             }
             
             BusyIndicator {
