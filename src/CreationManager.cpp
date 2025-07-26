@@ -96,11 +96,13 @@ Element* CreationManager::createElement(const QString& type, qreal x, qreal y, q
             ElementModel* globalElements = editingPlatform->globalElements();
             if (globalElements) {
                 globalElements->addElement(element);
-                // Also add to main model for visibility (it will be filtered by ElementFilterProxy)
+                // Also add to main model for visibility during editing
+                // The Project class manages loading/clearing these when switching modes
                 m_elementModel->addElement(element);
             } else {
                 qWarning() << "CreationManager: Platform has no globalElements model";
-                m_elementModel->addElement(element);
+                delete element;
+                return nullptr;
             }
         } else {
             // Normal mode, just add to model

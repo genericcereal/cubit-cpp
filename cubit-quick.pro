@@ -108,7 +108,12 @@ SOURCES += \
     src/ProjectApiClient.cpp \
     src/FileManager.cpp \
     src/Serializer.cpp \
-    src/PlatformConfig.cpp
+    src/PlatformConfig.cpp \
+    src/CanvasContext.cpp \
+    src/contexts/MainCanvasContext.cpp \
+    src/contexts/VariantCanvasContext.cpp \
+    src/contexts/GlobalElementsContext.cpp \
+    src/contexts/ScriptCanvasContext.cpp
 
 HEADERS += \
     src/Element.h \
@@ -191,13 +196,19 @@ HEADERS += \
     src/ProjectApiClient.h \
     src/FileManager.h \
     src/Serializer.h \
-    src/PlatformConfig.h
+    src/PlatformConfig.h \
+    src/CanvasContext.h \
+    src/contexts/MainCanvasContext.h \
+    src/contexts/VariantCanvasContext.h \
+    src/contexts/GlobalElementsContext.h \
+    src/contexts/ScriptCanvasContext.h
 
 RESOURCES += qml.qrc
 
 # Add include paths for better organization
 INCLUDEPATH += src
 INCLUDEPATH += src/platforms/web
+INCLUDEPATH += src/contexts
 
 # Additional import path used to resolve QML modules in Qt Creator's code model
 QML_IMPORT_PATH =

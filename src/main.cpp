@@ -40,6 +40,7 @@
 #include "UrlSchemeHandler.h"
 #include "ElementTypeRegistry.h"
 #include "PlatformConfig.h"
+#include "CanvasContext.h"
 
 int main(int argc, char *argv[])
 {
@@ -131,6 +132,9 @@ int main(int argc, char *argv[])
     qmlRegisterType<ElementFilterProxy>("Cubit", 1, 0, "ElementFilterProxy");
     qmlRegisterType<PrototypeController>("Cubit", 1, 0, "PrototypeController");
     qmlRegisterType<DesignControlsController>("Cubit", 1, 0, "DesignControlsController");
+    
+    // Register CanvasContext as uncreatable base class
+    qmlRegisterUncreatableType<CanvasContext>("Cubit", 1, 0, "CanvasContext", "CanvasContext is an abstract base class");
 
     // Register authentication types
     qmlRegisterType<AuthenticationManager>("Cubit", 1, 0, "AuthenticationManager");

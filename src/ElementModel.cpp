@@ -89,9 +89,17 @@ void ElementModel::addElement(Element *element)
 {
     if (!element) return;
     
+    // Check if element already exists to avoid duplicates
+    if (m_elements.contains(element)) {
+        qWarning() << "ElementModel::addElement - Element already in model:" << element->getId();
+        return;
+    }
     
-    // Set the element's parent to this model so it can find the model later
-    element->setParent(this);
+    // Only set parent if element doesn't already have one
+    // This is important for global elements that belong to another model
+    if (!element->parent()) {
+        element->setParent(this);
+    }
     
     // If it's a Frame, set the ElementModel so it can connect to our signals
     if (Frame* frame = qobject_cast<Frame*>(element)) {

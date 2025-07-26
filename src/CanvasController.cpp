@@ -217,9 +217,9 @@ Element* CanvasController::hitTestForHover(qreal x, qreal y)
 void CanvasController::handleMousePress(qreal x, qreal y)
 {
     // Handle mouse press
-    qDebug() << "CanvasController::handleMousePress at" << x << y << "mode:" << (int)m_mode;
+    // qDebug() << "CanvasController::handleMousePress at" << x << y << "mode:" << (int)m_mode;
     if (m_currentHandler) {
-        qDebug() << "Calling handler onPress";
+        // qDebug() << "Calling handler onPress";
         m_currentHandler->onPress(x, y);
     } else {
         qWarning() << "CanvasController::handleMousePress - No handler for mode" << static_cast<int>(m_mode);

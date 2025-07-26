@@ -14,6 +14,7 @@
 #include "PrototypeController.h"
 #include "PlatformConfig.h"
 
+class CanvasContext;
 class StreamingAIClient;
 class AuthenticationManager;
 class ConsoleMessageRepository;
@@ -21,6 +22,8 @@ Q_DECLARE_OPAQUE_POINTER(ConsoleMessageRepository*)
 
 class Component;
 Q_DECLARE_OPAQUE_POINTER(Component*)
+
+Q_DECLARE_OPAQUE_POINTER(CanvasContext*)
 
 class Project : public QObject {
     Q_OBJECT
@@ -32,6 +35,7 @@ class Project : public QObject {
     Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
     Q_PROPERTY(QString id READ id CONSTANT)
     Q_PROPERTY(QString viewMode READ viewMode WRITE setViewMode NOTIFY viewModeChanged)
+    Q_PROPERTY(CanvasContext* currentContext READ currentContext NOTIFY currentContextChanged)
     Q_PROPERTY(QObject* editingElement READ editingElement NOTIFY editingElementChanged)
     Q_PROPERTY(Scripts* activeScripts READ activeScripts NOTIFY activeScriptsChanged)
     Q_PROPERTY(QQmlListProperty<PlatformConfig> platforms READ platforms NOTIFY platformsChanged)
@@ -50,6 +54,7 @@ public:
     QString name() const;
     QString id() const;
     QString viewMode() const;
+    CanvasContext* currentContext() const;
     QObject* editingElement() const;
     Scripts* activeScripts() const;
     QQmlListProperty<PlatformConfig> platforms();
@@ -65,6 +70,7 @@ public:
     // Property setters
     void setName(const QString& name);
     void setViewMode(const QString& viewMode);
+    void setCanvasContext(std::unique_ptr<CanvasContext> context);
     void setId(const QString& id);  // Update project ID (e.g., after API sync)
     Q_INVOKABLE void setEditingElement(DesignElement* element, const QString& viewMode = QString());
     Q_INVOKABLE void setEditingComponent(Component* component, const QString& viewMode = QString());
@@ -88,6 +94,7 @@ private slots:
 signals:
     void nameChanged();
     void viewModeChanged();
+    void currentContextChanged();
     void editingElementChanged();
     void activeScriptsChanged();
     void platformsChanged();
@@ -106,9 +113,9 @@ private:
     QString m_name;
     QString m_id;
     QString m_viewMode;
+    std::unique_ptr<CanvasContext> m_currentContext;
     QObject* m_editingElement = nullptr; // Can be DesignElement* or Component*
     std::vector<std::unique_ptr<PlatformConfig>> m_platforms;
-    QStringList m_globalElementIds; // Track global elements temporarily added to model
     
     // QML list property helpers
     static void appendPlatform(QQmlListProperty<PlatformConfig>* list, PlatformConfig* platform);
@@ -117,11 +124,7 @@ private:
     static void clearPlatforms(QQmlListProperty<PlatformConfig>* list);
     
     void updateActiveScripts();
-    void loadScriptsIntoElementModel();
-    void saveElementModelToScripts();
-    void clearScriptElementsFromModel();
-    void loadGlobalElementsIntoModel();
-    void clearGlobalElementsFromModel();
+    void createContextForViewMode(const QString& mode);
 };
 
 #endif // PROJECT_H
