@@ -26,7 +26,7 @@ DesignCanvas::DesignCanvas(ElementModel& model,
 void DesignCanvas::setHoveredElement(QObject* element)
 {
     if (m_hoveredElement != element) {
-        qDebug() << "DesignCanvas::setHoveredElement: changing from" << m_hoveredElement << "to" << element;
+        // qDebug() << "DesignCanvas::setHoveredElement: changing from" << m_hoveredElement << "to" << element;
         m_hoveredElement = element;
         emit hoveredElementChanged();
     }

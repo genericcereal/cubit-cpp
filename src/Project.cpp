@@ -15,6 +15,11 @@
 #include "AuthenticationManager.h"
 #include "PlatformConfig.h"
 #include "HitTestService.h"
+#include "CanvasContext.h"
+#include "contexts/MainCanvasContext.h"
+#include "contexts/VariantCanvasContext.h"
+#include "contexts/GlobalElementsContext.h"
+#include "contexts/ScriptCanvasContext.h"
 
 Project::Project(const QString& id, const QString& name, QObject *parent)
     : QObject(parent)
@@ -22,6 +27,8 @@ Project::Project(const QString& id, const QString& name, QObject *parent)
     , m_id(id)
     , m_viewMode("design")
 {
+    // Create default main canvas context
+    m_currentContext = std::make_unique<MainCanvasContext>(this);
     // Create per-project console
     m_console = std::make_unique<ConsoleMessageRepository>(this);
     
@@ -82,6 +89,10 @@ QString Project::id() const {
 
 QString Project::viewMode() const {
     return m_viewMode;
+}
+
+CanvasContext* Project::currentContext() const {
+    return m_currentContext.get();
 }
 
 QQmlListProperty<PlatformConfig> Project::platforms() {
@@ -163,73 +174,12 @@ void Project::setViewMode(const QString& viewMode) {
         
         m_viewMode = viewMode;
         
-        // Handle mode-specific logic
-        if (viewMode == "script") {
-            // Load scripts into ElementModel
-            loadScriptsIntoElementModel();
-        } else if (viewMode == "design") {
-            // Save any changes back to scripts if coming from script mode
-            if (previousMode == "script") {
-                saveElementModelToScripts();
-                clearScriptElementsFromModel();
-            } else if (previousMode == "globalElements") {
-                // Remove the temporarily added global elements
-                clearGlobalElementsFromModel();
-            }
-            // Note: When coming from variant mode, we don't need to clear
-            // The ElementFilterProxy will handle showing the correct elements
-            
-            // Emit signal to restore viewport state after switching to design mode
-            emit viewportStateShouldBeRestored();
-        } else if (viewMode == "variant") {
-            // Variant mode: similar to design mode but for component variants
-            // Save any changes back to scripts if coming from script mode
-            if (previousMode == "script") {
-                saveElementModelToScripts();
-                clearScriptElementsFromModel();
-            }
-            
-            // Emit signal to restore viewport state after switching to variant mode
-            emit viewportStateShouldBeRestored();
-            // Log the editing element when switching to variant mode
-            qDebug() << "Switching to variant mode, editingElement:" << m_editingElement;
-            // Variant canvas will show component variants
-        } else if (viewMode == "globalElements") {
-            // Global elements mode: show global elements from platform
-            // Save any changes back to scripts if coming from script mode
-            if (previousMode == "script") {
-                saveElementModelToScripts();
-                clearScriptElementsFromModel();
-            }
-            
-            // Load global elements into ElementModel
-            loadGlobalElementsIntoModel();
-            
-            // Rebuild spatial index after loading global elements
-            if (m_controller && m_controller->hitTestService()) {
-                m_controller->hitTestService()->rebuildSpatialIndex();
-            }
-            
-            // Emit signal to restore viewport state after switching to global elements mode
-            emit viewportStateShouldBeRestored();
-        }
+        // Create and set the appropriate context
+        createContextForViewMode(viewMode);
         
         // Clear selection when switching view modes
         if (m_selectionManager) {
             m_selectionManager->clearSelection();
-        }
-        
-        // Update the canvas controller's canvas type
-        if (m_controller) {
-            CanvasController::CanvasType canvasType;
-            if (viewMode == "script") {
-                canvasType = CanvasController::CanvasType::Script;
-            } else if (viewMode == "variant" || viewMode == "globalElements") {
-                canvasType = CanvasController::CanvasType::Variant;
-            } else {
-                canvasType = CanvasController::CanvasType::Design;
-            }
-            m_controller->setCanvasType(canvasType);
         }
         
         // Reset to select mode
@@ -237,8 +187,52 @@ void Project::setViewMode(const QString& viewMode) {
             m_controller->setMode(CanvasController::Mode::Select);
         }
         
+        // Emit signal to restore viewport state for design/variant modes
+        if (viewMode == "design" || viewMode == "variant" || viewMode == "globalElements") {
+            emit viewportStateShouldBeRestored();
+        }
+        
         emit viewModeChanged();
     }
+}
+
+void Project::setCanvasContext(std::unique_ptr<CanvasContext> context) {
+    // IMPORTANT: Clear the context pointer from HitTestService BEFORE destroying the old context
+    // This prevents dangling pointer access during destruction
+    if (m_controller && m_controller->hitTestService()) {
+        m_controller->hitTestService()->setCanvasContext(nullptr);
+    }
+    
+    // Deactivate current context
+    if (m_currentContext && m_elementModel) {
+        m_currentContext->deactivateContext(m_elementModel.get());
+    }
+    
+    // Set new context
+    m_currentContext = std::move(context);
+    
+    // Activate new context
+    if (m_currentContext && m_elementModel) {
+        m_currentContext->activateContext(m_elementModel.get());
+        
+        // Update canvas controller type
+        if (m_controller) {
+            m_controller->setCanvasType(m_currentContext->getCanvasType());
+        }
+        
+        // Configure hit testing if available
+        if (m_controller && m_controller->hitTestService()) {
+            m_controller->hitTestService()->setCanvasContext(m_currentContext.get());
+            m_currentContext->configureHitTestService(m_controller->hitTestService());
+        }
+        
+        // Rebuild spatial index after context change
+        if (m_controller && m_controller->hitTestService()) {
+            m_controller->hitTestService()->rebuildSpatialIndex();
+        }
+    }
+    
+    emit currentContextChanged();
 }
 
 // QML list property helpers
@@ -293,6 +287,11 @@ void Project::initialize() {
     
     // Controller created and initialized
     
+    // Set initial canvas context on hit test service
+    if (m_controller && m_controller->hitTestService() && m_currentContext) {
+        m_controller->hitTestService()->setCanvasContext(m_currentContext.get());
+    }
+    
     // Create the prototype controller
     m_prototypeController = std::make_unique<PrototypeController>(*m_elementModel, *m_selectionManager, this);
     
@@ -320,10 +319,11 @@ void Project::initialize() {
     m_scriptExecutor->setCanvasController(m_controller.get());
     
     // Connect to element model changes to track when nodes/edges are added in script mode
-    // We need to ensure they're properly added to the appropriate scripts (either design element's or canvas's)
+    // The ScriptCanvasContext handles the script synchronization, but we still need to
+    // ensure proper ownership when elements are created by the controller
     connect(m_elementModel.get(), &ElementModel::elementAdded, this, [this](Element* element) {
-        if (m_viewMode == "script") {
-            Scripts* targetScripts = activeScripts();  // This returns either editing element's scripts or canvas scripts
+        if (m_viewMode == "script" && m_currentContext && m_currentContext->contextType() == "script") {
+            Scripts* targetScripts = activeScripts();
             if (targetScripts) {
                 // When a new node/edge is created in script mode, it needs to be added to scripts
                 if (Node* node = qobject_cast<Node*>(element)) {
@@ -351,8 +351,8 @@ void Project::initialize() {
     
     // Also handle removal of elements
     connect(m_elementModel.get(), &ElementModel::elementRemoved, this, [this](const QString& elementId) {
-        if (m_viewMode == "script") {
-            Scripts* targetScripts = activeScripts();  // This returns either editing element's scripts or canvas scripts
+        if (m_viewMode == "script" && m_currentContext && m_currentContext->contextType() == "script") {
+            Scripts* targetScripts = activeScripts();
             if (targetScripts) {
                 // Remove from scripts when removed from model
                 if (Node* node = targetScripts->getNode(elementId)) {
@@ -483,147 +483,46 @@ void Project::updateActiveScripts() {
     emit activeScriptsChanged();
 }
 
-void Project::loadScriptsIntoElementModel() {
-    if (!m_elementModel) return;
+void Project::createContextForViewMode(const QString& mode) {
+    std::unique_ptr<CanvasContext> newContext;
     
-    qDebug() << "Project::loadScriptsIntoElementModel - Starting";
-    
-    // Clear existing script elements from the model first
-    clearScriptElementsFromModel();
-    
-    // Get the active scripts
-    Scripts* scripts = activeScripts();
-    if (!scripts) {
-        qDebug() << "Project::loadScriptsIntoElementModel - No active scripts";
-        return;
-    }
-    
-    // Important: Scripts owns the nodes/edges with unique_ptr
-    // We need to just add references to ElementModel without transferring ownership
-    // ElementModel should NOT delete these elements
-    
-    // Add all nodes to the element model
-    auto nodes = scripts->getAllNodes();
-    qDebug() << "Project::loadScriptsIntoElementModel - Loading" << nodes.size() << "nodes";
-    for (Node* node : nodes) {
-        if (node) {
-            // Add to model but Scripts retains ownership
-            m_elementModel->addElement(node);
+    if (mode == "design") {
+        newContext = std::make_unique<MainCanvasContext>(this);
+    } else if (mode == "variant") {
+        if (m_editingElement) {
+            newContext = std::make_unique<VariantCanvasContext>(m_editingElement, this);
+            qDebug() << "Creating variant context for element:" << m_editingElement;
+        } else {
+            // Fall back to main canvas if no editing element
+            newContext = std::make_unique<MainCanvasContext>(this);
+            qWarning() << "No editing element for variant mode, falling back to main canvas";
         }
+    } else if (mode == "globalElements") {
+        if (PlatformConfig* platform = qobject_cast<PlatformConfig*>(m_editingElement)) {
+            newContext = std::make_unique<GlobalElementsContext>(platform, this);
+        } else {
+            // Fall back to main canvas if no platform
+            newContext = std::make_unique<MainCanvasContext>(this);
+            qWarning() << "No platform for globalElements mode, falling back to main canvas";
+        }
+    } else if (mode == "script") {
+        Scripts* targetScripts = activeScripts();
+        if (targetScripts) {
+            newContext = std::make_unique<ScriptCanvasContext>(targetScripts, m_editingElement, this);
+        } else {
+            // This shouldn't happen, but handle gracefully
+            newContext = std::make_unique<ScriptCanvasContext>(m_scripts.get(), nullptr, this);
+            qWarning() << "No active scripts found, using canvas scripts";
+        }
+    } else {
+        // Default to main canvas for unknown modes
+        newContext = std::make_unique<MainCanvasContext>(this);
     }
     
-    // Add all edges to the element model
-    auto edges = scripts->getAllEdges();
-    qDebug() << "Project::loadScriptsIntoElementModel - Loading" << edges.size() << "edges";
-    for (Edge* edge : edges) {
-        if (edge) {
-            // Add to model but Scripts retains ownership
-            m_elementModel->addElement(edge);
-        }
-    }
+    // Set the new context
+    setCanvasContext(std::move(newContext));
 }
 
-void Project::saveElementModelToScripts() {
-    if (!m_elementModel) return;
-    
-    // The nodes/edges are already in the scripts
-    // They were added/removed dynamically via the connect() signals
-    // No additional action needed here
-    
-    qDebug() << "Project::saveElementModelToScripts - Scripts already synced via signals";
-}
-
-void Project::clearScriptElementsFromModel() {
-    if (!m_elementModel) return;
-    
-    // Get all elements and remove nodes and edges
-    auto elements = m_elementModel->getAllElements();
-    QList<Element*> scriptElements;
-    
-    for (Element* element : elements) {
-        if (element) {
-            // Collect nodes and edges (script elements)
-            if (qobject_cast<Node*>(element) || qobject_cast<Edge*>(element)) {
-                scriptElements.append(element);
-            }
-        }
-    }
-    
-    // Remove the elements from model without deleting them
-    // They are owned by Scripts, not ElementModel
-    for (Element* element : scriptElements) {
-        // Find the index and remove without triggering deleteLater
-        int index = -1;
-        auto allElements = m_elementModel->getAllElements();
-        for (int i = 0; i < allElements.size(); ++i) {
-            if (allElements[i] == element) {
-                index = i;
-                break;
-            }
-        }
-        
-        if (index >= 0) {
-            // Remove from model's internal list without deleting
-            // We'll need to add a method to ElementModel for this
-            m_elementModel->removeElementWithoutDelete(element);
-        }
-    }
-}
-
-void Project::loadGlobalElementsIntoModel() {
-    if (!m_elementModel) return;
-    
-    qDebug() << "Project::loadGlobalElementsIntoModel - Starting";
-    
-    // Don't clear existing elements - we'll keep them in the model
-    // and use the filter to show only globalElements
-    
-    // Get the platform config if editing one
-    PlatformConfig* platform = qobject_cast<PlatformConfig*>(m_editingElement);
-    if (!platform) {
-        qDebug() << "Project::loadGlobalElementsIntoModel - No platform being edited";
-        return;
-    }
-    
-    // Get the global elements from the platform
-    ElementModel* globalElements = platform->globalElements();
-    if (!globalElements) {
-        qDebug() << "Project::loadGlobalElementsIntoModel - Platform has no global elements";
-        return;
-    }
-    
-    // Store the current element IDs so we know what was added
-    m_globalElementIds.clear();
-    
-    // Add all global elements to the element model temporarily
-    auto elements = globalElements->getAllElements();
-    qDebug() << "Project::loadGlobalElementsIntoModel - Loading" << elements.size() << "global elements";
-    for (Element* element : elements) {
-        if (element) {
-            // Track which elements we're adding
-            m_globalElementIds.append(element->getId());
-            // Add to model but platform's globalElements retains ownership
-            m_elementModel->addElement(element);
-        }
-    }
-}
-
-void Project::clearGlobalElementsFromModel() {
-    if (!m_elementModel) return;
-    
-    qDebug() << "Project::clearGlobalElementsFromModel - Removing" << m_globalElementIds.size() << "global elements";
-    
-    // Remove the global elements we temporarily added
-    for (const QString& elementId : m_globalElementIds) {
-        Element* element = m_elementModel->getElementById(elementId);
-        if (element) {
-            m_elementModel->removeElementWithoutDelete(element);
-        }
-    }
-    
-    // Clear the tracking list
-    m_globalElementIds.clear();
-}
 
 void Project::executeScriptEvent(const QString& eventName) {
     if (!m_scriptExecutor) {

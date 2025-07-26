@@ -10,6 +10,7 @@ class Element;
 class CanvasElement;
 class ElementModel;
 class QuadTree;
+class CanvasContext;
 
 class HitTestService : public QObject {
     Q_OBJECT
@@ -28,6 +29,7 @@ public:
     void setElementModel(ElementModel* elementModel);
     void setCanvasType(CanvasType type);
     void setEditingElement(QObject* editingElement);
+    void setCanvasContext(CanvasContext* context);
     
     // Hit testing
     Q_INVOKABLE Element* hitTest(const QPointF& point) const;
@@ -64,6 +66,7 @@ private:
     ElementModel* m_elementModel = nullptr;
     CanvasType m_canvasType = CanvasType::Design;
     QObject* m_editingElement = nullptr;
+    CanvasContext* m_canvasContext = nullptr;
     mutable std::unique_ptr<QuadTree> m_quadTree;
     bool m_useQuadTree = true;
     bool m_needsRebuild = false;

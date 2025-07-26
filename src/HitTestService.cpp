@@ -9,6 +9,8 @@
 #include "FrameComponentVariant.h"
 #include "FrameComponentInstance.h"
 #include "PlatformConfig.h"
+#include "Project.h"
+#include "CanvasContext.h"
 #include <QElapsedTimer>
 
 HitTestService::HitTestService(QObject *parent)
@@ -68,6 +70,24 @@ void HitTestService::setEditingElement(QObject* editingElement)
         if (m_canvasType == CanvasType::Variant) {
             rebuildSpatialIndex();
         }
+    }
+}
+
+void HitTestService::setCanvasContext(CanvasContext* context)
+{
+    if (m_canvasContext != context) {
+        m_canvasContext = context;
+        m_visualsCacheValid = false;  // Invalidate cache
+        
+        // Let the context configure hit testing if needed
+        if (m_canvasContext) {
+            m_canvasContext->configureHitTestService(this);
+        }
+        
+        // Don't rebuild spatial index here - let the caller do it
+        // after all setup is complete. This prevents rebuilding before
+        // contexts have had a chance to add their elements.
+        m_needsRebuild = true;
     }
 }
 
@@ -321,6 +341,12 @@ bool HitTestService::shouldTestElement(Element* element) const
 {
     if (!element) return false;
     
+    // If we have a canvas context, let it decide
+    if (m_canvasContext) {
+        return m_canvasContext->shouldIncludeInHitTest(element);
+    }
+    
+    // Fall back to original logic if no context
     // Special handling for Component elements - they should never be hit-testable on canvas
     // Components only appear in the ElementList, not as visual elements on canvas
     if (qobject_cast<Component*>(element)) {
@@ -370,6 +396,22 @@ bool HitTestService::shouldTestElement(Element* element) const
         // Skip elements that are in any component's variants array
         if (isInAnyComponentVariants(element)) {
             return false;
+        }
+        
+        // Skip elements that are in any platform's globalElements
+        // Get the Project from the ElementModel's parent
+        if (m_elementModel) {
+            if (Project* project = qobject_cast<Project*>(m_elementModel->parent())) {
+                QList<PlatformConfig*> platforms = project->getAllPlatforms();
+                for (PlatformConfig* platform : platforms) {
+                    if (platform && platform->globalElements()) {
+                        // Check if this element exists in the platform's globalElements
+                        if (platform->globalElements()->getElementById(element->getId())) {
+                            return false; // Exclude from design mode hit testing
+                        }
+                    }
+                }
+            }
         }
         
         return true;
