@@ -363,6 +363,11 @@ Project* Serializer::deserializeProject(const QJsonObject& projectData) {
             }
         }
         
+        // Resolve parent relationships after all elements are loaded
+        if (project->elementModel()) {
+            project->elementModel()->resolveParentRelationships();
+        }
+        
         // Rebuild spatial index after all elements are loaded
         CanvasController* controller = project->controller();
         if (controller && controller->hitTestService()) {

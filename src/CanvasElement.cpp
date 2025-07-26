@@ -272,6 +272,10 @@ void CanvasElement::setParentElementId(const QString &parentId)
                 }
             }
         }
+        else
+        {
+            // ElementModel not found yet - this can happen during loading
+        }
     }
 }
 

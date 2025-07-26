@@ -74,6 +74,9 @@ public:
     // Update anchor values based on current position
     void updateAnchorsFromGeometry();
     
+    // Force recalculation of anchor values (public for external calls)
+    Q_INVOKABLE void recalculateAnchors();
+    
     // Override geometry setters to update anchors
     void setX(qreal x) override;
     void setY(qreal y) override;

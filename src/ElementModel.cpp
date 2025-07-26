@@ -189,6 +189,22 @@ QString ElementModel::generateId()
     return UniqueIdGenerator::generate16DigitId();
 }
 
+void ElementModel::resolveParentRelationships() {
+    // Go through all elements and resolve their parent pointers
+    for (Element* element : m_elements) {
+        if (!element) continue;
+        
+        QString parentId = element->getParentElementId();
+        if (!parentId.isEmpty()) {
+            // Try to resolve the parent again
+            if (CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element)) {
+                // Force re-resolution by setting the parent ID again
+                canvasElement->setParentElementId(parentId);
+            }
+        }
+    }
+}
+
 void ElementModel::removeElement(Element *element)
 {
     if (!element) return;

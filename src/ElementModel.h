@@ -43,6 +43,9 @@ public:
     // ID generation
     Q_INVOKABLE QString generateId();
     
+    // Parent relationship resolution
+    Q_INVOKABLE void resolveParentRelationships();
+    
 signals:
     void elementAdded(Element *element);
     void elementRemoved(const QString &elementId);
