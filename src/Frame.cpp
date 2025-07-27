@@ -694,3 +694,19 @@ QList<PropertyDefinition> Frame::staticPropertyDefinitions() {
     
     return props;
 }
+
+QStringList Frame::getChildElements() const {
+    QStringList childIds;
+    
+    if (m_elementModel) {
+        // Get all elements from the model
+        for (int i = 0; i < m_elementModel->rowCount(); ++i) {
+            Element* element = m_elementModel->elementAt(i);
+            if (element && element->getParentElementId() == getId()) {
+                childIds.append(element->getId());
+            }
+        }
+    }
+    
+    return childIds;
+}

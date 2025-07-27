@@ -149,6 +149,11 @@ bool ElementFilterProxy::shouldShowElementInMode(Element* element) const {
         return false;
     }
     
+    // Check if element should be shown in element list
+    if (!element->showInElementList()) {
+        return false;
+    }
+    
     // Non-visual elements (except Components and Variables) are never shown
     if (!element->isVisual()) {
         // Allow Variables to be shown even though they're non-visual

@@ -188,5 +188,14 @@ int main(int argc, char *argv[])
     // Load QML immediately since context properties are already set
     engine.load(url);
 
-    return app.exec();
+    int result = app.exec();
+    
+    // IMPORTANT: Clear all QML connections before Application is destroyed
+    // This prevents QML from trying to access destroyed C++ objects during shutdown
+    QQmlContext* rootContext = engine.rootContext();
+    if (rootContext) {
+        rootContext->setContextProperty("Application", nullptr);
+    }
+    
+    return result;
 }

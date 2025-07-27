@@ -14,6 +14,8 @@
 #include "ElementModel.h"
 #include "SelectionManager.h"
 #include "PropertyDefinition.h"
+#include "CreationManager.h"
+#include "CanvasController.h"
 #include <QCoreApplication>
 #include <QDebug>
 #include <QHash>
@@ -407,6 +409,17 @@ void DesignElement::setParentElement(CanvasElement* parent) {
     }
 }
 
+void DesignElement::setParentElement(CanvasElement* parent, qreal left, qreal top) {
+    // First set the parent
+    setParentElement(parent);
+    
+    // Then position the element at the specified left and top
+    if (parent) {
+        setX(parent->x() + left);
+        setY(parent->y() + top);
+    }
+}
+
 void DesignElement::onParentGeometryChanged() {
     // Prevent re-entry during updates
     if (m_updatingFromAnchors) return;
@@ -456,305 +469,20 @@ Component* DesignElement::createComponent() {
         return nullptr;
     }
     
-    SelectionManager* selectionManager = project->selectionManager();
-    if (!selectionManager) {
-        qWarning() << "DesignElement::createComponent - Project has no SelectionManager";
+    // Get the creation manager from the project's controller
+    CreationManager* creationManager = project->controller() ? project->controller()->creationManager() : nullptr;
+    if (!creationManager) {
+        qWarning() << "DesignElement::createComponent - No CreationManager available";
         return nullptr;
     }
     
-    // Create a new Component
-    QString componentId = UniqueIdGenerator::generate16DigitId();
-    Component* component = new Component(componentId, this->parent());
-    
-    // Create a mapping of old IDs to new IDs for maintaining parent-child relationships
-    QHash<QString, QString> oldToNewIdMap;
-    
-    // Create a ComponentVariant that is a copy of this element
-    QString variantId = UniqueIdGenerator::generate16DigitId();
-    DesignElement* variant = nullptr;
-    
-    // Store the ID mapping for the root element
-    oldToNewIdMap[this->getId()] = variantId;
-    
-    // Create the appropriate variant type based on the source element
-    if (Frame* sourceFrame = qobject_cast<Frame*>(this)) {
-        // Frame elements become ComponentVariants
-        FrameComponentVariantTemplate* variantFrame = new FrameComponentVariantTemplate(variantId, this->parent());
-        variantFrame->setVariantName("Variant1");
-        
-        // Center the variant in the canvas by positioning it so its center is at (0,0)
-        // This ensures it will be visible when the viewport centers on entering variant mode
-        qreal variantX = -width() / 2.0;
-        qreal variantY = -height() / 2.0;
-        variantFrame->setRect(QRectF(variantX, variantY, width(), height()));
-        
-        // Copy all style properties from the source frame
-        variantFrame->setFill(sourceFrame->fill());
-        variantFrame->setBorderColor(sourceFrame->borderColor());
-        variantFrame->setBorderWidth(sourceFrame->borderWidth());
-        variantFrame->setBorderRadius(sourceFrame->borderRadius());
-        variantFrame->setOverflow(sourceFrame->overflow());
-        
-        // Copy anchor properties
-        copyElementProperties(variantFrame, sourceFrame, false);
-        
-        variant = variantFrame;
-        component->setComponentType("frame");
-    } else if (Text* sourceText = qobject_cast<Text*>(this)) {
-        // Text elements become TextComponentVariants
-        TextComponentVariantTemplate* variantText = new TextComponentVariantTemplate(variantId, this->parent());
-        variantText->setVariantName("Variant1");
-        
-        // Center the variant in the canvas by positioning it so its center is at (0,0)
-        // This ensures it will be visible when the viewport centers on entering variant mode
-        qreal variantX = -width() / 2.0;
-        qreal variantY = -height() / 2.0;
-        variantText->setRect(QRectF(variantX, variantY, width(), height()));
-        
-        // Copy all text properties from the source text
-        variantText->setContent(sourceText->content());
-        variantText->setFont(sourceText->font());
-        variantText->setColor(sourceText->color());
-        variantText->setPosition(sourceText->position());
-        
-        // Copy anchor properties
-        copyElementProperties(variantText, sourceText, false);
-        
-        variant = variantText;
-        component->setComponentType("text");
-    } else if (WebTextInput* sourceWebTextInput = qobject_cast<WebTextInput*>(this)) {
-        // WebTextInput elements become WebTextInputComponentVariants
-        WebTextInputComponentVariantTemplate* variantWebTextInput = new WebTextInputComponentVariantTemplate(variantId, this->parent());
-        variantWebTextInput->setVariantName("Variant1");
-        
-        // Center the variant in the canvas by positioning it so its center is at (0,0)
-        // This ensures it will be visible when the viewport centers on entering variant mode
-        qreal variantX = -width() / 2.0;
-        qreal variantY = -height() / 2.0;
-        variantWebTextInput->setRect(QRectF(variantX, variantY, width(), height()));
-        
-        // Copy all WebTextInput properties from the source
-        variantWebTextInput->setValue(sourceWebTextInput->value());
-        variantWebTextInput->setPlaceholder(sourceWebTextInput->placeholder());
-        variantWebTextInput->setBorderColor(sourceWebTextInput->borderColor());
-        variantWebTextInput->setBorderWidth(sourceWebTextInput->borderWidth());
-        variantWebTextInput->setBorderRadius(sourceWebTextInput->borderRadius());
-        variantWebTextInput->setPosition(sourceWebTextInput->position());
-        
-        // Copy anchor properties
-        copyElementProperties(variantWebTextInput, sourceWebTextInput, false);
-        
-        variant = variantWebTextInput;
-        component->setComponentType("webtextinput");
-    } else {
-        qWarning() << "DesignElement::createComponent - Only Frame, Text, and WebTextInput elements can be converted to components";
-        delete component;
-        return nullptr;
-    }
-    
-    // Add the variant to the component
-    component->addVariant(variant);
-    
-    // Add the variant to the element model
-    elementModel->addElement(variant);
-    
-    // Now copy all children of this element to be children of the variant frame
-    QList<Element*> children = elementModel->getChildrenRecursive(this->getId());
-    
-    // Filter to only get direct children (not grandchildren)
-    QList<CanvasElement*> directChildren;
-    for (Element* child : children) {
-        if (child->getParentElementId() == this->getId()) {
-            if (CanvasElement* canvasChild = qobject_cast<CanvasElement*>(child)) {
-                directChildren.append(canvasChild);
-            }
-        }
-    }
-    
-    // Recursively copy each direct child
-    for (CanvasElement* child : directChildren) {
-        copyElementRecursively(child, variant, elementModel, oldToNewIdMap);
-    }
-    
-    // Add the component to the element model first
-    elementModel->addElement(component);
-    
-    // Create the appropriate instance type based on component type
-    QString instanceId = UniqueIdGenerator::generate16DigitId();
-    CanvasElement* instance = nullptr;
-    
-    if (component->componentType() == "text") {
-        TextComponentInstanceTemplate* textInstance = new TextComponentInstanceTemplate(instanceId, this->parent());
-        textInstance->setRect(QRectF(x(), y(), width(), height()));
-        instance = textInstance;
-    } else if (component->componentType() == "webtextinput") {
-        WebTextInputComponentInstanceTemplate* webTextInputInstance = new WebTextInputComponentInstanceTemplate(instanceId, this->parent());
-        webTextInputInstance->setRect(QRectF(x(), y(), width(), height()));
-        instance = webTextInputInstance;
-    } else {
-        // Default to frame-based ComponentInstance
-        FrameComponentInstance* frameInstance = new FrameComponentInstance(instanceId, this->parent());
-        frameInstance->setRect(QRectF(x(), y(), width(), height()));
-        instance = frameInstance;
-    }
-    
-    // Add the instance to the element model
-    elementModel->addElement(instance);
-    
-    // Set the instance to reference the variant as its source element
-    if (TextComponentInstanceTemplate* textInstance = qobject_cast<TextComponentInstanceTemplate*>(instance)) {
-        textInstance->setSourceElementId(variantId);
-    } else if (WebTextInputComponentInstanceTemplate* webTextInputInstance = qobject_cast<WebTextInputComponentInstanceTemplate*>(instance)) {
-        webTextInputInstance->setSourceElementId(variantId);
-    } else if (FrameComponentInstanceTemplate* frameInstance = qobject_cast<FrameComponentInstanceTemplate*>(instance)) {
-        frameInstance->setSourceElementId(variantId);
-    }
-    
-    // Clear selection first
-    if (selectionManager) {
-        selectionManager->clearSelection();
-    }
-    
-    // Get all children of this element recursively
-    QList<Element*> childrenToDelete = elementModel->getChildrenRecursive(this->getId());
-    
-    // Select the new instance
-    if (selectionManager) {
-        selectionManager->selectElement(instance);
-    }
-    
-    // Delete all children first (in reverse order to handle nested children properly)
-    for (int i = childrenToDelete.size() - 1; i >= 0; --i) {
-        elementModel->removeElement(childrenToDelete[i]->getId());
-    }
-    
-    // Finally delete the original element itself
-    elementModel->removeElement(this->getId());
-    
-    return component;
+    // Delegate to CreationManager
+    return creationManager->createComponent(this);
 }
 
-CanvasElement* DesignElement::copyElementRecursively(CanvasElement* sourceElement, CanvasElement* parentInVariant, ElementModel* elementModel, QHash<QString, QString>& oldToNewIdMap) {
-    if (!sourceElement || !parentInVariant || !elementModel) {
-        return nullptr;
-    }
-    
-    // Create the appropriate type of copy
-    CanvasElement* copiedElement = nullptr;
-    QString newId = UniqueIdGenerator::generate16DigitId();
-    
-    // Store the ID mapping
-    oldToNewIdMap[sourceElement->getId()] = newId;
-    
-    // Create copy based on type
-    if (Frame* frame = qobject_cast<Frame*>(sourceElement)) {
-        Frame* frameCopy = new Frame(newId, parentInVariant);
-        frameCopy->setName("Copied " + frame->getName());
-        
-        // For child elements, calculate relative position
-        qreal relX = sourceElement->x() - sourceElement->parentElement()->x();
-        qreal relY = sourceElement->y() - sourceElement->parentElement()->y();
-        
-        // Set position relative to parent in variant
-        frameCopy->setRect(QRectF(relX, relY, frame->width(), frame->height()));
-        
-        // Use utility function to copy all properties
-        copyElementProperties(frameCopy, frame, false);
-        
-        copiedElement = frameCopy;
-    } else if (Text* text = qobject_cast<Text*>(sourceElement)) {
-        Text* textCopy = new Text(newId, parentInVariant);
-        textCopy->setName("Copied " + text->getName());
-        
-        // For child elements, calculate relative position
-        qreal relX = sourceElement->x() - sourceElement->parentElement()->x();
-        qreal relY = sourceElement->y() - sourceElement->parentElement()->y();
-        
-        textCopy->setRect(QRectF(relX, relY, text->width(), text->height()));
-        
-        // Use utility function to copy all properties
-        copyElementProperties(textCopy, text, false);
-        
-        copiedElement = textCopy;
-    }
-    
-    if (copiedElement) {
-        // Set parent relationship
-        copiedElement->setParentElementId(parentInVariant->getId());
-        copiedElement->setParentElement(parentInVariant);
-        
-        // Add to element model
-        elementModel->addElement(copiedElement);
-        
-        // Now recursively copy all children
-        QList<Element*> children = elementModel->getChildrenRecursive(sourceElement->getId());
-        
-        // Filter to only get direct children (not grandchildren)
-        QList<CanvasElement*> directChildren;
-        for (Element* child : children) {
-            if (child->getParentElementId() == sourceElement->getId()) {
-                if (CanvasElement* canvasChild = qobject_cast<CanvasElement*>(child)) {
-                    directChildren.append(canvasChild);
-                }
-            }
-        }
-        
-        // Recursively copy each direct child
-        for (CanvasElement* child : directChildren) {
-            copyElementRecursively(child, copiedElement, elementModel, oldToNewIdMap);
-        }
-    }
-    
-    return copiedElement;
-}
+// Note: copyElementRecursively has been moved to CreationManager
 
-void DesignElement::copyElementProperties(CanvasElement* target, CanvasElement* source, bool copyGeometry)
-{
-    if (!target || !source) {
-        return;
-    }
-    
-    // Copy geometry if requested
-    if (copyGeometry) {
-        target->setWidth(source->width());
-        target->setHeight(source->height());
-        // Note: Position (x, y) is handled differently in each context, so not copied here
-    }
-    
-    // Copy anchor properties for DesignElements
-    if (DesignElement* targetDesign = qobject_cast<DesignElement*>(target)) {
-        if (DesignElement* sourceDesign = qobject_cast<DesignElement*>(source)) {
-            // Copy anchor values
-            targetDesign->setLeft(sourceDesign->left());
-            targetDesign->setRight(sourceDesign->right());
-            targetDesign->setTop(sourceDesign->top());
-            targetDesign->setBottom(sourceDesign->bottom());
-            
-            // Copy anchor states
-            targetDesign->setLeftAnchored(sourceDesign->leftAnchored());
-            targetDesign->setRightAnchored(sourceDesign->rightAnchored());
-            targetDesign->setTopAnchored(sourceDesign->topAnchored());
-            targetDesign->setBottomAnchored(sourceDesign->bottomAnchored());
-        }
-    }
-    
-    // Copy type-specific properties
-    if (Frame* targetFrame = qobject_cast<Frame*>(target)) {
-        if (Frame* sourceFrame = qobject_cast<Frame*>(source)) {
-            targetFrame->setFill(sourceFrame->fill());
-            targetFrame->setBorderColor(sourceFrame->borderColor());
-            targetFrame->setBorderWidth(sourceFrame->borderWidth());
-            targetFrame->setBorderRadius(sourceFrame->borderRadius());
-            targetFrame->setOverflow(sourceFrame->overflow());
-        }
-    } else if (Text* targetText = qobject_cast<Text*>(target)) {
-        if (Text* sourceText = qobject_cast<Text*>(source)) {
-            targetText->setContent(sourceText->content());
-            targetText->setFont(sourceText->font());
-            targetText->setColor(sourceText->color());
-        }
-    }
-}
+// Note: copyElementProperties has been moved to CreationManager
 
 QList<PropertyDefinition> DesignElement::propertyDefinitions() const {
     // Base DesignElement has no specific properties

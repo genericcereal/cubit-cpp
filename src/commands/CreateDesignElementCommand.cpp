@@ -131,6 +131,8 @@ void CreateDesignElementCommand::execute()
         }
     } else {
         // Normal mode, just add to model
+        qDebug() << "CreateDesignElementCommand: Adding element to model in normal mode, viewMode:" 
+                 << (project ? project->viewMode() : "no project");
         m_elementModel->addElement(m_element);
     }
 

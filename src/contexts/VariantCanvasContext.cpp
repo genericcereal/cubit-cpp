@@ -29,8 +29,8 @@ void VariantCanvasContext::activateContext(ElementModel* targetModel)
     // The ElementFilterProxy will handle showing only variant elements
     
     if (Component* comp = getComponent()) {
-        qDebug() << "VariantCanvasContext: Activated for component" << comp->getName() 
-                 << "with" << comp->variants().size() << "variants";
+        // qDebug() << "VariantCanvasContext: Activated for component" << comp->getName() 
+        //          << "with" << comp->variants().size() << "variants";
     }
 }
 
@@ -73,7 +73,7 @@ bool VariantCanvasContext::shouldIncludeInHitTest(Element* element) const
         }
         
         if (variants.contains(element)) {
-            qDebug() << "VariantCanvasContext: Including variant element" << element->getId();
+            // qDebug() << "VariantCanvasContext: Including variant element" << element->getId();
             return true;
         }
         
@@ -82,14 +82,14 @@ bool VariantCanvasContext::shouldIncludeInHitTest(Element* element) const
             if (!variant) continue; // Skip null variants
             
             if (element->getParentElementId() == variant->getId()) {
-                qDebug() << "VariantCanvasContext: Including child element" << element->getId() 
-                         << "of variant" << variant->getId();
+                // qDebug() << "VariantCanvasContext: Including child element" << element->getId() 
+                //          << "of variant" << variant->getId();
                 return true;
             }
         }
         
-        qDebug() << "VariantCanvasContext: Excluding element" << element->getId() 
-                 << "- not a variant or child of component" << comp->getName();
+        // qDebug() << "VariantCanvasContext: Excluding element" << element->getId() 
+        //          << "- not a variant or child of component" << comp->getName();
         return false;
     }
     

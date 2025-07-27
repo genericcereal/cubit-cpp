@@ -59,12 +59,7 @@ private:
     bool m_isDesignControlsResizingDisabled = false;
     bool m_isDesignControlsMovementDisabled = false;
     bool m_isEditingShape = false;
-    bool m_isAddingInstances = false;  // Flag to prevent recursive instance creation
     
     // Clear hover when appropriate
     void clearHoverIfSelected();
-    
-    // Global frame instance management
-    void addGlobalElementInstancesToFrame(Frame* targetFrame);
-    Frame* findGlobalFrame() const;
 };
