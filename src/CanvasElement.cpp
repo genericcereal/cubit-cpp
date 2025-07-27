@@ -122,6 +122,14 @@ void CanvasElement::setParentElement(CanvasElement *parent)
     m_parentConnections.clear();
 
     m_parentElement = parent;
+    
+    // Also update the parent ID so ElementModel can maintain proper hierarchy
+    if (parent) {
+        Element::setParentElementId(parent->getId());
+    } else {
+        Element::setParentElementId(QString());
+    }
+    
     emit parentElementChanged();
 
     // Only subscribe to parent properties for non-design elements

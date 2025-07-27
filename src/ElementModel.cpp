@@ -106,11 +106,66 @@ void ElementModel::addElement(Element *element)
         frame->setElementModel(this);
     }
     
-    beginInsertRows(QModelIndex(), m_elements.size(), m_elements.size());
-    m_elements.append(element);
+    // Find the correct insertion position based on parent
+    int insertIndex = m_elements.size(); // Default to end
+    
+    if (!element->getParentElementId().isEmpty()) {
+        // Find parent's position
+        int parentIndex = -1;
+        for (int i = 0; i < m_elements.size(); ++i) {
+            if (m_elements[i]->getId() == element->getParentElementId()) {
+                parentIndex = i;
+                break;
+            }
+        }
+        
+        if (parentIndex >= 0) {
+            // Find the last child of this parent (or last descendant)
+            insertIndex = parentIndex + 1;
+            
+            // Skip over all descendants of the parent
+            while (insertIndex < m_elements.size()) {
+                Element* checkElem = m_elements[insertIndex];
+                
+                // Check if this element is a descendant of the parent
+                bool isDescendant = false;
+                QString currentParentId = checkElem->getParentElementId();
+                
+                while (!currentParentId.isEmpty()) {
+                    if (currentParentId == m_elements[parentIndex]->getId()) {
+                        isDescendant = true;
+                        break;
+                    }
+                    
+                    // Find the parent of currentParentId
+                    bool found = false;
+                    for (int j = 0; j < m_elements.size(); ++j) {
+                        if (m_elements[j]->getId() == currentParentId) {
+                            currentParentId = m_elements[j]->getParentElementId();
+                            found = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!found) break;
+                }
+                
+                if (isDescendant) {
+                    insertIndex++;
+                } else {
+                    break;
+                }
+            }
+        }
+    }
+    
+    beginInsertRows(QModelIndex(), insertIndex, insertIndex);
+    m_elements.insert(insertIndex, element);
     connectElement(element);
     endInsertRows();
     
+    qDebug() << "ElementModel::addElement - emitting elementAdded signal for:" << element->getId() 
+             << "type:" << element->getTypeName();
     emit elementAdded(element);
     emit elementChanged();
 }
@@ -174,14 +229,18 @@ void ElementModel::clear()
     QList<Element*> elementsToDelete = m_elements;
     m_elements.clear();
     
+    // End the model reset before deleting elements
+    // This ensures QML views are notified that the model is empty
+    // before we start destroying the actual objects
+    endResetModel();
+    
+    // Now delete the elements after QML has been notified
     for (Element *element : elementsToDelete) {
         if (element) {
             disconnectElement(element);
             element->deleteLater();
         }
     }
-    
-    endResetModel();
 }
 
 QString ElementModel::generateId()
@@ -286,4 +345,13 @@ void ElementModel::reorderElement(Element *element, int newIndex)
     
     qDebug() << "ElementModel::reorderElement - Moved element" << element->getId() 
              << "from index" << currentIndex << "to" << newIndex;
+}
+
+void ElementModel::refresh()
+{
+    // Force the model to refresh all views
+    beginResetModel();
+    endResetModel();
+    emit elementChanged();
+    qDebug() << "ElementModel::refresh - Forced model refresh";
 }

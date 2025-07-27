@@ -160,6 +160,9 @@ public:
     QVariant getProperty(const QString& name) const override;
     void setProperty(const QString& name, const QVariant& value) override;
     
+    // Get IDs of all child elements
+    Q_INVOKABLE QStringList getChildElements() const;
+    
 signals:
     void fillChanged();
     void colorFormatChanged();

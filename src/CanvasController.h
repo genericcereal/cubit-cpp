@@ -136,6 +136,9 @@ public slots:
     // Access to HitTestService
     HitTestService* hitTestService() const { return m_hitTestService.get(); }
     
+    // Access to CreationManager
+    CreationManager* creationManager() const { return m_creationManager.get(); }
+    
 signals:
     void modeChanged();
     void canvasTypeChanged();

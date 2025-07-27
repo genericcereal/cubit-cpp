@@ -67,10 +67,6 @@ public:
     virtual bool showInElementList() const { return m_showInElementList; }
     void setShowInElementList(bool show) { m_showInElementList = show; }
     
-    // Check if this is a global instance
-    bool isGlobalInstance() const { return m_isGlobalInstance; }
-    void setIsGlobalInstance(bool isInstance) { m_isGlobalInstance = isInstance; }
-    
     // Generic property access using PropertyRegistry
     Q_INVOKABLE virtual QVariant getProperty(const QString& name) const;
     Q_INVOKABLE virtual void setProperty(const QString& name, const QVariant& value);
@@ -101,15 +97,4 @@ protected:
     
     // Helper to trigger layout updates if needed (override in subclasses)
     virtual void triggerLayoutIfNeeded(const QString& /*propertyName*/) {}
-    
-    // Track if this is a global instance (not the original)
-    bool m_isGlobalInstance = false;
-    
-private:
-    // Handle global frame parenting
-    void handleGlobalFrameParenting(const QString& oldParentId, const QString& newParentId);
-    bool isGlobalFrame(Element* frame) const;
-    void createInstancesInAllFrames();
-    void removeInstancesFromAllFrames();
-    void createInstanceInFrame(Frame* targetFrame, ElementModel* targetModel);
 };

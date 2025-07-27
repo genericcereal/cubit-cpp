@@ -7,6 +7,8 @@
 #include "Scripts.h"
 #include "ElementModel.h"
 
+class Frame;
+
 class PlatformConfig : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString name READ name CONSTANT)
@@ -34,6 +36,12 @@ public:
 
     // Static factory method
     static PlatformConfig* create(const QString& platformName, QObject* parent = nullptr);
+    
+    // Global element instance management
+    void addGlobalElementInstancesToFrame(Frame* targetFrame, ElementModel* targetModel);
+    void updateAllFramesWithNewGlobalElement(Element* globalElement, ElementModel* mainModel);
+    Frame* findGlobalFrame() const;
+    bool isAddingInstances() const { return m_isAddingInstances; }
 
 signals:
     void scriptsChanged();
@@ -44,6 +52,7 @@ private:
     QString m_displayName;
     std::unique_ptr<Scripts> m_scripts;
     std::unique_ptr<ElementModel> m_globalElements;
+    bool m_isAddingInstances = false;  // Flag to prevent recursive instance creation
 
     void initializeFromType(Type type);
     void createPlatformOnLoadNode();

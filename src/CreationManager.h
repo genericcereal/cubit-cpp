@@ -1,6 +1,7 @@
 #pragma once
 #include <QObject>
 #include <QRectF>
+#include <QHash>
 
 class Element;
 class ElementModel;
@@ -8,6 +9,9 @@ class SelectionManager;
 class Node;
 class Edge;
 class Project;
+class DesignElement;
+class CanvasElement;
+class Component;
 
 class CreationManager : public QObject {
     Q_OBJECT
@@ -28,7 +32,10 @@ public:
     void setProject(Project* project) { m_project = project; }
     
     // Design element creation
-    Element* createElement(const QString& type, qreal x, qreal y, qreal width, qreal height);
+    Element* createElement(const QString& type, qreal x, qreal y, qreal width, qreal height, Element* parent = nullptr);
+    
+    // Component creation from existing element
+    class Component* createComponent(class DesignElement* sourceElement);
     
     // Drag-to-create operations
     Element* startDragCreation(const QString& type, const QPointF& startPos);
@@ -67,4 +74,9 @@ private:
     void calculateEdgePoints(Edge* edge, Element* sourceNode, Element* targetNode,
                            const QString& sourceHandleType, const QString& targetHandleType,
                            int sourcePortIndex, int targetPortIndex) const;
+    
+    // Helper methods for component creation
+    static void copyElementProperties(CanvasElement* target, CanvasElement* source, bool copyGeometry = false);
+    CanvasElement* copyElementRecursively(CanvasElement* sourceElement, CanvasElement* parentInVariant, 
+                                         ElementModel* elementModel, QHash<QString, QString>& oldToNewIdMap);
 };

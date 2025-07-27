@@ -13,9 +13,12 @@ MainCanvasContext::MainCanvasContext(QObject *parent)
 
 void MainCanvasContext::activateContext(ElementModel* targetModel)
 {
-    Q_UNUSED(targetModel);
-    // Main canvas context doesn't need to do anything special
-    // The elements are already in the model
+    if (targetModel) {
+        // Force a refresh of the element list to update parent-child relationships
+        // This is needed when returning from globalElements mode where new instances
+        // may have been created
+        targetModel->refresh();
+    }
 }
 
 void MainCanvasContext::deactivateContext(ElementModel* targetModel)
@@ -29,8 +32,8 @@ bool MainCanvasContext::shouldIncludeInHitTest(Element* element) const
     if (!element) return false;
     
     // In main canvas context, we should exclude:
-    // 1. Elements that belong to any platform's global elements
-    // 2. Elements that are component variants
+    // 1. Elements that are component variants (they should only be editable in variant mode)
+    // 2. Elements that belong to any platform's globalElements (only their instances should be hit-testable)
     
     // Get the project from parent hierarchy
     Project* project = nullptr;
@@ -41,12 +44,12 @@ bool MainCanvasContext::shouldIncludeInHitTest(Element* element) const
     }
     
     if (project) {
-        // Check all platforms to see if this element belongs to their global elements
+        // Check if this element belongs to any platform's globalElements
         QList<PlatformConfig*> platforms = project->getAllPlatforms();
         for (PlatformConfig* platform : platforms) {
             if (platform && platform->globalElements()) {
                 if (platform->globalElements()->getElementById(element->getId())) {
-                    // This element belongs to a platform's global elements
+                    // This is an original element in globalElements - exclude it
                     return false;
                 }
             }
@@ -76,6 +79,6 @@ bool MainCanvasContext::shouldIncludeInHitTest(Element* element) const
         }
     }
     
-    // Include all other elements
+    // Include all other elements (instances of global elements will pass through here)
     return true;
 }

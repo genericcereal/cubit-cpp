@@ -399,7 +399,7 @@ bool HitTestService::shouldTestElement(Element* element) const
         }
         
         // Skip elements that are in any platform's globalElements
-        // Get the Project from the ElementModel's parent
+        // (Only their instances should be hit-testable, not the originals)
         if (m_elementModel) {
             if (Project* project = qobject_cast<Project*>(m_elementModel->parent())) {
                 QList<PlatformConfig*> platforms = project->getAllPlatforms();
@@ -407,7 +407,7 @@ bool HitTestService::shouldTestElement(Element* element) const
                     if (platform && platform->globalElements()) {
                         // Check if this element exists in the platform's globalElements
                         if (platform->globalElements()->getElementById(element->getId())) {
-                            return false; // Exclude from design mode hit testing
+                            return false; // Exclude original globalElements from design mode hit testing
                         }
                     }
                 }

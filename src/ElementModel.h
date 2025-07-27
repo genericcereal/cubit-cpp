@@ -39,6 +39,7 @@ public:
     Q_INVOKABLE QList<Element*> getChildrenRecursive(const QString &parentId) const;
     Q_INVOKABLE void clear();
     Q_INVOKABLE void reorderElement(Element *element, int newIndex);
+    Q_INVOKABLE void refresh();  // Force a refresh of the model
     
     // ID generation
     Q_INVOKABLE QString generateId();

@@ -87,6 +87,9 @@ public:
     // Override parent setter to initialize anchors
     void setParentElement(CanvasElement* parent) override;
     
+    // Overloaded setter with position
+    Q_INVOKABLE void setParentElement(CanvasElement* parent, qreal left, qreal top);
+    
     // Create a component from this design element
     Q_INVOKABLE class Component* createComponent();
     
