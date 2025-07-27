@@ -1,18 +1,15 @@
 #include "DesignElement.h"
 #include "Scripts.h"
+#include "PropertyRegistry.h"
 #include "ScriptExecutor.h"
 #include "Application.h"
 #include "Project.h"
 #include "Component.h"
-#include "FrameComponentInstance.h"
-#include "FrameComponentVariant.h"
-#include "TextComponentVariant.h"
-#include "TextComponentInstance.h"
+#include "ComponentInstanceTemplate.h"
+#include "ComponentVariantTemplate.h"
 #include "Frame.h"
 #include "Text.h"
 #include "platforms/web/WebTextInput.h"
-#include "WebTextInputComponentVariant.h"
-#include "WebTextInputComponentInstance.h"
 #include "UniqueIdGenerator.h"
 #include "ElementModel.h"
 #include "SelectionManager.h"
@@ -482,7 +479,7 @@ Component* DesignElement::createComponent() {
     // Create the appropriate variant type based on the source element
     if (Frame* sourceFrame = qobject_cast<Frame*>(this)) {
         // Frame elements become ComponentVariants
-        FrameComponentVariant* variantFrame = new FrameComponentVariant(variantId, this->parent());
+        FrameComponentVariantTemplate* variantFrame = new FrameComponentVariantTemplate(variantId, this->parent());
         variantFrame->setVariantName("Variant1");
         
         // Center the variant in the canvas by positioning it so its center is at (0,0)
@@ -505,7 +502,7 @@ Component* DesignElement::createComponent() {
         component->setComponentType("frame");
     } else if (Text* sourceText = qobject_cast<Text*>(this)) {
         // Text elements become TextComponentVariants
-        TextComponentVariant* variantText = new TextComponentVariant(variantId, this->parent());
+        TextComponentVariantTemplate* variantText = new TextComponentVariantTemplate(variantId, this->parent());
         variantText->setVariantName("Variant1");
         
         // Center the variant in the canvas by positioning it so its center is at (0,0)
@@ -527,7 +524,7 @@ Component* DesignElement::createComponent() {
         component->setComponentType("text");
     } else if (WebTextInput* sourceWebTextInput = qobject_cast<WebTextInput*>(this)) {
         // WebTextInput elements become WebTextInputComponentVariants
-        WebTextInputComponentVariant* variantWebTextInput = new WebTextInputComponentVariant(variantId, this->parent());
+        WebTextInputComponentVariantTemplate* variantWebTextInput = new WebTextInputComponentVariantTemplate(variantId, this->parent());
         variantWebTextInput->setVariantName("Variant1");
         
         // Center the variant in the canvas by positioning it so its center is at (0,0)
@@ -587,11 +584,11 @@ Component* DesignElement::createComponent() {
     CanvasElement* instance = nullptr;
     
     if (component->componentType() == "text") {
-        TextComponentInstance* textInstance = new TextComponentInstance(instanceId, this->parent());
+        TextComponentInstanceTemplate* textInstance = new TextComponentInstanceTemplate(instanceId, this->parent());
         textInstance->setRect(QRectF(x(), y(), width(), height()));
         instance = textInstance;
     } else if (component->componentType() == "webtextinput") {
-        WebTextInputComponentInstance* webTextInputInstance = new WebTextInputComponentInstance(instanceId, this->parent());
+        WebTextInputComponentInstanceTemplate* webTextInputInstance = new WebTextInputComponentInstanceTemplate(instanceId, this->parent());
         webTextInputInstance->setRect(QRectF(x(), y(), width(), height()));
         instance = webTextInputInstance;
     } else {
@@ -604,13 +601,13 @@ Component* DesignElement::createComponent() {
     // Add the instance to the element model
     elementModel->addElement(instance);
     
-    // Set the instance to reference this component after both are in the model
-    if (TextComponentInstance* textInstance = qobject_cast<TextComponentInstance*>(instance)) {
-        textInstance->setInstanceOf(componentId);
-    } else if (WebTextInputComponentInstance* webTextInputInstance = qobject_cast<WebTextInputComponentInstance*>(instance)) {
-        webTextInputInstance->setInstanceOf(componentId);
-    } else if (FrameComponentInstance* frameInstance = qobject_cast<FrameComponentInstance*>(instance)) {
-        frameInstance->setInstanceOf(componentId);
+    // Set the instance to reference the variant as its source element
+    if (TextComponentInstanceTemplate* textInstance = qobject_cast<TextComponentInstanceTemplate*>(instance)) {
+        textInstance->setSourceElementId(variantId);
+    } else if (WebTextInputComponentInstanceTemplate* webTextInputInstance = qobject_cast<WebTextInputComponentInstanceTemplate*>(instance)) {
+        webTextInputInstance->setSourceElementId(variantId);
+    } else if (FrameComponentInstanceTemplate* frameInstance = qobject_cast<FrameComponentInstanceTemplate*>(instance)) {
+        frameInstance->setSourceElementId(variantId);
     }
     
     // Clear selection first
@@ -763,4 +760,19 @@ QList<PropertyDefinition> DesignElement::propertyDefinitions() const {
     // Base DesignElement has no specific properties
     // Derived classes should override this
     return QList<PropertyDefinition>();
+}
+
+void DesignElement::registerProperties() {
+    // Call parent implementation first
+    CanvasElement::registerProperties();
+    
+    // Register DesignElement-specific properties (anchor properties)
+    m_properties->registerProperty("left", 0.0);
+    m_properties->registerProperty("right", 0.0);
+    m_properties->registerProperty("top", 0.0);
+    m_properties->registerProperty("bottom", 0.0);
+    m_properties->registerProperty("leftAnchored", false);
+    m_properties->registerProperty("rightAnchored", false);
+    m_properties->registerProperty("topAnchored", false);
+    m_properties->registerProperty("bottomAnchored", false);
 }

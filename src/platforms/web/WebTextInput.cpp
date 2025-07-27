@@ -3,6 +3,7 @@
 #include "Node.h"
 #include "UniqueIdGenerator.h"
 #include "Frame.h"
+#include "PropertyRegistry.h"
 
 WebTextInput::WebTextInput(const QString &id, QObject *parent)
     : DesignElement(id, parent)
@@ -72,6 +73,9 @@ WebTextInput::WebTextInput(const QString &id, QObject *parent)
         scripts()->addNode(onBlurNode);
         scripts()->addNode(onFocusNode);
     }
+    
+    // Register properties
+    registerProperties();
 }
 
 void WebTextInput::setPlaceholder(const QString &placeholder)
@@ -185,4 +189,67 @@ void WebTextInput::executeScriptEvent(const QString& eventName, const QVariantMa
     
     // Call the base implementation with the merged event data
     DesignElement::executeScriptEvent(eventName, mergedEventData);
+}
+
+void WebTextInput::registerProperties() {
+    // Call parent implementation first
+    DesignElement::registerProperties();
+    
+    // Register WebTextInput-specific properties
+    m_properties->registerProperty("placeholder", QString("Enter text..."));
+    m_properties->registerProperty("value", QString());
+    m_properties->registerProperty("borderColor", QColor(170, 170, 170)); // #aaaaaa
+    m_properties->registerProperty("borderWidth", 1.0);
+    m_properties->registerProperty("borderRadius", 4.0);
+    m_properties->registerProperty("isEditing", false);
+    m_properties->registerProperty("position", static_cast<int>(Absolute));
+}
+
+QVariant WebTextInput::getProperty(const QString& name) const {
+    // Handle WebTextInput-specific properties
+    if (name == "placeholder") return placeholder();
+    if (name == "value") return value();
+    if (name == "borderColor") return borderColor();
+    if (name == "borderWidth") return borderWidth();
+    if (name == "borderRadius") return borderRadius();
+    if (name == "isEditing") return isEditing();
+    if (name == "position") return static_cast<int>(position());
+    
+    // Fall back to parent implementation
+    return DesignElement::getProperty(name);
+}
+
+void WebTextInput::setProperty(const QString& name, const QVariant& value) {
+    // Handle WebTextInput-specific properties
+    if (name == "placeholder") {
+        setPlaceholder(value.toString());
+        return;
+    }
+    if (name == "value") {
+        setValue(value.toString());
+        return;
+    }
+    if (name == "borderColor") {
+        setBorderColor(value.value<QColor>());
+        return;
+    }
+    if (name == "borderWidth") {
+        setBorderWidth(value.toReal());
+        return;
+    }
+    if (name == "borderRadius") {
+        setBorderRadius(value.toReal());
+        return;
+    }
+    if (name == "isEditing") {
+        setIsEditing(value.toBool());
+        return;
+    }
+    if (name == "position") {
+        setPosition(static_cast<PositionType>(value.toInt()));
+        return;
+    }
+    
+    // Fall back to parent implementation
+    DesignElement::setProperty(name, value);
 }

@@ -6,8 +6,8 @@
 #include "ElementModel.h"
 #include "QuadTree.h"
 #include "Component.h"
-#include "FrameComponentVariant.h"
-#include "FrameComponentInstance.h"
+#include "ComponentVariantTemplate.h"
+#include "ComponentInstanceTemplate.h"
 #include "PlatformConfig.h"
 #include "Project.h"
 #include "CanvasContext.h"
@@ -379,7 +379,7 @@ bool HitTestService::shouldTestElement(Element* element) const
         // 2. ComponentInstance elements
         
         // Check if it's a ComponentInstance
-        if (qobject_cast<FrameComponentInstance*>(element)) {
+        if (qobject_cast<FrameComponentInstanceTemplate*>(element)) {
             return true;
         }
         
@@ -389,7 +389,7 @@ bool HitTestService::shouldTestElement(Element* element) const
         }
         
         // Check if this element is a ComponentVariant (should not be hit-testable in design mode)
-        if (qobject_cast<FrameComponentVariant*>(element)) {
+        if (qobject_cast<FrameComponentVariantTemplate*>(element)) {
             return false;
         }
         

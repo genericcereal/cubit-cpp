@@ -10,7 +10,6 @@
 
 class Element;
 class DesignElement;
-class ElementFactory;
 
 struct ElementTypeInfo {
     QString typeName;
@@ -30,8 +29,9 @@ public:
     // Register a new element type with legacy info struct
     void registerType(const ElementTypeInfo& typeInfo);
     
-    // Register a new element type with factory
-    void registerFactory(std::shared_ptr<ElementFactory> factory);
+    // Register a new element type using templates
+    template<typename TElement>
+    void registerElementType();
     
     // Create an element of the given type
     DesignElement* createElement(const QString& typeName, const QString& id) const;
@@ -45,8 +45,6 @@ public:
     // Get properties for a type
     QList<PropertyDefinition> getProperties(const QString& typeName) const;
     
-    // Get factory for a type
-    ElementFactory* getFactory(const QString& typeName) const;
     
     // Initialize default types (Frame, Text, etc.)
     void initializeDefaultTypes();
@@ -58,7 +56,6 @@ private:
     ElementTypeRegistry& operator=(const ElementTypeRegistry&) = delete;
     
     QHash<QString, ElementTypeInfo> m_types;
-    QHash<QString, std::shared_ptr<ElementFactory>> m_factories;
 };
 
 #endif // ELEMENTTYPEREGISTRY_H

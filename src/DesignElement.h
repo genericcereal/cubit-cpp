@@ -96,6 +96,9 @@ public:
     // Get property definitions for this element type
     virtual QList<class PropertyDefinition> propertyDefinitions() const;
     
+    // Register DesignElement properties
+    void registerProperties() override;
+    
 signals:
     void scriptsChanged();
     void leftChanged();

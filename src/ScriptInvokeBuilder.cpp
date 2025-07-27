@@ -4,8 +4,7 @@
 #include "Edge.h"
 #include "ElementModel.h"
 #include "Element.h"
-#include "FrameComponentInstance.h"
-#include "TextComponentInstance.h"
+#include "ComponentInstanceTemplate.h"
 #include "ComponentInstance.h"
 #include "Component.h"
 #include "ScriptCompiler.h"
@@ -63,23 +62,23 @@ void ScriptInvokeBuilder::buildInvokesRecursive(Node* node, Scripts* scripts,
         
         // Get the parent element that owns these scripts
         QObject* scriptParent = scripts->parent();
-        FrameComponentInstance* frameInstance = qobject_cast<FrameComponentInstance*>(scriptParent);
-        TextComponentInstance* textInstance = qobject_cast<TextComponentInstance*>(scriptParent);
+        FrameComponentInstanceTemplate* frameInstance = qobject_cast<FrameComponentInstanceTemplate*>(scriptParent);
+        TextComponentInstanceTemplate* textInstance = qobject_cast<TextComponentInstanceTemplate*>(scriptParent);
         
         Component* component = nullptr;
         QString componentId;
         
         // Check if the scripts belong to a component instance
         if (frameInstance) {
-            componentId = frameInstance->instanceOf();
-            qDebug() << "ScriptInvokeBuilder: Scripts belong to FrameComponentInstance" << frameInstance->getId() 
+            componentId = frameInstance->componentId();
+            qDebug() << "ScriptInvokeBuilder: Scripts belong to FrameComponentInstanceTemplate" << frameInstance->getId() 
                      << "instance of" << componentId;
             
             // Access the component directly from the instance
             component = frameInstance->sourceComponent();
         } else if (textInstance) {
-            componentId = textInstance->instanceOf();
-            qDebug() << "ScriptInvokeBuilder: Scripts belong to TextComponentInstance" << textInstance->getId() 
+            componentId = textInstance->componentId();
+            qDebug() << "ScriptInvokeBuilder: Scripts belong to TextComponentInstanceTemplate" << textInstance->getId() 
                      << "instance of" << componentId;
             
             // Access the component directly from the instance

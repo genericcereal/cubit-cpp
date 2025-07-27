@@ -1,6 +1,7 @@
 #include "CanvasElement.h"
 #include "ElementModel.h"
 #include "PropertySyncer.h"
+#include "PropertyRegistry.h"
 #include <QMetaProperty>
 #include <QDebug>
 
@@ -285,4 +286,16 @@ void CanvasElement::setMouseEventsEnabled(bool enabled)
         m_mouseEventsEnabled = enabled;
         emit mouseEventsEnabledChanged();
     }
+}
+
+void CanvasElement::registerProperties() {
+    // Call parent implementation first
+    Element::registerProperties();
+    
+    // Register CanvasElement-specific properties
+    m_properties->registerProperty("x", 0.0);
+    m_properties->registerProperty("y", 0.0);
+    m_properties->registerProperty("width", 100.0);
+    m_properties->registerProperty("height", 100.0);
+    m_properties->registerProperty("mouseEventsEnabled", true);
 }

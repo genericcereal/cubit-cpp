@@ -151,7 +151,8 @@ void PlatformConfig::createInitialGlobalElements() {
     // Set the platform for this frame
     frame->setPlatform(m_name);
     
-    // Set role to appContainer - this is exclusive to global elements
+    // Set role to appContainer AFTER platform - this is exclusive to global elements
+    // (setPlatform would set it to container by default, so we override it here)
     frame->setRole(Frame::appContainer);
     
     // Set size based on platform type
