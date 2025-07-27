@@ -1,4 +1,5 @@
 #include "Shape.h"
+#include "PropertyRegistry.h"
 #include <QVariantMap>
 #include <QDebug>
 
@@ -7,6 +8,9 @@ Shape::Shape(const QString &id, QObject *parent)
 {
     elementType = Element::ShapeType;
     // Don't initialize joints here - wait until we have a size
+    
+    // Register properties
+    registerProperties();
     
     // Set default name based on shape type
     updateName();
@@ -197,4 +201,70 @@ void Shape::updateName()
     
     // Use last 4 digits of ID for consistency with other elements
     setName(QString("%1 %2").arg(shapeName).arg(getId().right(4)));
+}
+
+void Shape::registerProperties() {
+    // Call parent implementation first
+    DesignElement::registerProperties();
+    
+    // Register Shape-specific properties
+    m_properties->registerProperty("shapeType", static_cast<int>(Square));
+    m_properties->registerProperty("joints", QVariantList());
+    m_properties->registerProperty("edgeWidth", 2.0);
+    m_properties->registerProperty("edgeColor", QColor(0, 0, 0, 255)); // Black
+    m_properties->registerProperty("fillColor", QColor(0, 120, 255, 255)); // Blue
+}
+
+QVariant Shape::getProperty(const QString& name) const {
+    // Handle Shape-specific properties
+    if (name == "shapeType") return static_cast<int>(shapeType());
+    if (name == "joints") return joints();
+    if (name == "edgeWidth") return edgeWidth();
+    if (name == "edgeColor") return edgeColor();
+    if (name == "fillColor") return fillColor();
+    
+    // Fall back to parent implementation
+    return DesignElement::getProperty(name);
+}
+
+void Shape::setProperty(const QString& name, const QVariant& value) {
+    // Handle Shape-specific properties
+    if (name == "shapeType") {
+        setShapeType(static_cast<ShapeType>(value.toInt()));
+        return;
+    }
+    if (name == "joints") {
+        setJoints(value.toList());
+        return;
+    }
+    if (name == "edgeWidth") {
+        setEdgeWidth(value.toReal());
+        return;
+    }
+    if (name == "edgeColor") {
+        setEdgeColor(value.value<QColor>());
+        return;
+    }
+    if (name == "fillColor") {
+        setFillColor(value.value<QColor>());
+        return;
+    }
+    
+    // Fall back to parent implementation
+    DesignElement::setProperty(name, value);
+}
+
+QList<PropertyDefinition> Shape::staticPropertyDefinitions() {
+    QList<PropertyDefinition> props;
+    
+    // Shape properties
+    props.append(PropertyDefinition("shapeType", QMetaType::Int, static_cast<int>(Shape::Square), PropertyDefinition::Appearance));
+    props.append(PropertyDefinition("joints", QMetaType::QVariantList, QVariantList(), PropertyDefinition::Advanced, false)); // Not editable
+    
+    // Appearance properties
+    props.append(PropertyDefinition("edgeWidth", QMetaType::Double, 2.0, PropertyDefinition::Appearance));
+    props.append(PropertyDefinition("edgeColor", QMetaType::QColor, QColor(0, 0, 0, 255), PropertyDefinition::Appearance));
+    props.append(PropertyDefinition("fillColor", QMetaType::QColor, QColor(0, 120, 255, 255), PropertyDefinition::Appearance));
+    
+    return props;
 }

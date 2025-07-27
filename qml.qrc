@@ -65,6 +65,7 @@
         <file>qml/components/panels/DetailPanel.qml</file>
         <file>qml/components/panels/ElementList.qml</file>
         <file>qml/components/panels/PropertiesPanel.qml</file>
+        <file>qml/components/panels/DynamicPropertiesPanel.qml</file>
         <file>qml/components/panels/PlatformsSection.qml</file>
         <file>qml/components/panels/ActionsSection.qml</file>
         <file>qml/components/panels/GeneralProperties.qml</file>

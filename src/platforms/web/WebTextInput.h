@@ -45,6 +45,13 @@ public:
     // Override to pass current value to script events
     Q_INVOKABLE void executeScriptEvent(const QString& eventName, const QVariantMap& eventData = QVariantMap()) override;
     
+    // Register WebTextInput properties with PropertyRegistry
+    void registerProperties() override;
+    
+    // Override property access for custom handling
+    QVariant getProperty(const QString& name) const override;
+    void setProperty(const QString& name, const QVariant& value) override;
+    
 signals:
     void placeholderChanged();
     void valueChanged();

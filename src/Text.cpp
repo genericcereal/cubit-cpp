@@ -1,6 +1,6 @@
 #include "Text.h"
 #include "Frame.h"
-#include "TextFactory.h"
+#include "PropertyRegistry.h"
 #include <QDebug>
 
 Text::Text(const QString &id, QObject *parent)
@@ -12,6 +12,9 @@ Text::Text(const QString &id, QObject *parent)
     elementType = Element::TextType;
     
     setName(QString("Text %1").arg(id.right(4)));  // Use last 4 digits for display
+    
+    // Register properties
+    registerProperties();
 }
 
 void Text::setContent(const QString &content)
@@ -113,7 +116,74 @@ void Text::exitEditMode()
 }
 
 QList<PropertyDefinition> Text::propertyDefinitions() const {
-    // Use the TextFactory to get consistent property definitions
-    static TextFactory factory;
-    return factory.propertyDefinitions();
+    // Use the static method to get consistent property definitions
+    return Text::staticPropertyDefinitions();
+}
+
+void Text::registerProperties() {
+    // Call parent implementation first
+    DesignElement::registerProperties();
+    
+    // Register Text-specific properties
+    m_properties->registerProperty("content", QString("Text"));
+    m_properties->registerProperty("font", QFont());
+    m_properties->registerProperty("color", QColor(Qt::black));
+    m_properties->registerProperty("isEditing", false);
+    m_properties->registerProperty("position", static_cast<int>(Absolute));
+}
+
+QVariant Text::getProperty(const QString& name) const {
+    // Handle Text-specific properties
+    if (name == "content") return content();
+    if (name == "font") return font();
+    if (name == "color") return color();
+    if (name == "isEditing") return isEditing();
+    if (name == "position") return static_cast<int>(position());
+    
+    // Fall back to parent implementation
+    return DesignElement::getProperty(name);
+}
+
+void Text::setProperty(const QString& name, const QVariant& value) {
+    // Handle Text-specific properties
+    if (name == "content") {
+        setContent(value.toString());
+        return;
+    }
+    if (name == "font") {
+        setFont(value.value<QFont>());
+        return;
+    }
+    if (name == "color") {
+        setColor(value.value<QColor>());
+        return;
+    }
+    if (name == "isEditing") {
+        setIsEditing(value.toBool());
+        return;
+    }
+    if (name == "position") {
+        setPosition(static_cast<PositionType>(value.toInt()));
+        return;
+    }
+    
+    // Fall back to parent implementation
+    DesignElement::setProperty(name, value);
+}
+
+QList<PropertyDefinition> Text::staticPropertyDefinitions() {
+    QList<PropertyDefinition> props;
+    
+    // Typography properties
+    props.append(PropertyDefinition("content", QMetaType::QString, QString("Text"), PropertyDefinition::Typography));
+    props.append(PropertyDefinition("font", QMetaType::QFont, QFont(), PropertyDefinition::Typography));
+    props.append(PropertyDefinition("color", QMetaType::QColor, QColor(Qt::black), PropertyDefinition::Typography));
+    
+    // Position properties
+    props.append(PropertyDefinition("position", QMetaType::Int, static_cast<int>(Text::Absolute), PropertyDefinition::Layout));
+    
+    // Behavior properties
+    props.append(PropertyDefinition("isEditing", QMetaType::Bool, false, PropertyDefinition::Behavior, false)); // Not editable
+    
+    return props;
 }

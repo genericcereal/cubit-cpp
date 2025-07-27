@@ -63,6 +63,15 @@ bool VariantCanvasContext::shouldIncludeInHitTest(Element* element) const
     if (Component* comp = getComponent()) {
         // Check if this element is one of the component's variants
         const QList<Element*>& variants = comp->variants();
+        
+        // First check if any variants are null
+        for (Element* variant : variants) {
+            if (!variant) {
+                qWarning() << "VariantCanvasContext: Found null variant in component" << comp->getName();
+                continue;
+            }
+        }
+        
         if (variants.contains(element)) {
             qDebug() << "VariantCanvasContext: Including variant element" << element->getId();
             return true;
@@ -70,6 +79,8 @@ bool VariantCanvasContext::shouldIncludeInHitTest(Element* element) const
         
         // Check if this element is a child of any variant
         for (Element* variant : variants) {
+            if (!variant) continue; // Skip null variants
+            
             if (element->getParentElementId() == variant->getId()) {
                 qDebug() << "VariantCanvasContext: Including child element" << element->getId() 
                          << "of variant" << variant->getId();

@@ -71,6 +71,9 @@ public:
     bool mouseEventsEnabled() const { return m_mouseEventsEnabled; }
     void setMouseEventsEnabled(bool enabled);
     
+    // Register CanvasElement properties
+    void registerProperties() override;
+    
 signals:
     void xChanged();
     void yChanged();

@@ -2,9 +2,11 @@
 #define SHAPE_H
 
 #include "DesignElement.h"
+#include "PropertyDefinition.h"
 #include <QPointF>
 #include <QColor>
 #include <QVariantList>
+#include <QList>
 
 class Shape : public DesignElement
 {
@@ -25,6 +27,10 @@ public:
 
     explicit Shape(const QString &id, QObject *parent = nullptr);
     virtual ~Shape() = default;
+    
+    // Static factory support methods
+    static QString staticTypeName() { return "shape"; }
+    static QList<PropertyDefinition> staticPropertyDefinitions();
 
     // Shape type
     ShapeType shapeType() const { return m_shapeType; }
@@ -54,6 +60,13 @@ public:
 
     // Initialize shape based on type
     Q_INVOKABLE void initializeShape();
+
+    // Register Shape properties with PropertyRegistry
+    void registerProperties() override;
+    
+    // Override property access for custom handling
+    QVariant getProperty(const QString& name) const override;
+    void setProperty(const QString& name, const QVariant& value) override;
 
 signals:
     void shapeTypeChanged();

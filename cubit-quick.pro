@@ -48,14 +48,8 @@ SOURCES += \
     src/Component.cpp \
     src/ComponentInstance.cpp \
     src/ComponentVariant.cpp \
-    src/FrameComponentInstance.cpp \
-    src/FrameComponentVariant.cpp \
-    src/TextComponentVariant.cpp \
-    src/TextComponentInstance.cpp \
-    src/WebTextInputComponentVariant.cpp \
-    src/WebTextInputComponentInstance.cpp \
-    src/ShapeComponentVariant.cpp \
-    src/ShapeComponentInstance.cpp \
+    src/ComponentVariantTemplate.cpp \
+    src/ComponentInstanceTemplate.cpp \
     src/Node.cpp \
     src/Edge.cpp \
     src/CanvasController.cpp \
@@ -72,11 +66,6 @@ SOURCES += \
     src/HitTestService.cpp \
     src/JsonImporter.cpp \
     src/ElementTypeRegistry.cpp \
-    src/ElementFactory.cpp \
-    src/FrameFactory.cpp \
-    src/TextFactory.cpp \
-    src/WebTextInputFactory.cpp \
-    src/ShapeFactory.cpp \
     src/QuadTree.cpp \
     src/Command.cpp \
     src/CommandHistory.cpp \
@@ -113,7 +102,8 @@ SOURCES += \
     src/contexts/MainCanvasContext.cpp \
     src/contexts/VariantCanvasContext.cpp \
     src/contexts/GlobalElementsContext.cpp \
-    src/contexts/ScriptCanvasContext.cpp
+    src/contexts/ScriptCanvasContext.cpp \
+    src/PropertyRegistry.cpp
 
 HEADERS += \
     src/Element.h \
@@ -129,14 +119,9 @@ HEADERS += \
     src/Component.h \
     src/ComponentInstance.h \
     src/ComponentVariant.h \
-    src/FrameComponentInstance.h \
-    src/FrameComponentVariant.h \
-    src/TextComponentVariant.h \
-    src/TextComponentInstance.h \
-    src/WebTextInputComponentVariant.h \
-    src/WebTextInputComponentInstance.h \
-    src/ShapeComponentVariant.h \
-    src/ShapeComponentInstance.h \
+    src/ComponentTemplates.h \
+    src/ComponentVariantTemplate.h \
+    src/ComponentInstanceTemplate.h \
     src/ConnectionManager.h \
     src/PropertySyncer.h \
     src/PropertyCopier.h \
@@ -160,11 +145,7 @@ HEADERS += \
     src/JsonImporter.h \
     src/PropertyDefinition.h \
     src/ElementTypeRegistry.h \
-    src/ElementFactory.h \
-    src/FrameFactory.h \
-    src/TextFactory.h \
-    src/WebTextInputFactory.h \
-    src/ShapeFactory.h \
+    src/ElementTemplates.h \
     src/QuadTree.h \
     src/Command.h \
     src/CommandHistory.h \
@@ -201,7 +182,9 @@ HEADERS += \
     src/contexts/MainCanvasContext.h \
     src/contexts/VariantCanvasContext.h \
     src/contexts/GlobalElementsContext.h \
-    src/contexts/ScriptCanvasContext.h
+    src/contexts/ScriptCanvasContext.h \
+    src/PropertyRegistry.h \
+    src/PropertyMetadata.h
 
 RESOURCES += qml.qrc
 

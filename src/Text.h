@@ -1,7 +1,9 @@
 #pragma once
 #include "DesignElement.h"
+#include "PropertyDefinition.h"
 #include <QFont>
 #include <QColor>
+#include <QList>
 
 class Text : public DesignElement {
     Q_OBJECT
@@ -19,6 +21,10 @@ public:
     };
     Q_ENUM(PositionType)
     explicit Text(const QString &id, QObject *parent = nullptr);
+    
+    // Static factory support methods
+    static QString staticTypeName() { return "text"; }
+    static QList<PropertyDefinition> staticPropertyDefinitions();
     
     QString content() const { return m_content; }
     QFont font() const { return m_font; }
@@ -39,6 +45,13 @@ public:
     
     // Override to provide Text-specific property definitions
     QList<PropertyDefinition> propertyDefinitions() const override;
+    
+    // Register Text properties with PropertyRegistry
+    void registerProperties() override;
+    
+    // Override property access for custom handling
+    QVariant getProperty(const QString& name) const override;
+    void setProperty(const QString& name, const QVariant& value) override;
     
     Q_INVOKABLE void exitEditMode();
     

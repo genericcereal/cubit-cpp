@@ -14,12 +14,8 @@
 #include "Shape.h"
 #include "Variable.h"
 #include "Component.h"
-#include "FrameComponentInstance.h"
-#include "FrameComponentVariant.h"
-#include "TextComponentVariant.h"
-#include "TextComponentInstance.h"
-#include "ShapeComponentInstance.h"
-#include "ShapeComponentVariant.h"
+#include "ComponentVariantTemplate.h"
+#include "ComponentInstanceTemplate.h"
 #include "Node.h"
 #include "Edge.h"
 #include "CanvasController.h"
@@ -41,6 +37,7 @@
 #include "ElementTypeRegistry.h"
 #include "PlatformConfig.h"
 #include "CanvasContext.h"
+#include "PropertyRegistry.h"
 
 int main(int argc, char *argv[])
 {
@@ -109,12 +106,14 @@ int main(int argc, char *argv[])
     qmlRegisterType<Shape>("Cubit", 1, 0, "ShapeElement");
     qmlRegisterType<Variable>("Cubit", 1, 0, "Variable");
     qmlRegisterType<Component>("Cubit", 1, 0, "ComponentElement");
-    qmlRegisterType<FrameComponentInstance>("Cubit", 1, 0, "FrameComponentInstance");
-    qmlRegisterType<FrameComponentVariant>("Cubit", 1, 0, "FrameComponentVariant");
-    qmlRegisterType<TextComponentVariant>("Cubit", 1, 0, "TextComponentVariant");
-    qmlRegisterType<TextComponentInstance>("Cubit", 1, 0, "TextComponentInstance");
-    qmlRegisterType<ShapeComponentInstance>("Cubit", 1, 0, "ShapeComponentInstance");
-    qmlRegisterType<ShapeComponentVariant>("Cubit", 1, 0, "ShapeComponentVariant");
+    qmlRegisterType<FrameComponentVariantTemplate>("Cubit", 1, 0, "FrameComponentVariant");
+    qmlRegisterType<TextComponentVariantTemplate>("Cubit", 1, 0, "TextComponentVariant");
+    qmlRegisterType<ShapeComponentVariantTemplate>("Cubit", 1, 0, "ShapeComponentVariant");
+    qmlRegisterType<WebTextInputComponentVariantTemplate>("Cubit", 1, 0, "WebTextInputComponentVariant");
+    qmlRegisterType<FrameComponentInstanceTemplate>("Cubit", 1, 0, "FrameComponentInstance");
+    qmlRegisterType<TextComponentInstanceTemplate>("Cubit", 1, 0, "TextComponentInstance");
+    qmlRegisterType<ShapeComponentInstanceTemplate>("Cubit", 1, 0, "ShapeComponentInstance");
+    qmlRegisterType<WebTextInputComponentInstanceTemplate>("Cubit", 1, 0, "WebTextInputComponentInstance");
     qmlRegisterType<Node>("Cubit", 1, 0, "Node");
     qmlRegisterType<Edge>("Cubit", 1, 0, "Edge");
 
@@ -141,6 +140,10 @@ int main(int argc, char *argv[])
 
     // Register ConsoleMessageRepository as a regular type (not singleton)
     qmlRegisterType<ConsoleMessageRepository>("Cubit", 1, 0, "ConsoleMessageRepository");
+    
+    // Register PropertyRegistry
+    qmlRegisterType<PropertyRegistry>("Cubit", 1, 0, "PropertyRegistry");
+    qmlRegisterType<PropertyMetadata>("Cubit", 1, 0, "PropertyMetadata");
 
     // Register Application singleton
     Application *appInstance = new Application(&app);

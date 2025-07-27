@@ -1,6 +1,8 @@
 #pragma once
 #include "DesignElement.h"
+#include "PropertyDefinition.h"
 #include <QColor>
+#include <QList>
 #include <memory>
 
 class FlexLayoutEngine;
@@ -94,6 +96,10 @@ public:
     explicit Frame(const QString &id, QObject *parent = nullptr);
     ~Frame();
     
+    // Static factory support methods
+    static QString staticTypeName() { return "frame"; }
+    static QList<PropertyDefinition> staticPropertyDefinitions();
+    
     // Set the ElementModel for this frame (called after creation)
     void setElementModel(ElementModel* model);
     
@@ -147,6 +153,13 @@ public:
     // Override to provide Frame-specific property definitions
     QList<PropertyDefinition> propertyDefinitions() const override;
     
+    // Register Frame properties with PropertyRegistry
+    void registerProperties() override;
+    
+    // Override property access for custom handling
+    QVariant getProperty(const QString& name) const override;
+    void setProperty(const QString& name, const QVariant& value) override;
+    
 signals:
     void fillChanged();
     void colorFormatChanged();
@@ -171,6 +184,10 @@ signals:
     
 public slots:
     void triggerLayout();
+    
+protected:
+    // Override to trigger layout on property changes
+    void triggerLayoutIfNeeded(const QString& propertyName) override;
     
 private:
     QColor m_fill;

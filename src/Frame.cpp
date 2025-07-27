@@ -1,10 +1,10 @@
 #include "Frame.h"
 #include "FlexLayoutEngine.h"
+#include "PropertyRegistry.h"
 #include "ElementModel.h"
 #include "Application.h"
 #include "Project.h"
 #include "SelectionManager.h"
-#include "FrameFactory.h"
 #include <QTimer>
 #include <QDebug>
 
@@ -30,6 +30,8 @@ Frame::Frame(const QString &id, QObject *parent)
     
     setName(QString("Frame %1").arg(id.right(4)));  // Use last 4 digits for display
     
+    // Register properties - this will call parent's registerProperties too
+    registerProperties();
     
     // Don't setup connections here - wait for setElementModel to be called
 }
@@ -315,7 +317,8 @@ void Frame::setPlatform(const QString& platform)
         m_platform = platform;
         
         // When platform is set (not undefined), automatically set role to container
-        if (!platform.isEmpty()) {
+        // unless it's already set to appContainer (for global frames)
+        if (!platform.isEmpty() && m_role != appContainer) {
             if (m_role != container) {
                 m_role = container;
                 emit roleChanged();
@@ -496,7 +499,198 @@ void Frame::setupElementModelConnections()
 }
 
 QList<PropertyDefinition> Frame::propertyDefinitions() const {
-    // Use the FrameFactory to get consistent property definitions
-    static FrameFactory factory;
-    return factory.propertyDefinitions();
+    // Use the static method to get consistent property definitions
+    return Frame::staticPropertyDefinitions();
+}
+
+void Frame::registerProperties() {
+    // Call parent implementation first
+    DesignElement::registerProperties();
+    
+    // Register Frame-specific properties
+    m_properties->registerProperty("fill", QColor(173, 216, 230)); // Default light blue
+    m_properties->registerProperty("colorFormat", static_cast<int>(HEX));
+    m_properties->registerProperty("borderColor", QColor(Qt::black));
+    m_properties->registerProperty("borderWidth", 1);
+    m_properties->registerProperty("borderRadius", 0);
+    m_properties->registerProperty("overflow", static_cast<int>(Hidden));
+    m_properties->registerProperty("acceptsChildren", true);
+    m_properties->registerProperty("flex", false);
+    m_properties->registerProperty("orientation", static_cast<int>(Row));
+    m_properties->registerProperty("gap", 0.0);
+    m_properties->registerProperty("position", static_cast<int>(Absolute));
+    m_properties->registerProperty("justify", static_cast<int>(JustifyStart));
+    m_properties->registerProperty("align", static_cast<int>(AlignStart));
+    m_properties->registerProperty("widthType", static_cast<int>(SizeFixed));
+    m_properties->registerProperty("heightType", static_cast<int>(SizeFixed));
+    m_properties->registerProperty("controlled", true);
+    m_properties->registerProperty("role", static_cast<int>(undefined));
+    m_properties->registerProperty("platform", QString());
+}
+
+QVariant Frame::getProperty(const QString& name) const {
+    // Handle Frame-specific properties that need special getters
+    if (name == "fill") return fill();
+    if (name == "colorFormat") return static_cast<int>(colorFormat());
+    if (name == "borderColor") return borderColor();
+    if (name == "borderWidth") return borderWidth();
+    if (name == "borderRadius") return borderRadius();
+    if (name == "overflow") return static_cast<int>(overflow());
+    if (name == "acceptsChildren") return acceptsChildren();
+    if (name == "flex") return flex();
+    if (name == "orientation") return static_cast<int>(orientation());
+    if (name == "gap") return gap();
+    if (name == "position") return static_cast<int>(position());
+    if (name == "justify") return static_cast<int>(justify());
+    if (name == "align") return static_cast<int>(align());
+    if (name == "widthType") return static_cast<int>(widthType());
+    if (name == "heightType") return static_cast<int>(heightType());
+    if (name == "canResizeWidth") return canResizeWidth();
+    if (name == "canResizeHeight") return canResizeHeight();
+    if (name == "controlled") return controlled();
+    if (name == "role") return static_cast<int>(role());
+    if (name == "platform") return platform();
+    
+    // Fall back to parent implementation
+    return DesignElement::getProperty(name);
+}
+
+void Frame::setProperty(const QString& name, const QVariant& value) {
+    // Handle Frame-specific properties that need special setters
+    if (name == "fill") {
+        setFill(value.value<QColor>());
+        return;
+    }
+    if (name == "colorFormat") {
+        setColorFormat(static_cast<ColorFormat>(value.toInt()));
+        return;
+    }
+    if (name == "borderColor") {
+        setBorderColor(value.value<QColor>());
+        return;
+    }
+    if (name == "borderWidth") {
+        setBorderWidth(value.toInt());
+        return;
+    }
+    if (name == "borderRadius") {
+        setBorderRadius(value.toInt());
+        return;
+    }
+    if (name == "overflow") {
+        setOverflow(static_cast<OverflowMode>(value.toInt()));
+        return;
+    }
+    if (name == "acceptsChildren") {
+        setAcceptsChildren(value.toBool());
+        return;
+    }
+    if (name == "flex") {
+        setFlex(value.toBool());
+        return;
+    }
+    if (name == "orientation") {
+        setOrientation(static_cast<LayoutOrientation>(value.toInt()));
+        return;
+    }
+    if (name == "gap") {
+        setGap(value.toReal());
+        return;
+    }
+    if (name == "position") {
+        setPosition(static_cast<PositionType>(value.toInt()));
+        return;
+    }
+    if (name == "justify") {
+        setJustify(static_cast<JustifyContent>(value.toInt()));
+        return;
+    }
+    if (name == "align") {
+        setAlign(static_cast<AlignItems>(value.toInt()));
+        return;
+    }
+    if (name == "widthType") {
+        setWidthType(static_cast<SizeType>(value.toInt()));
+        return;
+    }
+    if (name == "heightType") {
+        setHeightType(static_cast<SizeType>(value.toInt()));
+        return;
+    }
+    if (name == "controlled") {
+        setControlled(value.toBool());
+        return;
+    }
+    if (name == "role") {
+        setRole(static_cast<Role>(value.toInt()));
+        return;
+    }
+    if (name == "platform") {
+        setPlatform(value.toString());
+        return;
+    }
+    
+    // Fall back to parent implementation
+    DesignElement::setProperty(name, value);
+}
+
+void Frame::triggerLayoutIfNeeded(const QString& propertyName) {
+    // Properties that should trigger layout
+    static const QStringList layoutProperties = {
+        "flex", "orientation", "gap", "position", "justify", "align",
+        "widthType", "heightType", "width", "height", "x", "y"
+    };
+    
+    if (layoutProperties.contains(propertyName)) {
+        triggerLayout();
+    }
+}
+
+QList<PropertyDefinition> Frame::staticPropertyDefinitions() {
+    QList<PropertyDefinition> props;
+    
+    // Appearance properties
+    props.append(PropertyDefinition("fill", QMetaType::QColor, QColor(173, 216, 230), PropertyDefinition::Appearance));
+    props.append(PropertyDefinition("borderColor", QMetaType::QColor, QColor(Qt::black), PropertyDefinition::Appearance));
+    props.append(PropertyDefinition("borderWidth", QMetaType::Int, 0, PropertyDefinition::Appearance));
+    props.append(PropertyDefinition("borderRadius", QMetaType::Int, 0, PropertyDefinition::Appearance));
+    
+    // Layout properties
+    props.append(PropertyDefinition("flex", QMetaType::Bool, false, PropertyDefinition::Layout));
+    props.append(PropertyDefinition("gap", QMetaType::Double, 0.0, PropertyDefinition::Layout));
+    
+    // Size properties
+    props.append(PropertyDefinition("widthType", QMetaType::Int, Frame::SizeFixed, PropertyDefinition::Layout));
+    props.append(PropertyDefinition("heightType", QMetaType::Int, Frame::SizeFixed, PropertyDefinition::Layout));
+    
+    // Position properties
+    props.append(PropertyDefinition("position", QMetaType::Int, Frame::Absolute, PropertyDefinition::Layout));
+    
+    // Flex layout properties
+    props.append(PropertyDefinition("orientation", QMetaType::Int, Frame::Row, PropertyDefinition::Layout));
+    props.append(PropertyDefinition("justify", QMetaType::Int, Frame::JustifyStart, PropertyDefinition::Layout));
+    props.append(PropertyDefinition("align", QMetaType::Int, Frame::AlignStart, PropertyDefinition::Layout));
+    
+    // Behavior properties
+    props.append(PropertyDefinition("acceptsChildren", QMetaType::Bool, true, PropertyDefinition::Behavior));
+    props.append(PropertyDefinition("controlled", QMetaType::Bool, true, PropertyDefinition::Behavior));
+    props.append(PropertyDefinition("overflow", QMetaType::Int, Frame::Hidden, PropertyDefinition::Behavior));
+    
+    // Advanced properties
+    props.append(PropertyDefinition("platform", QMetaType::QString, QString(), PropertyDefinition::Advanced));
+    props.append(PropertyDefinition("role", QMetaType::Int, Frame::undefined, PropertyDefinition::Advanced));
+    
+    // Add enum properties
+    const QMetaObject* metaObj = &Frame::staticMetaObject;
+    for (int i = 0; i < metaObj->enumeratorCount(); ++i) {
+        QMetaEnum metaEnum = metaObj->enumerator(i);
+        QString enumName = metaEnum.name();
+        
+        // Map enum names to property names
+        if (enumName == "ColorFormat") {
+            props.append(PropertyDefinition("colorFormat", metaEnum, Frame::HEX, PropertyDefinition::Appearance));
+        }
+    }
+    
+    return props;
 }

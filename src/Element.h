@@ -1,6 +1,13 @@
 #pragma once
 #include <QObject>
 #include <QString>
+#include <QVariant>
+#include <QStringList>
+#include <memory>
+
+class PropertyRegistry;
+class Frame;
+class ElementModel;
 
 class Element : public QObject {
     Q_OBJECT
@@ -33,7 +40,7 @@ public:
     Q_ENUM(ElementType)
 
     explicit Element(ElementType type, const QString &id, QObject *parent = nullptr);
-    virtual ~Element() = default;
+    virtual ~Element();
     
     // Property getters
     QString getId() const { return elementId; }
@@ -60,11 +67,26 @@ public:
     virtual bool showInElementList() const { return m_showInElementList; }
     void setShowInElementList(bool show) { m_showInElementList = show; }
     
+    // Check if this is a global instance
+    bool isGlobalInstance() const { return m_isGlobalInstance; }
+    void setIsGlobalInstance(bool isInstance) { m_isGlobalInstance = isInstance; }
+    
+    // Generic property access using PropertyRegistry
+    Q_INVOKABLE virtual QVariant getProperty(const QString& name) const;
+    Q_INVOKABLE virtual void setProperty(const QString& name, const QVariant& value);
+    Q_INVOKABLE virtual bool hasProperty(const QString& name) const;
+    Q_INVOKABLE virtual QStringList propertyNames() const;
+    Q_INVOKABLE virtual QVariantList getPropertyMetadata() const;
+    
+    // Register element properties - to be overridden by subclasses
+    virtual void registerProperties() {}
+    
 signals:
     void nameChanged();
     void parentIdChanged();
     void selectedChanged();
     void elementChanged();
+    void propertyChanged(const QString& name, const QVariant& value);
     
 protected:
     ElementType elementType;
@@ -73,4 +95,21 @@ protected:
     QString parentElementId;
     bool selected;
     bool m_showInElementList = true;
+    
+    // Property registry for dynamic properties
+    std::unique_ptr<PropertyRegistry> m_properties;
+    
+    // Helper to trigger layout updates if needed (override in subclasses)
+    virtual void triggerLayoutIfNeeded(const QString& /*propertyName*/) {}
+    
+    // Track if this is a global instance (not the original)
+    bool m_isGlobalInstance = false;
+    
+private:
+    // Handle global frame parenting
+    void handleGlobalFrameParenting(const QString& oldParentId, const QString& newParentId);
+    bool isGlobalFrame(Element* frame) const;
+    void createInstancesInAllFrames();
+    void removeInstancesFromAllFrames();
+    void createInstanceInFrame(Frame* targetFrame, ElementModel* targetModel);
 };

@@ -69,7 +69,7 @@ PropertyGroup {
                     var variants = selectedElement.sourceComponent().variants
                     for (var i = 0; i < variants.length; i++) {
                         if (variants[i].variantName === v) {
-                            selectedElement.sourceVariant = variants[i]
+                            selectedElement.setSourceVariant(variants[i])
                             break
                         }
                     }

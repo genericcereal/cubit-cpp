@@ -19,7 +19,7 @@ public:
     virtual ~Component();
     
     // Variants management - accepts DesignElements and Variables
-    QList<Element*> variants() const { return m_variants; }
+    const QList<Element*>& variants() const { return m_variants; }
     void addVariant(Element* variant);
     void removeVariant(Element* variant);
     void clearVariants();

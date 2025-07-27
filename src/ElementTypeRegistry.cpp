@@ -3,11 +3,8 @@
 #include "DesignElement.h"
 #include "Frame.h"
 #include "Text.h"
-#include "ElementFactory.h"
-#include "FrameFactory.h"
-#include "TextFactory.h"
-#include "WebTextInputFactory.h"
-#include "ShapeFactory.h"
+#include "Shape.h"
+#include "ElementTemplates.h"
 #include <QDebug>
 #include <QMetaEnum>
 
@@ -83,53 +80,32 @@ QList<PropertyDefinition> ElementTypeRegistry::getProperties(const QString& type
     return QList<PropertyDefinition>();
 }
 
-void ElementTypeRegistry::registerFactory(std::shared_ptr<ElementFactory> factory)
+template<typename TElement>
+void ElementTypeRegistry::registerElementType()
 {
-    if (!factory) {
-        qWarning() << "Cannot register null factory";
-        return;
-    }
-    
-    const QString typeName = factory->typeName();
-    if (typeName.isEmpty()) {
-        qWarning() << "Cannot register factory with empty type name";
-        return;
-    }
-    
-    // Also create and register legacy ElementTypeInfo for backward compatibility
     ElementTypeInfo info;
-    info.typeName = typeName;
-    info.displayName = factory->displayName();
-    info.category = factory->category();
-    info.isContainer = factory->isContainer();
-    info.acceptsChildren = factory->acceptsChildren();
-    info.properties = factory->propertyDefinitions();
-    info.factory = [factory = factory.get()](const QString& id) -> DesignElement* {
-        return factory->createElement(id);
+    info.typeName = ElementCreator<TElement>::typeName();
+    info.displayName = info.typeName; // Could be enhanced with a display name trait
+    info.category = "Basic"; // Could be enhanced with a category trait
+    info.isContainer = std::is_same<TElement, Frame>::value; // Simple check for now
+    info.acceptsChildren = info.isContainer;
+    info.properties = ElementCreator<TElement>::propertyDefinitions();
+    info.factory = [](const QString& id) -> DesignElement* {
+        return ElementCreator<TElement>::createAsDesignElement(id);
     };
     
-    m_types[typeName] = info;
-    m_factories[typeName] = std::move(factory);
-    
+    m_types[info.typeName] = info;
 }
 
-ElementFactory* ElementTypeRegistry::getFactory(const QString& typeName) const
-{
-    auto it = m_factories.find(typeName);
-    return it != m_factories.end() ? it->get() : nullptr;
-}
+// Explicit instantiations for our element types
+template void ElementTypeRegistry::registerElementType<Frame>();
+template void ElementTypeRegistry::registerElementType<Text>();
+template void ElementTypeRegistry::registerElementType<Shape>();
 
 void ElementTypeRegistry::initializeDefaultTypes()
 {
-    // Register Frame factory
-    registerFactory(std::make_shared<FrameFactory>());
-    
-    // Register Text factory
-    registerFactory(std::make_shared<TextFactory>());
-    
-    // Register WebTextInput factory
-    registerFactory(std::make_shared<WebTextInputFactory>());
-    
-    // Register Shape factory
-    registerFactory(std::make_shared<ShapeFactory>());
+    // Register element types using templates
+    registerElementType<Frame>();
+    registerElementType<Text>();
+    registerElementType<Shape>();
 }
