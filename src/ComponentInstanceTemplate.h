@@ -7,12 +7,14 @@
 #include <QHash>
 #include <QSet>
 #include <QPointer>
+#include <QTimer>
 #include "ComponentInstance.h"
 #include "Frame.h"
 #include "Text.h"
 #include "Shape.h"
 #include "ConnectionManager.h"
 #include "platforms/web/WebTextInput.h"
+#include "ThrottledUpdate.h"
 
 // Forward declarations
 class Component;
@@ -79,6 +81,9 @@ private:
     bool m_isSourceVariant = false;
     QString m_componentId;
     bool m_isDestroying = false;
+    
+    // Throttled update handler
+    ThrottledUpdate* m_throttledUpdate = nullptr;
 };
 
 /**
@@ -141,6 +146,9 @@ private:
     bool m_isSourceVariant = false;
     QString m_componentId;
     bool m_isDestroying = false;
+    
+    // Throttled update handler
+    ThrottledUpdate* m_throttledUpdate = nullptr;
 };
 
 /**
@@ -203,6 +211,9 @@ private:
     bool m_isSourceVariant = false;
     QString m_componentId;
     bool m_isDestroying = false;
+    
+    // Throttled update handler
+    ThrottledUpdate* m_throttledUpdate = nullptr;
 };
 
 /**
@@ -265,6 +276,9 @@ private:
     bool m_isSourceVariant = false;
     QString m_componentId;
     bool m_isDestroying = false;
+    
+    // Throttled update handler
+    ThrottledUpdate* m_throttledUpdate = nullptr;
 };
 
 // Type aliases for easier use

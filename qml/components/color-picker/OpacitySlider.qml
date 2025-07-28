@@ -1,5 +1,7 @@
 import QtQuick
 import QtQuick.Controls
+import Cubit.UI 1.0
+import "../design-controls"
 
 Item {
     id: root
@@ -11,6 +13,16 @@ Item {
     
     implicitWidth: 200
     implicitHeight: 20  // Same as HueSlider
+    
+    // Throttled update for drag operations
+    ThrottledUpdate {
+        id: alphaThrottle
+        active: mouseArea.pressed
+        onUpdate: (data) => {
+            root.alpha = data.alpha
+            root.alphaUpdated(data.alpha)
+        }
+    }
     
     // Checkered pattern background
     Rectangle {
@@ -92,13 +104,17 @@ Item {
     
     // Mouse interaction
     MouseArea {
+        id: mouseArea
         anchors.fill: track
         
         function updateAlpha(mouseX) {
             var normalizedX = Math.max(0, Math.min(mouseX, track.width))
             var newAlpha = normalizedX / track.width
-            root.alpha = newAlpha
-            root.alphaUpdated(newAlpha)
+            
+            // Use throttled update during drag
+            alphaThrottle.requestUpdate({
+                alpha: newAlpha
+            })
         }
         
         onPressed: (mouse) => updateAlpha(mouse.x)
@@ -106,6 +122,11 @@ Item {
             if (pressed) {
                 updateAlpha(mouse.x)
             }
+        }
+        
+        onReleased: {
+            // Force final update when drag ends
+            alphaThrottle.forceUpdate()
         }
     }
 }

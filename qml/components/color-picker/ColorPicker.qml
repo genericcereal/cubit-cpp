@@ -1,6 +1,8 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import Cubit.UI 1.0
+import "../design-controls"
 
 Item {
     id: root
@@ -20,6 +22,23 @@ Item {
     // Signals
     signal colorChanged(color newColor)
     signal eyeButtonClicked()
+    
+    // Throttled update for color changes
+    ThrottledUpdate {
+        id: colorUpdateThrottle
+        active: true
+        onUpdate: (data) => {
+            root.currentColor = data.color
+            
+            // Only emit colorChanged if we're not updating from external binding changes
+            if (!root._updatingFromExternal) {
+                root.colorChanged(data.color)
+            }
+            
+            colorInput.text = formatColorString()
+            opacityInput.text = Math.round(root.alphaValue * 100) + "%"
+        }
+    }
     
     implicitHeight: colorTypeRow.y + colorTypeRow.height + 10
     implicitWidth: 230
@@ -112,7 +131,11 @@ Item {
             width: (parent.width - parent.spacing) * 0.65
             text: formatColorString()
             
-            onAccepted: parseColorInput(text)
+            onAccepted: {
+                parseColorInput(text)
+                // Force final update when user finishes typing
+                colorUpdateThrottle.forceUpdate()
+            }
         }
         
         // Opacity percentage input
@@ -131,6 +154,8 @@ Item {
                     root.alphaValue = Math.max(0, Math.min(100, percentage)) / 100
                     opacitySlider.alpha = root.alphaValue
                     updateColor()
+                    // Force final update when user finishes typing
+                    colorUpdateThrottle.forceUpdate()
                 }
             }
         }
@@ -173,15 +198,11 @@ Item {
     // Helper functions
     function updateColor() {
         var newColor = Qt.hsla(root.hue / 360, root.saturation, root.lightness, root.alphaValue)
-        root.currentColor = newColor
         
-        // Only emit colorChanged if we're not updating from external binding changes
-        if (!root._updatingFromExternal) {
-            root.colorChanged(newColor)
-        }
-        
-        colorInput.text = formatColorString()
-        opacityInput.text = Math.round(root.alphaValue * 100) + "%"
+        // Use throttled update
+        colorUpdateThrottle.requestUpdate({
+            color: newColor
+        })
     }
     
     function formatColorString() {

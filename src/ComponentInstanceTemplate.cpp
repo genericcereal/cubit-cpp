@@ -3,17 +3,28 @@
 #include "ComponentVariantTemplate.h"
 #include "Component.h"
 #include "ElementModel.h"
+#include "Config.h"
 #include <QDebug>
 
 // FrameComponentInstanceTemplate implementation
 FrameComponentInstanceTemplate::FrameComponentInstanceTemplate(const QString &id, QObject *parent)
     : Frame(id, parent), ComponentInstance(id)
 {
+    // Create throttled update handler
+    m_throttledUpdate = new ThrottledUpdate(this, Config::THROTTLE_INTERVAL);
+    m_throttledUpdate->setUpdateCallback([this]() {
+        updateFromSourceElement();
+    });
 }
 
 FrameComponentInstanceTemplate::~FrameComponentInstanceTemplate()
 {
     m_isDestroying = true;
+    if (m_throttledUpdate) {
+        m_throttledUpdate->forceUpdate(); // Ensure final update
+        delete m_throttledUpdate;
+        m_throttledUpdate = nullptr;
+    }
     disconnectFromSourceElement();
 }
 
@@ -73,14 +84,16 @@ void FrameComponentInstanceTemplate::executeScriptEvent(const QString& eventName
 void FrameComponentInstanceTemplate::onSourcePropertyChanged()
 {
     if (!m_isDestroying && m_sourceElement && !m_sourceElement.isNull()) {
-        updateFromSourceElement();
+        // Request throttled update instead of immediate update
+        m_throttledUpdate->requestUpdate();
     }
 }
 
 void FrameComponentInstanceTemplate::onSourceGeometryChanged()
 {
     if (!m_isDestroying && m_sourceElement && !m_sourceElement.isNull()) {
-        updateFromSourceElement();
+        // Request throttled update instead of immediate update
+        m_throttledUpdate->requestUpdate();
     }
 }
 
@@ -202,11 +215,21 @@ void FrameComponentInstanceTemplate::updateComponentInfo()
 TextComponentInstanceTemplate::TextComponentInstanceTemplate(const QString &id, QObject *parent)
     : Text(id, parent), ComponentInstance(id)
 {
+    // Create throttled update handler
+    m_throttledUpdate = new ThrottledUpdate(this, Config::THROTTLE_INTERVAL);
+    m_throttledUpdate->setUpdateCallback([this]() {
+        updateFromSourceElement();
+    });
 }
 
 TextComponentInstanceTemplate::~TextComponentInstanceTemplate()
 {
     m_isDestroying = true;
+    if (m_throttledUpdate) {
+        m_throttledUpdate->forceUpdate(); // Ensure final update
+        delete m_throttledUpdate;
+        m_throttledUpdate = nullptr;
+    }
     disconnectFromSourceElement();
 }
 
@@ -266,14 +289,16 @@ void TextComponentInstanceTemplate::executeScriptEvent(const QString& eventName,
 void TextComponentInstanceTemplate::onSourcePropertyChanged()
 {
     if (!m_isDestroying && m_sourceElement && !m_sourceElement.isNull()) {
-        updateFromSourceElement();
+        // Request throttled update instead of immediate update
+        m_throttledUpdate->requestUpdate();
     }
 }
 
 void TextComponentInstanceTemplate::onSourceGeometryChanged()
 {
     if (!m_isDestroying && m_sourceElement && !m_sourceElement.isNull()) {
-        updateFromSourceElement();
+        // Request throttled update instead of immediate update
+        m_throttledUpdate->requestUpdate();
     }
 }
 
@@ -383,11 +408,21 @@ void TextComponentInstanceTemplate::updateComponentInfo()
 ShapeComponentInstanceTemplate::ShapeComponentInstanceTemplate(const QString &id, QObject *parent)
     : Shape(id, parent), ComponentInstance(id)
 {
+    // Create throttled update handler
+    m_throttledUpdate = new ThrottledUpdate(this, Config::THROTTLE_INTERVAL);
+    m_throttledUpdate->setUpdateCallback([this]() {
+        updateFromSourceElement();
+    });
 }
 
 ShapeComponentInstanceTemplate::~ShapeComponentInstanceTemplate()
 {
     m_isDestroying = true;
+    if (m_throttledUpdate) {
+        m_throttledUpdate->forceUpdate(); // Ensure final update
+        delete m_throttledUpdate;
+        m_throttledUpdate = nullptr;
+    }
     disconnectFromSourceElement();
 }
 
@@ -447,14 +482,16 @@ void ShapeComponentInstanceTemplate::executeScriptEvent(const QString& eventName
 void ShapeComponentInstanceTemplate::onSourcePropertyChanged()
 {
     if (!m_isDestroying && m_sourceElement && !m_sourceElement.isNull()) {
-        updateFromSourceElement();
+        // Request throttled update instead of immediate update
+        m_throttledUpdate->requestUpdate();
     }
 }
 
 void ShapeComponentInstanceTemplate::onSourceGeometryChanged()
 {
     if (!m_isDestroying && m_sourceElement && !m_sourceElement.isNull()) {
-        updateFromSourceElement();
+        // Request throttled update instead of immediate update
+        m_throttledUpdate->requestUpdate();
     }
 }
 
@@ -566,11 +603,21 @@ void ShapeComponentInstanceTemplate::updateComponentInfo()
 WebTextInputComponentInstanceTemplate::WebTextInputComponentInstanceTemplate(const QString &id, QObject *parent)
     : WebTextInput(id, parent), ComponentInstance(id)
 {
+    // Create throttled update handler
+    m_throttledUpdate = new ThrottledUpdate(this, Config::THROTTLE_INTERVAL);
+    m_throttledUpdate->setUpdateCallback([this]() {
+        updateFromSourceElement();
+    });
 }
 
 WebTextInputComponentInstanceTemplate::~WebTextInputComponentInstanceTemplate()
 {
     m_isDestroying = true;
+    if (m_throttledUpdate) {
+        m_throttledUpdate->forceUpdate(); // Ensure final update
+        delete m_throttledUpdate;
+        m_throttledUpdate = nullptr;
+    }
     disconnectFromSourceElement();
 }
 
@@ -630,14 +677,16 @@ void WebTextInputComponentInstanceTemplate::executeScriptEvent(const QString& ev
 void WebTextInputComponentInstanceTemplate::onSourcePropertyChanged()
 {
     if (!m_isDestroying && m_sourceElement && !m_sourceElement.isNull()) {
-        updateFromSourceElement();
+        // Request throttled update instead of immediate update
+        m_throttledUpdate->requestUpdate();
     }
 }
 
 void WebTextInputComponentInstanceTemplate::onSourceGeometryChanged()
 {
     if (!m_isDestroying && m_sourceElement && !m_sourceElement.isNull()) {
-        updateFromSourceElement();
+        // Request throttled update instead of immediate update
+        m_throttledUpdate->requestUpdate();
     }
 }
 

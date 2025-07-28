@@ -1,8 +1,10 @@
 import QtQuick
 import QtQuick.Controls
 import Cubit 1.0
+import Cubit.UI 1.0
 import "../CanvasUtils.js" as Utils
 import "."
+import "design-controls"
 
 Item {
     id: root
@@ -51,6 +53,20 @@ Item {
     property bool cursorInCanvas: false
     property bool isResizing: false
     
+    // Zoom throttling
+    ThrottledUpdate {
+        id: zoomThrottle
+        interval: Config.zoomThrottleInterval
+        active: true
+        
+        onUpdate: (data) => {
+            // Apply the zoom and position update
+            root.zoom = data.newZoom
+            flick.contentX = Math.round(data.contentX)
+            flick.contentY = Math.round(data.contentY)
+        }
+    }
+    
     
     // Expose internal components for viewport overlay
     property alias flickable: flick
@@ -73,7 +89,7 @@ Item {
     // Timer to retry centering when flickable gets sized
     Timer {
         id: centerTimer
-        interval: 16  // 60fps
+        interval: Config.throttleInterval  // Use global throttle interval
         repeat: true
         onTriggered: {
             if (flick.width > 0 && flick.height > 0) {
@@ -214,7 +230,7 @@ Item {
             acceptedButtons: Qt.NoButton
             hoverEnabled: false  // Hover is handled by ViewportOverlay
             
-            property real throttleDelay: 16 // 60fps
+            property real throttleDelay: Config.throttleInterval // Use global throttle interval
             property point pendingMousePosition
             property bool hasPendingMouseMove: false
             
@@ -280,10 +296,12 @@ Item {
                             canvasPt, viewportPt, root.canvasMinX, root.canvasMinY, newZoom
                         )
                         
-                        // Apply zoom and new position
-                        root.zoom = newZoom
-                        flick.contentX = Math.round(newContentPos.x)
-                        flick.contentY = Math.round(newContentPos.y)
+                        // Request throttled zoom update
+                        zoomThrottle.requestUpdate({
+                            newZoom: newZoom,
+                            contentX: newContentPos.x,
+                            contentY: newContentPos.y
+                        })
                         
                         wheel.accepted = true
                     }
@@ -342,10 +360,12 @@ Item {
                     
                     // Console log removed - pinch handler applying
                     
-                    // Apply zoom and new position
-                    root.zoom = newZoom
-                    flick.contentX = Math.round(newContentPos.x)
-                    flick.contentY = Math.round(newContentPos.y)
+                    // Request throttled zoom update for pinch gestures too
+                    zoomThrottle.requestUpdate({
+                        newZoom: newZoom,
+                        contentX: newContentPos.x,
+                        contentY: newContentPos.y
+                    })
                 }
             }
         }

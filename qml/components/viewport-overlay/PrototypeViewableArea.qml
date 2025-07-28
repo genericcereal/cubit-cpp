@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import Cubit 1.0
 import Cubit.UI 1.0
+import "../design-controls"
 
 Item {
     id: root
@@ -26,6 +27,13 @@ Item {
     property bool isSimulatingScroll: prototypeController ? prototypeController.isSimulatingScroll : false
     property real scrollOffsetX: prototypeController ? prototypeController.scrollOffsetX : 0
     property real scrollOffsetY: prototypeController ? prototypeController.scrollOffsetY : 0
+    
+    // Force final update when scroll simulation ends
+    onIsSimulatingScrollChanged: {
+        if (!isSimulatingScroll && scrollThrottle.active) {
+            scrollThrottle.forceUpdate()
+        }
+    }
     
     // Get the active outer frame element
     property var activeFrameElement: {
@@ -108,6 +116,23 @@ Item {
         // Controller now handles resetting previous frame position
         // Just update position for the new active frame
         updatePosition()
+    }
+    
+    // Throttled update component for scroll operations
+    ThrottledUpdate {
+        id: scrollThrottle
+        // interval uses default from Config.throttleInterval
+        active: root.isSimulatingScroll
+        
+        onUpdate: (data) => {
+            if (root.activeFrameElement && root.prototypeController) {
+                // Update the frame position
+                root.activeFrameElement.y += data.deltaY
+                
+                // Update the scroll offset
+                root.prototypeController.scrollOffsetY = data.scrollOffset
+            }
+        }
     }
     
     // The actual viewable area
@@ -233,11 +258,11 @@ Item {
                         // Calculate the actual delta that will be applied
                         var actualDelta = proposedScrollOffset - root.prototypeController.scrollOffsetY
                         
-                        // Update the frame position
-                        root.activeFrameElement.y += actualDelta
-                        
-                        // Update the scroll offset
-                        root.prototypeController.scrollOffsetY = proposedScrollOffset
+                        // Request throttled update instead of updating immediately
+                        scrollThrottle.requestUpdate({
+                            deltaY: actualDelta,
+                            scrollOffset: proposedScrollOffset
+                        })
                     }
                 }
             }

@@ -103,7 +103,8 @@ SOURCES += \
     src/contexts/VariantCanvasContext.cpp \
     src/contexts/GlobalElementsContext.cpp \
     src/contexts/ScriptCanvasContext.cpp \
-    src/PropertyRegistry.cpp
+    src/PropertyRegistry.cpp \
+    src/ThrottledUpdate.cpp
 
 HEADERS += \
     src/Element.h \
@@ -184,7 +185,8 @@ HEADERS += \
     src/contexts/GlobalElementsContext.h \
     src/contexts/ScriptCanvasContext.h \
     src/PropertyRegistry.h \
-    src/PropertyMetadata.h
+    src/PropertyMetadata.h \
+    src/ThrottledUpdate.h
 
 RESOURCES += qml.qrc
 

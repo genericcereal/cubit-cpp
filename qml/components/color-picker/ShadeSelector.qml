@@ -1,5 +1,7 @@
 import QtQuick
 import QtQuick.Controls
+import Cubit.UI 1.0
+import "../design-controls"
 
 Item {
     id: root
@@ -12,6 +14,17 @@ Item {
     
     implicitWidth: 200
     implicitHeight: 100
+    
+    // Throttled update for drag operations
+    ThrottledUpdate {
+        id: shadeThrottle
+        active: mouseArea.pressed
+        onUpdate: (data) => {
+            root.saturation = data.saturation
+            root.lightness = data.lightness
+            root.shadeUpdated(data.saturation, data.lightness)
+        }
+    }
     
     // Background with the base hue color
     Rectangle {
@@ -75,6 +88,7 @@ Item {
     
     // Mouse interaction
     MouseArea {
+        id: mouseArea
         anchors.fill: background
         
         function updateShade(mouseX, mouseY) {
@@ -87,9 +101,11 @@ Item {
             var normalizedY = Math.max(0, Math.min(mouseY - 2, background.height))
             var newLightness = 1 - (normalizedY / background.height)
             
-            root.saturation = newSaturation
-            root.lightness = newLightness
-            root.shadeUpdated(newSaturation, newLightness)
+            // Use throttled update during drag
+            shadeThrottle.requestUpdate({
+                saturation: newSaturation,
+                lightness: newLightness
+            })
         }
         
         onPressed: (mouse) => updateShade(mouse.x, mouse.y)
@@ -97,6 +113,11 @@ Item {
             if (pressed) {
                 updateShade(mouse.x, mouse.y)
             }
+        }
+        
+        onReleased: {
+            // Force final update when drag ends
+            shadeThrottle.forceUpdate()
         }
     }
 }

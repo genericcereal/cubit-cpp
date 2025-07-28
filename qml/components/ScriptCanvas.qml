@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import Cubit 1.0
+import Cubit.UI 1.0
 import "."
 import "../CanvasUtils.js" as Utils
 
@@ -53,7 +54,7 @@ BaseCanvas {
     // Timer to update edges during node dragging
     Timer {
         id: edgeUpdateTimer
-        interval: 16  // 60 FPS
+        interval: Config.throttleInterval  // Use global throttle interval
         repeat: true
         running: isNodeDragging
         onTriggered: {

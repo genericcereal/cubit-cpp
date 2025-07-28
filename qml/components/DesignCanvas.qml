@@ -1,8 +1,10 @@
 import QtQuick
 import QtQuick.Controls
 import Cubit 1.0
+import Cubit.UI 1.0
 import "../CanvasUtils.js" as Utils
 import "."
+import "design-controls"
 
 BaseCanvas {
     id: root
@@ -26,6 +28,10 @@ BaseCanvas {
     // Additional properties for design canvas
     property var hoveredElement: controller && controller.hoveredElement ? controller.hoveredElement : null
     
+    // Track element creation state
+    property bool isCreatingElement: false
+    property point creationStartPoint: Qt.point(0, 0)
+    
     
     // Update parentId of selected elements when hovering ONLY during controls drag
     onHoveredElementChanged: {
@@ -42,6 +48,19 @@ BaseCanvas {
     
     // Add elements into the default contentData
     contentData: [
+        // Throttled update for element creation
+        ThrottledUpdate {
+            id: creationThrottle
+            // interval uses default from Config.throttleInterval
+            active: root.isCreatingElement
+            
+            onUpdate: (data) => {
+                if (controller && controller.mode !== CanvasController.Select) {
+                    controller.handleMouseMove(data.x, data.y)
+                }
+            }
+        },
+        
         // Canvas background - handles background clicks and drags
         CanvasBackground {
             id: canvasBackground
@@ -113,6 +132,8 @@ BaseCanvas {
             controller.handleMousePress(pt.x, pt.y)
             // Set isResizing to true during creation drag
             root.isResizing = true
+            root.isCreatingElement = true
+            root.creationStartPoint = pt
         } else {
             // Skipping, in select mode or no controller
         }
@@ -121,20 +142,24 @@ BaseCanvas {
     
     function handleDragMove(pt) {
         if (controller.mode !== CanvasController.Select) {
-            // In creation modes, update element size as if dragging bottom-right resize joint
-            controller.handleMouseMove(pt.x, pt.y)
+            // In creation modes, use throttled update for better performance
+            creationThrottle.requestUpdate({x: pt.x, y: pt.y})
         }
         // In select mode, we don't handle drag - elements can only be moved via controls
     }
     
     function handleDragEnd(pt) {
         if (controller.mode !== CanvasController.Select) {
+            // Force final update to ensure accurate final position
+            creationThrottle.forceUpdate()
+            
             // In creation modes, finish creating element
             controller.handleMouseRelease(pt.x, pt.y)
             // Switch back to select mode after creation
             controller.mode = CanvasController.Select
-            // Clear isResizing when creation drag ends
+            // Clear creation state
             root.isResizing = false
+            root.isCreatingElement = false
         }
         // In select mode, we don't handle drag - elements can only be moved via controls
     }
