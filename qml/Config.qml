@@ -107,7 +107,11 @@ QtObject {
     readonly property int animationDuration: 150
     
     // Performance
-    readonly property int throttleInterval: 16  // 60fps throttling for drag/resize/scroll updates
+    readonly property int targetFps: 65  // Target frame rate for adaptive throttling
+    readonly property int throttleInterval: Math.floor(1000 / targetFps)  // Calculate interval from target FPS
+    readonly property int minFps: 30     // Minimum acceptable FPS
+    readonly property int maxFps: 120    // Maximum FPS cap
+    readonly property bool adaptiveThrottlingDefault: true  // Enable adaptive throttling by default
     readonly property int zoomThrottleInterval: 8  // 120fps throttling for zoom updates (smoother feel)
     
     // Platform options

@@ -38,6 +38,7 @@
 #include "PlatformConfig.h"
 #include "CanvasContext.h"
 #include "PropertyRegistry.h"
+#include "AdaptiveThrottler.h"
 
 int main(int argc, char *argv[])
 {
@@ -131,6 +132,10 @@ int main(int argc, char *argv[])
     qmlRegisterType<ElementFilterProxy>("Cubit", 1, 0, "ElementFilterProxy");
     qmlRegisterType<PrototypeController>("Cubit", 1, 0, "PrototypeController");
     qmlRegisterType<DesignControlsController>("Cubit", 1, 0, "DesignControlsController");
+    
+    // Register throttling types
+    qmlRegisterType<AdaptiveThrottler>("Cubit", 1, 0, "AdaptiveThrottler");
+    
     
     // Register CanvasContext as uncreatable base class
     qmlRegisterUncreatableType<CanvasContext>("Cubit", 1, 0, "CanvasContext", "CanvasContext is an abstract base class");

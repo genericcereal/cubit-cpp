@@ -4,7 +4,10 @@
 #include <QObject>
 #include <QTimer>
 #include <functional>
+#include <memory>
 #include "Config.h"
+
+class AdaptiveThrottler;
 
 /**
  * A reusable class for throttling updates during high-frequency operations.
@@ -31,6 +34,12 @@ public:
     void setActive(bool active);
     bool isActive() const { return m_active; }
     
+    // Adaptive throttling
+    void setAdaptiveThrottler(AdaptiveThrottler* throttler);
+    AdaptiveThrottler* adaptiveThrottler() const { return m_adaptiveThrottler; }
+    void setAdaptiveMode(bool enabled);
+    bool adaptiveMode() const { return m_adaptiveMode; }
+    
     // Request an update (will be throttled)
     void requestUpdate();
     
@@ -47,11 +56,15 @@ private slots:
     void performUpdate();
     
 private:
+    void updateTimerInterval();
+    
     QTimer* m_timer;
     int m_interval;
     bool m_active;
     bool m_hasPendingUpdate;
+    bool m_adaptiveMode;
     std::function<void()> m_updateCallback;
+    AdaptiveThrottler* m_adaptiveThrottler;
 };
 
 #endif // THROTTLEDUPDATE_H

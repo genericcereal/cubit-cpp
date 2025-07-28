@@ -58,6 +58,7 @@
         <file>qml/components/design-controls/HoverBadge.qml</file>
         <file>qml/components/design-controls/VariantAddButton.qml</file>
         <file>qml/components/design-controls/ThrottledUpdate.qml</file>
+        <file>qml/components/design-controls/AdaptiveThrottler.qml</file>
         <file>qml/components/design-controls/ControlMath.js</file>
         <file>qml/components/shape-controls/ShapeControls.qml</file>
         <file>qml/components/viewport-overlay/OverlayUtils.js</file>

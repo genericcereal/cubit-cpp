@@ -1,10 +1,13 @@
 #include "ThrottledUpdate.h"
+#include "AdaptiveThrottler.h"
 
 ThrottledUpdate::ThrottledUpdate(QObject* parent, int interval)
     : QObject(parent)
     , m_interval(interval)
     , m_active(true)
     , m_hasPendingUpdate(false)
+    , m_adaptiveMode(false)
+    , m_adaptiveThrottler(nullptr)
 {
     m_timer = new QTimer(this);
     m_timer->setInterval(m_interval);
@@ -59,10 +62,49 @@ void ThrottledUpdate::setUpdateCallback(std::function<void()> callback)
     m_updateCallback = callback;
 }
 
+void ThrottledUpdate::setAdaptiveThrottler(AdaptiveThrottler* throttler)
+{
+    if (m_adaptiveThrottler) {
+        disconnect(m_adaptiveThrottler, nullptr, this, nullptr);
+    }
+    
+    m_adaptiveThrottler = throttler;
+    
+    if (m_adaptiveThrottler) {
+        connect(m_adaptiveThrottler, &AdaptiveThrottler::intervalAdjusted,
+                this, &ThrottledUpdate::updateTimerInterval);
+    }
+}
+
+void ThrottledUpdate::setAdaptiveMode(bool enabled)
+{
+    if (m_adaptiveMode != enabled) {
+        m_adaptiveMode = enabled;
+        updateTimerInterval();
+    }
+}
+
+void ThrottledUpdate::updateTimerInterval()
+{
+    if (m_adaptiveMode && m_adaptiveThrottler) {
+        int newInterval = m_adaptiveThrottler->recommendedInterval();
+        if (newInterval != m_timer->interval()) {
+            m_timer->setInterval(newInterval);
+        }
+    } else {
+        m_timer->setInterval(m_interval);
+    }
+}
+
 void ThrottledUpdate::performUpdate()
 {
     if (m_hasPendingUpdate) {
         m_hasPendingUpdate = false;
+        
+        // Record update in adaptive throttler if enabled
+        if (m_adaptiveMode && m_adaptiveThrottler) {
+            m_adaptiveThrottler->recordUpdate();
+        }
         
         // Call callback if set
         if (m_updateCallback) {
