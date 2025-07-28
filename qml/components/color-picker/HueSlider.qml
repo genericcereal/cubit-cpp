@@ -1,5 +1,7 @@
 import QtQuick
 import QtQuick.Controls
+import Cubit.UI 1.0
+import "../design-controls"
 
 Item {
     id: root
@@ -12,6 +14,16 @@ Item {
     
     implicitWidth: 200
     implicitHeight: 20  // Height to accommodate the handle
+    
+    // Throttled update for drag operations
+    ThrottledUpdate {
+        id: hueThrottle
+        active: mouseArea.pressed
+        onUpdate: (data) => {
+            root.hue = data.hue
+            root.hueUpdated(data.hue)
+        }
+    }
     
     // Hue gradient background
     Rectangle {
@@ -65,13 +77,17 @@ Item {
     
     // Mouse interaction
     MouseArea {
+        id: mouseArea
         anchors.fill: track
         
         function updateHue(mouseX) {
             var normalizedX = Math.max(0, Math.min(mouseX, track.width))
             var newHue = (normalizedX / track.width) * 360
-            root.hue = newHue
-            root.hueUpdated(newHue)
+            
+            // Use throttled update during drag
+            hueThrottle.requestUpdate({
+                hue: newHue
+            })
         }
         
         onPressed: (mouse) => updateHue(mouse.x)
@@ -79,6 +95,11 @@ Item {
             if (pressed) {
                 updateHue(mouse.x)
             }
+        }
+        
+        onReleased: {
+            // Force final update when drag ends
+            hueThrottle.forceUpdate()
         }
     }
 }

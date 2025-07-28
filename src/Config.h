@@ -89,6 +89,9 @@ namespace Config {
     // Animation
     constexpr int ANIMATION_DURATION = 150;
     
+    // Performance
+    constexpr int THROTTLE_INTERVAL = 16;  // 60fps throttling for drag/resize/scroll updates
+    
     // API URLs
     constexpr const char* TOOL_REGISTRY_URL = "https://k72mo3oun7sefawjhvilq2ne5a0ybfgr.lambda-url.us-west-2.on.aws/";
     constexpr const char* GRAPHQL_ENDPOINT = "https://enrxjqdgdvc7pkragdib6abhyy.appsync-api.us-west-2.amazonaws.com/graphql";

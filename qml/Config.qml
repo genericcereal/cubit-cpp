@@ -106,6 +106,10 @@ QtObject {
     // Animation
     readonly property int animationDuration: 150
     
+    // Performance
+    readonly property int throttleInterval: 16  // 60fps throttling for drag/resize/scroll updates
+    readonly property int zoomThrottleInterval: 8  // 120fps throttling for zoom updates (smoother feel)
+    
     // Platform options
     readonly property var platformOptions: ["web", "ios", "android"]
 }

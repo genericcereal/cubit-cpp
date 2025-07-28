@@ -108,6 +108,55 @@ Item {
         }
     }
     
+    // Throttled update component for move operations
+    ThrottledUpdate {
+        id: moveThrottle
+        // interval uses default from Config.throttleInterval
+        active: root.dragging && root.dragMode === "move"
+        
+        onUpdate: (data) => {
+            // Update control position in canvas coordinates
+            root.controlX = data.x
+            root.controlY = data.y
+            
+            // Check for reordering if dragging a position relative child in a flex parent
+            checkForReordering(data.mousePos)
+            
+            // Emit signal for hover detection
+            root.mouseDragged(data.mousePos)
+        }
+    }
+    
+    // Throttled update component for edge resize operations
+    ThrottledUpdate {
+        id: edgeResizeThrottle
+        // interval uses default from Config.throttleInterval
+        active: root.dragging && root.dragMode.startsWith("resize-edge-")
+        
+        onUpdate: (data) => {
+            // Update control dimensions and position
+            root.controlWidth = data.width
+            root.controlHeight = data.height
+            root.controlX = data.x
+            root.controlY = data.y
+        }
+    }
+    
+    // Throttled update component for corner resize operations
+    ThrottledUpdate {
+        id: cornerResizeThrottle
+        // interval uses default from Config.throttleInterval
+        active: root.dragging && root.dragMode.startsWith("resize-corner-")
+        
+        onUpdate: (data) => {
+            // Update control dimensions and position
+            root.controlWidth = data.width
+            root.controlHeight = data.height
+            root.controlX = data.x
+            root.controlY = data.y
+        }
+    }
+    
     // Control Surface - yellow transparent fill
     ControlSurface {
         id: controlSurface
@@ -163,14 +212,19 @@ Item {
             }
             
             // Fire MoveElementsCommand if this was a move operation
-            if (controlSurface.isDragThresholdExceeded && root.dragMode === "move" && root.designControlsController) {
-                // Calculate total delta moved
-                var totalDelta = Qt.point(
-                    (root.controlX - root.dragStartControlPos.x),
-                    (root.controlY - root.dragStartControlPos.y)
-                )
+            if (controlSurface.isDragThresholdExceeded && root.dragMode === "move") {
+                // Force final update before ending
+                moveThrottle.forceUpdate()
                 
-                root.designControlsController.endMoveOperation(totalDelta)
+                if (root.designControlsController) {
+                    // Calculate total delta moved
+                    var totalDelta = Qt.point(
+                        (root.controlX - root.dragStartControlPos.x),
+                        (root.controlY - root.dragStartControlPos.y)
+                    )
+                    
+                    root.designControlsController.endMoveOperation(totalDelta)
+                }
             }
             
             root.dragging = false
@@ -281,15 +335,12 @@ Item {
                 var deltaX = mouseInParent.x - root.dragStartPoint.x
                 var deltaY = mouseInParent.y - root.dragStartPoint.y
                 
-                // Update control position in canvas coordinates
-                root.controlX = root.dragStartControlPos.x + deltaX / root.parent.zoomLevel
-                root.controlY = root.dragStartControlPos.y + deltaY / root.parent.zoomLevel
-                
-                // Check for reordering if dragging a position relative child in a flex parent
-                checkForReordering(mouseInParent)
-                
-                // Emit signal for hover detection
-                root.mouseDragged(mouseInParent)
+                // Request throttled update instead of updating immediately
+                moveThrottle.requestUpdate({
+                    x: root.dragStartControlPos.x + deltaX / root.parent.zoomLevel,
+                    y: root.dragStartControlPos.y + deltaY / root.parent.zoomLevel,
+                    mousePos: mouseInParent
+                })
             }
         }
     }
@@ -470,17 +521,19 @@ Item {
                 var viewportX = centerX - Math.abs(newWidth) / 2
                 var viewportY = centerY - Math.abs(newHeight) / 2
                 
-                // Convert size from viewport to canvas coordinates
-                root.controlWidth = newWidth / root.parent.zoomLevel
-                root.controlHeight = newHeight / root.parent.zoomLevel
-                
-                // Convert position from viewport to canvas coordinates
-                // Use the same formula as corner resize for consistency
-                root.controlX = viewportX / root.parent.zoomLevel + root.parent.canvasMinX + root.parent.flickable.contentX / root.parent.zoomLevel
-                root.controlY = viewportY / root.parent.zoomLevel + root.parent.canvasMinY + root.parent.flickable.contentY / root.parent.zoomLevel
+                // Request throttled update instead of updating immediately
+                edgeResizeThrottle.requestUpdate({
+                    width: newWidth / root.parent.zoomLevel,
+                    height: newHeight / root.parent.zoomLevel,
+                    x: viewportX / root.parent.zoomLevel + root.parent.canvasMinX + root.parent.flickable.contentX / root.parent.zoomLevel,
+                    y: viewportY / root.parent.zoomLevel + root.parent.canvasMinY + root.parent.flickable.contentY / root.parent.zoomLevel
+                })
             }
             
             onResizeEnded: {
+                // Force final update before ending
+                edgeResizeThrottle.forceUpdate()
+                
                 // Fire ResizeElementCommand via DesignControlsController
                 if (root.designControlsController) {
                     root.designControlsController.endResizeOperation()
@@ -789,14 +842,19 @@ Item {
                 var viewportX = centerX - (halfWidth * cos - halfHeight * sin)
                 var viewportY = centerY - (halfWidth * sin + halfHeight * cos)
                 
-                // Update control properties in canvas coordinates
-                root.controlWidth = newWidth / root.parent.zoomLevel
-                root.controlHeight = newHeight / root.parent.zoomLevel
-                root.controlX = viewportX / root.parent.zoomLevel + root.parent.canvasMinX + root.parent.flickable.contentX / root.parent.zoomLevel
-                root.controlY = viewportY / root.parent.zoomLevel + root.parent.canvasMinY + root.parent.flickable.contentY / root.parent.zoomLevel
+                // Request throttled update instead of updating immediately
+                cornerResizeThrottle.requestUpdate({
+                    width: newWidth / root.parent.zoomLevel,
+                    height: newHeight / root.parent.zoomLevel,
+                    x: viewportX / root.parent.zoomLevel + root.parent.canvasMinX + root.parent.flickable.contentX / root.parent.zoomLevel,
+                    y: viewportY / root.parent.zoomLevel + root.parent.canvasMinY + root.parent.flickable.contentY / root.parent.zoomLevel
+                })
             }
             
             onResizeEnded: {
+                // Force final update before ending
+                cornerResizeThrottle.forceUpdate()
+                
                 // Fire ResizeElementCommand via DesignControlsController
                 if (root.designControlsController) {
                     root.designControlsController.endResizeOperation()
