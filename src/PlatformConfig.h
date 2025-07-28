@@ -42,6 +42,8 @@ public:
     void updateAllFramesWithNewGlobalElement(Element* globalElement, ElementModel* mainModel);
     Frame* findGlobalFrame() const;
     bool isAddingInstances() const { return m_isAddingInstances; }
+    void connectAllGlobalElementsPropertySync(ElementModel* mainModel);
+    void updateGlobalElementsAfterMove(const QList<Element*>& movedElements, ElementModel* mainModel);
 
 signals:
     void scriptsChanged();
@@ -53,10 +55,13 @@ private:
     std::unique_ptr<Scripts> m_scripts;
     std::unique_ptr<ElementModel> m_globalElements;
     bool m_isAddingInstances = false;  // Flag to prevent recursive instance creation
+    QSet<QString> m_connectedGlobalElements;  // Track which elements have been connected
 
     void initializeFromType(Type type);
     void createPlatformOnLoadNode();
     void createInitialGlobalElements();
+    void connectGlobalElementPropertySync(Element* globalElement, ElementModel* mainModel);
+    void updateGlobalElementInstances(Element* sourceElement, ElementModel* mainModel);
 };
 
 #endif // PLATFORMCONFIG_H

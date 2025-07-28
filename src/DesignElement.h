@@ -26,6 +26,12 @@ class DesignElement : public CanvasElement
     Q_PROPERTY(bool topAnchored READ topAnchored WRITE setTopAnchored NOTIFY topAnchoredChanged)
     Q_PROPERTY(bool bottomAnchored READ bottomAnchored WRITE setBottomAnchored NOTIFY bottomAnchoredChanged)
     
+    // Frozen state
+    Q_PROPERTY(bool isFrozen READ isFrozen WRITE setIsFrozen NOTIFY isFrozenChanged)
+    
+    // Global element tracking
+    Q_PROPERTY(QString globalElementSourceId READ globalElementSourceId WRITE setGlobalElementSourceId NOTIFY globalElementSourceIdChanged)
+    
 public:
     explicit DesignElement(const QString &id, QObject *parent = nullptr);
     virtual ~DesignElement();
@@ -67,6 +73,14 @@ public:
     void setRightAnchored(bool anchored);
     void setTopAnchored(bool anchored);
     void setBottomAnchored(bool anchored);
+    
+    // Frozen state
+    bool isFrozen() const { return m_isFrozen; }
+    void setIsFrozen(bool frozen);
+    
+    // Global element tracking
+    QString globalElementSourceId() const { return m_globalElementSourceId; }
+    void setGlobalElementSourceId(const QString& sourceId);
     
     // Update layout based on parent changes
     void updateFromParentGeometry();
@@ -112,6 +126,8 @@ signals:
     void rightAnchoredChanged();
     void topAnchoredChanged();
     void bottomAnchoredChanged();
+    void isFrozenChanged();
+    void globalElementSourceIdChanged();
 
 private slots:
     void onParentGeometryChanged();
@@ -138,6 +154,12 @@ private:
     
     // Flag to prevent circular updates
     bool m_updatingFromAnchors = false;
+    
+    // Frozen state
+    bool m_isFrozen = false;
+    
+    // Global element tracking
+    QString m_globalElementSourceId;
 };
 
 #endif // DESIGNELEMENT_H

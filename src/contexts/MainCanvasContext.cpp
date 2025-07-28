@@ -1,6 +1,7 @@
 #include "MainCanvasContext.h"
 #include "../ElementModel.h"
 #include "../Element.h"
+#include "../DesignElement.h"
 #include "../Project.h"
 #include "../PlatformConfig.h"
 #include "../Component.h"
@@ -30,6 +31,12 @@ void MainCanvasContext::deactivateContext(ElementModel* targetModel)
 bool MainCanvasContext::shouldIncludeInHitTest(Element* element) const
 {
     if (!element) return false;
+    
+    // Check if element is frozen (should not be hoverable/selectable)
+    DesignElement* designElement = qobject_cast<DesignElement*>(element);
+    if (designElement && designElement->isFrozen()) {
+        return false;
+    }
     
     // In main canvas context, we should exclude:
     // 1. Elements that are component variants (they should only be editable in variant mode)

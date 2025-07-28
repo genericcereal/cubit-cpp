@@ -154,6 +154,12 @@ bool ElementFilterProxy::shouldShowElementInMode(Element* element) const {
         return false;
     }
     
+    // Check if element is frozen (should not appear in element list)
+    DesignElement* designElement = qobject_cast<DesignElement*>(element);
+    if (designElement && designElement->isFrozen()) {
+        return false;
+    }
+    
     // Non-visual elements (except Components and Variables) are never shown
     if (!element->isVisual()) {
         // Allow Variables to be shown even though they're non-visual

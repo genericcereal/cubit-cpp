@@ -114,7 +114,11 @@ Item {
                                 for (var i = 0; i < root.elementModel.rowCount(); i++) {
                                     var child = root.elementModel.elementAt(i)
                                     if (child && child.parentId === model.element.elementId) {
-                                        return true
+                                        // Check if the child is frozen
+                                        if (child.isFrozen !== undefined && child.isFrozen) {
+                                            continue // Skip frozen children
+                                        }
+                                        return true // Found a non-frozen child
                                     }
                                 }
                                 return false
@@ -405,7 +409,17 @@ Item {
                                             if (sourceElement) {
                                                 if (dropTargetFrame) {
                                                     // Parent the element to the frame
-                                                    sourceElement.parentId = dropTargetFrame.elementId
+                                                    // Check if this is a DesignElement that supports setParentElement
+                                                    if (sourceElement.elementType === "Frame" || sourceElement.elementType === "Text" || 
+                                                        sourceElement.elementType === "Shape" || sourceElement.elementType === "WebTextInput") {
+                                                        // Calculate relative position
+                                                        var relX = sourceElement.x - dropTargetFrame.x
+                                                        var relY = sourceElement.y - dropTargetFrame.y
+                                                        sourceElement.setParentElement(dropTargetFrame, relX, relY)
+                                                    } else {
+                                                        // Fallback for non-DesignElements
+                                                        sourceElement.parentId = dropTargetFrame.elementId
+                                                    }
                                                 } else if (targetIndex >= 0) {
                                                     // Unparent the element if it was parented
                                                     if (sourceElement.parentId) {
@@ -521,7 +535,11 @@ Item {
                                 for (var i = 0; i < root.elementModel.rowCount(); i++) {
                                     var child = root.elementModel.elementAt(i)
                                     if (child && child.parentId === model.element.elementId) {
-                                        return true
+                                        // Check if the child is frozen
+                                        if (child.isFrozen !== undefined && child.isFrozen) {
+                                            continue // Skip frozen children
+                                        }
+                                        return true // Found a non-frozen child
                                     }
                                 }
                                 return false

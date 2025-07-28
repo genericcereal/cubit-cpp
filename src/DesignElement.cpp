@@ -220,6 +220,20 @@ void DesignElement::setBottomAnchored(bool anchored) {
     }
 }
 
+void DesignElement::setIsFrozen(bool frozen) {
+    if (m_isFrozen != frozen) {
+        m_isFrozen = frozen;
+        emit isFrozenChanged();
+    }
+}
+
+void DesignElement::setGlobalElementSourceId(const QString& sourceId) {
+    if (m_globalElementSourceId != sourceId) {
+        m_globalElementSourceId = sourceId;
+        emit globalElementSourceIdChanged();
+    }
+}
+
 void DesignElement::updateFromParentGeometry() {
     CanvasElement* parent = parentElement();
     if (!parent || m_updatingFromAnchors) {
@@ -503,4 +517,6 @@ void DesignElement::registerProperties() {
     m_properties->registerProperty("rightAnchored", false);
     m_properties->registerProperty("topAnchored", false);
     m_properties->registerProperty("bottomAnchored", false);
+    m_properties->registerProperty("isFrozen", false);
+    m_properties->registerProperty("globalElementSourceId", QString());
 }
