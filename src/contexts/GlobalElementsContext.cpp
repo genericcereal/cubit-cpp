@@ -2,6 +2,7 @@
 #include "../PlatformConfig.h"
 #include "../ElementModel.h"
 #include "../Element.h"
+#include "../DesignElement.h"
 #include <QDebug>
 
 GlobalElementsContext::GlobalElementsContext(PlatformConfig* platform, QObject *parent)
@@ -76,6 +77,12 @@ void GlobalElementsContext::deactivateContext(ElementModel* targetModel)
 bool GlobalElementsContext::shouldIncludeInHitTest(Element* element) const
 {
     if (!element) return false;
+    
+    // Check if element is frozen (should not be hoverable/selectable)
+    DesignElement* designElement = qobject_cast<DesignElement*>(element);
+    if (designElement && designElement->isFrozen()) {
+        return false;
+    }
     
     // In global elements context, we want to ONLY hit test the global elements
     // from the platform. Check if this element belongs to the platform's globalElements.

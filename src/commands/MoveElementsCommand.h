@@ -27,6 +27,8 @@ public:
 
 private:
     void syncWithAPI();
+    void syncGlobalElements();
+    
     struct ElementMove {
         CanvasElement* element;
         QPointF originalPosition;

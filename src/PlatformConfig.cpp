@@ -10,7 +10,9 @@
 #include "platforms/web/WebTextInput.h"
 #include "ComponentInstanceTemplate.h"
 #include "Project.h"
+#include "CanvasElement.h"
 #include <QDebug>
+#include <QPointer>
 
 PlatformConfig::PlatformConfig(Type type, QObject *parent)
     : QObject(parent), m_type(type)
@@ -63,11 +65,27 @@ PlatformConfig::PlatformConfig(Type type, QObject *parent)
                 
                 if (project && project->elementModel()) {
                     updateAllFramesWithNewGlobalElement(element, project->elementModel());
+                    // Connect property synchronization
+                    connectGlobalElementPropertySync(element, project->elementModel());
                 }
             });
 }
 
-PlatformConfig::~PlatformConfig() = default;
+PlatformConfig::~PlatformConfig() {
+    // Disconnect all property sync connections before destruction
+    if (m_globalElements) {
+        QList<Element*> elements = m_globalElements->getAllElements();
+        for (Element* element : elements) {
+            if (element) {
+                // Disconnect all connections from this element to prevent crashes
+                disconnect(element, nullptr, this, nullptr);
+            }
+        }
+    }
+    
+    // Clear the tracking set
+    m_connectedGlobalElements.clear();
+}
 
 QString PlatformConfig::name() const
 {
@@ -347,8 +365,16 @@ void PlatformConfig::addGlobalElementInstancesToFrame(Frame *targetFrame, Elemen
                     instance->setParentElementId(targetFrame->getId());
                 }
 
-                // Ensure instance is shown in element list
-                instance->setShowInElementList(true);
+
+                // Set isFrozen to true for global element instances
+                if (DesignElement* designInstance = qobject_cast<DesignElement*>(instance)) {
+                    designInstance->setIsFrozen(true);
+                    // Set the source element ID for tracking
+                    designInstance->setGlobalElementSourceId(elem->getId());
+                    qDebug() << "PlatformConfig: Set isFrozen=true and sourceId=" << elem->getId() 
+                             << "for global instance" << instance->getId()
+                             << "type:" << instance->getTypeName();
+                }
 
                 // Mark as a global instance to prevent recursive parenting
                 // Check if this is a ComponentInstance type
@@ -372,6 +398,18 @@ void PlatformConfig::addGlobalElementInstancesToFrame(Frame *targetFrame, Elemen
                 // Add to the model
                 targetModel->addElement(instance);
                 instanceCount++;
+                
+                // Connect property synchronization for this global element
+                Project* project = nullptr;
+                QObject* p = this->parent();
+                while (p && !project) {
+                    project = qobject_cast<Project*>(p);
+                    p = p->parent();
+                }
+                
+                if (project && project->elementModel()) {
+                    connectGlobalElementPropertySync(elem, project->elementModel());
+                }
             }
         }
     }
@@ -465,8 +503,16 @@ void PlatformConfig::updateAllFramesWithNewGlobalElement(Element* globalElement,
                         instance->setParentElementId(frame->getId());
                     }
                     
-                    // Ensure instance is shown in element list
-                    instance->setShowInElementList(true);
+                    
+                    // Set isFrozen to true for global element instances
+                    if (DesignElement* designInstance = qobject_cast<DesignElement*>(instance)) {
+                        designInstance->setIsFrozen(true);
+                        // Set the source element ID for tracking
+                        designInstance->setGlobalElementSourceId(globalElement->getId());
+                        qDebug() << "PlatformConfig: Set isFrozen=true and sourceId=" << globalElement->getId()
+                                 << "for global instance" << instance->getId()
+                                 << "type:" << instance->getTypeName();
+                    }
                     
                     // Add to the model
                     mainModel->addElement(instance);
@@ -485,4 +531,292 @@ void PlatformConfig::updateAllFramesWithNewGlobalElement(Element* globalElement,
     
     // Clear flag after we're done
     m_isAddingInstances = false;
+}
+
+void PlatformConfig::connectGlobalElementPropertySync(Element* globalElement, ElementModel* mainModel)
+{
+    if (!globalElement || !mainModel) return;
+    
+    QString elementId = globalElement->getId();
+    
+    // Check if already connected
+    if (m_connectedGlobalElements.contains(elementId)) {
+        qDebug() << "PlatformConfig: Element" << elementId << "already connected for property sync";
+        return;
+    }
+    
+    qDebug() << "PlatformConfig::connectGlobalElementPropertySync called for element" << elementId
+             << "type:" << globalElement->getTypeName()
+             << "parent:" << globalElement->getParentElementId();
+    
+    // Mark as connected
+    m_connectedGlobalElements.insert(elementId);
+    
+    // Connect to property change signals
+    // For CanvasElement properties (width, height only - position changes handled by move command)
+    if (CanvasElement* canvasElement = qobject_cast<CanvasElement*>(globalElement)) {
+        QPointer<Element> safeElement = globalElement;
+        QPointer<ElementModel> safeModel = mainModel;
+        
+        // Don't connect to x/y changes - those will be handled by the move command
+        // to avoid continuous updates during dragging
+        
+        connect(canvasElement, &CanvasElement::widthChanged,
+                this, [this, safeElement, safeModel]() {
+                    if (safeElement && safeModel) {
+                        updateGlobalElementInstances(safeElement, safeModel);
+                    }
+                });
+                
+        connect(canvasElement, &CanvasElement::heightChanged,
+                this, [this, safeElement, safeModel]() {
+                    if (safeElement && safeModel) {
+                        updateGlobalElementInstances(safeElement, safeModel);
+                    }
+                });
+    }
+    
+    // For DesignElement anchor properties
+    if (DesignElement* designElement = qobject_cast<DesignElement*>(globalElement)) {
+        QPointer<Element> safeElement = globalElement;
+        QPointer<ElementModel> safeModel = mainModel;
+        
+        // Don't connect to anchor position changes (left, right, top, bottom) as these
+        // change continuously during drag. Position sync is handled by move command.
+        
+        // Only connect to anchor state changes (enabled/disabled)
+        connect(designElement, &DesignElement::leftAnchoredChanged,
+                this, [this, safeElement, safeModel]() {
+                    if (safeElement && safeModel) {
+                        updateGlobalElementInstances(safeElement, safeModel);
+                    }
+                });
+                
+        connect(designElement, &DesignElement::rightAnchoredChanged,
+                this, [this, safeElement, safeModel]() {
+                    if (safeElement && safeModel) {
+                        updateGlobalElementInstances(safeElement, safeModel);
+                    }
+                });
+                
+        connect(designElement, &DesignElement::topAnchoredChanged,
+                this, [this, safeElement, safeModel]() {
+                    if (safeElement && safeModel) {
+                        updateGlobalElementInstances(safeElement, safeModel);
+                    }
+                });
+                
+        connect(designElement, &DesignElement::bottomAnchoredChanged,
+                this, [this, safeElement, safeModel]() {
+                    if (safeElement && safeModel) {
+                        updateGlobalElementInstances(safeElement, safeModel);
+                    }
+                });
+    }
+    
+    // For Frame-specific properties
+    if (Frame* frame = qobject_cast<Frame*>(globalElement)) {
+        QPointer<Element> safeElement = globalElement;
+        QPointer<ElementModel> safeModel = mainModel;
+        
+        connect(frame, &Frame::fillChanged,
+                this, [this, safeElement, safeModel]() {
+                    if (safeElement && safeModel) {
+                        updateGlobalElementInstances(safeElement, safeModel);
+                    }
+                });
+                
+        connect(frame, &Frame::borderColorChanged,
+                this, [this, safeElement, safeModel]() {
+                    if (safeElement && safeModel) {
+                        updateGlobalElementInstances(safeElement, safeModel);
+                    }
+                });
+                
+        connect(frame, &Frame::borderWidthChanged,
+                this, [this, safeElement, safeModel]() {
+                    if (safeElement && safeModel) {
+                        updateGlobalElementInstances(safeElement, safeModel);
+                    }
+                });
+                
+        connect(frame, &Frame::borderRadiusChanged,
+                this, [this, safeElement, safeModel]() {
+                    if (safeElement && safeModel) {
+                        updateGlobalElementInstances(safeElement, safeModel);
+                    }
+                });
+    }
+    
+    // For Text-specific properties
+    if (Text* text = qobject_cast<Text*>(globalElement)) {
+        QPointer<Element> safeElement = globalElement;
+        QPointer<ElementModel> safeModel = mainModel;
+        
+        connect(text, &Text::contentChanged,
+                this, [this, safeElement, safeModel]() {
+                    if (safeElement && safeModel) {
+                        updateGlobalElementInstances(safeElement, safeModel);
+                    }
+                });
+                
+        connect(text, &Text::fontChanged,
+                this, [this, safeElement, safeModel]() {
+                    if (safeElement && safeModel) {
+                        updateGlobalElementInstances(safeElement, safeModel);
+                    }
+                });
+                
+        connect(text, &Text::colorChanged,
+                this, [this, safeElement, safeModel]() {
+                    if (safeElement && safeModel) {
+                        updateGlobalElementInstances(safeElement, safeModel);
+                    }
+                });
+    }
+}
+
+void PlatformConfig::updateGlobalElementInstances(Element* sourceElement, ElementModel* mainModel)
+{
+    if (!sourceElement || !mainModel || m_isAddingInstances) {
+        qDebug() << "PlatformConfig::updateGlobalElementInstances - Early return:"
+                 << "sourceElement:" << (sourceElement ? "valid" : "null")
+                 << "mainModel:" << (mainModel ? "valid" : "null")
+                 << "m_isAddingInstances:" << m_isAddingInstances;
+        return;
+    }
+    
+    // Check if the source element is still valid and not being destroyed
+    if (!sourceElement->parent()) {
+        qDebug() << "PlatformConfig::updateGlobalElementInstances - Source element has no parent, likely being destroyed";
+        return;
+    }
+    
+    QString sourceId = sourceElement->getId();
+    qDebug() << "PlatformConfig: Updating instances of global element" << sourceId
+             << "type:" << sourceElement->getTypeName()
+             << "parentId:" << sourceElement->getParentElementId();
+    
+    // Find all instances with this source ID
+    QList<Element*> allElements = mainModel->getAllElements();
+    int updateCount = 0;
+    int checkedCount = 0;
+    
+    qDebug() << "  Checking" << allElements.size() << "elements in main model";
+    
+    for (Element* element : allElements) {
+        checkedCount++;
+        if (DesignElement* designElement = qobject_cast<DesignElement*>(element)) {
+            QString instanceSourceId = designElement->globalElementSourceId();
+            if (!instanceSourceId.isEmpty() && instanceSourceId == sourceId) {
+                qDebug() << "  Found instance to update:" << element->getId()
+                         << "with sourceId:" << instanceSourceId
+                         << "parentId:" << element->getParentElementId();
+                
+                // Update properties
+                QStringList propNames = sourceElement->propertyNames();
+                qDebug() << "    Properties to update:" << propNames;
+                
+                for (const QString& propName : propNames) {
+                    // Skip properties that shouldn't be synced
+                    if (propName != "elementId" && propName != "parentId" && 
+                        propName != "selected" && propName != "x" && propName != "y") {
+                        
+                        QVariant value = sourceElement->getProperty(propName);
+                        QVariant oldValue = element->getProperty(propName);
+                        element->setProperty(propName, value);
+                        qDebug() << "    Updated property" << propName << "from" << oldValue << "to" << value;
+                    }
+                }
+                
+                // For parented elements, update relative position
+                if (CanvasElement* sourceCanvas = qobject_cast<CanvasElement*>(sourceElement)) {
+                    if (CanvasElement* instanceCanvas = qobject_cast<CanvasElement*>(element)) {
+                        // Update size properties
+                        qreal oldWidth = instanceCanvas->width();
+                        qreal oldHeight = instanceCanvas->height();
+                        instanceCanvas->setWidth(sourceCanvas->width());
+                        instanceCanvas->setHeight(sourceCanvas->height());
+                        qDebug() << "    Updated size from" << oldWidth << "x" << oldHeight
+                                 << "to" << sourceCanvas->width() << "x" << sourceCanvas->height();
+                        
+                        // Update relative position if both elements are parented
+                        if (!sourceElement->getParentElementId().isEmpty() && !element->getParentElementId().isEmpty()) {
+                            // Get the global frame to calculate relative position
+                            Frame* globalFrame = findGlobalFrame();
+                            if (globalFrame) {
+                                // Calculate the source element's position relative to the global frame
+                                qreal relativeX = sourceCanvas->x() - globalFrame->x();
+                                qreal relativeY = sourceCanvas->y() - globalFrame->y();
+                                
+                                // Get the instance's parent frame
+                                Element* instanceParent = mainModel->getElementById(element->getParentElementId());
+                                if (CanvasElement* instanceParentCanvas = qobject_cast<CanvasElement*>(instanceParent)) {
+                                    // Update the instance's absolute position based on its parent + relative offset
+                                    instanceCanvas->setX(instanceParentCanvas->x() + relativeX);
+                                    instanceCanvas->setY(instanceParentCanvas->y() + relativeY);
+                                    qDebug() << "    Updated position to" << instanceCanvas->x() << "," << instanceCanvas->y()
+                                             << "(relative:" << relativeX << "," << relativeY << ")";
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                updateCount++;
+            }
+        }
+    }
+    
+    qDebug() << "PlatformConfig: Checked" << checkedCount << "elements, updated" << updateCount << "instances";
+}
+
+void PlatformConfig::connectAllGlobalElementsPropertySync(ElementModel* mainModel)
+{
+    if (!m_globalElements || !mainModel) return;
+    
+    qDebug() << "PlatformConfig::connectAllGlobalElementsPropertySync called";
+    
+    QList<Element*> globalElements = m_globalElements->getAllElements();
+    for (Element* element : globalElements) {
+        connectGlobalElementPropertySync(element, mainModel);
+    }
+}
+
+void PlatformConfig::updateGlobalElementsAfterMove(const QList<Element*>& movedElements, ElementModel* mainModel)
+{
+    if (!m_globalElements || !mainModel || movedElements.isEmpty()) return;
+    
+    qDebug() << "PlatformConfig::updateGlobalElementsAfterMove called for platform" << m_name 
+             << "with" << movedElements.size() << "elements";
+    
+    // Check each moved element to see if it's a global element or instance
+    for (Element* element : movedElements) {
+        if (!element) continue;
+        
+        qDebug() << "  Checking element" << element->getId() << "type:" << element->getTypeName();
+        
+        // First check if this element exists in our global elements
+        if (m_globalElements->getElementById(element->getId())) {
+            qDebug() << "  -> Element" << element->getId() << "is a global element in platform" << m_name;
+            updateGlobalElementInstances(element, mainModel);
+        } else {
+            // Check if this is an instance of a global element (has globalElementSourceId)
+            if (DesignElement* designElement = qobject_cast<DesignElement*>(element)) {
+                QString sourceId = designElement->globalElementSourceId();
+                qDebug() << "  -> Element has globalElementSourceId:" << sourceId;
+                if (!sourceId.isEmpty()) {
+                    // Find the source global element
+                    Element* sourceElement = m_globalElements->getElementById(sourceId);
+                    if (sourceElement) {
+                        qDebug() << "  -> Found source element" << sourceId << "in platform" << m_name 
+                                 << ", updating all instances";
+                        updateGlobalElementInstances(sourceElement, mainModel);
+                    } else {
+                        qDebug() << "  -> Source element" << sourceId << "not found in platform" << m_name;
+                    }
+                }
+            }
+        }
+    }
 }

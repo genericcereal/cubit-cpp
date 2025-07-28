@@ -5,6 +5,7 @@
 #include "../Project.h"
 #include "../ProjectApiClient.h"
 #include "../ElementModel.h"
+#include "../PlatformConfig.h"
 #include <QDebug>
 
 MoveElementsCommand::MoveElementsCommand(const QList<Element*>& elements, const QPointF& delta, QObject *parent)
@@ -85,6 +86,9 @@ void MoveElementsCommand::execute()
                 .arg(m_moves.size() == 1 ? "" : "s")
                 .arg(m_totalDelta.x())
                 .arg(m_totalDelta.y());
+    
+    // Check if any moved elements are global elements and update their instances
+    syncGlobalElements();
     
     // Sync with API after the move
     syncWithAPI();
@@ -190,4 +194,86 @@ void MoveElementsCommand::syncWithAPI()
     
     qDebug() << "MoveElementsCommand: Syncing element move with API for project" << apiProjectId 
              << "delta:" << m_totalDelta << "elements:" << elementIds.size();
+}
+
+void MoveElementsCommand::syncGlobalElements()
+{
+    qDebug() << "MoveElementsCommand::syncGlobalElements() called";
+    
+    if (m_moves.isEmpty()) {
+        qDebug() << "  No moves to sync";
+        return;
+    }
+
+    // Get the element model from the first element
+    CanvasElement* firstElement = m_moves.first().element;
+    if (!firstElement) {
+        qDebug() << "  No first element";
+        return;
+    }
+    qDebug() << "  First element:" << firstElement->getId();
+
+    ElementModel* model = nullptr;
+    QObject* parent = firstElement->parent();
+    while (parent) {
+        model = qobject_cast<ElementModel*>(parent);
+        if (model) break;
+        parent = parent->parent();
+    }
+
+    if (!model) {
+        qDebug() << "  No element model found";
+        return;
+    }
+    qDebug() << "  Found element model";
+
+    // Get the project - it might be the model's parent
+    Project* project = qobject_cast<Project*>(model->parent());
+    
+    if (!project) {
+        // For global elements, the model parent might not be the project
+        // Try to find the project by traversing up the parent chain from the controller
+        qDebug() << "  Model parent is not a project, checking parent chain...";
+        
+        // Try to get the application instance and find the project that owns this element
+        Application* app = Application::instance();
+        if (app) {
+            // Look through all projects to find one that contains this element
+            const auto& canvases = app->canvases();
+            for (const auto& canvas : canvases) {
+                if (canvas.get() && canvas->elementModel()) {
+                    // Check if this element exists in this project's element model
+                    if (canvas->elementModel()->getElementById(firstElement->getId())) {
+                        project = canvas.get();
+                        qDebug() << "  Found project" << project->name() << "containing element";
+                        break;
+                    }
+                }
+            }
+        }
+        
+        if (!project) {
+            qDebug() << "  No project found from model parent or by searching canvases";
+            return;
+        }
+    } else {
+        qDebug() << "  Found project from model parent";
+    }
+
+    // Convert ElementMove list to Element* list
+    QList<Element*> movedElements;
+    for (const ElementMove& move : m_moves) {
+        movedElements.append(move.element);
+    }
+
+    qDebug() << "MoveElementsCommand::syncGlobalElements - Checking" << movedElements.size() << "moved elements";
+
+    // Check all platforms for global elements that need updating
+    QList<PlatformConfig*> platforms = project->getAllPlatforms();
+    for (PlatformConfig* platform : platforms) {
+        if (platform) {
+            // Pass the project's main element model for updating instances
+            platform->updateGlobalElementsAfterMove(movedElements, project->elementModel());
+        }
+    }
 }

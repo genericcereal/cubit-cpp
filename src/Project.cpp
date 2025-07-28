@@ -116,8 +116,13 @@ void Project::addPlatform(const QString& platformName) {
     
     // Create new platform config
     auto platformConfig = std::unique_ptr<PlatformConfig>(PlatformConfig::create(platformName, this));
-    m_platforms.push_back(std::move(platformConfig));
-    emit platformsChanged();
+    if (platformConfig) {
+        // Connect property sync for all global elements
+        platformConfig->connectAllGlobalElementsPropertySync(m_elementModel.get());
+        
+        m_platforms.push_back(std::move(platformConfig));
+        emit platformsChanged();
+    }
 }
 
 void Project::removePlatform(const QString& platformName) {
@@ -488,6 +493,13 @@ void Project::createContextForViewMode(const QString& mode) {
     
     if (mode == "design") {
         newContext = std::make_unique<MainCanvasContext>(this);
+        
+        // Ensure property sync is connected for all platforms
+        for (const auto& platform : m_platforms) {
+            if (platform) {
+                platform->connectAllGlobalElementsPropertySync(m_elementModel.get());
+            }
+        }
     } else if (mode == "variant") {
         if (m_editingElement) {
             newContext = std::make_unique<VariantCanvasContext>(m_editingElement, this);

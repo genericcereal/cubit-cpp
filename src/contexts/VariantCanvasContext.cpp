@@ -56,6 +56,12 @@ bool VariantCanvasContext::shouldIncludeInHitTest(Element* element) const
 {
     if (!element) return false;
     
+    // Check if element is frozen (should not be hoverable/selectable)
+    DesignElement* designElement = qobject_cast<DesignElement*>(element);
+    if (designElement && designElement->isFrozen()) {
+        return false;
+    }
+    
     // In variant mode, we should hit test:
     // 1. The component's variants
     // 2. Children of those variants
