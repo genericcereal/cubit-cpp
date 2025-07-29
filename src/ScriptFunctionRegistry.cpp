@@ -17,6 +17,7 @@ QString ScriptFunctionRegistry::getFunctionCode(Node* node) const
         return QString();
     }
     
+    // Use the registered function builder
     QString nodeType = node->nodeTitle().toLower().remove(' ');
     
     auto it = m_functionBuilders.find(nodeType);
@@ -53,6 +54,9 @@ void ScriptFunctionRegistry::registerDefaultFunctions()
     // Conditions (future)
     registerFunction("condition", &ScriptFunctionRegistry::buildConditionFunction);
     registerFunction("if", &ScriptFunctionRegistry::buildConditionFunction);
+    
+    // AI Prompt
+    registerFunction("aiprompt", &ScriptFunctionRegistry::buildAiPromptFunction);
 }
 
 QString ScriptFunctionRegistry::buildConsoleLogFunction(Node* node)
@@ -133,5 +137,46 @@ QString ScriptFunctionRegistry::buildEventDataFunction(Node* node)
            "} else { "
            "return ''; "
            "} "
+           "}";
+}
+
+QString ScriptFunctionRegistry::buildAiPromptFunction(Node* node)
+{
+    Q_UNUSED(node);
+    // This function returns a Promise for async execution
+    return "(params, context) => { "
+           "return new Promise((resolve, reject) => { "
+           "const prompt = params && params.length > 0 && params[0] ? params[0].value : ''; "
+           "if (!prompt) { "
+           "resolve({ response: 'No prompt provided' }); "
+           "return; "
+           "} "
+           "const token = typeof authManager !== 'undefined' && authManager.getAuthToken ? authManager.getAuthToken() : ''; "
+           "if (!token) { "
+           "resolve({ response: 'Authentication required' }); "
+           "return; "
+           "} "
+           "if (typeof aiService === 'undefined') { "
+           "resolve({ response: 'AI Service not available' }); "
+           "return; "
+           "} "
+           "let responseHandler = null; "
+           "let errorHandler = null; "
+           "const cleanup = () => { "
+           "if (responseHandler) aiService.responseReceived.disconnect(responseHandler); "
+           "if (errorHandler) aiService.errorOccurred.disconnect(errorHandler); "
+           "}; "
+           "responseHandler = (response) => { "
+           "cleanup(); "
+           "resolve({ response: response }); "
+           "}; "
+           "errorHandler = (error) => { "
+           "cleanup(); "
+           "resolve({ response: 'Error: ' + error }); "
+           "}; "
+           "aiService.responseReceived.connect(responseHandler); "
+           "aiService.errorOccurred.connect(errorHandler); "
+           "aiService.callCubitAI(prompt, token); "
+           "}); "
            "}";
 }

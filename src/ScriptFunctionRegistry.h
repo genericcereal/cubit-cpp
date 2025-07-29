@@ -35,6 +35,7 @@ private:
     static QString buildMathFunction(Node* node);
     static QString buildConditionFunction(Node* node);
     static QString buildEventDataFunction(Node* node);
+    static QString buildAiPromptFunction(Node* node);
 };
 
 #endif // SCRIPTFUNCTIONREGISTRY_H

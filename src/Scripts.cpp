@@ -56,6 +56,10 @@ void Scripts::removeNode(Node* node) {
             removeEdge(edge);
         }
         
+        // Emit the removal signal BEFORE erasing the node
+        emit nodeRemoved(node);
+        
+        // Now erase the node from the vector
         m_nodes.erase(it);
         
         // Reset compiled state when graph changes
@@ -63,7 +67,6 @@ void Scripts::removeNode(Node* node) {
             setIsCompiled(false);
         }
         
-        emit nodeRemoved(node);
         emit nodesChanged();
     }
 }
@@ -118,6 +121,10 @@ void Scripts::removeEdge(Edge* edge) {
         [edge](const std::unique_ptr<Edge>& e) { return e.get() == edge; });
     
     if (it != m_edges.end()) {
+        // Emit the removal signal BEFORE erasing the edge
+        emit edgeRemoved(edge);
+        
+        // Now erase the edge from the vector
         m_edges.erase(it);
         
         // Reset compiled state when graph changes
@@ -125,7 +132,6 @@ void Scripts::removeEdge(Edge* edge) {
             setIsCompiled(false);
         }
         
-        emit edgeRemoved(edge);
         emit edgesChanged();
     }
 }

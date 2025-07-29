@@ -24,6 +24,18 @@ const schema = a.schema({
     })
     .authorization((allow) => allow.owner()),
 
+  CubitAi: a
+    .generation({
+      aiModel: a.ai.model("Claude 3.5 Haiku"),
+      systemPrompt: "You are a helpful AI assistant.",
+    })
+    .arguments({
+      prompt: a.string().required(),
+    })
+    .returns(a.string())
+
+    .authorization((allow) => allow.authenticated()),
+
   // Legacy cubitAi for backward compatibility (can be removed later)
 
   Team: a

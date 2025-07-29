@@ -57,6 +57,7 @@ QtObject {
             "id": "consoleLog",
             "name": "Console Log",
             "type": "Operation",
+            "isAsync": false,
             "script": "(params) => { console.log(params.message || ''); }",
             "targets": [
                 {
@@ -159,6 +160,92 @@ QtObject {
                     "label": "Value"
                 }
             ]
+        },
+        "aiPrompt": {
+            "id": "aiPrompt",
+            "name": "AI Prompt",
+            "type": "Operation",
+            "isAsync": true,
+            "script": `(params, context) => { 
+                return new Promise((resolve, reject) => {
+                    const prompt = params.prompt || '';
+                    if (!prompt) {
+                        resolve({ response: 'No prompt provided' });
+                        return;
+                    }
+                    
+                    // Get auth token from the global authManager
+                    const token = typeof authManager !== 'undefined' && authManager.getAuthToken ? authManager.getAuthToken() : '';
+                    if (!token) {
+                        resolve({ response: 'Authentication required' });
+                        return;
+                    }
+                    
+                    // Make GraphQL request to CubitAi
+                    const xhr = new XMLHttpRequest();
+                    const query = \`
+                        query CallCubitAI($prompt: String!) {
+                            CubitAi(prompt: $prompt)
+                        }
+                    \`;
+                    
+                    const body = JSON.stringify({
+                        query: query,
+                        variables: { prompt: prompt }
+                    });
+                    
+                    xhr.open('POST', 'https://enrxjqdgdvc7pkragdib6abhyy.appsync-api.us-west-2.amazonaws.com/graphql');
+                    xhr.setRequestHeader('Content-Type', 'application/json');
+                    xhr.setRequestHeader('Authorization', token);
+                    
+                    xhr.onreadystatechange = function() {
+                        if (xhr.readyState === XMLHttpRequest.DONE) {
+                            if (xhr.status === 200) {
+                                try {
+                                    const response = JSON.parse(xhr.responseText);
+                                    if (response.data && response.data.CubitAi) {
+                                        resolve({ response: response.data.CubitAi });
+                                    } else if (response.errors) {
+                                        resolve({ response: 'Error: ' + JSON.stringify(response.errors) });
+                                    } else {
+                                        resolve({ response: 'Unknown error' });
+                                    }
+                                } catch (e) {
+                                    resolve({ response: 'Failed to parse response: ' + e.toString() });
+                                }
+                            } else {
+                                resolve({ response: 'HTTP Error: ' + xhr.status });
+                            }
+                        }
+                    };
+                    
+                    xhr.send(body);
+                });
+            }`,
+            "targets": [
+                {
+                    "id": "exec",
+                    "type": "Flow",
+                    "label": "Exec"
+                },
+                {
+                    "id": "prompt",
+                    "type": "String",
+                    "label": "Prompt"
+                }
+            ],
+            "sources": [
+                {
+                    "id": "done",
+                    "type": "Flow",
+                    "label": "Done"
+                },
+                {
+                    "id": "response",
+                    "type": "String",
+                    "label": "Response"
+                }
+            ]
         }
     }
 
@@ -193,6 +280,11 @@ QtObject {
         // Include script if present
         if (nodeType.script) {
             nodeData.script = nodeType.script;
+        }
+        
+        // Include isAsync if present
+        if (nodeType.isAsync !== undefined) {
+            nodeData.isAsync = nodeType.isAsync;
         }
 
         return nodeData;

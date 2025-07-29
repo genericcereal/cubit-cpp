@@ -84,6 +84,7 @@ QJsonObject ScriptSerializer::serializeInvokes(const ScriptInvokeBuilder::BuildC
         invoke["nodeId"] = invokeData.nodeId;
         invoke["function"] = invokeData.functionName;
         invoke["params"] = invokeData.params;
+        invoke["isAsync"] = invokeData.isAsync;
         
         if (!invokeData.nextInvokes.isEmpty()) {
             QJsonArray nextArray;

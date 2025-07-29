@@ -1063,7 +1063,7 @@ Item {
         selectedVariant: {
             if (root.parent && root.parent.selectedElements && root.parent.selectedElements.length === 1) {
                 var variant = root.parent.selectedElements[0]
-                if (variant && variant.isComponentVariant()) {
+                if (variant && variant.isDesignElement && variant.isComponentVariant()) {
                     return variant
                 }
             }
@@ -1089,7 +1089,7 @@ Item {
         // Check if exactly one element is selected and it's a ComponentVariant
         if (parent.selectedElements.length === 1) {
             var element = parent.selectedElements[0]
-            selectedIsComponentVariant = element && element.isComponentVariant()
+            selectedIsComponentVariant = element && element.isDesignElement && element.isComponentVariant()
         } else {
             selectedIsComponentVariant = false
         }

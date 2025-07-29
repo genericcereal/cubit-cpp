@@ -109,7 +109,8 @@ SOURCES += \
     src/contexts/ScriptCanvasContext.cpp \
     src/PropertyRegistry.cpp \
     src/ThrottledUpdate.cpp \
-    src/AdaptiveThrottler.cpp
+    src/AdaptiveThrottler.cpp \
+    src/AIService.cpp
 
 HEADERS += \
     src/Element.h \
@@ -197,7 +198,8 @@ HEADERS += \
     src/PropertyMetadata.h \
     src/ThrottledUpdate.h \
     src/AdaptiveThrottler.h \
-    src/ConfigObject.h
+    src/ConfigObject.h \
+    src/AIService.h
 
 RESOURCES += qml.qrc
 

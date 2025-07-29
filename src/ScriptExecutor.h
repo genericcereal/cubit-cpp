@@ -5,19 +5,24 @@
 #include <QJSEngine>
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QMap>
+#include <QPair>
 #include <memory>
+
+// Forward declaration
+class ScriptExecutor;
 
 // Helper class for console logging from JavaScript
 class QtConsoleLog : public QObject
 {
     Q_OBJECT
 public:
-    explicit QtConsoleLog(QObject *parent = nullptr, QObject* console = nullptr) : QObject(parent), m_console(console) {}
+    explicit QtConsoleLog(ScriptExecutor* executor, QObject *parent = nullptr);
     
     Q_INVOKABLE void log(const QString& message);
     
 private:
-    QObject* m_console;
+    ScriptExecutor* m_executor;
 };
 
 class Scripts;
@@ -35,10 +40,13 @@ public:
     void setScripts(Scripts* scripts);
     void setElementModel(ElementModel* model);
     void setCanvasController(CanvasController* controller);
-    void setConsole(QObject* console);
 
     // Execute a specific event with optional data
     void executeEvent(const QString& eventName, const QVariantMap& eventData = QVariantMap());
+    
+    // Handle async results from JavaScript
+    Q_INVOKABLE void handleAsyncResult(const QString& invokeId, const QJSValue& result);
+    Q_INVOKABLE void handleAsyncError(const QString& invokeId, const QJSValue& error);
 
 private:
     // Execute a chain of invokes starting from given invoke IDs
@@ -61,10 +69,11 @@ private:
     Scripts* m_scripts;
     ElementModel* m_elementModel;
     CanvasController* m_canvasController;
-    QObject* m_console = nullptr;
     QJsonObject m_compiledScript;
     QString m_currentEventName;
     QVariantMap m_currentEventData;
+    QMap<QString, QPair<QJsonObject, QJsonArray>> m_pendingAsyncInvokes;
+    QMap<QString, QJSValue> m_asyncResults; // Store async results by output ID
 };
 
 #endif // SCRIPTEXECUTOR_H
