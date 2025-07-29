@@ -45,7 +45,6 @@ QJsonObject Serializer::serializeProject(Project* project) const {
     // Serialize platforms with their scripts
     QJsonArray platformsArray;
     QList<PlatformConfig*> platforms = project->getAllPlatforms();
-    qDebug() << "Serializing" << platforms.size() << "platforms for project" << project->id();
     for (PlatformConfig* platform : platforms) {
         QJsonObject platformObj;
         platformObj["name"] = platform->name();
@@ -57,7 +56,6 @@ QJsonObject Serializer::serializeProject(Project* project) const {
             // Serialize nodes
             QJsonArray nodesArray;
             QList<Node*> nodes = platform->scripts()->getAllNodes();
-            qDebug() << "  Platform" << platform->name() << "has" << nodes.size() << "nodes to serialize";
             for (Node* node : nodes) {
                 QJsonObject nodeObj = serializeNode(node);
                 nodesArray.append(nodeObj);
@@ -67,7 +65,6 @@ QJsonObject Serializer::serializeProject(Project* project) const {
             // Serialize edges
             QJsonArray edgesArray;
             QList<Edge*> edges = platform->scripts()->getAllEdges();
-            qDebug() << "  Platform" << platform->name() << "has" << edges.size() << "edges to serialize";
             for (Edge* edge : edges) {
                 QJsonObject edgeObj = serializeEdge(edge);
                 edgesArray.append(edgeObj);
@@ -76,14 +73,12 @@ QJsonObject Serializer::serializeProject(Project* project) const {
             
             platformObj["scripts"] = scriptsObj;
         } else {
-            qDebug() << "  Platform" << platform->name() << "has no scripts object!";
         }
         
         // Serialize platform-specific global elements
         if (platform->globalElements()) {
             QJsonArray globalElementsArray;
             QList<Element*> globalElements = platform->globalElements()->getAllElements();
-            qDebug() << "  Platform" << platform->name() << "has" << globalElements.size() << "global elements to serialize";
             for (Element* element : globalElements) {
                 if (element) {
                     QJsonObject elementObj = serializeElement(element);
@@ -101,13 +96,11 @@ QJsonObject Serializer::serializeProject(Project* project) const {
     QJsonArray elementsArray;
     if (project->elementModel()) {
         QList<Element*> elements = project->elementModel()->getAllElements();
-        qDebug() << "Serializer::serializeProject - Project" << project->id() << "has" << elements.size() << "elements to serialize";
         for (Element* element : elements) {
             if (element) {
                 // Skip globalElements (they have role == appContainer and are serialized with their platform)
                 if (Frame* frame = qobject_cast<Frame*>(element)) {
                     if (frame->role() == Frame::appContainer) {
-                        qDebug() << "  Skipping global element:" << frame->getId() << "- will be serialized with platform";
                         continue;
                     }
                 }
@@ -337,6 +330,9 @@ Project* Serializer::deserializeProject(const QJsonObject& projectData) {
                                         globalElementsModel->addElement(element);
                                     }
                                 }
+                                
+                                // Resolve parent relationships for global elements after loading
+                                globalElementsModel->resolveParentRelationships();
                             } else {
                                 qWarning() << "  Failed to get global elements model for platform:" << platformName;
                             }
@@ -366,6 +362,15 @@ Project* Serializer::deserializeProject(const QJsonObject& projectData) {
         // Resolve parent relationships after all elements are loaded
         if (project->elementModel()) {
             project->elementModel()->resolveParentRelationships();
+        }
+        
+        // Connect property sync for global elements
+        QList<PlatformConfig*> platforms = project->getAllPlatforms();
+        for (PlatformConfig* platform : platforms) {
+            if (platform && platform->globalElements() && project->elementModel()) {
+                // Connect property sync for all global elements
+                platform->connectAllGlobalElementsPropertySync(project->elementModel());
+            }
         }
         
         // Rebuild spatial index after all elements are loaded

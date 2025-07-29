@@ -32,7 +32,6 @@ Item {
                 // Only DesignElements (Frame, Text, WebTextInput, and their ComponentInstance variants) can execute scripts
                 if (elementType === "Frame" || elementType === "Text" || elementType === "WebTextInput" ||
                     elementType === "FrameComponentInstance" || elementType === "TextComponentInstance") {
-                    console.log("  -> Executing onEditorLoad for element:", element.elementId, "type:", elementType);
                     try {
                         element.executeScriptEvent("onEditorLoad");
                     } catch (e) {

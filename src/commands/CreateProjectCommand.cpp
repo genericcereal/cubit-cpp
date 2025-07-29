@@ -43,7 +43,6 @@ void CreateProjectCommand::execute()
         return;
     }
     
-    qDebug() << "CreateProjectCommand: Created project" << m_projectName << "with ID" << m_projectId;
     
     // Load initial canvas data if provided
     if (!m_initialCanvasData.isEmpty()) {
@@ -57,13 +56,11 @@ void CreateProjectCommand::execute()
                         project->addPlatform(value.toString());
                     }
                 }
-                qDebug() << "CreateProjectCommand: Added platforms from initial data";
             }
             
             // Load elements if provided
             if (m_initialCanvasData.contains("elements") && m_initialCanvasData["elements"].isArray()) {
                 QJsonArray elementsArray = m_initialCanvasData["elements"].toArray();
-                qDebug() << "CreateProjectCommand: Loading" << elementsArray.size() << "initial elements";
                 
                 for (const QJsonValue& value : elementsArray) {
                     if (value.isObject()) {
@@ -91,7 +88,6 @@ void CreateProjectCommand::execute()
                 // This ensures all programmatically created frames are clickable
                 if (project->controller() && project->controller()->hitTestService()) {
                     project->controller()->hitTestService()->rebuildSpatialIndex();
-                    qDebug() << "CreateProjectCommand: Forced spatial index rebuild after loading elements";
                 }
             }
         }
@@ -111,7 +107,6 @@ void CreateProjectCommand::undo()
     // Remove the project using Application's removeProject method
     m_application->removeProject(m_projectId);
     
-    qDebug() << "CreateProjectCommand: Removed project" << m_projectName << "with ID" << m_projectId;
     
     // TODO: Also remove from API when delete API is implemented
 }
@@ -147,7 +142,6 @@ void CreateProjectCommand::syncWithAPI()
     // Create project via API client
     apiClient->createProject(m_projectName, canvasData);
     
-    qDebug() << "CreateProjectCommand: Syncing project creation to API...";
 }
 
 void CreateProjectCommand::onApiProjectCreated(const QString& apiProjectId, const QString& name)
@@ -155,8 +149,6 @@ void CreateProjectCommand::onApiProjectCreated(const QString& apiProjectId, cons
     // Only handle if this is for our project
     if (name == m_projectName) {
         m_apiProjectId = apiProjectId;
-        qDebug() << "CreateProjectCommand: Successfully synced project to API with ID:" << m_apiProjectId;
-        qDebug() << "CreateProjectCommand: Original local project ID was:" << m_projectId;
         
         // Update the project to use the API ID
         m_application->updateProjectId(m_projectId, m_apiProjectId);
@@ -164,7 +156,6 @@ void CreateProjectCommand::onApiProjectCreated(const QString& apiProjectId, cons
         // Update our stored project ID to the API ID
         m_projectId = m_apiProjectId;
         
-        qDebug() << "CreateProjectCommand: Updated project to use API ID:" << m_apiProjectId;
         
         // Disconnect signals to avoid handling other projects
         if (m_application && m_application->projectApiClient()) {

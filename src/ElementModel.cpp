@@ -164,8 +164,6 @@ void ElementModel::addElement(Element *element)
     connectElement(element);
     endInsertRows();
     
-    qDebug() << "ElementModel::addElement - emitting elementAdded signal for:" << element->getId() 
-             << "type:" << element->getTypeName();
     emit elementAdded(element);
     emit elementChanged();
 }
@@ -343,8 +341,6 @@ void ElementModel::reorderElement(Element *element, int newIndex)
     
     emit elementChanged();
     
-    qDebug() << "ElementModel::reorderElement - Moved element" << element->getId() 
-             << "from index" << currentIndex << "to" << newIndex;
 }
 
 void ElementModel::refresh()

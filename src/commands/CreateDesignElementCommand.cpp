@@ -103,7 +103,6 @@ void CreateDesignElementCommand::execute()
             m_element->setProperty("placeholder", m_initialPayload.toString());
         } else if (m_elementType == "shape" && m_initialPayload.isValid() && m_initialPayload.canConvert<int>()) {
             if (Shape* shapeElement = qobject_cast<Shape*>(m_element)) {
-                qDebug() << "CreateDesignElementCommand: Setting shape type to" << m_initialPayload.toInt() << "BEFORE setting geometry";
                 shapeElement->setShapeType(static_cast<Shape::ShapeType>(m_initialPayload.toInt()));
             }
         }
@@ -131,8 +130,6 @@ void CreateDesignElementCommand::execute()
         }
     } else {
         // Normal mode, just add to model
-        qDebug() << "CreateDesignElementCommand: Adding element to model in normal mode, viewMode:" 
-                 << (project ? project->viewMode() : "no project");
         m_elementModel->addElement(m_element);
     }
 
@@ -141,12 +138,6 @@ void CreateDesignElementCommand::execute()
         m_selectionManager->selectOnly(m_element);
     }
     
-    // Log to console
-    qDebug() << QString("Created %1 element (ID: %2) at position (%3, %4)")
-                .arg(m_elementType)
-                .arg(m_element ? m_element->getId() : "unknown")
-                .arg(m_rect.x())
-                .arg(m_rect.y());
     
     // Don't sync with API here - it will be synced after resize is complete
 }
@@ -200,45 +191,31 @@ void CreateDesignElementCommand::undo()
 
 void CreateDesignElementCommand::creationCompleted()
 {
-    qDebug() << "CreateDesignElementCommand::creationCompleted() called for element type:" << m_elementType;
-    if (m_element) {
-        qDebug() << "  Element ID:" << m_element->getId();
-        if (m_elementType == "shape") {
-            if (Shape* shape = qobject_cast<Shape*>(m_element)) {
-                qDebug() << "  Shape type:" << shape->shapeType();
-            }
-        }
-    }
     // Sync with API now that the element has its final size
     syncWithAPI();
 }
 
 void CreateDesignElementCommand::syncWithAPI()
 {
-    qDebug() << "CreateDesignElementCommand::syncWithAPI() starting for element type:" << m_elementType;
     
     if (!m_elementModel || !m_element) {
-        qDebug() << "  Sync aborted: missing elementModel or element";
         return;
     }
 
     // Get the Project from the ElementModel's parent
     Project* project = qobject_cast<Project*>(m_elementModel->parent());
     if (!project) {
-        qDebug() << "  Sync aborted: no project found";
         return;
     }
 
     // Get the Application instance and its API client
     Application* app = Application::instance();
     if (!app) {
-        qDebug() << "  Sync aborted: no application instance";
         return;
     }
 
     ProjectApiClient* apiClient = app->projectApiClient();
     if (!apiClient) {
-        qDebug() << "  Sync aborted: no API client";
         return;
     }
 
@@ -248,11 +225,6 @@ void CreateDesignElementCommand::syncWithAPI()
     // Serialize the element data
     QJsonObject elementData = app->serializeElement(m_element);
     
-    // Log what we're about to sync
-    qDebug() << "CreateDesignElementCommand: About to sync element with API";
-    qDebug() << "  Project ID:" << apiProjectId;
-    qDebug() << "  Element ID:" << m_element->getId();
-    qDebug() << "  Element Type:" << m_elementType;
     
     if (m_elementType == "shape") {
         if (Shape* shape = qobject_cast<Shape*>(m_element)) {
@@ -262,5 +234,4 @@ void CreateDesignElementCommand::syncWithAPI()
     // Sync with API
     apiClient->syncCreateElement(apiProjectId, elementData);
     
-    qDebug() << "CreateDesignElementCommand: API sync request sent for project" << apiProjectId;
 }

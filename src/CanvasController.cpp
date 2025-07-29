@@ -12,6 +12,7 @@
 #include "commands/MoveElementsCommand.h"
 #include "commands/ResizeElementCommand.h"
 #include "commands/SetPropertyCommand.h"
+#include "commands/ChangeParentCommand.h"
 #include "IModeHandler.h"
 #include "SelectModeHandler.h"
 #include "CreationModeHandler.h"
@@ -166,15 +167,12 @@ void CanvasController::updateSubcontrollersCanvasType()
 void CanvasController::setMode(Mode mode)
 {
     if (m_mode != mode) {
-        // Mode changing
-        qDebug() << "CanvasController::setMode changing from" << (int)m_mode << "to" << (int)mode;
         m_mode = mode;
         
         // Update current handler
         auto it = m_modeHandlers.find(m_mode);
         if (it != m_modeHandlers.end()) {
             m_currentHandler = it->second.get();
-            qDebug() << "Handler found for mode" << (int)mode;
         } else {
             m_currentHandler = nullptr;
             qWarning() << "No handler found for mode:" << static_cast<int>(mode);
@@ -558,6 +556,25 @@ void CanvasController::createEdge(const QString& sourceNodeId, const QString& ta
         // Create edge using port indices (0 for first port)
         m_creationManager->createEdge(sourceNodeId, targetNodeId, "output", "input", 0, 0);
     }
+}
+
+void CanvasController::setElementParent(Element* element, const QString& newParentId)
+{
+    if (!element) return;
+    
+    // Create and execute change parent command
+    auto command = std::make_unique<ChangeParentCommand>(element, newParentId);
+    m_commandHistory->execute(std::move(command));
+}
+
+void CanvasController::setElementParentWithPosition(DesignElement* element, CanvasElement* newParent, qreal relX, qreal relY)
+{
+    if (!element) return;
+    
+    // Create and execute change parent command with position
+    QPointF relativePosition(relX, relY);
+    auto command = std::make_unique<ChangeParentCommand>(element, newParent, relativePosition);
+    m_commandHistory->execute(std::move(command));
 }
 
 

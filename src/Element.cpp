@@ -88,7 +88,6 @@ void Element::setParentElementId(const QString &parentId)
         QString oldParentId = parentElementId;
         parentElementId = parentId;
         
-        qDebug() << "Element::setParentElementId - Element" << elementId << "parent changed from" << oldParentId << "to" << parentId;
         
         // If we're being parented (not unparented), reorder in the element list
         if (!parentId.isEmpty()) {

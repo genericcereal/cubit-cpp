@@ -17,7 +17,6 @@ DesignCanvas::DesignCanvas(ElementModel& model,
                            QObject *parent)
     : CanvasController(model, sel, parent)
 {
-    qDebug() << "DesignCanvas::DesignCanvas - Constructor called";
     
     // Connect to selection changes to clear hover when needed
     connect(&sel, &SelectionManager::selectionChanged,
@@ -36,7 +35,6 @@ DesignCanvas::DesignCanvas(ElementModel& model,
     
     // Check for existing frames and add global instances to them
     QList<Element*> existingElements = model.getAllElements();
-    qDebug() << "DesignCanvas::DesignCanvas - Found" << existingElements.size() << "existing elements";
     
     // Get the project from the element model's parent
     Project* project = qobject_cast<Project*>(m_elementModel.parent());
@@ -46,7 +44,6 @@ DesignCanvas::DesignCanvas(ElementModel& model,
             if (elem && elem->getType() == Element::FrameType) {
                 Frame* frame = qobject_cast<Frame*>(elem);
                 if (frame && frame->role() != Frame::appContainer) {
-                    qDebug() << "DesignCanvas::DesignCanvas - Adding global instances to existing frame" << frame->getId();
                     // Add global instances from all platforms
                     for (PlatformConfig* platform : platforms) {
                         if (platform && !platform->isAddingInstances()) {
@@ -262,28 +259,22 @@ void DesignCanvas::clearHoverIfSelected()
 
 void DesignCanvas::onElementAdded(Element* element)
 {
-    qDebug() << "DesignCanvas::onElementAdded - Element added:" << (element ? element->getId() : "null") 
-             << "Type:" << (element ? element->getTypeName() : "null");
     
     // Check if a new frame was added (not a global frame)
     if (element && element->getType() == Element::FrameType) {
         Frame* newFrame = qobject_cast<Frame*>(element);
-        qDebug() << "DesignCanvas::onElementAdded - Frame detected, role:" << (newFrame ? newFrame->role() : -1);
         if (newFrame && newFrame->role() != Frame::appContainer) {
             // Get the project from the element model's parent
             Project* project = qobject_cast<Project*>(m_elementModel.parent());
             if (!project) {
-                qDebug() << "DesignCanvas: No project found";
                 return;
             }
             
             // Skip if we're in globalElements mode - we don't want to add instances to frames being created as global elements
             if (project->viewMode() == "globalElements") {
-                qDebug() << "DesignCanvas::onElementAdded - Skipping global instance addition in globalElements mode";
                 return;
             }
             
-            qDebug() << "DesignCanvas::onElementAdded - Adding global instances to frame" << newFrame->getId();
             
             // Check all platform configs for global elements
             QList<PlatformConfig*> platforms = project->getAllPlatforms();

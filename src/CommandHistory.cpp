@@ -19,14 +19,11 @@ void CommandHistory::execute(std::unique_ptr<Command> command)
     }
 
     QString description = command->description();
-    qDebug() << "CommandHistory::execute() - executing command:" << description;
 
     command->execute();
     command->setExecuted(true);
 
     m_undoStack.push(std::move(command));
-    
-    qDebug() << "CommandHistory::execute() - command added to undo stack. Stack size:" << m_undoStack.size();
     
     // Clear redo stack
     while (!m_redoStack.empty()) {
@@ -41,25 +38,19 @@ void CommandHistory::execute(std::unique_ptr<Command> command)
 
 void CommandHistory::undo()
 {
-    qDebug() << "CommandHistory::undo() called. Can undo:" << canUndo() << "Stack size:" << m_undoStack.size();
     
     if (!canUndo()) {
-        qDebug() << "CommandHistory::undo() - cannot undo, returning";
         return;
     }
 
     std::unique_ptr<Command> command = std::move(const_cast<std::unique_ptr<Command>&>(m_undoStack.top()));
     m_undoStack.pop();
-    
-    qDebug() << "CommandHistory::undo() - undoing command:" << command->description();
 
     command->undo();
     command->setExecuted(false);
 
     m_redoStack.push(std::move(command));
     updateCanUndoRedo();
-    
-    qDebug() << "CommandHistory::undo() completed. New stack size:" << m_undoStack.size();
 }
 
 void CommandHistory::redo()

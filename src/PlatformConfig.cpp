@@ -34,13 +34,10 @@ PlatformConfig::PlatformConfig(Type type, QObject *parent)
     // Connect to element added signal to update existing frames
     connect(m_globalElements.get(), &ElementModel::elementAdded,
             this, [this](Element* element) {
-                qDebug() << "PlatformConfig: Element added to globalElements:" << element->getId();
                 
                 // Also connect to parentIdChanged for this element
                 connect(element, &Element::parentIdChanged,
                         this, [this, element]() {
-                    qDebug() << "PlatformConfig: Element parent changed:" << element->getId() 
-                             << "new parent:" << element->getParentElementId();
                     
                     // Check if we have a parent project with a main model
                     Project* project = nullptr;
@@ -162,7 +159,6 @@ void PlatformConfig::createPlatformOnLoadNode()
     if (!m_scripts)
         return;
 
-    qDebug() << "Creating platform onLoad node for" << m_name;
 
     // Clear any default nodes first
     m_scripts->clear();
@@ -217,7 +213,6 @@ void PlatformConfig::createInitialGlobalElements()
     if (!m_globalElements)
         return;
 
-    qDebug() << "Creating initial global elements for" << m_name;
 
     // Create a default frame
     QString frameId = UniqueIdGenerator::generate16DigitId();
@@ -282,7 +277,6 @@ void PlatformConfig::addGlobalElementInstancesToFrame(Frame *targetFrame, Elemen
     if (!targetFrame || !targetModel || !m_globalElements)
         return;
 
-    qDebug() << "PlatformConfig: Adding global element instances to frame" << targetFrame->getId();
 
     // Set flag to prevent recursive instance creation
     m_isAddingInstances = true;
@@ -290,21 +284,17 @@ void PlatformConfig::addGlobalElementInstancesToFrame(Frame *targetFrame, Elemen
     Frame *globalFrame = findGlobalFrame();
     if (!globalFrame)
     {
-        qDebug() << "PlatformConfig: No global frame found";
         m_isAddingInstances = false;
         return;
     }
 
     QList<Element *> globalElements = m_globalElements->getAllElements();
-    qDebug() << "PlatformConfig: Found" << globalElements.size() << "global elements";
 
     // Find all elements parented to the global frame
-    int instanceCount = 0;
     for (Element *elem : globalElements)
     {
         if (elem != globalFrame && elem->getParentElementId() == globalFrame->getId())
         {
-            qDebug() << "PlatformConfig: Found element" << elem->getId() << "type" << elem->getTypeName() << "parented to global frame";
 
             // Create an instance of this element in the target frame
             Element *instance = nullptr;
@@ -371,9 +361,6 @@ void PlatformConfig::addGlobalElementInstancesToFrame(Frame *targetFrame, Elemen
                     designInstance->setIsFrozen(true);
                     // Set the source element ID for tracking
                     designInstance->setGlobalElementSourceId(elem->getId());
-                    qDebug() << "PlatformConfig: Set isFrozen=true and sourceId=" << elem->getId() 
-                             << "for global instance" << instance->getId()
-                             << "type:" << instance->getTypeName();
                 }
 
                 // Mark as a global instance to prevent recursive parenting
@@ -397,7 +384,6 @@ void PlatformConfig::addGlobalElementInstancesToFrame(Frame *targetFrame, Elemen
 
                 // Add to the model
                 targetModel->addElement(instance);
-                instanceCount++;
                 
                 // Connect property synchronization for this global element
                 Project* project = nullptr;
@@ -414,7 +400,6 @@ void PlatformConfig::addGlobalElementInstancesToFrame(Frame *targetFrame, Elemen
         }
     }
 
-    qDebug() << "PlatformConfig: Created" << instanceCount << "instances";
 
     // Clear flag after we're done
     m_isAddingInstances = false;
@@ -430,21 +415,17 @@ void PlatformConfig::updateAllFramesWithNewGlobalElement(Element* globalElement,
     if (!globalFrame || globalElement->getParentElementId() != globalFrame->getId())
         return;
         
-    qDebug() << "PlatformConfig: New global element added:" << globalElement->getId() 
-             << "type:" << globalElement->getTypeName();
     
     // Set flag to prevent recursive instance creation
     m_isAddingInstances = true;
     
     // Find all top-level frames in the main model (frames without parents)
     QList<Element*> allElements = mainModel->getAllElements();
-    int updatedFrameCount = 0;
     
     for (Element* elem : allElements) {
         if (elem && elem->getType() == Element::FrameType && elem->getParentElementId().isEmpty()) {
             Frame* frame = qobject_cast<Frame*>(elem);
             if (frame && frame->role() != Frame::appContainer) {
-                qDebug() << "PlatformConfig: Adding instance to frame" << frame->getId();
                 
                 // Create an instance of the new global element
                 Element* instance = nullptr;
@@ -509,25 +490,16 @@ void PlatformConfig::updateAllFramesWithNewGlobalElement(Element* globalElement,
                         designInstance->setIsFrozen(true);
                         // Set the source element ID for tracking
                         designInstance->setGlobalElementSourceId(globalElement->getId());
-                        qDebug() << "PlatformConfig: Set isFrozen=true and sourceId=" << globalElement->getId()
-                                 << "for global instance" << instance->getId()
-                                 << "type:" << instance->getTypeName();
                     }
                     
                     // Add to the model
                     mainModel->addElement(instance);
                     
-                    qDebug() << "PlatformConfig: Created instance" << instance->getId() 
-                             << "with parent" << frame->getId()
-                             << "showInElementList:" << instance->showInElementList();
-                    
-                    updatedFrameCount++;
                 }
             }
         }
     }
     
-    qDebug() << "PlatformConfig: Updated" << updatedFrameCount << "frames with new global element";
     
     // Clear flag after we're done
     m_isAddingInstances = false;
@@ -541,13 +513,9 @@ void PlatformConfig::connectGlobalElementPropertySync(Element* globalElement, El
     
     // Check if already connected
     if (m_connectedGlobalElements.contains(elementId)) {
-        qDebug() << "PlatformConfig: Element" << elementId << "already connected for property sync";
         return;
     }
     
-    qDebug() << "PlatformConfig::connectGlobalElementPropertySync called for element" << elementId
-             << "type:" << globalElement->getTypeName()
-             << "parent:" << globalElement->getParentElementId();
     
     // Mark as connected
     m_connectedGlobalElements.insert(elementId);
@@ -679,43 +647,27 @@ void PlatformConfig::connectGlobalElementPropertySync(Element* globalElement, El
 void PlatformConfig::updateGlobalElementInstances(Element* sourceElement, ElementModel* mainModel)
 {
     if (!sourceElement || !mainModel || m_isAddingInstances) {
-        qDebug() << "PlatformConfig::updateGlobalElementInstances - Early return:"
-                 << "sourceElement:" << (sourceElement ? "valid" : "null")
-                 << "mainModel:" << (mainModel ? "valid" : "null")
-                 << "m_isAddingInstances:" << m_isAddingInstances;
         return;
     }
     
     // Check if the source element is still valid and not being destroyed
     if (!sourceElement->parent()) {
-        qDebug() << "PlatformConfig::updateGlobalElementInstances - Source element has no parent, likely being destroyed";
         return;
     }
     
     QString sourceId = sourceElement->getId();
-    qDebug() << "PlatformConfig: Updating instances of global element" << sourceId
-             << "type:" << sourceElement->getTypeName()
-             << "parentId:" << sourceElement->getParentElementId();
     
     // Find all instances with this source ID
     QList<Element*> allElements = mainModel->getAllElements();
-    int updateCount = 0;
-    int checkedCount = 0;
     
-    qDebug() << "  Checking" << allElements.size() << "elements in main model";
     
     for (Element* element : allElements) {
-        checkedCount++;
         if (DesignElement* designElement = qobject_cast<DesignElement*>(element)) {
             QString instanceSourceId = designElement->globalElementSourceId();
             if (!instanceSourceId.isEmpty() && instanceSourceId == sourceId) {
-                qDebug() << "  Found instance to update:" << element->getId()
-                         << "with sourceId:" << instanceSourceId
-                         << "parentId:" << element->getParentElementId();
                 
                 // Update properties
                 QStringList propNames = sourceElement->propertyNames();
-                qDebug() << "    Properties to update:" << propNames;
                 
                 for (const QString& propName : propNames) {
                     // Skip properties that shouldn't be synced
@@ -725,7 +677,6 @@ void PlatformConfig::updateGlobalElementInstances(Element* sourceElement, Elemen
                         QVariant value = sourceElement->getProperty(propName);
                         QVariant oldValue = element->getProperty(propName);
                         element->setProperty(propName, value);
-                        qDebug() << "    Updated property" << propName << "from" << oldValue << "to" << value;
                     }
                 }
                 
@@ -733,12 +684,8 @@ void PlatformConfig::updateGlobalElementInstances(Element* sourceElement, Elemen
                 if (CanvasElement* sourceCanvas = qobject_cast<CanvasElement*>(sourceElement)) {
                     if (CanvasElement* instanceCanvas = qobject_cast<CanvasElement*>(element)) {
                         // Update size properties
-                        qreal oldWidth = instanceCanvas->width();
-                        qreal oldHeight = instanceCanvas->height();
                         instanceCanvas->setWidth(sourceCanvas->width());
                         instanceCanvas->setHeight(sourceCanvas->height());
-                        qDebug() << "    Updated size from" << oldWidth << "x" << oldHeight
-                                 << "to" << sourceCanvas->width() << "x" << sourceCanvas->height();
                         
                         // Update relative position if both elements are parented
                         if (!sourceElement->getParentElementId().isEmpty() && !element->getParentElementId().isEmpty()) {
@@ -755,27 +702,22 @@ void PlatformConfig::updateGlobalElementInstances(Element* sourceElement, Elemen
                                     // Update the instance's absolute position based on its parent + relative offset
                                     instanceCanvas->setX(instanceParentCanvas->x() + relativeX);
                                     instanceCanvas->setY(instanceParentCanvas->y() + relativeY);
-                                    qDebug() << "    Updated position to" << instanceCanvas->x() << "," << instanceCanvas->y()
-                                             << "(relative:" << relativeX << "," << relativeY << ")";
                                 }
                             }
                         }
                     }
                 }
                 
-                updateCount++;
             }
         }
     }
     
-    qDebug() << "PlatformConfig: Checked" << checkedCount << "elements, updated" << updateCount << "instances";
 }
 
 void PlatformConfig::connectAllGlobalElementsPropertySync(ElementModel* mainModel)
 {
     if (!m_globalElements || !mainModel) return;
     
-    qDebug() << "PlatformConfig::connectAllGlobalElementsPropertySync called";
     
     QList<Element*> globalElements = m_globalElements->getAllElements();
     for (Element* element : globalElements) {
@@ -787,33 +729,25 @@ void PlatformConfig::updateGlobalElementsAfterMove(const QList<Element*>& movedE
 {
     if (!m_globalElements || !mainModel || movedElements.isEmpty()) return;
     
-    qDebug() << "PlatformConfig::updateGlobalElementsAfterMove called for platform" << m_name 
-             << "with" << movedElements.size() << "elements";
     
     // Check each moved element to see if it's a global element or instance
     for (Element* element : movedElements) {
         if (!element) continue;
         
-        qDebug() << "  Checking element" << element->getId() << "type:" << element->getTypeName();
         
         // First check if this element exists in our global elements
         if (m_globalElements->getElementById(element->getId())) {
-            qDebug() << "  -> Element" << element->getId() << "is a global element in platform" << m_name;
             updateGlobalElementInstances(element, mainModel);
         } else {
             // Check if this is an instance of a global element (has globalElementSourceId)
             if (DesignElement* designElement = qobject_cast<DesignElement*>(element)) {
                 QString sourceId = designElement->globalElementSourceId();
-                qDebug() << "  -> Element has globalElementSourceId:" << sourceId;
                 if (!sourceId.isEmpty()) {
                     // Find the source global element
                     Element* sourceElement = m_globalElements->getElementById(sourceId);
                     if (sourceElement) {
-                        qDebug() << "  -> Found source element" << sourceId << "in platform" << m_name 
-                                 << ", updating all instances";
                         updateGlobalElementInstances(sourceElement, mainModel);
                     } else {
-                        qDebug() << "  -> Source element" << sourceId << "not found in platform" << m_name;
                     }
                 }
             }
