@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Controls
-import Cubit.UI 1.0
 import "../design-controls"
 
 Item {

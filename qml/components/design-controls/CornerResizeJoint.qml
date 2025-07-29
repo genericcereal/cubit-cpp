@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import Cubit 1.0
-import Cubit.UI 1.0
+import "../.."
 
 Item {
     id: resizeJointContainer
@@ -38,7 +38,7 @@ Item {
     Rectangle {
         id: resizeJoint
         anchors.fill: parent
-        color: allSelectedAreComponentRelated ? Config.componentControlResizeJointColor : Config.controlResizeJointColor
+        color: allSelectedAreComponentRelated ? ConfigObject.componentControlResizeJointColor : ConfigObject.controlResizeJointColor
         antialiasing: true
         visible: resizeJointContainer.showResizeJoints && !(resizeJointContainer.dragging && resizeJointContainer.dragMode.startsWith("resize-corner-"))
         
@@ -48,8 +48,8 @@ Item {
             width: 10
             height: 10
             radius: 5
-            color: Config.controlJointCircleFill
-            border.color: allSelectedAreComponentRelated ? Config.componentControlJointCircleBorder : Config.controlJointCircleBorder
+            color: ConfigObject.controlJointCircleFill
+            border.color: allSelectedAreComponentRelated ? ConfigObject.componentControlJointCircleBorder : ConfigObject.controlJointCircleBorder
             border.width: 1
             antialiasing: true
         }

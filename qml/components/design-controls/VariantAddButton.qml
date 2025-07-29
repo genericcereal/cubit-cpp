@@ -1,14 +1,13 @@
 import QtQuick
 import QtQuick.Controls
 import Cubit 1.0
-import Cubit.UI 1.0
 
 Rectangle {
     id: componentVariantAddButton
     width: 30
     height: 30
     radius: 15
-    color: Config.componentControlBarColor
+    color: ConfigObject.componentControlBarColor
     
     // Remove this property - now handled by designControls context property
     property var controller: null

@@ -47,6 +47,9 @@ public:
     // Parent relationship resolution
     Q_INVOKABLE void resolveParentRelationships();
     
+    // Instance synchronization
+    Q_INVOKABLE void syncInstancesFromSource(Element* sourceElement);
+    
 signals:
     void elementAdded(Element *element);
     void elementRemoved(const QString &elementId);
@@ -55,11 +58,15 @@ signals:
     
 private slots:
     void onElementChanged();
+    void onSourceElementPropertyChanged();
     
 private:
     QList<Element*> m_elements;
+    QSet<QString> m_connectedSourceElements; // Track which source elements we've connected to
     
     void connectElement(Element *element);
     void disconnectElement(Element *element);
+    void connectSourceElement(Element* sourceElement);
+    void disconnectSourceElement(Element* sourceElement);
     int findElementIndex(const QString &elementId) const;
 };

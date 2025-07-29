@@ -39,6 +39,7 @@
 #include "CanvasContext.h"
 #include "PropertyRegistry.h"
 #include "AdaptiveThrottler.h"
+#include "ConfigObject.h"
 
 int main(int argc, char *argv[])
 {
@@ -177,8 +178,14 @@ int main(int argc, char *argv[])
     // Register authentication manager as context property
     engine.rootContext()->setContextProperty("authManager", authManager);
 
-    // Register QML singleton
-    qmlRegisterSingletonType(QUrl("qrc:/qml/Config.qml"), "Cubit.UI", 1, 0, "Config");
+    // Register ConfigObject singleton
+    qmlRegisterSingletonType<ConfigObject>("Cubit", 1, 0, "ConfigObject",
+                                          [](QQmlEngine *engine, QJSEngine *scriptEngine) -> QObject *
+                                          {
+                                              Q_UNUSED(engine)
+                                              Q_UNUSED(scriptEngine)
+                                              return new ConfigObject();
+                                          });
 
     const QUrl url(QStringLiteral("qrc:/qml/main.qml"));
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated, &app, [url](QObject *obj, const QUrl &objUrl)

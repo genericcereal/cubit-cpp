@@ -1,7 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import Cubit 1.0
-import Cubit.UI 1.0
+import ".."
 import "."
 
 Item {
@@ -75,7 +75,7 @@ Item {
         anchors.fill: parent
         
         // Frame-specific properties - use the fill property
-        color: frameElement ? frameElement.fill : Config.elementBackgroundColor
+        color: frameElement ? frameElement.fill : ConfigObject.elementBackgroundColor
         border.width: 0
         radius: frameElement ? frameElement.borderRadius : 0
         antialiasing: true

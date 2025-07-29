@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Controls
 import Cubit 1.0
-import Cubit.UI 1.0
 import ".."
 import "../CanvasUtils.js" as Utils
 
@@ -30,13 +29,13 @@ Item {
         
         // Variable nodes only have header
         if (nodeElement.nodeType === "Variable") {
-            return Config.nodeHeaderHeight
+            return ConfigObject.nodeHeaderHeight
         }
         
-        var titleHeight = Config.nodeHeaderHeight  // Node header height from Config
+        var titleHeight = ConfigObject.nodeHeaderHeight  // Node header height from Config
         var topMargin = 10    // Title top margin
         var titleBottomMargin = 15  // Space between title and columns
-        var containerBottomMargin = Config.nodeBottomMargin   // Bottom margin from Config
+        var containerBottomMargin = ConfigObject.nodeBottomMargin   // Bottom margin from Config
         var rowHeight = 30   // Height of each row
         var rowSpacing = 10  // Spacing between rows
         
@@ -46,7 +45,7 @@ Item {
         var totalHeight = topMargin + titleHeight + titleBottomMargin + contentHeight + containerBottomMargin
         
         // Ensure minimum height from Config
-        return Math.max(totalHeight, Config.nodeMinHeight)
+        return Math.max(totalHeight, ConfigObject.nodeMinHeight)
     }
     
     // Update element height when calculated height changes
@@ -391,7 +390,7 @@ Item {
             anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
-            height: Config.nodeHeaderHeight
+            height: ConfigObject.nodeHeaderHeight
             z: 2  // Ensure header is above the node body MouseArea
             
             // Background color based on node type
@@ -399,30 +398,30 @@ Item {
                 var type = nodeElement && nodeElement.nodeType ? nodeElement.nodeType : "Operation"
                 switch(type) {
                     case "Event":
-                        return Config.nodeHeaderEventColor
+                        return ConfigObject.nodeHeaderEventColor
                     case "Operation":
-                        return Config.nodeHeaderOperationColor
+                        return ConfigObject.nodeHeaderOperationColor
                     case "Param":
-                        return Config.nodeHeaderParamColor
+                        return ConfigObject.nodeHeaderParamColor
                     case "Variable":
-                        return Config.nodeHeaderVariableColor
+                        return ConfigObject.nodeHeaderVariableColor
                     default:
-                        return Config.nodeHeaderOperationColor
+                        return ConfigObject.nodeHeaderOperationColor
                 }
             }
             
             Text {
                 id: headerText
                 text: nodeElement ? nodeElement.nodeTitle : "Node"
-                color: Config.nodeHeaderTextColor
-                font.pixelSize: Config.nodeHeaderTextSize
+                color: ConfigObject.nodeHeaderTextColor
+                font.pixelSize: ConfigObject.nodeHeaderTextSize
                 anchors {
                     left: parent.left
-                    leftMargin: Config.nodeHeaderPadding
+                    leftMargin: ConfigObject.nodeHeaderPadding
                     verticalCenter: parent.verticalCenter
                 }
                 elide: Text.ElideRight
-                width: parent.width - (2 * Config.nodeHeaderPadding)
+                width: parent.width - (2 * ConfigObject.nodeHeaderPadding)
             }
         }
         
@@ -456,10 +455,10 @@ Item {
                         height: 30
                         
                         property var targetConfig: modelData
-                        property bool hasTarget: targetConfig.hasTarget || false
-                        property int targetPortIndex: hasTarget ? (targetConfig.targetPortIndex || -1) : -1
-                        property string targetType: hasTarget ? (targetConfig.targetType || "Flow") : ""
-                        property string targetLabel: hasTarget ? (targetConfig.targetLabel || "") : ""
+                        property bool hasTarget: targetConfigObject.hasTarget || false
+                        property int targetPortIndex: hasTarget ? (targetConfigObject.targetPortIndex || -1) : -1
+                        property string targetType: hasTarget ? (targetConfigObject.targetType || "Flow") : ""
+                        property string targetLabel: hasTarget ? (targetConfigObject.targetLabel || "") : ""
                         
                         // Check if this target port has an incoming edge
                         property bool hasIncomingEdge: {
@@ -640,10 +639,10 @@ Item {
                         height: 30
                         
                         property var sourceConfig: modelData
-                        property bool hasSource: sourceConfig.hasSource || false
-                        property int sourcePortIndex: hasSource ? (sourceConfig.sourcePortIndex || -1) : -1
-                        property string sourceType: hasSource ? (sourceConfig.sourceType || "Flow") : ""
-                        property string sourceLabel: hasSource ? (sourceConfig.sourceLabel || "") : ""
+                        property bool hasSource: sourceConfigObject.hasSource || false
+                        property int sourcePortIndex: hasSource ? (sourceConfigObject.sourcePortIndex || -1) : -1
+                        property string sourceType: hasSource ? (sourceConfigObject.sourceType || "Flow") : ""
+                        property string sourceLabel: hasSource ? (sourceConfigObject.sourceLabel || "") : ""
                         
                         // Check if handle is hovered
                         property bool handleHovered: {

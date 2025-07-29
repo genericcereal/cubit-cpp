@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Controls
 import Cubit 1.0
-import Cubit.UI 1.0
 import "../design-controls"
 
 Item {
@@ -121,7 +120,7 @@ Item {
     // Throttled update component for scroll operations
     ThrottledUpdate {
         id: scrollThrottle
-        // interval uses default from Config.throttleInterval
+        // interval uses default from ConfigObject.throttleInterval
         active: root.isSimulatingScroll
         
         onUpdate: (data) => {

@@ -510,9 +510,6 @@ void FlexLayoutEngine::disconnectChildGeometrySignals(Frame* parentFrame)
         QObject::disconnect(it.value());
     }
     m_childConnections.clear();
-    
-    qDebug() << "FlexLayoutEngine - Disconnected all child geometry signals for parent" 
-             << parentFrame->getId();
 }
 
 void FlexLayoutEngine::captureInitialMargins(Frame* parentFrame, const QList<Element*>& children)

@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import Cubit 1.0
-import Cubit.UI 1.0
+import "../.."
 
 Rectangle {
     id: edgeBar
@@ -13,7 +13,7 @@ Rectangle {
     property bool flexHeightFitContent: false
     property bool flexWidthFitContent: false
     
-    color: allSelectedAreComponentRelated ? Config.componentControlBarColor : Config.controlBarColor
+    color: allSelectedAreComponentRelated ? ConfigObject.componentControlBarColor : ConfigObject.controlBarColor
     antialiasing: true
     
     signal resizeStarted(int edgeIndex, var anchorEdgePoint1, var anchorEdgePoint2, var draggedEdgePoint1, var draggedEdgePoint2)

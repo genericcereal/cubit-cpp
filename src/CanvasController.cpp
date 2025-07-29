@@ -13,6 +13,8 @@
 #include "commands/ResizeElementCommand.h"
 #include "commands/SetPropertyCommand.h"
 #include "commands/ChangeParentCommand.h"
+#include "commands/CreateComponentCommand.h"
+#include "commands/CreateInstanceCommand.h"
 #include "IModeHandler.h"
 #include "SelectModeHandler.h"
 #include "CreationModeHandler.h"
@@ -300,6 +302,18 @@ void CanvasController::createGraphFromJson(const QString &jsonData)
 {
     m_jsonImporter->setCreationManager(m_creationManager.get());
     m_jsonImporter->createGraphFromJson(jsonData);
+}
+
+void CanvasController::createComponent(DesignElement* sourceElement)
+{
+    if (!sourceElement || !m_commandHistory) {
+        qWarning() << "CanvasController::createComponent - Invalid source element or command history";
+        return;
+    }
+    
+    // Create and execute the command
+    auto command = std::make_unique<CreateComponentCommand>(&m_elementModel, sourceElement);
+    m_commandHistory->execute(std::move(command));
 }
 
 void CanvasController::duplicateVariant(const QString &variantId)

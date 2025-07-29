@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import Cubit 1.0
-import Cubit.UI 1.0
+import "../.."
 
 Rectangle {
     id: borderRadiusControl
@@ -17,7 +17,7 @@ Rectangle {
     property real parentHeight: 100
     property var selectedFrame: null
     
-    color: allSelectedAreComponentRelated ? Config.componentControlResizeJointColor : Config.controlResizeJointColor
+    color: allSelectedAreComponentRelated ? ConfigObject.componentControlResizeJointColor : ConfigObject.controlResizeJointColor
     
     // Drag progress along diagonal (0 = top-left corner, 1 = center)
     property real dragProgress: 0

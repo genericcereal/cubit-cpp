@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Shapes
 import Cubit 1.0
-import Cubit.UI 1.0
 
 Item {
     id: root

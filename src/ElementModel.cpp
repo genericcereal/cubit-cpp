@@ -1,8 +1,14 @@
 #include "ElementModel.h"
 #include "Element.h"
 #include "CanvasElement.h"
+#include "DesignElement.h"
 #include "Frame.h"
+#include "Text.h"
+#include "Shape.h"
+#include "platforms/web/WebTextInput.h"
 #include "UniqueIdGenerator.h"
+#include <QDebug>
+#include <QPointer>
 
 ElementModel::ElementModel(QObject *parent)
     : QAbstractListModel(parent)
@@ -11,6 +17,15 @@ ElementModel::ElementModel(QObject *parent)
 
 ElementModel::~ElementModel()
 {
+    // Disconnect all source element connections before destruction
+    for (const QString& sourceId : m_connectedSourceElements) {
+        Element* sourceElement = getElementById(sourceId);
+        if (sourceElement) {
+            disconnect(sourceElement, nullptr, this, nullptr);
+        }
+    }
+    m_connectedSourceElements.clear();
+    
     clear();
 }
 
@@ -304,6 +319,18 @@ void ElementModel::connectElement(Element *element)
 {
     connect(element, &Element::elementChanged, this, &ElementModel::onElementChanged);
     connect(element, &Element::selectedChanged, this, &ElementModel::onElementChanged);
+    
+    // Check if this element is an instance (has a sourceId)
+    if (DesignElement* designElement = qobject_cast<DesignElement*>(element)) {
+        QString sourceId = designElement->sourceId();
+        if (!sourceId.isEmpty()) {
+            // Find the source element and connect to its property changes
+            Element* sourceElement = getElementById(sourceId);
+            if (sourceElement) {
+                connectSourceElement(sourceElement);
+            }
+        }
+    }
 }
 
 void ElementModel::disconnectElement(Element *element)
@@ -350,4 +377,183 @@ void ElementModel::refresh()
     endResetModel();
     emit elementChanged();
     qDebug() << "ElementModel::refresh - Forced model refresh";
+}
+
+void ElementModel::connectSourceElement(Element* sourceElement)
+{
+    if (!sourceElement) return;
+    
+    QString sourceId = sourceElement->getId();
+    
+    // Check if already connected
+    if (m_connectedSourceElements.contains(sourceId)) {
+        return;
+    }
+    
+    // Mark as connected
+    m_connectedSourceElements.insert(sourceId);
+    
+    // Use QPointer for safety
+    QPointer<Element> safeSource = sourceElement;
+    QPointer<ElementModel> safeModel = this;
+    
+    // Connect to property changes based on element type
+    // For CanvasElement properties (width, height only - position changes handled by move command)
+    if (CanvasElement* canvasElement = qobject_cast<CanvasElement*>(sourceElement)) {
+        connect(canvasElement, &CanvasElement::widthChanged,
+                this, [safeSource, safeModel]() {
+                    if (safeSource && safeModel) {
+                        safeModel->syncInstancesFromSource(safeSource);
+                    }
+                });
+                
+        connect(canvasElement, &CanvasElement::heightChanged,
+                this, [safeSource, safeModel]() {
+                    if (safeSource && safeModel) {
+                        safeModel->syncInstancesFromSource(safeSource);
+                    }
+                });
+    }
+    
+    // For DesignElement anchor properties
+    if (DesignElement* designElement = qobject_cast<DesignElement*>(sourceElement)) {
+        // Only connect to anchor state changes (enabled/disabled)
+        connect(designElement, &DesignElement::leftAnchoredChanged,
+                this, [safeSource, safeModel]() {
+                    if (safeSource && safeModel) {
+                        safeModel->syncInstancesFromSource(safeSource);
+                    }
+                });
+                
+        connect(designElement, &DesignElement::rightAnchoredChanged,
+                this, [safeSource, safeModel]() {
+                    if (safeSource && safeModel) {
+                        safeModel->syncInstancesFromSource(safeSource);
+                    }
+                });
+                
+        connect(designElement, &DesignElement::topAnchoredChanged,
+                this, [safeSource, safeModel]() {
+                    if (safeSource && safeModel) {
+                        safeModel->syncInstancesFromSource(safeSource);
+                    }
+                });
+                
+        connect(designElement, &DesignElement::bottomAnchoredChanged,
+                this, [safeSource, safeModel]() {
+                    if (safeSource && safeModel) {
+                        safeModel->syncInstancesFromSource(safeSource);
+                    }
+                });
+    }
+    
+    // For Frame-specific properties
+    if (Frame* frame = qobject_cast<Frame*>(sourceElement)) {
+        connect(frame, &Frame::fillChanged,
+                this, [safeSource, safeModel]() {
+                    if (safeSource && safeModel) {
+                        safeModel->syncInstancesFromSource(safeSource);
+                    }
+                });
+                
+        connect(frame, &Frame::borderColorChanged,
+                this, [safeSource, safeModel]() {
+                    if (safeSource && safeModel) {
+                        safeModel->syncInstancesFromSource(safeSource);
+                    }
+                });
+                
+        connect(frame, &Frame::borderWidthChanged,
+                this, [safeSource, safeModel]() {
+                    if (safeSource && safeModel) {
+                        safeModel->syncInstancesFromSource(safeSource);
+                    }
+                });
+                
+        connect(frame, &Frame::borderRadiusChanged,
+                this, [safeSource, safeModel]() {
+                    if (safeSource && safeModel) {
+                        safeModel->syncInstancesFromSource(safeSource);
+                    }
+                });
+    }
+    
+    // For Text-specific properties
+    if (Text* text = qobject_cast<Text*>(sourceElement)) {
+        connect(text, &Text::contentChanged,
+                this, [safeSource, safeModel]() {
+                    if (safeSource && safeModel) {
+                        safeModel->syncInstancesFromSource(safeSource);
+                    }
+                });
+                
+        connect(text, &Text::fontChanged,
+                this, [safeSource, safeModel]() {
+                    if (safeSource && safeModel) {
+                        safeModel->syncInstancesFromSource(safeSource);
+                    }
+                });
+                
+        connect(text, &Text::colorChanged,
+                this, [safeSource, safeModel]() {
+                    if (safeSource && safeModel) {
+                        safeModel->syncInstancesFromSource(safeSource);
+                    }
+                });
+    }
+}
+
+void ElementModel::disconnectSourceElement(Element* sourceElement)
+{
+    if (!sourceElement) return;
+    
+    QString sourceId = sourceElement->getId();
+    m_connectedSourceElements.remove(sourceId);
+    
+    // Disconnect all connections from this source element
+    disconnect(sourceElement, nullptr, this, nullptr);
+}
+
+void ElementModel::syncInstancesFromSource(Element* sourceElement)
+{
+    if (!sourceElement) return;
+    
+    QString sourceId = sourceElement->getId();
+    
+    // Find all instances with this source ID
+    for (Element* element : m_elements) {
+        if (DesignElement* designElement = qobject_cast<DesignElement*>(element)) {
+            if (designElement->sourceId() == sourceId) {
+                // Update properties from source
+                QStringList propNames = sourceElement->propertyNames();
+                
+                for (const QString& propName : propNames) {
+                    // Skip properties that shouldn't be synced
+                    if (propName != "elementId" && propName != "parentId" && 
+                        propName != "selected" && propName != "x" && propName != "y") {
+                        
+                        QVariant value = sourceElement->getProperty(propName);
+                        element->setProperty(propName, value);
+                    }
+                }
+                
+                // Update size properties if applicable
+                if (CanvasElement* sourceCanvas = qobject_cast<CanvasElement*>(sourceElement)) {
+                    if (CanvasElement* instanceCanvas = qobject_cast<CanvasElement*>(element)) {
+                        instanceCanvas->setWidth(sourceCanvas->width());
+                        instanceCanvas->setHeight(sourceCanvas->height());
+                    }
+                }
+            }
+        }
+    }
+}
+
+void ElementModel::onSourceElementPropertyChanged()
+{
+    // This slot is called when a source element's property changes
+    Element* sourceElement = qobject_cast<Element*>(sender());
+    if (sourceElement) {
+        syncInstancesFromSource(sourceElement);
+    }
 }

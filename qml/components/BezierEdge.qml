@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Shapes
 import Cubit 1.0
-import Cubit.UI 1.0
 
 Shape {
     id: bezierRoot
@@ -29,22 +28,22 @@ Shape {
     }
     
     property string strokeColor: {
-        if (!edge) return Config.edgeFlowColor
+        if (!edge) return ConfigObject.edgeFlowColor
         
         if (edgeType === "Flow") {
-            return edge.selected ? Config.edgeFlowSelectedColor : Config.edgeFlowColor
+            return edge.selected ? ConfigObject.edgeFlowSelectedColor : ConfigObject.edgeFlowColor
         } else {
-            return edge.selected ? Config.edgeVariableSelectedColor : Config.edgeVariableColor
+            return edge.selected ? ConfigObject.edgeVariableSelectedColor : ConfigObject.edgeVariableColor
         }
     }
     
     property int strokeWidth: {
-        if (!edge) return Config.edgeFlowWidth
+        if (!edge) return ConfigObject.edgeFlowWidth
         
         if (edgeType === "Flow") {
-            return edge.selected ? Config.edgeFlowSelectedWidth : Config.edgeFlowWidth
+            return edge.selected ? ConfigObject.edgeFlowSelectedWidth : ConfigObject.edgeFlowWidth
         } else {
-            return edge.selected ? Config.edgeVariableSelectedWidth : Config.edgeVariableWidth
+            return edge.selected ? ConfigObject.edgeVariableSelectedWidth : ConfigObject.edgeVariableWidth
         }
     }
     

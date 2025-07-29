@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Controls
 import Cubit 1.0
-import Cubit.UI 1.0
 import "../CanvasUtils.js" as Utils
 import "."
 import "design-controls"
@@ -51,7 +50,7 @@ BaseCanvas {
         // Throttled update for element creation
         ThrottledUpdate {
             id: creationThrottle
-            // interval uses default from Config.throttleInterval
+            // interval uses default from ConfigObject.throttleInterval
             active: root.isCreatingElement
             
             onUpdate: (data) => {

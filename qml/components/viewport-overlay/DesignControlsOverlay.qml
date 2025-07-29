@@ -1,6 +1,5 @@
 import QtQuick
 import Cubit 1.0
-import Cubit.UI 1.0
 import "../design-controls"
 import "../shape-controls"
 import "OverlayUtils.js" as OverlayUtils
@@ -568,7 +567,7 @@ Item {
                 // Use the mouse position from BaseCanvas
                 return canvasView ? canvasView.lastMousePosition : {x: 0, y: 0}
             })
-            item.z = Config.zHoverBadge
+            item.z = ConfigObject.zHoverBadge
         }
     }
     

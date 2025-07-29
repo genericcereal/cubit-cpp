@@ -116,6 +116,9 @@ public slots:
     Q_INVOKABLE void createNodesFromJson(const QString &jsonData);
     Q_INVOKABLE void createGraphFromJson(const QString &jsonData);
     
+    // Component operations
+    Q_INVOKABLE void createComponent(DesignElement* sourceElement);
+    
     // Component variant operations
     Q_INVOKABLE void duplicateVariant(const QString &variantId);
     

@@ -64,13 +64,8 @@ GroupBox {
             
             
             onClicked: {
-                if (selectedDesignElement) {
-                    var component = selectedDesignElement.createComponent()
-                    if (component) {
-                        if (canvas && canvas.console) {
-                            canvas.console.addOutput("Component created with ID: " + component.elementId)
-                        }
-                    }
+                if (selectedDesignElement && canvas && canvas.controller) {
+                    canvas.controller.createComponent(selectedDesignElement)
                 }
             }
         }

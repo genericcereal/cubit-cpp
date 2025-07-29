@@ -1,6 +1,5 @@
 import QtQuick
 import Cubit 1.0
-import Cubit.UI 1.0
 
 // Visual bounding box that surrounds all selected elements
 Rectangle {

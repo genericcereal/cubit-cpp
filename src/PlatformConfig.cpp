@@ -360,7 +360,7 @@ void PlatformConfig::addGlobalElementInstancesToFrame(Frame *targetFrame, Elemen
                 if (DesignElement* designInstance = qobject_cast<DesignElement*>(instance)) {
                     designInstance->setIsFrozen(true);
                     // Set the source element ID for tracking
-                    designInstance->setGlobalElementSourceId(elem->getId());
+                    designInstance->setSourceId(elem->getId());
                 }
 
                 // Mark as a global instance to prevent recursive parenting
@@ -489,7 +489,7 @@ void PlatformConfig::updateAllFramesWithNewGlobalElement(Element* globalElement,
                     if (DesignElement* designInstance = qobject_cast<DesignElement*>(instance)) {
                         designInstance->setIsFrozen(true);
                         // Set the source element ID for tracking
-                        designInstance->setGlobalElementSourceId(globalElement->getId());
+                        designInstance->setSourceId(globalElement->getId());
                     }
                     
                     // Add to the model
@@ -663,7 +663,7 @@ void PlatformConfig::updateGlobalElementInstances(Element* sourceElement, Elemen
     
     for (Element* element : allElements) {
         if (DesignElement* designElement = qobject_cast<DesignElement*>(element)) {
-            QString instanceSourceId = designElement->globalElementSourceId();
+            QString instanceSourceId = designElement->sourceId();
             if (!instanceSourceId.isEmpty() && instanceSourceId == sourceId) {
                 
                 // Update properties
@@ -739,9 +739,9 @@ void PlatformConfig::updateGlobalElementsAfterMove(const QList<Element*>& movedE
         if (m_globalElements->getElementById(element->getId())) {
             updateGlobalElementInstances(element, mainModel);
         } else {
-            // Check if this is an instance of a global element (has globalElementSourceId)
+            // Check if this is an instance of a global element (has sourceId)
             if (DesignElement* designElement = qobject_cast<DesignElement*>(element)) {
-                QString sourceId = designElement->globalElementSourceId();
+                QString sourceId = designElement->sourceId();
                 if (!sourceId.isEmpty()) {
                     // Find the source global element
                     Element* sourceElement = m_globalElements->getElementById(sourceId);
