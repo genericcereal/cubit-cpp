@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Controls
 import Cubit 1.0
-import Cubit.UI 1.0
 import "."
 import "../CanvasUtils.js" as Utils
 
@@ -54,7 +53,7 @@ BaseCanvas {
     // Timer to update edges during node dragging
     Timer {
         id: edgeUpdateTimer
-        interval: Config.throttleInterval  // Use global throttle interval
+        interval: ConfigObject.throttleInterval  // Use global throttle interval
         repeat: true
         running: isNodeDragging
         onTriggered: {
@@ -327,8 +326,8 @@ BaseCanvas {
                             var foundTarget = false
                             for (var j = 0; j < currentTargetNode.rowConfigurations.length; j++) {
                                 var targetConfig = currentTargetNode.rowConfigurations[j]
-                                if (targetConfig.hasTarget) {
-                                    if (targetConfig.targetPortIndex === edgeObj.targetPortIndex) {
+                                if (targetConfigObject.hasTarget) {
+                                    if (targetConfigObject.targetPortIndex === edgeObj.targetPortIndex) {
                                         foundTarget = true
                                         break
                                     }
@@ -514,8 +513,8 @@ BaseCanvas {
                         var foundTarget = false
                         for (var j = 0; j < root.dragSourceNode.rowConfigurations.length; j++) {
                             var targetConfig = root.dragSourceNode.rowConfigurations[j]
-                            if (targetConfig.hasTarget) {
-                                if (targetConfig.targetPortIndex === root.dragSourcePortIndex) {
+                            if (targetConfigObject.hasTarget) {
+                                if (targetConfigObject.targetPortIndex === root.dragSourcePortIndex) {
                                     foundTarget = true
                                     break
                                 }
@@ -816,7 +815,7 @@ BaseCanvas {
                 
                 for (var k = 0; k < rowConfigs.length; k++) {
                     var sourceConfig = rowConfigs[k]
-                    if (sourceConfig.hasSource) {
+                    if (sourceConfigObject.hasSource) {
                         var sourceHandleY = element.y + titleAndMargins + sourceIndex * 40 + 15
                         var sourceHandleX = rightColumnX + columnWidth - 10  // 10px from right edge to center
                         
@@ -824,8 +823,8 @@ BaseCanvas {
                             return {
                                 node: element,
                                 handleType: "right",
-                                portIndex: sourceConfig.sourcePortIndex,
-                                portType: sourceConfig.sourceType || "Flow"
+                                portIndex: sourceConfigObject.sourcePortIndex,
+                                portType: sourceConfigObject.sourceType || "Flow"
                             }
                         }
                         sourceIndex++

@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import Cubit 1.0
-import Cubit.UI 1.0
+import "../.."
 
 Rectangle {
     id: rotationJoint
@@ -16,7 +16,7 @@ Rectangle {
     // Remove these properties - now handled by designControls context property
     property real controlRotation: 0
     
-    color: allSelectedAreComponentRelated ? Config.componentControlRotationJointColor : Config.controlRotationJointColor
+    color: allSelectedAreComponentRelated ? ConfigObject.componentControlRotationJointColor : ConfigObject.controlRotationJointColor
     
     signal rotationStarted(var startMousePos, real startAngle)
     signal rotationPositionChanged(var currentMousePos, real currentAngle)

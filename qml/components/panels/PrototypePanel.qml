@@ -2,7 +2,6 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 2.15
 import Cubit 1.0
-import Cubit.UI 1.0
 import ".."
 
 Rectangle {
@@ -13,8 +12,8 @@ Rectangle {
     
     width: 250
     height: 100
-    color: Config.panelBackground
-    border.color: Config.controlsBorderColor
+    color: ConfigObject.panelBackground
+    border.color: ConfigObject.controlsBorderColor
     border.width: 1
     
     ColumnLayout {
@@ -28,7 +27,7 @@ Rectangle {
             
             Text {
                 text: "Prototype Mode:"
-                color: Config.textColor
+                color: ConfigObject.textColor
                 font.pixelSize: 12
                 Layout.alignment: Qt.AlignVCenter
             }
@@ -39,7 +38,7 @@ Rectangle {
                 Layout.preferredHeight: 30
                 enabled: false  // Disabled - mode is dictated by the platform of the launching element
                 
-                model: Config.platformOptions
+                model: ConfigObject.platformOptions
                 currentIndex: {
                     if (root.canvas && 
                         root.canvas.prototypeController) {

@@ -227,10 +227,10 @@ void DesignElement::setIsFrozen(bool frozen) {
     }
 }
 
-void DesignElement::setGlobalElementSourceId(const QString& sourceId) {
-    if (m_globalElementSourceId != sourceId) {
-        m_globalElementSourceId = sourceId;
-        emit globalElementSourceIdChanged();
+void DesignElement::setSourceId(const QString& sourceId) {
+    if (m_sourceId != sourceId) {
+        m_sourceId = sourceId;
+        emit sourceIdChanged();
     }
 }
 
@@ -518,5 +518,5 @@ void DesignElement::registerProperties() {
     m_properties->registerProperty("topAnchored", false);
     m_properties->registerProperty("bottomAnchored", false);
     m_properties->registerProperty("isFrozen", false);
-    m_properties->registerProperty("globalElementSourceId", QString());
+    m_properties->registerProperty("sourceId", QString());
 }

@@ -79,6 +79,8 @@ SOURCES += \
     src/commands/SetPropertyCommand.cpp \
     src/commands/ChangeParentCommand.cpp \
     src/commands/CloseProjectCommand.cpp \
+    src/commands/CreateComponentCommand.cpp \
+    src/commands/CreateInstanceCommand.cpp \
     src/ScriptCompiler.cpp \
     src/ScriptExecutor.cpp \
     src/ScriptGraphValidator.cpp \
@@ -163,6 +165,8 @@ HEADERS += \
     src/commands/SetPropertyCommand.h \
     src/commands/ChangeParentCommand.h \
     src/commands/CloseProjectCommand.h \
+    src/commands/CreateComponentCommand.h \
+    src/commands/CreateInstanceCommand.h \
     src/ScriptCompiler.h \
     src/ScriptExecutor.h \
     src/ScriptGraphValidator.h \

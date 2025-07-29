@@ -1,7 +1,6 @@
 import QtQuick
 import QtQml
 import Cubit 1.0
-import Cubit.UI 1.0
 import "OverlayUtils.js" as OverlayUtils
 
 // ViewportOverlay provides a layer for UI elements that should maintain

@@ -1,6 +1,6 @@
 import QtQuick
 import QtQml
-import Cubit.UI 1.0
+import Cubit 1.0
 
 // SelectionBox.qml - Visual selection box that appears during drag selection
 Rectangle {
@@ -27,7 +27,7 @@ Rectangle {
     
     visible: active
     color: "transparent"
-    border.color: Config.selectionColor
+    border.color: ConfigObject.selectionColor
     border.width: 1
     antialiasing: true
     

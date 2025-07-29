@@ -1,6 +1,5 @@
 import QtQuick
 import Cubit 1.0
-import Cubit.UI 1.0
 
 // Visual bounding box that appears around selected nodes
 Item {
@@ -35,7 +34,7 @@ Item {
     Rectangle {
         anchors.fill: parent
         color: "transparent"
-        border.color: Config.nodeSelectionBoundsColor  // Blue color from Config
+        border.color: ConfigObject.nodeSelectionBoundsColor  // Blue color from Config
         border.width: 1 / zoomLevel  // 1px border width constant regardless of zoom
         radius: 4
     }

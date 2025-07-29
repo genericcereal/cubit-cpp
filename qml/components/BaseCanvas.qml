@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Controls
 import Cubit 1.0
-import Cubit.UI 1.0
 import "../CanvasUtils.js" as Utils
 import "."
 import "design-controls"
@@ -56,7 +55,7 @@ Item {
     // Zoom throttling
     ThrottledUpdate {
         id: zoomThrottle
-        interval: Config.zoomThrottleInterval
+        interval: ConfigObject.zoomThrottleInterval
         active: true
         
         onUpdate: (data) => {
@@ -89,7 +88,7 @@ Item {
     // Timer to retry centering when flickable gets sized
     Timer {
         id: centerTimer
-        interval: Config.throttleInterval  // Use global throttle interval
+        interval: ConfigObject.throttleInterval  // Use global throttle interval
         repeat: true
         onTriggered: {
             if (flick.width > 0 && flick.height > 0) {
@@ -230,7 +229,7 @@ Item {
             acceptedButtons: Qt.NoButton
             hoverEnabled: false  // Hover is handled by ViewportOverlay
             
-            property real throttleDelay: Config.throttleInterval // Use global throttle interval
+            property real throttleDelay: ConfigObject.throttleInterval // Use global throttle interval
             property point pendingMousePosition
             property bool hasPendingMouseMove: false
             

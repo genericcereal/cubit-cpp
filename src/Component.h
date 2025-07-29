@@ -35,6 +35,10 @@ public:
     QString componentType() const { return m_componentType; }
     void setComponentType(const QString &type);
     
+    // QML compatibility methods
+    Q_INVOKABLE bool isComponentVariant() const { return false; }
+    Q_INVOKABLE bool isComponentInstance() const { return false; }
+    
 signals:
     void variantsChanged();
     void scriptsChanged();

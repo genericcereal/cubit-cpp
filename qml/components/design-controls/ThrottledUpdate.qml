@@ -1,5 +1,5 @@
 import QtQuick
-import Cubit.UI 1.0
+import Cubit 1.0
 
 // A reusable component for throttling updates during drag operations
 // This improves performance by batching rapid mouse move events
@@ -7,7 +7,7 @@ Item {
     id: root
     
     // Properties
-    property int interval: Config.throttleInterval // Use global throttle interval from Config
+    property int interval: ConfigObject.throttleInterval // Use global throttle interval from Config
     property bool active: false
     
     // Signals

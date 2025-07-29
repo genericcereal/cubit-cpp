@@ -1,12 +1,11 @@
 import QtQuick
 import QtQuick.Controls
 import Cubit 1.0
-import Cubit.UI 1.0
 
 Rectangle {
     id: controlSurface
     
-    color: Config.controlInnerRectColor
+    color: ConfigObject.controlInnerRectColor
     antialiasing: true
     
     property alias mouseArea: surfaceMouseArea

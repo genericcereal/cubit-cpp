@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import Cubit 1.0
-import Cubit.UI 1.0
+import "../.."
 
 Rectangle {
     id: inlinePrototypePlay
@@ -17,7 +17,7 @@ Rectangle {
     property var selectedFrame: null
     property var viewportOverlay: null
     
-    color: allSelectedAreComponentRelated ? Config.componentControlResizeJointColor : Config.controlResizeJointColor
+    color: allSelectedAreComponentRelated ? ConfigObject.componentControlResizeJointColor : ConfigObject.controlResizeJointColor
     
     // Position outside the right control bar
     x: Math.round(parentWidth) + 5  // 5px outside the right edge

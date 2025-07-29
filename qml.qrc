@@ -5,7 +5,6 @@
         <file>qml/NewProjectWindow.qml</file>
         <file>qml/CanvasScreen.qml</file>
         <file>qml/ProjectWindow.qml</file>
-        <file>qml/Config.qml</file>
         <file>qml/CanvasUtils.qml</file>
         <file>qml/CanvasUtils.js</file>
         <file>qml/PropertyHelpers.js</file>

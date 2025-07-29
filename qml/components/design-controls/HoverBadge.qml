@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import Cubit 1.0
-import Cubit.UI 1.0
+import "../.."
 
 Item {
     id: hoverBadgeRoot
@@ -25,8 +25,8 @@ Item {
         width: hoverBadgeLabel.width + 16
         height: hoverBadgeLabel.height + 8
         radius: 4
-        color: hoverBadgeRoot.allSelectedAreComponentRelated ? Config.componentHoverBadgeBackgroundColor : Config.hoverBadgeBackgroundColor
-        border.color: hoverBadgeRoot.allSelectedAreComponentRelated ? Config.componentHoverBadgeBorderColor : Config.hoverBadgeBorderColor
+        color: hoverBadgeRoot.allSelectedAreComponentRelated ? ConfigObject.componentHoverBadgeBackgroundColor : ConfigObject.hoverBadgeBackgroundColor
+        border.color: hoverBadgeRoot.allSelectedAreComponentRelated ? ConfigObject.componentHoverBadgeBorderColor : ConfigObject.hoverBadgeBorderColor
         border.width: 1
         antialiasing: true
         
@@ -35,7 +35,7 @@ Item {
             anchors.centerIn: parent
             font.pixelSize: 12
             font.family: "Arial"
-            color: Config.hoverBadgeTextColor
+            color: ConfigObject.hoverBadgeTextColor
             text: "0 x 0"
         }
     }
