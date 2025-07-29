@@ -77,6 +77,8 @@ SOURCES += \
     src/commands/MoveElementsCommand.cpp \
     src/commands/ResizeElementCommand.cpp \
     src/commands/SetPropertyCommand.cpp \
+    src/commands/ChangeParentCommand.cpp \
+    src/commands/CloseProjectCommand.cpp \
     src/ScriptCompiler.cpp \
     src/ScriptExecutor.cpp \
     src/ScriptGraphValidator.cpp \
@@ -159,6 +161,8 @@ HEADERS += \
     src/commands/MoveElementsCommand.h \
     src/commands/ResizeElementCommand.h \
     src/commands/SetPropertyCommand.h \
+    src/commands/ChangeParentCommand.h \
+    src/commands/CloseProjectCommand.h \
     src/ScriptCompiler.h \
     src/ScriptExecutor.h \
     src/ScriptGraphValidator.h \

@@ -297,7 +297,6 @@ void DesignControlsController::startDragOperation()
     // Get active selection manager
     SelectionManager* selectionManager = getActiveSelectionManager();
     if (!selectionManager) {
-        qDebug() << "DesignControlsController::startDragOperation - No active selection manager";
         return;
     }
     
@@ -312,39 +311,30 @@ void DesignControlsController::startDragOperation()
                 m_dragStartElementPositions[element->getId()] = QPointF(canvasElement->x(), canvasElement->y());
                 m_dragStartElementSizes[element->getId()] = QSizeF(canvasElement->width(), canvasElement->height());
                 
-                qDebug() << "DesignControlsController: Storing state for element" << element->getId() 
-                         << "position:" << canvasElement->x() << "," << canvasElement->y()
-                         << "size:" << canvasElement->width() << "x" << canvasElement->height();
             }
         }
     }
     
-    qDebug() << "DesignControlsController::startDragOperation - Stored state for" << m_dragStartSelectedElements.size() << "elements";
 }
 
 void DesignControlsController::endMoveOperation(const QPointF& totalDelta)
 {
-    qDebug() << "DesignControlsController::endMoveOperation called with delta:" << totalDelta.x() << "," << totalDelta.y();
     
     // Only fire command if there was actual movement
     if (qAbs(totalDelta.x()) < 0.001 && qAbs(totalDelta.y()) < 0.001) {
-        qDebug() << "DesignControlsController::endMoveOperation - No significant movement, skipping command";
         return;
     }
     
     if (m_dragStartSelectedElements.isEmpty()) {
-        qDebug() << "DesignControlsController::endMoveOperation - No elements stored, skipping command";
         return;
     }
     
     // Get active canvas controller
     DesignCanvas* designCanvas = getActiveDesignCanvas();
     if (!designCanvas) {
-        qDebug() << "DesignControlsController::endMoveOperation - No active canvas controller";
         return;
     }
     
-    qDebug() << "DesignControlsController::endMoveOperation - Firing move command for" << m_dragStartSelectedElements.size() << "elements";
     
     // Pass the original positions we stored at drag start
     designCanvas->moveElementsWithOriginalPositions(m_dragStartSelectedElements, totalDelta, m_dragStartElementPositions);
@@ -352,10 +342,8 @@ void DesignControlsController::endMoveOperation(const QPointF& totalDelta)
 
 void DesignControlsController::endResizeOperation()
 {
-    qDebug() << "DesignControlsController::endResizeOperation called";
     
     if (m_dragStartSelectedElements.isEmpty()) {
-        qDebug() << "DesignControlsController::endResizeOperation - No elements stored, skipping command";
         return;
     }
     

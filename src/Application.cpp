@@ -288,7 +288,6 @@ void Application::createNewProjectWithTemplate(const QString& projectName, const
     
     // Load the template QML file
     QString fullPath = "qrc:/" + templatePath;
-    qDebug() << "Loading template from:" << fullPath;
     
     QQmlComponent component(m_engine, QUrl(fullPath));
     
@@ -299,13 +298,10 @@ void Application::createNewProjectWithTemplate(const QString& projectName, const
             QVariant canvasDataVar = templateObject->property("canvasDataJson");
             if (canvasDataVar.isValid() && canvasDataVar.typeId() == QMetaType::QString) {
                 QString jsonString = canvasDataVar.toString();
-                qDebug() << "Found canvasDataJson property:" << jsonString;
                 
                 // Parse the JSON string
                 QJsonDocument doc = QJsonDocument::fromJson(jsonString.toUtf8());
                 canvasData = doc.object();
-                
-                qDebug() << "Converted to JSON:" << canvasData;
             } else {
                 qWarning() << "Template file does not have a valid canvasDataJson property";
             }
@@ -500,8 +496,6 @@ void Application::closeProjectWindow(const QString& projectId) {
 }
 
 void Application::updateProjectId(const QString& oldId, const QString& newId) {
-    qDebug() << "Application::updateProjectId - Updating project ID from" << oldId << "to" << newId;
-    
     // Find the project with the old ID
     Project* project = findProject(oldId);
     if (!project) {

@@ -55,14 +55,6 @@ ApplicationWindow {
                         onClicked: selectedTemplate = "blank"
                     }
                     
-                    Image {
-                        anchors.centerIn: parent
-                        width: 40
-                        height: 40
-                        source: "qrc:/icons/blank-template.svg"
-                        visible: false // We'll use a placeholder for now
-                    }
-                    
                     Text {
                         anchors.centerIn: parent
                         text: "📄"
@@ -93,14 +85,6 @@ ApplicationWindow {
                     MouseArea {
                         anchors.fill: parent
                         onClicked: selectedTemplate = "ios"
-                    }
-                    
-                    Image {
-                        anchors.centerIn: parent
-                        width: 40
-                        height: 40
-                        source: "qrc:/icons/ios-template.svg"
-                        visible: false // We'll use a placeholder for now
                     }
                     
                     Text {

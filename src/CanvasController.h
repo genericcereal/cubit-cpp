@@ -16,6 +16,7 @@ struct IModeHandler;
 class LineModeHandler;
 class Frame;
 class CanvasElement;
+class DesignElement;
 
 class CanvasController : public QObject {
     Q_OBJECT
@@ -132,6 +133,10 @@ public slots:
     Q_INVOKABLE void setElementProperty(Element* element, const QString& property, const QVariant& value);
     Q_INVOKABLE void createNode(const QPointF& position, const QString& nodeType, const QString& nodeTitle);
     Q_INVOKABLE void createEdge(const QString& sourceNodeId, const QString& targetNodeId);
+    
+    // Element parenting
+    Q_INVOKABLE void setElementParent(Element* element, const QString& newParentId);
+    Q_INVOKABLE void setElementParentWithPosition(DesignElement* element, CanvasElement* newParent, qreal relX, qreal relY);
     
     // Access to HitTestService
     HitTestService* hitTestService() const { return m_hitTestService.get(); }

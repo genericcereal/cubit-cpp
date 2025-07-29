@@ -29,13 +29,11 @@ void GlobalElementsContext::activateContext(ElementModel* targetModel)
     // Get the global elements from the platform
     ElementModel* globalElements = m_platform->globalElements();
     if (!globalElements) {
-        qDebug() << "GlobalElementsContext: Platform has no global elements";
         return;
     }
     
     // Get all elements from the platform's global elements
     auto elements = globalElements->getAllElements();
-    qDebug() << "GlobalElementsContext: Loading" << elements.size() << "global elements";
     
     // We need to be very careful here. The elements have QObject parent relationships
     // that we cannot change. We'll add them to the model but must ensure proper cleanup.
@@ -45,8 +43,6 @@ void GlobalElementsContext::activateContext(ElementModel* targetModel)
             if (!targetModel->getElementById(element->getId())) {
                 // Track which elements we're adding
                 m_addedElementIds.append(element->getId());
-                qDebug() << "GlobalElementsContext: Adding element to hit test list:" 
-                         << element->getId() << "Type:" << element->getTypeName();
                 // Add to model but platform's globalElements retains ownership
                 // The element's QObject parent remains unchanged
                 targetModel->addElement(element);
@@ -59,7 +55,6 @@ void GlobalElementsContext::deactivateContext(ElementModel* targetModel)
 {
     if (!targetModel) return;
     
-    qDebug() << "GlobalElementsContext: Removing" << m_addedElementIds.size() << "global elements";
     
     // Remove the global elements we temporarily added
     // Use removeElementWithoutDelete to avoid deleting elements owned by the platform

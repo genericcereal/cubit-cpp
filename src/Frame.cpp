@@ -60,7 +60,6 @@ void Frame::setFill(const QColor &color)
         m_fill = color;
         emit fillChanged();
         emit elementChanged();
-        qDebug() << "Frame fill changed to:" << m_fill.name();
     }
 }
 
@@ -458,7 +457,6 @@ void Frame::setupElementModelConnections()
         connect(m_elementModel, &ElementModel::elementAdded,
                 this, [this](Element* element) {
                     if (element && element->getParentElementId() == this->getId()) {
-                        qDebug() << "Frame - Child added to frame" << getId();
                         if (m_flex && m_elementModel) {
                             // Reconnect signals when children are added
                             m_layoutEngine->disconnectChildGeometrySignals(this);

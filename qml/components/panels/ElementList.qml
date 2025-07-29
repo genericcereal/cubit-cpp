@@ -410,20 +410,21 @@ Item {
                                                 if (dropTargetFrame) {
                                                     // Parent the element to the frame
                                                     // Check if this is a DesignElement that supports setParentElement
-                                                    if (sourceElement.elementType === "Frame" || sourceElement.elementType === "Text" || 
-                                                        sourceElement.elementType === "Shape" || sourceElement.elementType === "WebTextInput") {
+                                                    if ((sourceElement.elementType === "Frame" || sourceElement.elementType === "Text" || 
+                                                        sourceElement.elementType === "Shape" || sourceElement.elementType === "WebTextInput") &&
+                                                        root.controller) {
                                                         // Calculate relative position
                                                         var relX = sourceElement.x - dropTargetFrame.x
                                                         var relY = sourceElement.y - dropTargetFrame.y
-                                                        sourceElement.setParentElement(dropTargetFrame, relX, relY)
-                                                    } else {
+                                                        root.controller.setElementParentWithPosition(sourceElement, dropTargetFrame, relX, relY)
+                                                    } else if (root.controller) {
                                                         // Fallback for non-DesignElements
-                                                        sourceElement.parentId = dropTargetFrame.elementId
+                                                        root.controller.setElementParent(sourceElement, dropTargetFrame.elementId)
                                                     }
                                                 } else if (targetIndex >= 0) {
                                                     // Unparent the element if it was parented
-                                                    if (sourceElement.parentId) {
-                                                        sourceElement.parentId = ""
+                                                    if (sourceElement.parentId && root.controller) {
+                                                        root.controller.setElementParent(sourceElement, "")
                                                     }
                                                     // Reorder the element
                                                     var sourceTargetIndex = targetIndex

@@ -80,12 +80,6 @@ void MoveElementsCommand::execute()
         }
     }
     
-    // Log to console
-    qDebug() << QString("Moved %1 element%2 by delta (%3, %4)")
-                .arg(m_moves.size())
-                .arg(m_moves.size() == 1 ? "" : "s")
-                .arg(m_totalDelta.x())
-                .arg(m_totalDelta.y());
     
     // Check if any moved elements are global elements and update their instances
     syncGlobalElements();
@@ -96,18 +90,13 @@ void MoveElementsCommand::execute()
 
 void MoveElementsCommand::undo()
 {
-    qDebug() << "MoveElementsCommand::undo() called - moving" << m_moves.size() << "elements back";
     
     // Move elements back to original position
     for (const ElementMove& move : m_moves) {
-        qDebug() << "MoveElementsCommand::undo() - moving element" << move.element->getId() 
-                 << "from" << QPointF(move.element->x(), move.element->y())
-                 << "to" << move.originalPosition;
         move.element->setX(move.originalPosition.x());
         move.element->setY(move.originalPosition.y());
     }
     
-    qDebug() << "MoveElementsCommand::undo() completed";
 }
 
 bool MoveElementsCommand::mergeWith(MoveElementsCommand* other)
@@ -192,26 +181,20 @@ void MoveElementsCommand::syncWithAPI()
     // Sync with API
     apiClient->syncMoveElements(apiProjectId, elementIds);
     
-    qDebug() << "MoveElementsCommand: Syncing element move with API for project" << apiProjectId 
-             << "delta:" << m_totalDelta << "elements:" << elementIds.size();
 }
 
 void MoveElementsCommand::syncGlobalElements()
 {
-    qDebug() << "MoveElementsCommand::syncGlobalElements() called";
     
     if (m_moves.isEmpty()) {
-        qDebug() << "  No moves to sync";
         return;
     }
 
     // Get the element model from the first element
     CanvasElement* firstElement = m_moves.first().element;
     if (!firstElement) {
-        qDebug() << "  No first element";
         return;
     }
-    qDebug() << "  First element:" << firstElement->getId();
 
     ElementModel* model = nullptr;
     QObject* parent = firstElement->parent();
@@ -222,10 +205,8 @@ void MoveElementsCommand::syncGlobalElements()
     }
 
     if (!model) {
-        qDebug() << "  No element model found";
         return;
     }
-    qDebug() << "  Found element model";
 
     // Get the project - it might be the model's parent
     Project* project = qobject_cast<Project*>(model->parent());
@@ -233,7 +214,6 @@ void MoveElementsCommand::syncGlobalElements()
     if (!project) {
         // For global elements, the model parent might not be the project
         // Try to find the project by traversing up the parent chain from the controller
-        qDebug() << "  Model parent is not a project, checking parent chain...";
         
         // Try to get the application instance and find the project that owns this element
         Application* app = Application::instance();
@@ -245,7 +225,6 @@ void MoveElementsCommand::syncGlobalElements()
                     // Check if this element exists in this project's element model
                     if (canvas->elementModel()->getElementById(firstElement->getId())) {
                         project = canvas.get();
-                        qDebug() << "  Found project" << project->name() << "containing element";
                         break;
                     }
                 }
@@ -253,11 +232,9 @@ void MoveElementsCommand::syncGlobalElements()
         }
         
         if (!project) {
-            qDebug() << "  No project found from model parent or by searching canvases";
             return;
         }
     } else {
-        qDebug() << "  Found project from model parent";
     }
 
     // Convert ElementMove list to Element* list
@@ -266,7 +243,6 @@ void MoveElementsCommand::syncGlobalElements()
         movedElements.append(move.element);
     }
 
-    qDebug() << "MoveElementsCommand::syncGlobalElements - Checking" << movedElements.size() << "moved elements";
 
     // Check all platforms for global elements that need updating
     QList<PlatformConfig*> platforms = project->getAllPlatforms();

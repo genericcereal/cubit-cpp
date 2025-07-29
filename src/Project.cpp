@@ -270,7 +270,6 @@ void Project::clearPlatforms(QQmlListProperty<PlatformConfig>* list) {
 
 void Project::setId(const QString& id) {
     if (m_id != id) {
-        qDebug() << "Project::setId - Updating project ID from" << m_id << "to" << id;
         m_id = id;
         // Note: We don't emit a signal here because id is a CONSTANT property in QML
         // The ID change happens during API sync before the project is exposed to QML

@@ -32,7 +32,6 @@ void PropertyRegistry::registerProperty(const QString& name, PropertyMetadata* m
     }
     
     if (!metadata) {
-        qWarning() << "PropertyRegistry: Null metadata provided for property" << name;
         return;
     }
     
