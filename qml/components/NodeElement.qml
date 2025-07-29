@@ -455,52 +455,31 @@ Item {
                         height: 30
                         
                         property var targetConfig: modelData
-                        property bool hasTarget: targetConfigObject.hasTarget || false
-                        property int targetPortIndex: hasTarget ? (targetConfigObject.targetPortIndex || -1) : -1
-                        property string targetType: hasTarget ? (targetConfigObject.targetType || "Flow") : ""
-                        property string targetLabel: hasTarget ? (targetConfigObject.targetLabel || "") : ""
+                        property bool hasTarget: targetConfig.hasTarget || false
+                        property int targetPortIndex: hasTarget ? (targetConfig.targetPortIndex || -1) : -1
+                        property string targetType: hasTarget ? (targetConfig.targetType || "Flow") : ""
+                        property string targetLabel: hasTarget ? (targetConfig.targetLabel || "") : ""
                         
                         // Check if this target port has an incoming edge
                         property bool hasIncomingEdge: {
                             if (!hasTarget || !root.elementModel || !root.element) {
-                                console.log("hasIncomingEdge: early return - hasTarget:", hasTarget,
-                                           "elementModel:", !!root.elementModel,
-                                           "element:", !!root.element)
                                 return false
                             }
                             
                             var dummy = root.modelUpdateCount
                             var edges = root.elementModel.getAllElements()
-                            console.log("Checking for incoming edges to node", root.element.nodeTitle,
-                                       "port", targetPortIndex,
-                                       "total edges in model:", edges.length)
                             
                             var incomingFound = false
                             for (var i = 0; i < edges.length; i++) {
                                 var edge = edges[i]
                                 if (edge && edge.objectName === "Edge") {
-                                    console.log("  Edge from", edge.sourceNodeId, "port", edge.sourcePortIndex,
-                                               "to", edge.targetNodeId, "port", edge.targetPortIndex)
                                     if (edge.targetNodeId === root.element.elementId && 
                                         edge.targetPortIndex === targetPortIndex) {
-                                        console.log("  -> MATCH! Found incoming edge to port", targetPortIndex, 
-                                                   "of node", root.element.nodeTitle,
-                                                   "from", edge.sourceNodeId)
                                         incomingFound = true
                                     }
                                 }
                             }
-                            if (!incomingFound && hasTarget) {
-                                console.log("No incoming edge found for port", targetPortIndex, 
-                                           "of node", root.element.nodeTitle)
-                            }
                             return incomingFound
-                        }
-                        
-                        onHasIncomingEdgeChanged: {
-                            console.log("Delegate hasIncomingEdge changed to:", hasIncomingEdge,
-                                       "for port", targetPortIndex,
-                                       "of node", root.element ? root.element.nodeTitle : "unknown")
                         }
                         
                         // Check if handle is hovered
@@ -639,10 +618,10 @@ Item {
                         height: 30
                         
                         property var sourceConfig: modelData
-                        property bool hasSource: sourceConfigObject.hasSource || false
-                        property int sourcePortIndex: hasSource ? (sourceConfigObject.sourcePortIndex || -1) : -1
-                        property string sourceType: hasSource ? (sourceConfigObject.sourceType || "Flow") : ""
-                        property string sourceLabel: hasSource ? (sourceConfigObject.sourceLabel || "") : ""
+                        property bool hasSource: sourceConfig.hasSource || false
+                        property int sourcePortIndex: hasSource ? (sourceConfig.sourcePortIndex || -1) : -1
+                        property string sourceType: hasSource ? (sourceConfig.sourceType || "Flow") : ""
+                        property string sourceLabel: hasSource ? (sourceConfig.sourceLabel || "") : ""
                         
                         // Check if handle is hovered
                         property bool handleHovered: {

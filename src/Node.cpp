@@ -88,6 +88,15 @@ void Node::setSourceElementId(const QString &elementId)
     }
 }
 
+void Node::setIsAsync(bool isAsync)
+{
+    if (m_isAsync != isAsync) {
+        m_isAsync = isAsync;
+        emit isAsyncChanged();
+        emit elementChanged();
+    }
+}
+
 QString Node::value() const
 {
     // If this is a Variable node representing a design element

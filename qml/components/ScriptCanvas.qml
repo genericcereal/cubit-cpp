@@ -326,8 +326,8 @@ BaseCanvas {
                             var foundTarget = false
                             for (var j = 0; j < currentTargetNode.rowConfigurations.length; j++) {
                                 var targetConfig = currentTargetNode.rowConfigurations[j]
-                                if (targetConfigObject.hasTarget) {
-                                    if (targetConfigObject.targetPortIndex === edgeObj.targetPortIndex) {
+                                if (targetConfig.hasTarget) {
+                                    if (targetConfig.targetPortIndex === edgeObj.targetPortIndex) {
                                         foundTarget = true
                                         break
                                     }
@@ -513,8 +513,8 @@ BaseCanvas {
                         var foundTarget = false
                         for (var j = 0; j < root.dragSourceNode.rowConfigurations.length; j++) {
                             var targetConfig = root.dragSourceNode.rowConfigurations[j]
-                            if (targetConfigObject.hasTarget) {
-                                if (targetConfigObject.targetPortIndex === root.dragSourcePortIndex) {
+                            if (targetConfig.hasTarget) {
+                                if (targetConfig.targetPortIndex === root.dragSourcePortIndex) {
                                     foundTarget = true
                                     break
                                 }
@@ -815,7 +815,7 @@ BaseCanvas {
                 
                 for (var k = 0; k < rowConfigs.length; k++) {
                     var sourceConfig = rowConfigs[k]
-                    if (sourceConfigObject.hasSource) {
+                    if (sourceConfig.hasSource) {
                         var sourceHandleY = element.y + titleAndMargins + sourceIndex * 40 + 15
                         var sourceHandleX = rightColumnX + columnWidth - 10  // 10px from right edge to center
                         
@@ -823,8 +823,8 @@ BaseCanvas {
                             return {
                                 node: element,
                                 handleType: "right",
-                                portIndex: sourceConfigObject.sourcePortIndex,
-                                portType: sourceConfigObject.sourceType || "Flow"
+                                portIndex: sourceConfig.sourcePortIndex,
+                                portType: sourceConfig.sourceType || "Flow"
                             }
                         }
                         sourceIndex++

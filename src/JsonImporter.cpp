@@ -40,6 +40,7 @@ QString JsonImporter::createNodeFromJson(const QString& jsonData)
     qreal x = nodeObj.value("x").toDouble(0);
     qreal y = nodeObj.value("y").toDouble(0);
     QString sourceElementId = nodeObj.value("sourceElementId").toString();
+    bool isAsync = nodeObj.value("isAsync").toBool(false);
     
     // Create the node
     Node *node = new Node(nodeId);
@@ -52,6 +53,9 @@ QString JsonImporter::createNodeFromJson(const QString& jsonData)
     if (!sourceElementId.isEmpty()) {
         node->setSourceElementId(sourceElementId);
     }
+    
+    // Set isAsync if provided
+    node->setIsAsync(isAsync);
     
     // Parse targets (input ports)
     QJsonArray targets = nodeObj.value("targets").toArray();
@@ -121,6 +125,13 @@ QString JsonImporter::createNodeFromJson(const QString& jsonData)
     for (const auto &config : rowConfigs) {
         node->addRow(config);
     }
+    
+    // Debug logging for ports and rows
+    qDebug() << "Created node" << name << "with:";
+    qDebug() << "  Input ports:" << inputPorts;
+    qDebug() << "  Output ports:" << outputPorts;
+    qDebug() << "  Row configurations:" << rowConfigs.size();
+    qDebug() << "  isAsync:" << isAsync;
     
     // Add to model
     m_elementModel->addElement(node);

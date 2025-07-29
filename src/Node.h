@@ -17,6 +17,7 @@ class Node : public ScriptElement {
     Q_PROPERTY(QVariantList rowConfigurations READ rowConfigurations NOTIFY rowConfigurationsChanged)
     Q_PROPERTY(QString value READ value WRITE setValue NOTIFY valueChanged)
     Q_PROPERTY(QString sourceElementId READ sourceElementId WRITE setSourceElementId NOTIFY sourceElementIdChanged)
+    Q_PROPERTY(bool isAsync READ isAsync WRITE setIsAsync NOTIFY isAsyncChanged)
     
 public:
     explicit Node(const QString &id, QObject *parent = nullptr);
@@ -30,6 +31,7 @@ public:
     bool isExecuting() const { return m_isExecuting; }
     QString value() const;
     QString sourceElementId() const { return m_sourceElementId; }
+    bool isAsync() const { return m_isAsync; }
     
     // Property setters
     void setNodeTitle(const QString &title);
@@ -39,6 +41,7 @@ public:
     void setIsExecuting(bool executing);
     void setValue(const QString &value);
     void setSourceElementId(const QString &elementId);
+    void setIsAsync(bool isAsync);
     
     // Port management
     void addInputPort(const QString &portName);
@@ -91,6 +94,7 @@ signals:
     void rowConfigurationsChanged();
     void valueChanged();
     void sourceElementIdChanged();
+    void isAsyncChanged();
     
 private:
     QString m_nodeTitle;
@@ -104,4 +108,5 @@ private:
     QList<RowConfig> m_rowConfigs;
     QString m_value;  // Stores input value for non-Flow type inputs
     QString m_sourceElementId;  // ID of the design element this Variable node represents
+    bool m_isAsync = false;  // Whether this node returns a Promise
 };

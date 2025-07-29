@@ -39,6 +39,9 @@ public:
 
     // Set the authorization code from callback
     void handleAuthorizationCode(const QString& code, const QString& state);
+    
+    // QML accessible methods
+    Q_INVOKABLE QString getAuthToken() const { return getIdToken(); }
 
 public slots:
     // Start the OAuth flow

@@ -21,6 +21,7 @@ public:
         QString functionName;
         QJsonArray params;
         QList<QString> nextInvokes;
+        bool isAsync = false;
     };
     
     struct NodeReference {
@@ -49,6 +50,12 @@ private:
     void buildInvokesRecursive(Node* node, Scripts* scripts, BuildContext& context, 
                                ElementModel* elementModel = nullptr,
                                const QString& parentInvokeId = QString());
+    
+    // Build invokes recursively with a pre-assigned invoke ID
+    void buildInvokesRecursiveWithId(Node* node, Scripts* scripts, BuildContext& context,
+                                      ElementModel* elementModel,
+                                      const QString& parentInvokeId,
+                                      const QString& preAssignedId);
     
     // Create parameters for a node
     QJsonArray createNodeParameters(Node* node, Scripts* scripts, BuildContext& context);
