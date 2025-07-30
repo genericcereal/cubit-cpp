@@ -95,7 +95,7 @@ BaseCanvas {
         dragSourceHandleType = handleType
         dragSourcePortIndex = portIndex
         dragSourcePortType = portType
-        console.log("Started port drag from node:", node.nodeTitle, "handle:", handleType, "port:", portIndex, "type:", portType)
+        // Port drag started
     }
     
     function updatePortDrag(canvasPos) {
@@ -109,7 +109,7 @@ BaseCanvas {
         var targetHandleInfo = getHandleAtPoint(canvasPos)
         if (targetHandleInfo && targetHandleInfo.node !== dragSourceNode) {
             // Create edge between source and target
-            console.log("Creating edge from", dragSourceNode.nodeTitle, "to", targetHandleInfo.node.nodeTitle)
+            // Creating edge
             controller.createEdge(
                 dragSourceNode.elementId,
                 targetHandleInfo.node.elementId,
@@ -348,11 +348,6 @@ BaseCanvas {
                     
                     Component.onCompleted: {
                         if (model.elementType === "Edge") {
-                            console.log("Edge delegate created for edge:", edgeObj ? edgeObj.elementId : "unknown",
-                                       "sourceNodeId:", edgeObj ? edgeObj.sourceNodeId : "unknown",
-                                       "targetNodeId:", edgeObj ? edgeObj.targetNodeId : "unknown")
-                            console.log("  sourceNode found:", !!sourceNode, sourceNode ? sourceNode.nodeTitle : "null")
-                            console.log("  targetNode found:", !!targetNode, targetNode ? targetNode.nodeTitle : "null")
                             updateEdgePositions()
                         }
                     }

@@ -19,6 +19,7 @@
 #include "ProjectApiClient.h"
 #include "commands/CreateProjectCommand.h"
 #include "commands/OpenProjectCommand.h"
+#include "commands/CloseProjectCommand.h"
 #include "CommandHistory.h"
 #include "Command.h"
 #include "FileManager.h"
@@ -484,15 +485,31 @@ void Application::deleteProject(const QString& projectId) {
 }
 
 void Application::closeProjectWindow(const QString& projectId) {
-    // Find and remove the project from the open canvases
-    auto it = std::find_if(m_canvases.begin(), m_canvases.end(),
-        [&projectId](const std::unique_ptr<Project>& c) { return c->id() == projectId; });
+    qDebug() << "Application::closeProjectWindow() called for project:" << projectId;
     
-    if (it != m_canvases.end()) {
-        m_canvases.erase(it);
-        emit canvasListChanged();
+    // Use CloseProjectCommand to properly close the project with undo support and API sync
+    auto command = std::make_unique<CloseProjectCommand>(this, projectId);
+    
+    // Connect to the closeComplete signal to emit canvasRemoved when done
+    connect(command.get(), &CloseProjectCommand::closeComplete, this, [this, projectId]() {
         emit canvasRemoved(projectId);
-    }
+    });
+    
+    // Store the command pointer before moving it
+    Command* cmdPtr = command.get();
+    m_pendingCommands.push_back(std::move(command));
+    
+    // Execute the command
+    cmdPtr->execute();
+    
+    // Clean up completed commands
+    m_pendingCommands.erase(
+        std::remove_if(m_pendingCommands.begin(), m_pendingCommands.end(),
+            [cmdPtr](const std::unique_ptr<Command>& cmd) { 
+                return cmd.get() == cmdPtr; 
+            }),
+        m_pendingCommands.end()
+    );
 }
 
 void Application::updateProjectId(const QString& oldId, const QString& newId) {

@@ -99,10 +99,8 @@ QJsonObject Serializer::serializeProject(Project* project) const {
         // Serialize nodes
         QJsonArray nodesArray;
         QList<Node*> nodes = project->scripts()->getAllNodes();
-        qDebug() << "Serializing" << nodes.size() << "nodes from main project scripts";
         for (Node* node : nodes) {
             QJsonObject nodeObj = serializeNode(node);
-            qDebug() << "  Serializing node:" << node->getId() << "title:" << node->nodeTitle();
             nodesArray.append(nodeObj);
         }
         mainScriptsObj["nodes"] = nodesArray;
@@ -110,10 +108,8 @@ QJsonObject Serializer::serializeProject(Project* project) const {
         // Serialize edges
         QJsonArray edgesArray;
         QList<Edge*> edges = project->scripts()->getAllEdges();
-        qDebug() << "Serializing" << edges.size() << "edges from main project scripts";
         for (Edge* edge : edges) {
             QJsonObject edgeObj = serializeEdge(edge);
-            qDebug() << "  Serializing edge:" << edge->getId() << "from" << edge->sourceNodeId() << "to" << edge->targetNodeId();
             edgesArray.append(edgeObj);
         }
         mainScriptsObj["edges"] = edgesArray;
@@ -291,11 +287,9 @@ Project* Serializer::deserializeProject(const QJsonObject& projectData) {
                 // Load nodes
                 if (scriptsObj.contains("nodes")) {
                     QJsonArray nodesArray = scriptsObj["nodes"].toArray();
-                    qDebug() << "Deserializing" << nodesArray.size() << "nodes for main project scripts";
                     for (const QJsonValue& nodeValue : nodesArray) {
                         Node* node = deserializeNode(nodeValue.toObject(), mainScripts);
                         if (node) {
-                            qDebug() << "  Deserialized node:" << node->getId() << "title:" << node->nodeTitle();
                             mainScripts->addNode(node);
                             // Don't add to ElementModel here - let ScriptCanvasContext handle it
                         }
@@ -305,11 +299,9 @@ Project* Serializer::deserializeProject(const QJsonObject& projectData) {
                 // Load edges
                 if (scriptsObj.contains("edges")) {
                     QJsonArray edgesArray = scriptsObj["edges"].toArray();
-                    qDebug() << "Deserializing" << edgesArray.size() << "edges for main project scripts";
                     for (const QJsonValue& edgeValue : edgesArray) {
                         Edge* edge = deserializeEdge(edgeValue.toObject(), mainScripts);
                         if (edge) {
-                            qDebug() << "  Deserialized edge:" << edge->getId() << "from" << edge->sourceNodeId() << "to" << edge->targetNodeId();
                             mainScripts->addEdge(edge);
                             // Don't add to ElementModel here - let ScriptCanvasContext handle it
                         }
@@ -320,7 +312,6 @@ Project* Serializer::deserializeProject(const QJsonObject& projectData) {
         
         if (projectData.contains("platforms")) {
             QJsonArray platformsArray = projectData["platforms"].toArray();
-            qDebug() << "Deserializing" << platformsArray.size() << "platforms for project" << id;
             for (const QJsonValue& platformValue : platformsArray) {
                 if (platformValue.isString()) {
                     // Legacy format: just platform names
@@ -447,7 +438,6 @@ Project* Serializer::deserializeProject(const QJsonObject& projectData) {
         CanvasController* controller = project->controller();
         if (controller && controller->hitTestService()) {
             controller->hitTestService()->rebuildSpatialIndex();
-            qDebug() << "Rebuilt spatial index for loaded project:" << name;
         }
         
         return project;
@@ -504,7 +494,6 @@ Element* Serializer::deserializeElement(const QJsonObject& elementData, ElementM
             if (!element) {
             }
         } else {
-            qDebug() << "  Type not found in registry, trying fallback";
             // Fall back to direct creation for types not in registry yet
             // (Variable, Node, Edge)
             if (elementType == "Variable") {
@@ -514,6 +503,7 @@ Element* Serializer::deserializeElement(const QJsonObject& elementData, ElementM
             } else if (elementType == "Edge") {
                 element = new Edge(elementId, model);
             } else {
+                qDebug() << "  Type not found in registry, trying fallback for type:" << elementType;
                 qWarning() << "Unknown element type in deserialization:" << elementType;
                 return nullptr;
             }

@@ -98,9 +98,7 @@ Item {
             return
         }
         
-        console.log("EdgeElement.updateEdgePosition called")
-        console.log("  Source node position:", sourceNode.x, sourceNode.y)
-        console.log("  Target node position:", targetNode.x, targetNode.y)
+        // Update edge position based on node positions
         
         // Recalculate edge endpoints based on current node positions
         var sourceX, sourceY, targetX, targetY
@@ -121,8 +119,7 @@ Item {
         }
         targetY = targetNode.y + 60 + 15 + (edgeElement.targetPortIndex * 40)
         
-        console.log("  New source point:", sourceX, sourceY)
-        console.log("  New target point:", targetX, targetY)
+        // Update edge endpoints
         
         // Update the edge points - this will trigger updateControlPoints and updateGeometry in C++
         edgeElement.sourcePoint = Qt.point(sourceX, sourceY)
@@ -130,31 +127,9 @@ Item {
     }
     
     Component.onCompleted: {
-        console.log("EdgeElement created for edge:", element ? element.elementId : "null")
-        console.log("  EdgeElement dimensions:", width, "x", height)
-        console.log("  Parent dimensions:", parent ? parent.width + "x" + parent.height : "no parent")
-        console.log("  element:", element)
-        console.log("  edgeElement:", edgeElement)
+        // EdgeElement initialization complete
         if (edgeElement) {
-            console.log("  Source node ID:", edgeElement.sourceNodeId)
-            console.log("  Target node ID:", edgeElement.targetNodeId)
-            console.log("  Source point:", edgeElement.sourcePoint)
-            console.log("  Target point:", edgeElement.targetPoint)
-            console.log("  Control point 1:", edgeElement.controlPoint1)
-            console.log("  Control point 2:", edgeElement.controlPoint2)
-            console.log("  Edge color:", edgeElement.edgeColor)
-            console.log("  Edge width:", edgeElement.edgeWidth)
-        }
-        console.log("  Element position (x,y):", element.x, element.y)
-        console.log("  EdgeElement position:", x, y, "Size:", width, "x", height)
-        console.log("  Parent:", parent)
-        console.log("  Visible:", visible)
-        console.log("  Z-order:", z)
-        console.log("  Opacity:", opacity)
-        
-        // Log canvas info
-        if (canvas) {
-            console.log("  Canvas minX:", canvas.canvasMinX, "minY:", canvas.canvasMinY)
+            // Edge element initialized
         }
         
         updateEdgePosition()

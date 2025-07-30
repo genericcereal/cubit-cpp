@@ -191,9 +191,6 @@ void ScriptInvokeBuilder::buildInvokesRecursive(Node* node, Scripts* scripts,
                 output["sourcePortType"] = edge->sourcePortType();
                 context.outputs[outputId] = output;
                 
-                qDebug() << "ScriptInvokeBuilder: Created output" << outputId 
-                         << "for async node" << node->nodeTitle() 
-                         << "invoke" << invoke.invokeId;
             }
         }
     }
@@ -296,9 +293,6 @@ void ScriptInvokeBuilder::buildInvokesRecursiveWithId(Node* node, Scripts* scrip
                 output["sourcePortType"] = edge->sourcePortType();
                 context.outputs[outputId] = output;
                 
-                qDebug() << "ScriptInvokeBuilder: Created output" << outputId 
-                         << "for async node" << node->nodeTitle() 
-                         << "invoke" << invoke.invokeId;
             }
         }
     }

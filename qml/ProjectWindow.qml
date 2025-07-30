@@ -72,6 +72,8 @@ ApplicationWindow {
         // Future: Handle unsaved changes, cleanup, etc.
         // Project window closing
         
+        // Window closing
+        
         // Close the project window without deleting the project data
         if (canvasId) {
             Application.closeProjectWindow(canvasId)

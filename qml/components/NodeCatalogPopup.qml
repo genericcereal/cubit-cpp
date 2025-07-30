@@ -152,7 +152,7 @@ Rectangle {
                     hoverEnabled: true
 
                     onClicked: {
-                        console.log("Selected node type:", modelData);
+                        // Selected node type
 
                         // Create the node at the catalog position
                         var nodeData = root.nodeCatalog.createNodeData(modelData, root.position.x, root.position.y);
@@ -164,7 +164,7 @@ Rectangle {
 
                             if (newNodeId && root.dragSourceNode) {
                                 // Create edge from source to new node
-                                console.log("Creating edge from", root.dragSourceNode.nodeTitle, "to new node");
+                                // Creating edge to new node
 
                                 // Determine target port based on source type
                                 var targetPortIndex = 0;

@@ -243,7 +243,7 @@ QtObject {
                 {
                     "id": "response",
                     "type": "String",
-                    "label": "Response"
+                    "label": ""
                 }
             ]
         }

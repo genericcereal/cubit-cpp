@@ -68,7 +68,7 @@ Item {
         
         
         onTextChanged: {
-            if (inputConfig.inputType === "textInput" && PortTypeConfig.validateValue(root.portType, text)) {
+            if (inputConfig.inputType === "textInput" && text !== root.value && PortTypeConfig.validateValue(root.portType, text)) {
                 root.value = text
                 root.portValueChanged(text)
             }
@@ -96,7 +96,7 @@ Item {
         onTextChanged: {
             if (inputConfig.inputType === "numberInput") {
                 var num = parseFloat(text)
-                if (!isNaN(num) && PortTypeConfig.validateValue(root.portType, num)) {
+                if (!isNaN(num) && num !== root.value && PortTypeConfig.validateValue(root.portType, num)) {
                     root.value = num
                     root.portValueChanged(num)
                 }
