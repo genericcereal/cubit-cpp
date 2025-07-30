@@ -15,6 +15,8 @@
 #include "commands/ChangeParentCommand.h"
 #include "commands/CreateComponentCommand.h"
 #include "commands/CreateInstanceCommand.h"
+#include "commands/CreateScriptElementCommand.h"
+#include "commands/CompileScriptsCommand.h"
 #include "IModeHandler.h"
 #include "SelectModeHandler.h"
 #include "CreationModeHandler.h"
@@ -28,7 +30,10 @@
 #include "Component.h"
 #include "Project.h"
 #include "DesignElement.h"
+#include "Scripts.h"
+#include "ConsoleMessageRepository.h"
 #include "UniqueIdGenerator.h"
+#include "HandleType.h"
 #include <QDebug>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -268,21 +273,144 @@ void CanvasController::createVariable()
 
 void CanvasController::createNode(qreal x, qreal y, const QString &title, const QString &color)
 {
-    m_creationManager->createNode(x, y, title, color);
+    // Get the Project from the ElementModel's parent
+    Project* project = qobject_cast<Project*>(m_elementModel.parent());
+    if (!project) {
+        qWarning() << "CanvasController::createNode - ElementModel has no Project parent";
+        return;
+    }
+    
+    Scripts* scripts = project->activeScripts();
+    if (!scripts) {
+        qWarning() << "CanvasController::createNode - No active scripts";
+        return;
+    }
+    
+    // Create the node using command pattern
+    QVariantMap payload;
+    payload["nodeTitle"] = title;
+    if (!color.isEmpty()) {
+        payload["nodeColor"] = color;
+    }
+    // TODO: Set nodeType based on the color or other parameters
+    
+    auto command = std::make_unique<CreateScriptElementCommand>(
+        &m_elementModel, &m_selectionManager, scripts, "node",
+        QRectF(x, y, 200, 100), payload);
+    
+    m_commandHistory->execute(std::move(command));
 }
 
 void CanvasController::createEdge(const QString &sourceNodeId, const QString &targetNodeId, 
                                   const QString &sourceHandleType, const QString &targetHandleType,
                                   int sourcePortIndex, int targetPortIndex)
 {
-    m_creationManager->createEdge(sourceNodeId, targetNodeId, sourceHandleType, targetHandleType,
-                                  sourcePortIndex, targetPortIndex);
+    // Get the Project from the ElementModel's parent
+    Project* project = qobject_cast<Project*>(m_elementModel.parent());
+    if (!project) {
+        qWarning() << "CanvasController::createEdge - ElementModel has no Project parent";
+        return;
+    }
+    
+    Scripts* scripts = project->activeScripts();
+    if (!scripts) {
+        qWarning() << "CanvasController::createEdge - No active scripts";
+        return;
+    }
+    
+    // Validate that nodes exist and ports are compatible
+    Element *sourceElement = m_elementModel.getElementById(sourceNodeId);
+    Element *targetElement = m_elementModel.getElementById(targetNodeId);
+    
+    if (!sourceElement || !targetElement) {
+        qDebug() << "Cannot create edge: source or target node not found";
+        return;
+    }
+    
+    // Check if nodes are the correct type and get port types
+    Node *srcNode = qobject_cast<Node*>(sourceElement);
+    Node *tgtNode = qobject_cast<Node*>(targetElement);
+    
+    if (!srcNode || !tgtNode) {
+        qDebug() << "Cannot create edge: elements are not nodes";
+        return;
+    }
+    
+    // Get port types
+    QString sourcePortType = srcNode->getOutputPortType(sourcePortIndex);
+    QString targetPortType = tgtNode->getInputPortType(targetPortIndex);
+    
+    // Validate that port types can connect
+    if (!PortType::canConnect(sourcePortType, targetPortType)) {
+        qDebug() << "Cannot create edge: port types don't match -"
+                 << "source:" << sourcePortType 
+                 << "target:" << targetPortType;
+        return;
+    }
+    
+    // Create the edge using command pattern
+    QVariantMap payload;
+    payload["sourceNodeId"] = sourceNodeId;
+    payload["targetNodeId"] = targetNodeId;
+    payload["sourcePortIndex"] = sourcePortIndex;
+    payload["targetPortIndex"] = targetPortIndex;
+    payload["sourcePortType"] = sourcePortType;
+    payload["targetPortType"] = targetPortType;
+    
+    auto command = std::make_unique<CreateScriptElementCommand>(
+        &m_elementModel, &m_selectionManager, scripts, "edge",
+        QRectF(), payload);
+    
+    m_commandHistory->execute(std::move(command));
 }
 
 void CanvasController::createEdgeByPortId(const QString &sourceNodeId, const QString &targetNodeId,
                                           const QString &sourcePortId, const QString &targetPortId)
 {
-    m_creationManager->createEdgeByPortId(sourceNodeId, targetNodeId, sourcePortId, targetPortId);
+    // Get the Project from the ElementModel's parent
+    Project* project = qobject_cast<Project*>(m_elementModel.parent());
+    if (!project) {
+        qWarning() << "CanvasController::createEdgeByPortId - ElementModel has no Project parent";
+        return;
+    }
+    
+    Scripts* scripts = project->activeScripts();
+    if (!scripts) {
+        qWarning() << "CanvasController::createEdgeByPortId - No active scripts";
+        return;
+    }
+    
+    // Find the source and target nodes
+    Element *sourceElement = m_elementModel.getElementById(sourceNodeId);
+    Element *targetElement = m_elementModel.getElementById(targetNodeId);
+    
+    if (!sourceElement || !targetElement) {
+        qDebug() << "Cannot create edge: source or target node not found";
+        return;
+    }
+    
+    // Cast to Node to get port information
+    Node *srcNode = qobject_cast<Node*>(sourceElement);
+    Node *tgtNode = qobject_cast<Node*>(targetElement);
+    
+    if (!srcNode || !tgtNode) {
+        qDebug() << "Cannot create edge: elements are not nodes";
+        return;
+    }
+    
+    // Find port indices from port IDs
+    int sourcePortIndex = srcNode->getOutputPortIndex(sourcePortId);
+    int targetPortIndex = tgtNode->getInputPortIndex(targetPortId);
+    
+    if (sourcePortIndex == -1 || targetPortIndex == -1) {
+        qDebug() << "Cannot create edge: port not found -"
+                 << "sourcePortId:" << sourcePortId << "index:" << sourcePortIndex
+                 << "targetPortId:" << targetPortId << "index:" << targetPortIndex;
+        return;
+    }
+    
+    // Call the main createEdge method with the resolved indices
+    createEdge(sourceNodeId, targetNodeId, "right", "left", sourcePortIndex, targetPortIndex);
 }
 
 QString CanvasController::createNodeFromJson(const QString &jsonData)
@@ -563,12 +691,8 @@ void CanvasController::createEdge(const QString& sourceNodeId, const QString& ta
     
     // Create edge between first output port of source and first input port of target
     if (!sourceNode->outputPorts().isEmpty() && !targetNode->inputPorts().isEmpty()) {
-        // Node ports are QStringList, so we use the port names directly
-        QString sourcePort = sourceNode->outputPorts().first();
-        QString targetPort = targetNode->inputPorts().first();
-        
         // Create edge using port indices (0 for first port)
-        m_creationManager->createEdge(sourceNodeId, targetNodeId, "output", "input", 0, 0);
+        createEdge(sourceNodeId, targetNodeId, "output", "input", 0, 0);
     }
 }
 
@@ -588,6 +712,29 @@ void CanvasController::setElementParentWithPosition(DesignElement* element, Canv
     // Create and execute change parent command with position
     QPointF relativePosition(relX, relY);
     auto command = std::make_unique<ChangeParentCommand>(element, newParent, relativePosition);
+    m_commandHistory->execute(std::move(command));
+}
+
+void CanvasController::compileScripts()
+{
+    // Get the Scripts object from the active project context (same pattern as other methods)
+    Project* project = qobject_cast<Project*>(m_elementModel.parent());
+    if (!project) {
+        qWarning() << "Cannot compile scripts: No project found";
+        return;
+    }
+    
+    Scripts* scripts = project->activeScripts();
+    if (!scripts) {
+        qWarning() << "Cannot compile scripts: No active scripts found";
+        return;
+    }
+    
+    // Get console message repository for logging
+    ConsoleMessageRepository* console = project->console();
+    
+    // Create and execute compile command with all required dependencies
+    auto command = std::make_unique<CompileScriptsCommand>(scripts, &m_elementModel, console, project);
     m_commandHistory->execute(std::move(command));
 }
 

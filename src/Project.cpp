@@ -208,6 +208,11 @@ void Project::setCanvasContext(std::unique_ptr<CanvasContext> context) {
         m_controller->hitTestService()->setCanvasContext(nullptr);
     }
     
+    // Set flag to indicate we're switching contexts
+    if (m_elementModel) {
+        m_elementModel->setProperty("_switchingContext", true);
+    }
+    
     // Deactivate current context
     if (m_currentContext && m_elementModel) {
         m_currentContext->deactivateContext(m_elementModel.get());
@@ -219,6 +224,9 @@ void Project::setCanvasContext(std::unique_ptr<CanvasContext> context) {
     // Activate new context
     if (m_currentContext && m_elementModel) {
         m_currentContext->activateContext(m_elementModel.get());
+        
+        // Clear the switching context flag
+        m_elementModel->setProperty("_switchingContext", false);
         
         // Update canvas controller type
         if (m_controller) {
@@ -356,6 +364,11 @@ void Project::initialize() {
     // Also handle removal of elements
     connect(m_elementModel.get(), &ElementModel::elementRemoved, this, [this](const QString& elementId) {
         if (m_viewMode == "script" && m_currentContext && m_currentContext->contextType() == "script") {
+            // Don't remove from Scripts if we're just switching contexts
+            if (m_elementModel->property("_switchingContext").toBool()) {
+                return;
+            }
+            
             Scripts* targetScripts = activeScripts();
             if (targetScripts) {
                 // Remove from scripts when removed from model

@@ -69,73 +69,15 @@ Item {
     
     Connections {
         target: elementModel
-        function onRowsInserted() {
-            root.modelUpdateCount++
-            console.log("NodeElement: rows inserted, modelUpdateCount =", root.modelUpdateCount)
-        }
-        function onRowsRemoved() {
-            root.modelUpdateCount++
-            console.log("NodeElement: rows removed, modelUpdateCount =", root.modelUpdateCount)
-        }
-        function onDataChanged() {
-            root.modelUpdateCount++
-            console.log("NodeElement: data changed, modelUpdateCount =", root.modelUpdateCount)
-        }
         function onElementChanged() {
             root.modelUpdateCount++
-            console.log("NodeElement: element changed, modelUpdateCount =", root.modelUpdateCount)
         }
     }
     
-    // Listen for canvas clicks to focus text inputs
-    Connections {
-        target: canvas
-        function onCanvasClicked(clickPoint) {
-            console.log("Canvas clicked at:", clickPoint.x, clickPoint.y)
-            console.log("Node bounds:", element.x, element.y, "to", element.x + element.width, element.y + element.height)
-            
-            // Check if click is within this node
-            if (clickPoint.x >= element.x && clickPoint.x <= element.x + element.width &&
-                clickPoint.y >= element.y && clickPoint.y <= element.y + element.height) {
-                // Node was clicked, check if it's on a text input
-                console.log("Click is within node bounds")
-                root.handleClick(clickPoint)
-            }
-        }
-        
-        function onCanvasClickedOutside() {
-            console.log("Canvas clicked outside - clearing focus if any input has focus")
-            // Simply clear focus - the focus system will handle it properly
-            root.forceActiveFocus()
-            
-            // Also close any open ComboBox popups
-            for (var i = 0; i < targetsColumn.children.length; i++) {
-                var targetItem = targetsColumn.children[i]
-                if (targetItem && targetItem.children.length > 1) {
-                    var portInput = targetItem.children[1]
-                    if (portInput && typeof portInput.blur === 'function') {
-                        portInput.blur()
-                    }
-                }
-            }
-        }
-        
-        function onCanvasDragStarted() {
-            // PortInput components will handle their own state
-        }
-    }
     
-    // Log node properties when element changes
+    // Handle element changes
     onElementChanged: {
-        if (element) {
-            console.log("NodeElement created/updated:")
-            console.log("  elementId:", element.elementId)
-            console.log("  objectName:", element.objectName)
-            console.log("  position:", element.x, ",", element.y)
-            console.log("  size:", element.width, "x", element.height)
-            console.log("  nodeTitle:", nodeElement ? nodeElement.nodeTitle : "null")
-            console.log("  nodeType:", nodeElement ? nodeElement.nodeType : "null")
-        }
+        // Element properties updated
     }
     
     // Handle click to open combo boxes
@@ -144,9 +86,6 @@ Item {
         var localX = clickPoint.x - element.x
         var localY = clickPoint.y - element.y
         
-        console.log("Node clicked at local position:", localX, localY)
-        console.log("  Node position:", element.x, element.y)
-        console.log("  Click point:", clickPoint.x, clickPoint.y)
         
         // Check targets column
         var titleAndMargins = nodeHeader.height + columnsContainer.anchors.topMargin
@@ -173,7 +112,6 @@ Item {
                             if (columnsLocalX >= inputX && columnsLocalX <= inputX + inputWidth) {
                                 // Call the handleClick method on the PortInput
                                 portInput.handleClick()
-                                console.log("Clicked on port input for target port:", targetItem.targetPortIndex)
                             }
                         }
                     }
@@ -203,25 +141,12 @@ Item {
             preventStealing: true  // Prevent parent from stealing mouse events during drag
             enabled: !root.canvas || !root.canvas.isEdgePreview  // Disable when edge preview is active
             
-            onEnabledChanged: {
-                console.log("NodeBodyMouseArea enabled changed to:", enabled, 
-                           "for node:", root.element ? root.element.nodeTitle : "unknown",
-                           "isEdgePreview:", root.canvas ? root.canvas.isEdgePreview : "no canvas")
-            }
             
-            Component.onCompleted: {
-                console.log("NodeBodyMouseArea created - enabled:", enabled, 
-                           "visible:", visible, 
-                           "size:", width, "x", height,
-                           "parent:", parent)
-            }
             
             onEntered: {
-                console.log("Mouse entered node:", root.element ? root.element.nodeTitle : "unknown")
             }
             
             onExited: {
-                console.log("Mouse exited node:", root.element ? root.element.nodeTitle : "unknown")
             }
             
             property bool isDragging: false
@@ -244,11 +169,6 @@ Item {
                 // This keeps the node from jumping when drag starts
                 dragOffset = Qt.point(mouse.x, mouse.y)
                 
-                console.log("Node pressed:", root.element ? root.element.nodeTitle : "unknown node",
-                           "ID:", root.element ? root.element.elementId : "unknown",
-                           "at local position:", mouse.x.toFixed(2), mouse.y.toFixed(2),
-                           "drag offset:", dragOffset.x.toFixed(2), dragOffset.y.toFixed(2),
-                           "selected:", root.element ? root.element.selected : false)
                 
                 // Let the controller handle selection
                 // We need to convert to canvas coordinates, not just viewport coordinates
@@ -268,14 +188,9 @@ Item {
                     canvasMinY
                 )
                 
-                console.log("Converted mouse press - viewport:", mouseInViewport.x.toFixed(2), mouseInViewport.y.toFixed(2),
-                           "canvas:", canvasPos.x.toFixed(2), canvasPos.y.toFixed(2))
                 
                 root.canvas.controller.handleMousePress(canvasPos.x, canvasPos.y)
                 
-                // Log selection state after press
-                console.log("After press - selected:", root.element ? root.element.selected : false)
-                console.log("Controller mode:", root.canvas.controller ? root.canvas.controller.mode : "no controller")
             }
             
             onPositionChanged: (mouse) => {
@@ -348,8 +263,6 @@ Item {
                     var totalDeltaY = root.element.y - startElementPos.y
                     
                 } else {
-                    console.log("Node clicked (no drag) - sending release to controller at canvas pos:", 
-                               canvasPos.x.toFixed(2), canvasPos.y.toFixed(2))
                 }
                 
                 // Always notify the controller about mouse release for proper selection handling
@@ -377,12 +290,6 @@ Item {
             }
         }
         
-        Component.onCompleted: {
-            console.log("NodeElement Rectangle - color:", color)
-            console.log("NodeElement Rectangle - size:", width, "x", height)
-            console.log("NodeElement Rectangle - visible:", visible)
-            console.log("NodeElement Rectangle - opacity:", opacity)
-        }
         
         // Node header
         Rectangle {
@@ -569,14 +476,6 @@ Item {
                                 canvas: root.canvas
                                 value: nodeElement ? nodeElement.value : ""
                                 
-                                Component.onCompleted: {
-                                    console.log("PortInput created via Loader for node", root.element ? root.element.nodeTitle : "unknown",
-                                               "port", targetPortIndex,
-                                               "hasIncomingEdge:", hasIncomingEdge,
-                                               "parent.parent.hasIncomingEdge:", parent.parent.hasIncomingEdge,
-                                               "visible:", visible,
-                                               "loader.visible:", parent.visible)
-                                }
                                 
                                 onPortValueChanged: function(newValue) {
                                     // Update the node's value property
@@ -817,18 +716,6 @@ Item {
                 }
             }
             
-            Component.onCompleted: {
-                console.log("Variable source handle created - visible:", visible, 
-                           "parent:", parent, 
-                           "nodeType:", nodeElement ? nodeElement.nodeType : "null",
-                           "position:", x, y,
-                           "size:", width, "x", height)
-            }
-            
-            onVisibleChanged: {
-                console.log("Variable source handle visibility changed to:", visible,
-                           "nodeType:", nodeElement ? nodeElement.nodeType : "null")
-            }
         }
     }
 }

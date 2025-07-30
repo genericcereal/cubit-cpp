@@ -1,6 +1,7 @@
 #include "VariantCanvasContext.h"
 #include "../Component.h"
 #include "../DesignElement.h"
+#include "../CanvasElement.h"
 #include "../ElementModel.h"
 #include "../Element.h"
 #include <QDebug>
@@ -59,6 +60,12 @@ bool VariantCanvasContext::shouldIncludeInHitTest(Element* element) const
     // Check if element is frozen (should not be hoverable/selectable)
     DesignElement* designElement = qobject_cast<DesignElement*>(element);
     if (designElement && designElement->isFrozen()) {
+        return false;
+    }
+    
+    // Exclude script elements (Nodes and Edges) - they should only be hit-testable in script mode
+    CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+    if (canvasElement && canvasElement->isScriptElement()) {
         return false;
     }
     

@@ -96,12 +96,10 @@ BaseCanvas {
         dragSourcePortIndex = portIndex
         dragSourcePortType = portType
         console.log("Started port drag from node:", node.nodeTitle, "handle:", handleType, "port:", portIndex, "type:", portType)
-        console.log("Edge preview mode enabled - all node dragging disabled")
     }
     
     function updatePortDrag(canvasPos) {
         dragCurrentPoint = canvasPos
-        console.log("Updating port drag to canvas position:", canvasPos.x.toFixed(2), canvasPos.y.toFixed(2))
     }
     
     function endPortDrag(canvasPos) {
@@ -124,7 +122,6 @@ BaseCanvas {
             // Show node catalog at release position
             showNodeCatalog = true
             nodeCatalogPosition = canvasPos
-            console.log("Showing node catalog at", canvasPos.x, canvasPos.y)
         }
         
         // Reset drag state, but keep source info when showing catalog
@@ -136,7 +133,6 @@ BaseCanvas {
             dragSourcePortIndex = -1
             dragSourcePortType = "Flow"
         }
-        console.log("Edge preview mode disabled - node dragging re-enabled")
     }
     
     
@@ -425,13 +421,11 @@ BaseCanvas {
                         item.element = element
                         item.elementModel = root.elementModel
                         item.canvas = root  // Pass canvas reference
-                        console.log("ScriptCanvas: Loaded node", element.nodeTitle, "at", element.x, element.y, "view pos:", x, y)
                     }
                 }
                 
                 Component.onCompleted: {
                     if (element && elementType === "Node") {
-                        console.log("ScriptCanvas: Node delegate created for", element.nodeTitle, "at", element.x, element.y)
                     }
                 }
             }
@@ -444,12 +438,6 @@ BaseCanvas {
             anchors.fill: parent
             z: 11  // Above edges layer
             
-            onVisibleChanged: {
-                console.log("Temp edge container visibility changed to:", visible,
-                           "isDraggingHandle:", root.isDraggingHandle,
-                           "showNodeCatalog:", root.showNodeCatalog,
-                           "dragSourceNode:", root.dragSourceNode ? root.dragSourceNode.nodeTitle : "null")
-            }
             
             property point sourcePoint: {
                 if (!root.dragSourceNode) return Qt.point(0, 0)
@@ -708,12 +696,6 @@ BaseCanvas {
         centerViewAtOrigin()
         
         // Check if we're editing a design element
-        if (root.canvas && root.canvas.editingElement) {
-            console.log("ScriptCanvas: Editing element", root.canvas.editingElement.name, 
-                       "ID:", root.canvas.editingElement.elementId)
-        } else {
-            console.log("ScriptCanvas: No element being edited")
-        }
     }
     
     

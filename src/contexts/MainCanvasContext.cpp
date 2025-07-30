@@ -1,6 +1,7 @@
 #include "MainCanvasContext.h"
 #include "../ElementModel.h"
 #include "../Element.h"
+#include "../CanvasElement.h"
 #include "../DesignElement.h"
 #include "../Project.h"
 #include "../PlatformConfig.h"
@@ -84,6 +85,12 @@ bool MainCanvasContext::shouldIncludeInHitTest(Element* element) const
                 }
             }
         }
+    }
+    
+    // Exclude script elements (Nodes and Edges) - they should only be hit-testable in script mode
+    CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+    if (canvasElement && canvasElement->isScriptElement()) {
+        return false;
     }
     
     // Include all other elements (instances of global elements will pass through here)

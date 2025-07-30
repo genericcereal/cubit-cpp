@@ -82,7 +82,6 @@ void ScriptExecutor::setupJSContext()
             if (authManager) {
                 QJSValue authManagerValue = m_jsEngine.newQObject(authManager);
                 m_jsEngine.globalObject().setProperty("authManager", authManagerValue);
-                qDebug() << "ScriptExecutor: AuthenticationManager registered in JS context";
             }
             break;
         }
@@ -143,12 +142,9 @@ void ScriptExecutor::executeEvent(const QString& eventName, const QVariantMap& e
     
     // Find the event
     QString normalizedEventName = eventName.toLower().remove(' ');
-    qDebug() << "ScriptExecutor: Looking for event:" << normalizedEventName;
-    qDebug() << "ScriptExecutor: Available events:" << m_compiledScript.keys();
     
     if (!m_compiledScript.contains(normalizedEventName)) {
         // Event not found, this is normal if no scripts are attached to this event
-        qDebug() << "ScriptExecutor: Event not found in compiled script";
         return;
     }
     
@@ -176,12 +172,9 @@ void ScriptExecutor::executeInvokeChain(const QJsonObject& eventData, const QJso
 void ScriptExecutor::executeInvoke(const QJsonObject& eventData, const QString& invokeId)
 {
     QJsonObject invokes = eventData["invoke"].toObject();
-    qDebug() << "ScriptExecutor: Looking for invoke:" << invokeId;
-    qDebug() << "ScriptExecutor: Available invokes:" << invokes.keys();
     
     if (!invokes.contains(invokeId)) {
         qWarning() << "ScriptExecutor: Invoke not found:" << invokeId;
-        qDebug() << "ScriptExecutor: Event data:" << QJsonDocument(eventData).toJson(QJsonDocument::Compact);
         return;
     }
     
@@ -203,7 +196,6 @@ void ScriptExecutor::executeInvoke(const QJsonObject& eventData, const QString& 
     QJSValue result = evaluateFunction(functionCode, params);
     
     if (isAsync && result.isObject() && result.hasProperty("then")) {
-        qDebug() << "ScriptExecutor: Executing async invoke:" << invokeId << "function:" << functionId;
         
         // This is a Promise - we need to wait for it
         QJSValue thenFunc = result.property("then");
@@ -306,12 +298,10 @@ QJSValue ScriptExecutor::evaluateFunction(const QString& functionCode, const QJs
                         if (asyncResult.isObject() && asyncResult.hasProperty("response")) {
                             QString responseValue = asyncResult.property("response").toString();
                             resolvedParam["value"] = responseValue;
-                            qDebug() << "ScriptExecutor: Retrieved async result for output" << outputId << ":" << responseValue;
                         } else {
                             resolvedParam["value"] = asyncResult.toString();
                         }
                     } else {
-                        qDebug() << "ScriptExecutor: No async result found for output" << outputId;
                         resolvedParam["value"] = "";
                     }
                 } else if (outputDef.contains("value")) {
@@ -397,7 +387,6 @@ void ScriptExecutor::handleOutput(const QJsonObject& outputDef, const QJSValue& 
     } else if (type == "invokeResult") {
         // This output will be populated by an async result
         // We'll update the outputs in the compiled script so subsequent nodes can use it
-        qDebug() << "ScriptExecutor: Output type 'invokeResult' will be populated by async result";
     } else if (type == "variable") {
         // Store in variable (future implementation)
         QString variableId = outputDef["targetId"].toString();
@@ -417,16 +406,11 @@ void ScriptExecutor::handleAsyncResult(const QString& invokeId, const QJSValue& 
         return;
     }
     
-    qDebug() << "ScriptExecutor: Handling async result for invoke:" << invokeId;
     
     // Debug: log the result
     if (result.isObject()) {
         if (result.hasProperty("response")) {
-            qDebug() << "ScriptExecutor: Async result has response property:" << result.property("response").toString();
         }
-        qDebug() << "ScriptExecutor: Async result object:" << result.toString();
-    } else {
-        qDebug() << "ScriptExecutor: Async result value:" << result.toString();
     }
     
     QPair<QJsonObject, QJsonArray> pendingData = m_pendingAsyncInvokes.take(invokeId);
@@ -436,18 +420,14 @@ void ScriptExecutor::handleAsyncResult(const QString& invokeId, const QJSValue& 
     // Store async results for later use by other nodes
     if (eventData.contains("outputs")) {
         QJsonObject outputs = eventData["outputs"].toObject();
-        qDebug() << "ScriptExecutor: Looking for outputs with sourceInvoke =" << invokeId;
-        qDebug() << "ScriptExecutor: Available outputs:" << outputs.keys();
         
         // Find output definition for this invoke if any
         for (auto it = outputs.begin(); it != outputs.end(); ++it) {
             QString outputId = it.key();
             QJsonObject outputDef = it.value().toObject();
             QString sourceInvoke = outputDef["sourceInvoke"].toString();
-            qDebug() << "ScriptExecutor: Checking output" << outputId << "with sourceInvoke:" << sourceInvoke;
             
             if (sourceInvoke == invokeId) {
-                qDebug() << "ScriptExecutor: Found matching output for async result, storing in m_asyncResults";
                 // Store the async result for this output
                 m_asyncResults[outputId] = result;
                 
@@ -458,7 +438,6 @@ void ScriptExecutor::handleAsyncResult(const QString& invokeId, const QJSValue& 
             }
         }
     } else {
-        qDebug() << "ScriptExecutor: No outputs found in event data for async invoke";
     }
     
     // Continue with next invokes
