@@ -150,11 +150,57 @@ ApplicationWindow {
         anchors.fill: parent
         visible: false
         z: 10000
+        focus: true  // Enable keyboard focus for ESC handling
         
         property string draggedElementName: ""
         property string draggedElementType: ""
         property var draggedElement: null
         property point ghostPosition: Qt.point(0, 0)
+        
+        // Signal emitted when an element is dropped
+        signal elementDropped(var element, point dropPoint)
+        
+        // Full screen mouse area to capture drop events
+        MouseArea {
+            id: dropArea
+            anchors.fill: parent
+            hoverEnabled: true
+            acceptedButtons: Qt.AllButtons  // Accept all buttons to capture the drop
+            
+            onPositionChanged: (mouse) => {
+                // Update ghost position
+                dragOverlay.ghostPosition = Qt.point(mouse.x, mouse.y)
+            }
+            
+            onReleased: (mouse) => {
+                // Emit the drop signal with the element and position
+                if (dragOverlay.draggedElement) {
+                    dragOverlay.elementDropped(dragOverlay.draggedElement, Qt.point(mouse.x, mouse.y))
+                }
+                
+                // Hide the overlay and reset state
+                dragOverlay.visible = false
+                dragOverlay.draggedElement = null
+                dragOverlay.draggedElementName = ""
+                dragOverlay.draggedElementType = ""
+            }
+        }
+        
+        // Handle ESC key to cancel drag
+        Keys.onEscapePressed: {
+            // Cancel the drag operation
+            dragOverlay.visible = false
+            dragOverlay.draggedElement = null
+            dragOverlay.draggedElementName = ""
+            dragOverlay.draggedElementType = ""
+        }
+        
+        // Ensure the overlay gets keyboard focus when shown
+        onVisibleChanged: {
+            if (visible) {
+                dragOverlay.forceActiveFocus()
+            }
+        }
         
         Rectangle {
             id: dragGhost
@@ -191,8 +237,6 @@ ApplicationWindow {
                 }
             }
         }
-        
-        // Remove the MouseArea - we'll track position through ghostPosition property instead
     }
     
     // Note: PropertiesPanel signal connections removed since PropertiesPanel is now in CanvasScreen

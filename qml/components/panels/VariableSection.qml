@@ -21,7 +21,7 @@ ColumnLayout {
                     selectedElement.variableType = v
                 }
             },
-            options: ["string", "number"]
+            options: PropertyTypeMapper.getAvailableVariableTypes()
         },
         {
             name: "Is Array",

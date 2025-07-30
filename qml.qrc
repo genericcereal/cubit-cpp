@@ -11,6 +11,7 @@
         <file>qml/qmldir</file>
         <file>qml/components/BaseCanvas.qml</file>
         <file>qml/components/CanvasBackground.qml</file>
+        <file>qml/components/VariableAwareSpinBox.qml</file>
         <file>qml/components/DesignCanvas.qml</file>
         <file>qml/components/DesignElementLayer.qml</file>
         <file>qml/components/DesignScriptExecutorOverlay.qml</file>

@@ -17,6 +17,10 @@ Item {
     // The design controls controller to use - must be passed in by parent
     property var designControlsController: null
     
+    // Expose canvas container and detail panel for drop detection
+    property alias canvasContainer: canvasContainer
+    property alias detailPanel: detailPanel
+    
     onCanvasChanged: {
         // Canvas changed
     }
@@ -27,6 +31,36 @@ Item {
     
     Component.onCompleted: {
         // CanvasScreen initialized
+        // Connect to drag overlay for drop handling
+        if (Window.window && Window.window.dragOverlay) {
+            Window.window.dragOverlay.elementDropped.connect(handleElementDrop)
+        }
+    }
+    
+    // Handle drops from the drag overlay
+    function handleElementDrop(element, dropPoint) {
+        // Check if drop point is over the canvas
+        var canvasPos = canvasContainer.mapFromItem(null, dropPoint.x, dropPoint.y)
+        
+        if (canvasPos.x >= 0 && canvasPos.x <= canvasContainer.width &&
+            canvasPos.y >= 0 && canvasPos.y <= canvasContainer.height) {
+            // Drop is over the canvas
+            if (canvasLoader.item && root.canvas && root.canvas.controller) {
+                // Convert to canvas coordinates
+                var viewportPos = canvasLoader.item.mapFromItem(null, dropPoint.x, dropPoint.y)
+                
+                // Use the canvas utilities to convert to canvas space
+                if (canvasLoader.item.flickable) {
+                    var canvasPoint = Qt.point(
+                        (canvasLoader.item.flickable.contentX + viewportPos.x) / canvasLoader.item.zoom + canvasLoader.item.canvasMinX,
+                        (canvasLoader.item.flickable.contentY + viewportPos.y) / canvasLoader.item.zoom + canvasLoader.item.canvasMinY
+                    )
+                    
+                    // Create a copy of the element at this position
+                    root.canvas.controller.duplicateElementAt(element, canvasPoint.x, canvasPoint.y)
+                }
+            }
+        }
     }
 
     // Main split view for canvas and detail panel

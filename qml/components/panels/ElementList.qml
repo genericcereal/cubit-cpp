@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Window
 import Cubit
 
 Item {
@@ -226,6 +227,7 @@ Item {
                                 anchors.fill: parent
                                 hoverEnabled: true
                                 preventStealing: true
+                                acceptedButtons: Qt.LeftButton
                                 
                                 property bool isDragging: false
                                 property point dragStartPos
@@ -240,29 +242,41 @@ Item {
                                 onPositionChanged: (mouse) => {
                                     if (pressed) {
                                         if (!isDragging && Math.abs(mouse.y - dragStartPos.y) > 5) {
+                                            // Starting drag
                                             isDragging = true
                                             elementsDelegateRect.state = "dragging"
                                             
-                                            // Get the main window reference
-                                            var mainWindow = root.Window.window
+                                            // Get the main window reference - try multiple approaches
+                                            var mainWindow = root.Window.window || ApplicationWindow.window
+                                            // Found main window and drag overlay
                                             
                                             if (mainWindow && mainWindow.dragOverlay) {
                                                 // Set up the drag overlay
                                                 mainWindow.dragOverlay.draggedElementName = model.name || "Unnamed"
                                                 mainWindow.dragOverlay.draggedElementType = model.elementType
                                                 mainWindow.dragOverlay.draggedElement = model.element
-                                                mainWindow.dragOverlay.visible = true
                                                 
-                                                // Position the drag ghost at cursor
-                                                var globalPos = elementsMouseArea.mapToItem(mainWindow.contentItem, mouse.x, mouse.y)
-                                                mainWindow.dragOverlay.ghostPosition = globalPos
+                                                // Set dragged element
+                                                
+                                                // Only show the ghost for Variable elements
+                                                if (model.elementType === "Variable") {
+                                                    // Show drag overlay for Variable
+                                                    mainWindow.dragOverlay.visible = true
+                                                    
+                                                    // Position the drag ghost at cursor
+                                                    var globalPos = elementsMouseArea.mapToItem(mainWindow.contentItem, mouse.x, mouse.y)
+                                                    mainWindow.dragOverlay.ghostPosition = globalPos
+                                                    
+                                                    // Release mouse capture so the overlay can handle events
+                                                    elementsMouseArea.preventStealing = false
+                                                }
                                             }
                                         }
                                         
                                         if (isDragging) {
                                             // Update drag overlay position
-                                            var mainWindow = root.Window.window
-                                            if (mainWindow && mainWindow.dragOverlay && mainWindow.dragOverlay.visible) {
+                                            var mainWindow = root.Window.window || ApplicationWindow.window
+                                            if (mainWindow && mainWindow.dragOverlay && mainWindow.dragOverlay.visible && model.elementType === "Variable") {
                                                 var globalPos = elementsMouseArea.mapToItem(mainWindow.contentItem, mouse.x, mouse.y)
                                                 mainWindow.dragOverlay.ghostPosition = globalPos
                                             }
@@ -336,18 +350,22 @@ Item {
                                     }
                                 }
                                 
-                                onReleased: {
+                                onReleased: (mouse) => {
                                     if (isDragging) {
+                                        // Mouse released while dragging
                                         elementsDropIndicator.visible = false
                                         
                                         // Reset visual state
                                         elementsDelegateRect.state = ""
                                         
-                                        // Hide drag overlay
-                                        var mainWindow = root.Window.window
-                                        if (mainWindow && mainWindow.dragOverlay) {
-                                            mainWindow.dragOverlay.visible = false
-                                            mainWindow.dragOverlay.draggedElement = null
+                                        // Reset preventStealing
+                                        elementsMouseArea.preventStealing = true
+                                        
+                                        // If we're dragging a variable, handle the drop
+                                        var mainWindow = root.Window.window || ApplicationWindow.window
+                                        if (mainWindow && mainWindow.dragOverlay && mainWindow.dragOverlay.visible) {
+                                            // Handle drop
+                                            mainWindow.dragOverlay.handleDrop()
                                         }
                                         
                                         // Clear all drop targets

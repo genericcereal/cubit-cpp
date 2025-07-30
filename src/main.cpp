@@ -38,8 +38,10 @@
 #include "PlatformConfig.h"
 #include "CanvasContext.h"
 #include "PropertyRegistry.h"
+#include "PropertyTypeMapper.h"
 #include "AdaptiveThrottler.h"
 #include "ConfigObject.h"
+#include "VariableBinding.h"
 
 int main(int argc, char *argv[])
 {
@@ -67,6 +69,9 @@ int main(int argc, char *argv[])
 
     // Initialize the ElementTypeRegistry with default types
     ElementTypeRegistry::instance().initializeDefaultTypes();
+    
+    // Load property type mappings
+    PropertyTypeMapper::instance()->loadMappings(":/data/src/property-types.json");
 
     // Create authentication manager
     AuthenticationManager *authManager = new AuthenticationManager(&app);
@@ -137,6 +142,9 @@ int main(int argc, char *argv[])
     // Register throttling types
     qmlRegisterType<AdaptiveThrottler>("Cubit", 1, 0, "AdaptiveThrottler");
     
+    // Register variable binding types
+    qmlRegisterType<VariableBinding>("Cubit", 1, 0, "VariableBinding");
+    qmlRegisterType<VariableBindingManager>("Cubit", 1, 0, "VariableBindingManager");
     
     // Register CanvasContext as uncreatable base class
     qmlRegisterUncreatableType<CanvasContext>("Cubit", 1, 0, "CanvasContext", "CanvasContext is an abstract base class");
@@ -186,6 +194,15 @@ int main(int argc, char *argv[])
                                               Q_UNUSED(scriptEngine)
                                               return new ConfigObject();
                                           });
+    
+    // Register PropertyTypeMapper singleton
+    qmlRegisterSingletonType<PropertyTypeMapper>("Cubit", 1, 0, "PropertyTypeMapper",
+                                                [](QQmlEngine *engine, QJSEngine *scriptEngine) -> QObject *
+                                                {
+                                                    Q_UNUSED(engine)
+                                                    Q_UNUSED(scriptEngine)
+                                                    return PropertyTypeMapper::instance();
+                                                });
 
     const QUrl url(QStringLiteral("qrc:/qml/main.qml"));
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated, &app, [url](QObject *obj, const QUrl &objUrl)

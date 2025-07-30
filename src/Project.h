@@ -18,10 +18,12 @@ class CanvasContext;
 class StreamingAIClient;
 class AuthenticationManager;
 class ConsoleMessageRepository;
+class VariableBindingManager;
 Q_DECLARE_OPAQUE_POINTER(ConsoleMessageRepository*)
 
 class Component;
 Q_DECLARE_OPAQUE_POINTER(Component*)
+Q_DECLARE_OPAQUE_POINTER(VariableBindingManager*)
 
 Q_DECLARE_OPAQUE_POINTER(CanvasContext*)
 
@@ -40,6 +42,9 @@ class Project : public QObject {
     Q_PROPERTY(Scripts* activeScripts READ activeScripts NOTIFY activeScriptsChanged)
     Q_PROPERTY(QQmlListProperty<PlatformConfig> platforms READ platforms NOTIFY platformsChanged)
     Q_PROPERTY(ConsoleMessageRepository* console READ console CONSTANT)
+    Q_PROPERTY(QString draggedVariableType READ draggedVariableType WRITE setDraggedVariableType NOTIFY draggedVariableTypeChanged)
+    Q_PROPERTY(VariableBindingManager* bindingManager READ bindingManager CONSTANT)
+    Q_PROPERTY(QVariantMap hoveredVariableTarget READ hoveredVariableTarget WRITE setHoveredVariableTarget NOTIFY hoveredVariableTargetChanged)
 
 public:
     explicit Project(const QString& id, const QString& name = QString(), QObject *parent = nullptr);
@@ -59,6 +64,9 @@ public:
     Scripts* activeScripts() const;
     QQmlListProperty<PlatformConfig> platforms();
     ConsoleMessageRepository* console() const;
+    QString draggedVariableType() const;
+    VariableBindingManager* bindingManager() const;
+    QVariantMap hoveredVariableTarget() const;
     
     // Platform management
     Q_INVOKABLE void addPlatform(const QString& platformName);
@@ -75,6 +83,8 @@ public:
     Q_INVOKABLE void setEditingElement(DesignElement* element, const QString& viewMode = QString());
     Q_INVOKABLE void setEditingComponent(Component* component, const QString& viewMode = QString());
     Q_INVOKABLE void setEditingPlatform(PlatformConfig* platform, const QString& viewMode = QString());
+    void setDraggedVariableType(const QString& type);
+    void setHoveredVariableTarget(const QVariantMap& target);
 
     // Initialize the canvas components
     void initialize();
@@ -100,6 +110,8 @@ signals:
     void platformsChanged();
     void viewportStateShouldBeSaved();
     void viewportStateShouldBeRestored();
+    void draggedVariableTypeChanged();
+    void hoveredVariableTargetChanged();
 
 private:
     std::unique_ptr<CanvasController> m_controller;
@@ -110,12 +122,15 @@ private:
     std::unique_ptr<PrototypeController> m_prototypeController;
     std::unique_ptr<StreamingAIClient> m_aiClient;
     std::unique_ptr<ConsoleMessageRepository> m_console;
+    std::unique_ptr<VariableBindingManager> m_bindingManager;
     QString m_name;
     QString m_id;
     QString m_viewMode;
     std::unique_ptr<CanvasContext> m_currentContext;
     QObject* m_editingElement = nullptr; // Can be DesignElement* or Component*
     std::vector<std::unique_ptr<PlatformConfig>> m_platforms;
+    QString m_draggedVariableType;
+    QVariantMap m_hoveredVariableTarget;
     
     // QML list property helpers
     static void appendPlatform(QQmlListProperty<PlatformConfig>* list, PlatformConfig* platform);

@@ -144,6 +144,10 @@ public slots:
     Q_INVOKABLE void setElementParent(Element* element, const QString& newParentId);
     Q_INVOKABLE void setElementParentWithPosition(DesignElement* element, CanvasElement* newParent, qreal relX, qreal relY);
     
+    // Variable binding
+    Q_INVOKABLE void assignVariable(const QString& variableId, const QString& elementId, const QString& propertyName);
+    Q_INVOKABLE void removeVariableBinding(const QString& elementId, const QString& propertyName);
+    
     // Access to HitTestService
     HitTestService* hitTestService() const { return m_hitTestService.get(); }
     

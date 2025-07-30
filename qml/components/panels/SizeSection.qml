@@ -183,8 +183,9 @@ ColumnLayout {
     
     Component {
         id: spinBoxComp
-        SpinBox {
+        VariableAwareSpinBox {
             Layout.fillWidth: true
+            // propertyName will be set by the loader
         }
     }
     
@@ -194,9 +195,10 @@ ColumnLayout {
             Layout.fillWidth: true
             spacing: 5
             
-            SpinBox {
+            VariableAwareSpinBox {
                 id: spinBox
                 Layout.fillWidth: true
+                // propertyName will be set by the loader
             }
             
             ComboBox {
@@ -231,6 +233,16 @@ ColumnLayout {
                                     item.from = modelData.from
                                     item.to = modelData.to
                                     item.value = Qt.binding(modelData.getter)
+                                    item.propertyName = modelData.name.toLowerCase()  // "x", "y", "width", "height"
+                                    item.elementId = root.selectedElement ? root.selectedElement.elementId : ""
+                                    
+                                    // Update elementId when selectedElement changes
+                                    var updateElementId = function() {
+                                        if (item && root) {
+                                            item.elementId = root.selectedElement ? root.selectedElement.elementId : ""
+                                        }
+                                    }
+                                    root.selectedElementChanged.connect(updateElementId)
                                     item.valueModified.connect(function() {
                                         modelData.setter(item.value)
                                     })
@@ -241,6 +253,16 @@ ColumnLayout {
                                     spinBox.from = modelData.from
                                     spinBox.to = modelData.to
                                     spinBox.value = Qt.binding(modelData.valueGetter)
+                                    spinBox.propertyName = modelData.name.toLowerCase()  // "width", "height"
+                                    spinBox.elementId = root.selectedElement ? root.selectedElement.elementId : ""
+                                    
+                                    // Update elementId when selectedElement changes
+                                    var updateElementId = function() {
+                                        if (spinBox && root) {
+                                            spinBox.elementId = root.selectedElement ? root.selectedElement.elementId : ""
+                                        }
+                                    }
+                                    root.selectedElementChanged.connect(updateElementId)
                                     spinBox.valueModified.connect(function() {
                                         modelData.valueSetter(spinBox.value)
                                     })
@@ -290,6 +312,16 @@ ColumnLayout {
                                 spinBox.from = modelData.from
                                 spinBox.to = modelData.to
                                 spinBox.value = Qt.binding(modelData.valueGetter)
+                                spinBox.propertyName = modelData.name.toLowerCase()  // "width", "height"
+                                spinBox.elementId = root.selectedElement ? root.selectedElement.elementId : ""
+                                
+                                // Update elementId when selectedElement changes
+                                var updateElementId2 = function() {
+                                    if (spinBox && root) {
+                                        spinBox.elementId = root.selectedElement ? root.selectedElement.elementId : ""
+                                    }
+                                }
+                                root.selectedElementChanged.connect(updateElementId2)
                                 spinBox.valueModified.connect(function() {
                                     modelData.valueSetter(spinBox.value)
                                 })
