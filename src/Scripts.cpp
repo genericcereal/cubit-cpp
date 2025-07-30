@@ -26,11 +26,10 @@ void Scripts::addNode(Node* node) {
     if (!node) return;
     
     // Check if node already exists
-    auto it = std::find_if(m_nodes.begin(), m_nodes.end(),
-        [node](const std::unique_ptr<Node>& n) { return n.get() == node; });
+    auto it = std::find(m_nodes.begin(), m_nodes.end(), node);
     
     if (it == m_nodes.end()) {
-        m_nodes.push_back(std::unique_ptr<Node>(node));
+        m_nodes.push_back(node);
         
         // Reset compiled state when graph changes
         if (m_isCompiled) {
@@ -43,22 +42,44 @@ void Scripts::addNode(Node* node) {
 }
 
 void Scripts::removeNode(Node* node) {
-    if (!node) return;
+    if (!node) {
+        qDebug() << "Scripts::removeNode - node is null";
+        return;
+    }
     
-    auto it = std::find_if(m_nodes.begin(), m_nodes.end(),
-        [node](const std::unique_ptr<Node>& n) { return n.get() == node; });
+    qDebug() << "Scripts::removeNode - Removing node:" << node->getId();
+    
+    auto it = std::find(m_nodes.begin(), m_nodes.end(), node);
     
     if (it != m_nodes.end()) {
         // Remove any edges connected to this node
         QString nodeId = node->getId();
-        auto connectedEdges = getEdgesForNode(nodeId);
-        for (Edge* edge : connectedEdges) {
-            removeEdge(edge);
+        qDebug() << "Scripts::removeNode - Found node in m_nodes, checking for connected edges";
+        
+        // Create a list of edge IDs to remove (not pointers) to avoid use-after-free
+        QStringList edgeIdsToRemove;
+        for (Edge* edge : m_edges) {
+            if (edge && (edge->sourceNodeId() == nodeId || edge->targetNodeId() == nodeId)) {
+                edgeIdsToRemove.append(edge->getId());
+            }
         }
         
+        qDebug() << "Scripts::removeNode - Found" << edgeIdsToRemove.size() << "connected edges to remove";
+        
+        // Now remove edges by ID
+        for (const QString& edgeId : edgeIdsToRemove) {
+            Edge* edge = getEdge(edgeId);
+            if (edge) {
+                qDebug() << "Scripts::removeNode - Removing edge:" << edgeId;
+                removeEdge(edge);
+            }
+        }
+        
+        qDebug() << "Scripts::removeNode - Emitting nodeRemoved signal";
         // Emit the removal signal BEFORE erasing the node
         emit nodeRemoved(node);
         
+        qDebug() << "Scripts::removeNode - Erasing node from m_nodes";
         // Now erase the node from the vector
         m_nodes.erase(it);
         
@@ -67,7 +88,11 @@ void Scripts::removeNode(Node* node) {
             setIsCompiled(false);
         }
         
+        qDebug() << "Scripts::removeNode - Emitting nodesChanged signal";
         emit nodesChanged();
+        qDebug() << "Scripts::removeNode - Complete";
+    } else {
+        qDebug() << "Scripts::removeNode - Node not found in m_nodes";
     }
 }
 
@@ -80,15 +105,15 @@ void Scripts::clearNodes() {
 
 Node* Scripts::getNode(const QString& nodeId) const {
     auto it = std::find_if(m_nodes.begin(), m_nodes.end(),
-        [&nodeId](const std::unique_ptr<Node>& n) { return n->getId() == nodeId; });
+        [&nodeId](Node* n) { return n && n->getId() == nodeId; });
     
-    return (it != m_nodes.end()) ? it->get() : nullptr;
+    return (it != m_nodes.end()) ? *it : nullptr;
 }
 
 QList<Node*> Scripts::getAllNodes() const {
     QList<Node*> result;
-    for (const auto& node : m_nodes) {
-        result.append(node.get());
+    for (Node* node : m_nodes) {
+        if (node) result.append(node);
     }
     return result;
 }
@@ -98,11 +123,10 @@ void Scripts::addEdge(Edge* edge) {
     if (!edge) return;
     
     // Check if edge already exists
-    auto it = std::find_if(m_edges.begin(), m_edges.end(),
-        [edge](const std::unique_ptr<Edge>& e) { return e.get() == edge; });
+    auto it = std::find(m_edges.begin(), m_edges.end(), edge);
     
     if (it == m_edges.end()) {
-        m_edges.push_back(std::unique_ptr<Edge>(edge));
+        m_edges.push_back(edge);
         
         // Reset compiled state when graph changes
         if (m_isCompiled) {
@@ -115,15 +139,21 @@ void Scripts::addEdge(Edge* edge) {
 }
 
 void Scripts::removeEdge(Edge* edge) {
-    if (!edge) return;
+    if (!edge) {
+        qDebug() << "Scripts::removeEdge - edge is null";
+        return;
+    }
     
-    auto it = std::find_if(m_edges.begin(), m_edges.end(),
-        [edge](const std::unique_ptr<Edge>& e) { return e.get() == edge; });
+    qDebug() << "Scripts::removeEdge - Removing edge:" << edge->getId();
+    
+    auto it = std::find(m_edges.begin(), m_edges.end(), edge);
     
     if (it != m_edges.end()) {
+        qDebug() << "Scripts::removeEdge - Emitting edgeRemoved signal";
         // Emit the removal signal BEFORE erasing the edge
         emit edgeRemoved(edge);
         
+        qDebug() << "Scripts::removeEdge - Erasing edge from m_edges";
         // Now erase the edge from the vector
         m_edges.erase(it);
         
@@ -132,7 +162,11 @@ void Scripts::removeEdge(Edge* edge) {
             setIsCompiled(false);
         }
         
+        qDebug() << "Scripts::removeEdge - Emitting edgesChanged signal";
         emit edgesChanged();
+        qDebug() << "Scripts::removeEdge - Complete";
+    } else {
+        qDebug() << "Scripts::removeEdge - Edge not found in m_edges";
     }
 }
 
@@ -145,15 +179,15 @@ void Scripts::clearEdges() {
 
 Edge* Scripts::getEdge(const QString& edgeId) const {
     auto it = std::find_if(m_edges.begin(), m_edges.end(),
-        [&edgeId](const std::unique_ptr<Edge>& e) { return e->getId() == edgeId; });
+        [&edgeId](Edge* e) { return e && e->getId() == edgeId; });
     
-    return (it != m_edges.end()) ? it->get() : nullptr;
+    return (it != m_edges.end()) ? *it : nullptr;
 }
 
 QList<Edge*> Scripts::getAllEdges() const {
     QList<Edge*> result;
-    for (const auto& edge : m_edges) {
-        result.append(edge.get());
+    for (Edge* edge : m_edges) {
+        if (edge) result.append(edge);
     }
     return result;
 }
@@ -161,9 +195,9 @@ QList<Edge*> Scripts::getAllEdges() const {
 // Find edges connected to a node
 QList<Edge*> Scripts::getEdgesForNode(const QString& nodeId) const {
     QList<Edge*> result;
-    for (const auto& edge : m_edges) {
-        if (edge->sourceNodeId() == nodeId || edge->targetNodeId() == nodeId) {
-            result.append(edge.get());
+    for (Edge* edge : m_edges) {
+        if (edge && (edge->sourceNodeId() == nodeId || edge->targetNodeId() == nodeId)) {
+            result.append(edge);
         }
     }
     return result;
@@ -171,9 +205,9 @@ QList<Edge*> Scripts::getEdgesForNode(const QString& nodeId) const {
 
 QList<Edge*> Scripts::getIncomingEdges(const QString& nodeId) const {
     QList<Edge*> result;
-    for (const auto& edge : m_edges) {
-        if (edge->targetNodeId() == nodeId) {
-            result.append(edge.get());
+    for (Edge* edge : m_edges) {
+        if (edge && edge->targetNodeId() == nodeId) {
+            result.append(edge);
         }
     }
     return result;
@@ -181,9 +215,9 @@ QList<Edge*> Scripts::getIncomingEdges(const QString& nodeId) const {
 
 QList<Edge*> Scripts::getOutgoingEdges(const QString& nodeId) const {
     QList<Edge*> result;
-    for (const auto& edge : m_edges) {
-        if (edge->sourceNodeId() == nodeId) {
-            result.append(edge.get());
+    for (Edge* edge : m_edges) {
+        if (edge && edge->sourceNodeId() == nodeId) {
+            result.append(edge);
         }
     }
     return result;
@@ -291,7 +325,7 @@ qsizetype Scripts::nodeCount(QQmlListProperty<Node>* list) {
 Node* Scripts::nodeAt(QQmlListProperty<Node>* list, qsizetype index) {
     Scripts* scripts = qobject_cast<Scripts*>(list->object);
     if (scripts && index >= 0 && index < static_cast<qsizetype>(scripts->m_nodes.size())) {
-        return scripts->m_nodes[index].get();
+        return scripts->m_nodes[index];
     }
     return nullptr;
 }
@@ -318,7 +352,7 @@ qsizetype Scripts::edgeCount(QQmlListProperty<Edge>* list) {
 Edge* Scripts::edgeAt(QQmlListProperty<Edge>* list, qsizetype index) {
     Scripts* scripts = qobject_cast<Scripts*>(list->object);
     if (scripts && index >= 0 && index < static_cast<qsizetype>(scripts->m_edges.size())) {
-        return scripts->m_edges[index].get();
+        return scripts->m_edges[index];
     }
     return nullptr;
 }

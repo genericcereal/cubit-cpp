@@ -128,12 +128,12 @@ Item {
         
         // Handle items being added
         onObjectAdded: (index, object) => {
-            console.log("Element added at index", index, "type:", object.elementType)
+            // Element added
         }
         
         // Handle items being removed
         onObjectRemoved: (index, object) => {
-            console.log("Element removed at index", index)
+            // Element removed
         }
     }
     

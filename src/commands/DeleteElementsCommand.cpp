@@ -5,6 +5,9 @@
 #include "../Project.h"
 #include "../Component.h"
 #include "../PlatformConfig.h"
+#include "../Scripts.h"
+#include "../Node.h"
+#include "../Edge.h"
 #include <QDebug>
 #include <vector>
 
@@ -70,6 +73,68 @@ void DeleteElementsCommand::execute()
         m_selectionManager->clearSelection();
     }
 
+    // Set flag to prevent Project from trying to remove nodes/edges again during model removal
+    bool isScriptMode = project && project->viewMode() == "script";
+    if (isScriptMode) {
+        m_elementModel->setProperty("_deleteCommandHandling", true);
+        
+        // Remove nodes/edges from Scripts BEFORE removing from model to avoid use-after-free
+        Scripts* scripts = project->activeScripts();
+        if (scripts) {
+            // First collect all edges that will be deleted due to node deletion
+            QList<Edge*> edgesToDelete;
+            for (const ElementInfo& info : m_deletedElements) {
+                if (Node* node = qobject_cast<Node*>(info.element)) {
+                    // Get edges connected to this node
+                    QString nodeId = node->getId();
+                    QList<Edge*> connectedEdges = scripts->getEdgesForNode(nodeId);
+                    for (Edge* edge : connectedEdges) {
+                        if (edge && !edgesToDelete.contains(edge)) {
+                            edgesToDelete.append(edge);
+                            qDebug() << "DeleteElementsCommand: Will delete edge" << edge->getId() 
+                                     << "connected to node" << nodeId;
+                        }
+                    }
+                }
+            }
+            
+            // Add connected edges to the list of elements to delete from ElementModel
+            for (Edge* edge : edgesToDelete) {
+                // Check if edge is not already in the deletion list
+                bool alreadyDeleting = false;
+                for (const ElementInfo& info : m_deletedElements) {
+                    if (info.element == edge) {
+                        alreadyDeleting = true;
+                        break;
+                    }
+                }
+                
+                if (!alreadyDeleting) {
+                    ElementInfo edgeInfo;
+                    edgeInfo.element = edge;
+                    edgeInfo.parent = nullptr;
+                    edgeInfo.index = m_elementModel->getAllElements().indexOf(edge);
+                    m_deletedElements.append(edgeInfo);
+                    qDebug() << "DeleteElementsCommand: Added edge" << edge->getId() << "to deletion list";
+                }
+            }
+            
+            // Remove nodes from Scripts (this will also remove connected edges)
+            for (const ElementInfo& info : m_deletedElements) {
+                if (Node* node = qobject_cast<Node*>(info.element)) {
+                    qDebug() << "DeleteElementsCommand: Removing node" << node->getId() << "from scripts";
+                    scripts->removeNode(node);
+                } else if (Edge* edge = qobject_cast<Edge*>(info.element)) {
+                    // Only remove edges that aren't already removed by removeNode
+                    if (scripts->getEdge(edge->getId())) {
+                        qDebug() << "DeleteElementsCommand: Removing edge" << edge->getId() << "from scripts";
+                        scripts->removeEdge(edge);
+                    }
+                }
+            }
+        }
+    }
+
     // Remove elements from model
     for (const ElementInfo& info : m_deletedElements) {
         m_elementModel->removeElement(info.element->getId());
@@ -101,6 +166,10 @@ void DeleteElementsCommand::execute()
         }
     }
 
+    // Clear the flag after all removals are done
+    if (isScriptMode) {
+        m_elementModel->setProperty("_deleteCommandHandling", false);
+    }
 }
 
 void DeleteElementsCommand::undo()

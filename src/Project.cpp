@@ -371,6 +371,13 @@ void Project::initialize() {
             
             Scripts* targetScripts = activeScripts();
             if (targetScripts) {
+                // Check if already being handled by DeleteElementsCommand
+                bool alreadyHandled = m_elementModel->property("_deleteCommandHandling").toBool();
+                if (alreadyHandled) {
+                    qDebug() << "Project: Skipping node/edge removal - already handled by DeleteElementsCommand";
+                    return;
+                }
+                
                 // Remove from scripts when removed from model
                 if (Node* node = targetScripts->getNode(elementId)) {
                     qDebug() << "Project: Removing node" << elementId << "from" 

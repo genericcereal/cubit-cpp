@@ -23,6 +23,8 @@ CloseProjectCommand::~CloseProjectCommand()
 
 void CloseProjectCommand::execute()
 {
+    qDebug() << "CloseProjectCommand::execute() called for project:" << m_projectId;
+    
     if (!m_application) {
         qWarning() << "CloseProjectCommand: Application is null";
         return;
@@ -131,6 +133,12 @@ void CloseProjectCommand::performClose()
         qWarning() << "CloseProjectCommand: Application is null during close";
         return;
     }
+
+    // Get project name for debug message
+    Project* project = m_application->getProject(m_projectId);
+    QString projectName = project ? project->name() : m_projectId;
+    
+    qDebug() << "Closing project:" << projectName << "(" << m_projectId << ")";
 
     // Close the project
     m_application->removeProject(m_projectId);

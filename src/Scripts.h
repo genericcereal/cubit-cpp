@@ -72,8 +72,8 @@ signals:
     void compiledScriptChanged();
 
 private:
-    std::vector<std::unique_ptr<Node>> m_nodes;
-    std::vector<std::unique_ptr<Edge>> m_edges;
+    std::vector<Node*> m_nodes;
+    std::vector<Edge*> m_edges;
     bool m_isCompiled = false;
     QString m_compiledScript;
     
