@@ -133,11 +133,12 @@ PropertyGroup {
             Layout.fillWidth: true
             spacing: 5
             
-            SpinBox {
+            VariableAwareSpinBox {
                 id: spinBox
                 Layout.fillWidth: true
                 from: -9999
                 to: 9999
+                // propertyName will be set in onLoaded
             }
             
             Button {
@@ -202,6 +203,24 @@ PropertyGroup {
                                 
                                 // Capture modelData in closure
                                 var currentModelData = modelData
+                                
+                                // Set propertyName for VariableAwareSpinBox
+                                spinBox.propertyName = currentModelData.name.toLowerCase()  // "left", "top", "right", "bottom"
+                                
+                                // Set initial elementId
+                                spinBox.elementId = root.selectedElement ? root.selectedElement.elementId : ""
+                                
+                                // Update elementId when selectedElement changes
+                                var updateElementId = function() {
+                                    if (spinBox) {
+                                        try {
+                                            spinBox.elementId = root.selectedElement ? root.selectedElement.elementId : ""
+                                        } catch (e) {
+                                            // Component may have been destroyed
+                                        }
+                                    }
+                                }
+                                root.selectedElementChanged.connect(updateElementId)
                                 
                                 // Set initial value
                                 spinBox.value = currentModelData.valueGetter()

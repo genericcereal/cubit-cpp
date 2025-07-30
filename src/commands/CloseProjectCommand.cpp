@@ -39,6 +39,13 @@ void CloseProjectCommand::execute()
     Project* project = m_application->getProject(m_projectId);
     if (!project) {
         qWarning() << "CloseProjectCommand: Project not found:" << m_projectId;
+        qDebug() << "Available projects:";
+        for (const QString& id : m_application->canvasIds()) {
+            qDebug() << "  -" << id;
+        }
+        // Project not found, but we can still proceed with the close operation
+        // This might happen if the project was already removed or in a race condition
+        performClose();
         return;
     }
 
@@ -136,12 +143,17 @@ void CloseProjectCommand::performClose()
 
     // Get project name for debug message
     Project* project = m_application->getProject(m_projectId);
-    QString projectName = project ? project->name() : m_projectId;
+    QString projectName = project ? project->name() : QString("Unknown project");
     
     qDebug() << "Closing project:" << projectName << "(" << m_projectId << ")";
 
     // Close the project
     m_application->removeProject(m_projectId);
+    
+    // Refresh the project list from API
+    if (m_application) {
+        m_application->fetchProjectsFromAPI();
+    }
     
     // Emit signal to indicate close is complete
     emit closeComplete();

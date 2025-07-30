@@ -86,6 +86,7 @@ signals:
     void canvasListChanged();
     void canvasCreated(const QString& canvasId);
     void canvasRemoved(const QString& canvasId);
+    void canvasIdUpdated(const QString& oldId, const QString& newId);
     void saveFileRequested();
     void openFileRequested();
     void projectsFetchedFromAPI(const QJsonArray& projects);

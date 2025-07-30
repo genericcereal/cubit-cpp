@@ -17,6 +17,7 @@
 #include "commands/CreateInstanceCommand.h"
 #include "commands/CreateScriptElementCommand.h"
 #include "commands/CompileScriptsCommand.h"
+#include "commands/AssignVariableCommand.h"
 #include "IModeHandler.h"
 #include "SelectModeHandler.h"
 #include "CreationModeHandler.h"
@@ -735,6 +736,34 @@ void CanvasController::compileScripts()
     
     // Create and execute compile command with all required dependencies
     auto command = std::make_unique<CompileScriptsCommand>(scripts, &m_elementModel, console, project);
+    m_commandHistory->execute(std::move(command));
+}
+
+void CanvasController::assignVariable(const QString& variableId, const QString& elementId, const QString& propertyName)
+{
+    // Get the project from the element model's parent
+    Project* project = qobject_cast<Project*>(m_elementModel.parent());
+    if (!project) {
+        qWarning() << "Cannot assign variable: No project found";
+        return;
+    }
+    
+    // Create and execute assign variable command
+    auto command = std::make_unique<AssignVariableCommand>(project, variableId, elementId, propertyName);
+    m_commandHistory->execute(std::move(command));
+}
+
+void CanvasController::removeVariableBinding(const QString& elementId, const QString& propertyName)
+{
+    // Get the project from the element model's parent
+    Project* project = qobject_cast<Project*>(m_elementModel.parent());
+    if (!project) {
+        qWarning() << "Cannot remove variable binding: No project found";
+        return;
+    }
+    
+    // Create and execute assign variable command for removal
+    auto command = std::make_unique<AssignVariableCommand>(project, elementId, propertyName);
     m_commandHistory->execute(std::move(command));
 }
 

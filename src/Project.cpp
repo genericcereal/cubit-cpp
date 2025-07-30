@@ -20,6 +20,7 @@
 #include "contexts/VariantCanvasContext.h"
 #include "contexts/GlobalElementsContext.h"
 #include "contexts/ScriptCanvasContext.h"
+#include "VariableBinding.h"
 
 Project::Project(const QString& id, const QString& name, QObject *parent)
     : QObject(parent)
@@ -46,6 +47,19 @@ Project::Project(const QString& id, const QString& name, QObject *parent)
 }
 
 Project::~Project() {
+    // Disconnect all signals to prevent dangling pointer access during destruction
+    if (m_console) {
+        disconnect(m_console.get(), nullptr, this, nullptr);
+    }
+    
+    if (m_elementModel) {
+        disconnect(m_elementModel.get(), nullptr, this, nullptr);
+    }
+    
+    if (m_prototypeController && m_controller) {
+        disconnect(m_prototypeController.get(), nullptr, this, nullptr);
+    }
+    
     // Clear elements before destroying other components to avoid dangling pointers
     if (m_elementModel) {
         m_elementModel->clear();
@@ -89,6 +103,18 @@ QString Project::id() const {
 
 QString Project::viewMode() const {
     return m_viewMode;
+}
+
+QString Project::draggedVariableType() const {
+    return m_draggedVariableType;
+}
+
+VariableBindingManager* Project::bindingManager() const {
+    return m_bindingManager.get();
+}
+
+QVariantMap Project::hoveredVariableTarget() const {
+    return m_hoveredVariableTarget;
 }
 
 CanvasContext* Project::currentContext() const {
@@ -201,6 +227,20 @@ void Project::setViewMode(const QString& viewMode) {
     }
 }
 
+void Project::setDraggedVariableType(const QString& type) {
+    if (m_draggedVariableType != type) {
+        m_draggedVariableType = type;
+        emit draggedVariableTypeChanged();
+    }
+}
+
+void Project::setHoveredVariableTarget(const QVariantMap& target) {
+    if (m_hoveredVariableTarget != target) {
+        m_hoveredVariableTarget = target;
+        emit hoveredVariableTargetChanged();
+    }
+}
+
 void Project::setCanvasContext(std::unique_ptr<CanvasContext> context) {
     // IMPORTANT: Clear the context pointer from HitTestService BEFORE destroying the old context
     // This prevents dangling pointer access during destruction
@@ -292,6 +332,7 @@ void Project::initialize() {
     m_selectionManager = std::make_unique<SelectionManager>(this);
     m_scripts = std::make_unique<Scripts>(this);
     m_scriptExecutor = std::make_unique<ScriptExecutor>(this);
+    m_bindingManager = std::make_unique<VariableBindingManager>(this);
     
     // Create the controller with its required dependencies
     // For now, always create DesignCanvas as it handles both design and variant modes

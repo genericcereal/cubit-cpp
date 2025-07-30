@@ -1089,7 +1089,9 @@ Item {
         // Check if exactly one element is selected and it's a ComponentVariant
         if (parent.selectedElements.length === 1) {
             var element = parent.selectedElements[0]
-            selectedIsComponentVariant = element && element.isDesignElement && element.isComponentVariant()
+            selectedIsComponentVariant = !!(element && element.isDesignElement && 
+                                           typeof element.isComponentVariant === 'function' && 
+                                           element.isComponentVariant())
         } else {
             selectedIsComponentVariant = false
         }
@@ -1105,7 +1107,8 @@ Item {
             // Check if element is a ComponentInstance or ComponentVariant using the generic methods
             var isComponentRelated = false
             if (element.isDesignElement) {
-                isComponentRelated = element.isComponentInstance() || element.isComponentVariant()
+                isComponentRelated = (typeof element.isComponentInstance === 'function' && element.isComponentInstance() === true) || 
+                                   (typeof element.isComponentVariant === 'function' && element.isComponentVariant() === true)
             }
             
             if (!isComponentRelated) {

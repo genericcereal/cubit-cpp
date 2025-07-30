@@ -83,6 +83,7 @@ SOURCES += \
     src/commands/CloseProjectCommand.cpp \
     src/commands/CreateComponentCommand.cpp \
     src/commands/CreateInstanceCommand.cpp \
+    src/commands/AssignVariableCommand.cpp \
     src/ScriptCompiler.cpp \
     src/ScriptExecutor.cpp \
     src/ScriptGraphValidator.cpp \
@@ -110,9 +111,11 @@ SOURCES += \
     src/contexts/GlobalElementsContext.cpp \
     src/contexts/ScriptCanvasContext.cpp \
     src/PropertyRegistry.cpp \
+    src/PropertyTypeMapper.cpp \
     src/ThrottledUpdate.cpp \
     src/AdaptiveThrottler.cpp \
-    src/AIService.cpp
+    src/AIService.cpp \
+    src/VariableBinding.cpp
 
 HEADERS += \
     src/Element.h \
@@ -172,6 +175,7 @@ HEADERS += \
     src/commands/CloseProjectCommand.h \
     src/commands/CreateComponentCommand.h \
     src/commands/CreateInstanceCommand.h \
+    src/commands/AssignVariableCommand.h \
     src/ScriptCompiler.h \
     src/ScriptExecutor.h \
     src/ScriptGraphValidator.h \
@@ -199,13 +203,16 @@ HEADERS += \
     src/contexts/GlobalElementsContext.h \
     src/contexts/ScriptCanvasContext.h \
     src/PropertyRegistry.h \
+    src/PropertyTypeMapper.h \
     src/PropertyMetadata.h \
     src/ThrottledUpdate.h \
     src/AdaptiveThrottler.h \
     src/ConfigObject.h \
-    src/AIService.h
+    src/AIService.h \
+    src/VariableBinding.h
 
-RESOURCES += qml.qrc
+RESOURCES += qml.qrc \
+             data.qrc
 
 # Add include paths for better organization
 INCLUDEPATH += src

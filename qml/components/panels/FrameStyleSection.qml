@@ -106,8 +106,9 @@ PropertyGroup {
     
     Component {
         id: spinBoxComp
-        SpinBox {
+        VariableAwareSpinBox {
             Layout.fillWidth: true
+            // propertyName will be set by the loader
         }
     }
     
@@ -159,6 +160,23 @@ PropertyGroup {
                                 item.from = modelData.from
                                 item.to = modelData.to
                                 item.value = Qt.binding(modelData.getter)
+                                // Map display names to property names
+                                var propName = modelData.name.replace(" ", "")  // Remove spaces
+                                propName = propName.charAt(0).toLowerCase() + propName.slice(1)  // camelCase
+                                item.propertyName = propName  // "borderRadius", "borderWidth"
+                                item.elementId = root.selectedElement ? root.selectedElement.elementId : ""
+                                
+                                // Update elementId when selectedElement changes
+                                var updateElementId = function() {
+                                    if (item) {
+                                        try {
+                                            item.elementId = root.selectedElement ? root.selectedElement.elementId : ""
+                                        } catch (e) {
+                                            // Component may have been destroyed
+                                        }
+                                    }
+                                }
+                                root.selectedElementChanged.connect(updateElementId)
                                 item.valueChanged.connect(function() {
                                     modelData.setter(item.value)
                                 })

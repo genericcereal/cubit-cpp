@@ -170,9 +170,6 @@ QString Application::createProject(const QString& name) {
 }
 
 void Application::removeProject(const QString& projectId) {
-    // Check if this is an API project (API projects have UUIDs as IDs)
-    bool isApiProject = projectId.contains('-') && projectId.length() == 36;
-    
     // Look for the project in the open canvases
     auto it = std::find_if(m_canvases.begin(), m_canvases.end(),
         [&projectId](const std::unique_ptr<Project>& c) { return c->id() == projectId; });
@@ -183,13 +180,6 @@ void Application::removeProject(const QString& projectId) {
         
         emit canvasListChanged();
         emit canvasRemoved(projectId);
-    }
-    
-    // If it's an API project, delete it from the API regardless of whether it's open
-    if (isApiProject && m_projectApiClient) {
-        qDebug() << "Deleting API project:" << projectId;
-        m_projectApiClient->deleteProject(projectId);
-        // Don't emit projectDeletedFromAPI here - wait for the API response
     }
 }
 
@@ -490,26 +480,27 @@ void Application::closeProjectWindow(const QString& projectId) {
     // Use CloseProjectCommand to properly close the project with undo support and API sync
     auto command = std::make_unique<CloseProjectCommand>(this, projectId);
     
-    // Connect to the closeComplete signal to emit canvasRemoved when done
-    connect(command.get(), &CloseProjectCommand::closeComplete, this, [this, projectId]() {
-        emit canvasRemoved(projectId);
-    });
-    
     // Store the command pointer before moving it
     Command* cmdPtr = command.get();
+    
+    // Connect to the closeComplete signal to emit canvasRemoved and clean up command
+    connect(command.get(), &CloseProjectCommand::closeComplete, this, [this, projectId, cmdPtr]() {
+        emit canvasRemoved(projectId);
+        
+        // Clean up the completed command
+        m_pendingCommands.erase(
+            std::remove_if(m_pendingCommands.begin(), m_pendingCommands.end(),
+                [cmdPtr](const std::unique_ptr<Command>& cmd) { 
+                    return cmd.get() == cmdPtr; 
+                }),
+            m_pendingCommands.end()
+        );
+    });
+    
     m_pendingCommands.push_back(std::move(command));
     
     // Execute the command
     cmdPtr->execute();
-    
-    // Clean up completed commands
-    m_pendingCommands.erase(
-        std::remove_if(m_pendingCommands.begin(), m_pendingCommands.end(),
-            [cmdPtr](const std::unique_ptr<Command>& cmd) { 
-                return cmd.get() == cmdPtr; 
-            }),
-        m_pendingCommands.end()
-    );
 }
 
 void Application::updateProjectId(const QString& oldId, const QString& newId) {
@@ -527,5 +518,6 @@ void Application::updateProjectId(const QString& oldId, const QString& newId) {
     // No need to update m_canvases as it stores by pointer, not by ID
     
     emit canvasListChanged();  // Notify UI of the change
+    emit canvasIdUpdated(oldId, newId);  // Notify UI that the ID has changed
 }
 

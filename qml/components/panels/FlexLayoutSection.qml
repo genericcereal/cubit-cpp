@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Cubit
+import ".."
 import "../../PropertyHelpers.js" as PropertyHelpers
 
 ColumnLayout {
@@ -74,12 +75,14 @@ ColumnLayout {
                 text: "Gap:" 
                 visible: PropertyHelpers.canShowGap(selectedElement, editableProperties)
             }
-            SpinBox {
+            VariableAwareSpinBox {
                 Layout.fillWidth: true
                 visible: PropertyHelpers.canShowGap(selectedElement, editableProperties)
                 from: 0
                 to: 100
                 value: selectedElement && selectedElement.gap !== undefined ? Math.round(selectedElement.gap) : 0
+                propertyName: "gap"
+                elementId: selectedElement ? selectedElement.elementId : ""
                 onValueChanged: {
                     if (value !== undefined && selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
                         selectedElement.gap = value

@@ -19,6 +19,7 @@
 #include "ConsoleMessageRepository.h"
 #include "CanvasController.h"
 #include "HitTestService.h"
+#include "VariableBinding.h"
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
@@ -138,6 +139,12 @@ QJsonObject Serializer::serializeProject(Project* project) const {
     }
     
     projectObj["elements"] = elementsArray;
+    
+    // Serialize variable bindings
+    if (project->bindingManager()) {
+        QVariantList bindings = project->bindingManager()->serialize();
+        projectObj["variableBindings"] = QJsonArray::fromVariantList(bindings);
+    }
     
     // Add metadata
     projectObj["createdAt"] = project->property("createdAt").toString();
@@ -423,6 +430,16 @@ Project* Serializer::deserializeProject(const QJsonObject& projectData) {
         // Resolve parent relationships after all elements are loaded
         if (project->elementModel()) {
             project->elementModel()->resolveParentRelationships();
+        }
+        
+        // Deserialize variable bindings after all elements are loaded
+        if (projectData.contains("variableBindings") && project->bindingManager()) {
+            QJsonArray bindingsArray = projectData["variableBindings"].toArray();
+            QVariantList bindingsList;
+            for (const QJsonValue& value : bindingsArray) {
+                bindingsList.append(value.toObject().toVariantMap());
+            }
+            project->bindingManager()->deserialize(bindingsList);
         }
         
         // Connect property sync for global elements

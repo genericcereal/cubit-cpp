@@ -17,6 +17,7 @@ class PropertyMetadata : public QObject
     Q_PROPERTY(QVariant maxValue READ maxValue CONSTANT)
     Q_PROPERTY(QStringList enumValues READ enumValues CONSTANT)
     Q_PROPERTY(bool readOnly READ readOnly CONSTANT)
+    Q_PROPERTY(QStringList acceptsVariableTypes READ acceptsVariableTypes CONSTANT)
     
 public:
     enum PropertyType {
@@ -55,11 +56,13 @@ public:
     QVariant maxValue() const { return m_maxValue; }
     QStringList enumValues() const { return m_enumValues; }
     bool readOnly() const { return m_readOnly; }
+    QStringList acceptsVariableTypes() const { return m_acceptsVariableTypes; }
     
     void setMinValue(const QVariant& value) { m_minValue = value; }
     void setMaxValue(const QVariant& value) { m_maxValue = value; }
     void setEnumValues(const QStringList& values) { m_enumValues = values; }
     void setReadOnly(bool readOnly) { m_readOnly = readOnly; }
+    void setAcceptsVariableTypes(const QStringList& types) { m_acceptsVariableTypes = types; }
     
 private:
     QString m_name;
@@ -71,6 +74,7 @@ private:
     QVariant m_maxValue;
     QStringList m_enumValues;
     bool m_readOnly;
+    QStringList m_acceptsVariableTypes;
 };
 
 #endif // PROPERTYMETADATA_H

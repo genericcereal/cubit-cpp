@@ -1,0 +1,74 @@
+{
+    "propertyTypeMappings": {
+        "// Geometric properties": "",
+        "x": ["number"],
+        "y": ["number"],
+        "width": ["number"],
+        "height": ["number"],
+        "left": ["number"],
+        "right": ["number"],
+        "top": ["number"],
+        "bottom": ["number"],
+        
+        "// Frame properties": "",
+        "fill": ["string"],
+        "borderColor": ["string"],
+        "borderWidth": ["number"],
+        "borderRadius": ["number"],
+        "gap": ["number"],
+        
+        "// Text properties": "",
+        "content": ["string", "number"],
+        "color": ["string"],
+        "font": ["string"],
+        
+        "// Boolean properties": "",
+        "mouseEventsEnabled": ["string"],
+        "acceptsChildren": ["string"],
+        "flex": ["string"],
+        "controlled": ["string"],
+        "leftAnchored": ["string"],
+        "rightAnchored": ["string"],
+        "topAnchored": ["string"],
+        "bottomAnchored": ["string"],
+        "isFrozen": ["string"],
+        "isEditing": ["string"],
+        
+        "// Enum properties": "",
+        "colorFormat": ["string", "number"],
+        "overflow": ["string", "number"],
+        "orientation": ["string", "number"],
+        "position": ["string", "number"],
+        "justify": ["string", "number"],
+        "align": ["string", "number"],
+        "widthType": ["string", "number"],
+        "heightType": ["string", "number"],
+        "role": ["string", "number"],
+        
+        "// String properties": "",
+        "placeholder": ["string"],
+        "value": ["string", "number"],
+        "sourceId": ["string"],
+        "platform": ["string"],
+        
+        "// Shape properties": "",
+        "shapeType": ["string", "number"],
+        "joints": ["string"],
+        "edgeWidth": ["number"],
+        "edgeColor": ["string"],
+        "fillColor": ["string"]
+    },
+    
+    "variableTypes": {
+        "string": {
+            "displayName": "String",
+            "defaultValue": "",
+            "icon": "text"
+        },
+        "number": {
+            "displayName": "Number", 
+            "defaultValue": 0,
+            "icon": "number"
+        }
+    }
+}
