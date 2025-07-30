@@ -25,49 +25,17 @@ Item {
     height: inputHeight
     
     // Explicitly bind visibility with logging
-    visible: {
-        var shouldBeVisible = portType !== "Flow" && !hasIncomingEdge
-        console.log("PortInput visibility calculation:", 
-                   "portType:", portType,
-                   "hasIncomingEdge:", hasIncomingEdge,
-                   "=> should be visible:", shouldBeVisible)
-        return shouldBeVisible
-    }
+    visible: portType !== "Flow" && !hasIncomingEdge
     
-    onVisibleChanged: {
-        console.log("PortInput visibility changed to:", visible,
-                   "portType:", portType,
-                   "hasIncomingEdge:", hasIncomingEdge,
-                   "parent.visible:", parent ? parent.visible : "no parent")
-    }
-    
-    onHasIncomingEdgeChanged: {
-        console.log("PortInput hasIncomingEdge property changed to:", hasIncomingEdge,
-                   "portType:", portType,
-                   "portIndex:", portIndex,
-                   "=> visible should be:", portType !== "Flow" && !hasIncomingEdge)
-    }
     
     // Function to handle clicks from parent
     function handleClick() {
-        console.log("PortInput.handleClick called for port:", portIndex, "type:", portType)
-        console.log("  inputConfig:", JSON.stringify(inputConfig))
-        console.log("  textField.visible:", textField.visible)
-        console.log("  numberField.visible:", numberField.visible)
-        console.log("  comboBox.visible:", comboBox.visible)
-        console.log("  Component visibility:", visible)
-        console.log("  Parent visibility:", parent ? parent.visible : "no parent")
         
         if (inputConfig.inputType === "textInput" && textField.visible) {
-            console.log("  Focusing text field")
             textField.forceActiveFocus()
-            console.log("  TextField now has focus:", textField.activeFocus)
         } else if (inputConfig.inputType === "numberInput" && numberField.visible) {
-            console.log("  Focusing number field")
             numberField.forceActiveFocus()
-            console.log("  NumberField now has focus:", numberField.activeFocus)
         } else if (inputConfig.inputType === "selectInput" && comboBox.visible) {
-            console.log("  Opening combo box")
             comboBox.popup.open()
         }
     }
@@ -119,9 +87,9 @@ Item {
         font.pixelSize: 11
         selectByMouse: true
         validator: DoubleValidator {
-            bottom: inputConfig.validation ? inputConfig.validation.min : -999999
-            top: inputConfig.validation ? inputConfig.validation.max : 999999
-            decimals: inputConfig.validation ? inputConfig.validation.decimals : 2
+            bottom: inputConfig && inputConfig.validation && inputConfig.validation.min !== undefined ? inputConfig.validation.min : -999999
+            top: inputConfig && inputConfig.validation && inputConfig.validation.max !== undefined ? inputConfig.validation.max : 999999
+            decimals: inputConfig && inputConfig.validation && inputConfig.validation.decimals !== undefined ? inputConfig.validation.decimals : 2
         }
         
         
@@ -191,7 +159,6 @@ Item {
                 var newValue = inputConfig.options[currentIndex].value
                 root.value = newValue
                 root.portValueChanged(newValue)
-                console.log("Port", root.portIndex, "value changed to:", newValue)
             }
         }
     }

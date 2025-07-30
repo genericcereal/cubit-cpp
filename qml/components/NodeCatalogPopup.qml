@@ -50,12 +50,7 @@ Rectangle {
     transformOrigin: Item.TopLeft
 
     onVisibleChanged: {
-        console.log("Node catalog visible changed to:", visible);
         if (visible) {
-            console.log("  Position:", x, y);
-            console.log("  Size:", width, "x", height);
-            console.log("  Parent:", parent);
-            console.log("  Z:", z);
             
             // Clear previous search but don't focus
             searchField.text = ""

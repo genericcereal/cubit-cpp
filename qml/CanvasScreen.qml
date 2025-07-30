@@ -194,15 +194,9 @@ Item {
                 }
             }
             onCompileClicked: {
-                if (root.canvas && root.canvas.activeScripts) {
-                    // Compile the scripts
-                    var compiledJson = root.canvas.activeScripts.compile()
-                    
-                    if (compiledJson) {
-                        // Mark as compiled
-                        root.canvas.activeScripts.isCompiled = true
-                        // Scripts compiled successfully
-                    }
+                if (root.canvas && root.canvas.controller) {
+                    // Execute compile command through command history for undo/redo support
+                    root.canvas.controller.compileScripts()
                 }
             }
             onCreateVariableClicked: {

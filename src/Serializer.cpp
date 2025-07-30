@@ -92,6 +92,35 @@ QJsonObject Serializer::serializeProject(Project* project) const {
     }
     projectObj["platforms"] = platformsArray;
     
+    // Serialize main project scripts
+    if (project->scripts()) {
+        QJsonObject mainScriptsObj;
+        
+        // Serialize nodes
+        QJsonArray nodesArray;
+        QList<Node*> nodes = project->scripts()->getAllNodes();
+        qDebug() << "Serializing" << nodes.size() << "nodes from main project scripts";
+        for (Node* node : nodes) {
+            QJsonObject nodeObj = serializeNode(node);
+            qDebug() << "  Serializing node:" << node->getId() << "title:" << node->nodeTitle();
+            nodesArray.append(nodeObj);
+        }
+        mainScriptsObj["nodes"] = nodesArray;
+        
+        // Serialize edges
+        QJsonArray edgesArray;
+        QList<Edge*> edges = project->scripts()->getAllEdges();
+        qDebug() << "Serializing" << edges.size() << "edges from main project scripts";
+        for (Edge* edge : edges) {
+            QJsonObject edgeObj = serializeEdge(edge);
+            qDebug() << "  Serializing edge:" << edge->getId() << "from" << edge->sourceNodeId() << "to" << edge->targetNodeId();
+            edgesArray.append(edgeObj);
+        }
+        mainScriptsObj["edges"] = edgesArray;
+        
+        projectObj["scripts"] = mainScriptsObj;
+    }
+    
     // Serialize all elements from the ElementModel (excluding globalElements)
     QJsonArray elementsArray;
     if (project->elementModel()) {
@@ -250,6 +279,45 @@ Project* Serializer::deserializeProject(const QJsonObject& projectData) {
         // Don't restore viewMode from serialized data - it's app state
         // The project will use its default viewMode ("design")
         
+        // Deserialize main project scripts
+        if (projectData.contains("scripts")) {
+            QJsonObject scriptsObj = projectData["scripts"].toObject();
+            Scripts* mainScripts = project->scripts();
+            
+            if (mainScripts) {
+                // Clear existing default nodes
+                mainScripts->clear();
+                
+                // Load nodes
+                if (scriptsObj.contains("nodes")) {
+                    QJsonArray nodesArray = scriptsObj["nodes"].toArray();
+                    qDebug() << "Deserializing" << nodesArray.size() << "nodes for main project scripts";
+                    for (const QJsonValue& nodeValue : nodesArray) {
+                        Node* node = deserializeNode(nodeValue.toObject(), mainScripts);
+                        if (node) {
+                            qDebug() << "  Deserialized node:" << node->getId() << "title:" << node->nodeTitle();
+                            mainScripts->addNode(node);
+                            // Don't add to ElementModel here - let ScriptCanvasContext handle it
+                        }
+                    }
+                }
+                
+                // Load edges
+                if (scriptsObj.contains("edges")) {
+                    QJsonArray edgesArray = scriptsObj["edges"].toArray();
+                    qDebug() << "Deserializing" << edgesArray.size() << "edges for main project scripts";
+                    for (const QJsonValue& edgeValue : edgesArray) {
+                        Edge* edge = deserializeEdge(edgeValue.toObject(), mainScripts);
+                        if (edge) {
+                            qDebug() << "  Deserialized edge:" << edge->getId() << "from" << edge->sourceNodeId() << "to" << edge->targetNodeId();
+                            mainScripts->addEdge(edge);
+                            // Don't add to ElementModel here - let ScriptCanvasContext handle it
+                        }
+                    }
+                }
+            }
+        }
+        
         if (projectData.contains("platforms")) {
             QJsonArray platformsArray = projectData["platforms"].toArray();
             qDebug() << "Deserializing" << platformsArray.size() << "platforms for project" << id;
@@ -285,6 +353,7 @@ Project* Serializer::deserializeProject(const QJsonObject& projectData) {
                                         Node* node = deserializeNode(nodeValue.toObject(), platformScripts);
                                         if (node) {
                                             platformScripts->addNode(node);
+                                            // Don't add to ElementModel here - let ScriptCanvasContext handle it
                                         }
                                     }
                                 }
@@ -297,6 +366,7 @@ Project* Serializer::deserializeProject(const QJsonObject& projectData) {
                                         Edge* edge = deserializeEdge(edgeValue.toObject(), platformScripts);
                                         if (edge) {
                                             platformScripts->addEdge(edge);
+                                            // Don't add to ElementModel here - let ScriptCanvasContext handle it
                                         }
                                     }
                                 }
@@ -644,6 +714,34 @@ QJsonObject Serializer::serializeNode(Node* node) const {
     QJsonArray outputPortsArray = QJsonArray::fromStringList(node->outputPorts());
     nodeObj["outputPorts"] = outputPortsArray;
     
+    // Serialize isAsync property
+    nodeObj["isAsync"] = node->isAsync();
+    
+    // Serialize row configurations
+    QJsonArray rowsArray;
+    QVariantList rows = node->rowConfigurations();
+    for (const QVariant& rowVariant : rows) {
+        QVariantMap rowMap = rowVariant.toMap();
+        QJsonObject rowObj;
+        
+        if (rowMap.contains("hasTarget") && rowMap["hasTarget"].toBool()) {
+            rowObj["hasTarget"] = true;
+            rowObj["targetLabel"] = rowMap["targetLabel"].toString();
+            rowObj["targetType"] = rowMap["targetType"].toString();
+            rowObj["targetPortIndex"] = rowMap["targetPortIndex"].toInt();
+        }
+        
+        if (rowMap.contains("hasSource") && rowMap["hasSource"].toBool()) {
+            rowObj["hasSource"] = true;
+            rowObj["sourceLabel"] = rowMap["sourceLabel"].toString();
+            rowObj["sourceType"] = rowMap["sourceType"].toString();
+            rowObj["sourcePortIndex"] = rowMap["sourcePortIndex"].toInt();
+        }
+        
+        rowsArray.append(rowObj);
+    }
+    nodeObj["rowConfigurations"] = rowsArray;
+    
     return nodeObj;
 }
 
@@ -694,6 +792,7 @@ Node* Serializer::deserializeNode(const QJsonObject& nodeData, Scripts* scripts)
     if (nodeData.contains("height")) node->setHeight(nodeData["height"].toDouble());
     
     // Set Node-specific properties
+    if (nodeData.contains("nodeType")) node->setNodeType(nodeData["nodeType"].toString());
     if (nodeData.contains("nodeTitle")) node->setNodeTitle(nodeData["nodeTitle"].toString());
     if (nodeData.contains("nodeColor")) node->setNodeColor(QColor(nodeData["nodeColor"].toString()));
     if (nodeData.contains("value")) node->setValue(nodeData["value"].toString());
@@ -716,6 +815,36 @@ Node* Serializer::deserializeNode(const QJsonObject& nodeData, Scripts* scripts)
             outputPorts << port.toString();
         }
         node->setOutputPorts(outputPorts);
+    }
+    
+    // Set isAsync property
+    if (nodeData.contains("isAsync")) {
+        node->setIsAsync(nodeData["isAsync"].toBool());
+    }
+    
+    // Set row configurations
+    if (nodeData.contains("rowConfigurations")) {
+        QJsonArray rowsArray = nodeData["rowConfigurations"].toArray();
+        for (const QJsonValue& rowValue : rowsArray) {
+            QJsonObject rowObj = rowValue.toObject();
+            Node::RowConfig config;
+            
+            if (rowObj.contains("hasTarget") && rowObj["hasTarget"].toBool()) {
+                config.hasTarget = true;
+                config.targetLabel = rowObj["targetLabel"].toString();
+                config.targetType = rowObj["targetType"].toString();
+                config.targetPortIndex = rowObj["targetPortIndex"].toInt();
+            }
+            
+            if (rowObj.contains("hasSource") && rowObj["hasSource"].toBool()) {
+                config.hasSource = true;
+                config.sourceLabel = rowObj["sourceLabel"].toString();
+                config.sourceType = rowObj["sourceType"].toString();
+                config.sourcePortIndex = rowObj["sourcePortIndex"].toInt();
+            }
+            
+            node->addRow(config);
+        }
     }
     
     return node;

@@ -43,7 +43,6 @@ void OpenProjectCommand::execute()
     // Check if project already exists
     Project* existingProject = m_application->getProject(m_projectId);
     if (existingProject) {
-        qDebug() << "OpenProjectCommand: Project already exists, not creating duplicate";
         m_projectWasCreated = false;
         
         // Just create a new window for existing project
@@ -53,7 +52,6 @@ void OpenProjectCommand::execute()
                 QObject* window = component.create();
                 if (window) {
                     window->setProperty("canvasId", m_projectId);
-                    qDebug() << "OpenProjectCommand: Created new window for existing project";
                 }
             }
         }
@@ -62,7 +60,6 @@ void OpenProjectCommand::execute()
     
     // Use the Serializer to deserialize the project data properly
     // This will handle the new platform format with scripts
-    qDebug() << "OpenProjectCommand: Using serializer to deserialize project data";
     
     // Ensure the canvas data has the required ID and name
     QJsonObject projectData = m_canvasData;
@@ -111,5 +108,4 @@ void OpenProjectCommand::undo()
     // Remove the project using Application's removeProject method
     m_application->removeProject(m_projectId);
     
-    qDebug() << "OpenProjectCommand: Removed opened project" << m_projectName << "with ID" << m_projectId;
 }

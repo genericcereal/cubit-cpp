@@ -49,7 +49,6 @@ void AIService::callCubitAI(const QString &prompt, const QString &accessToken)
     QNetworkReply *reply = m_networkManager->post(request, jsonData);
     connect(reply, &QNetworkReply::finished, this, &AIService::handleNetworkReply);
     
-    qDebug() << "AIService: Sending request to CubitAI with prompt:" << prompt;
 }
 
 void AIService::handleNetworkReply()
@@ -93,7 +92,6 @@ void AIService::handleNetworkReply()
     // Extract the AI response
     if (response.contains("data") && response["data"].toObject().contains("CubitAi")) {
         QString aiResponse = response["data"].toObject()["CubitAi"].toString();
-        qDebug() << "AIService: Received response from CubitAI:" << aiResponse;
         emit responseReceived(aiResponse);
     } else {
         emit errorOccurred("Unknown error - no data in response");
