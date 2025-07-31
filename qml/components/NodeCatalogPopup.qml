@@ -97,17 +97,19 @@ Rectangle {
             model: filteredModel
             
             property var filteredModel: {
-                if (!root.nodeCatalog || !root.nodeCatalog.catalog) {
-                    console.log("Warning: nodeCatalog or catalog is not available")
+                if (!root.nodeCatalog || !canvas || !canvas.elementModel) {
                     return []
                 }
                 
-                var allTypes = Object.keys(root.nodeCatalog.catalog)
+                // Get all types including dynamic variable setters
+                var allTypes = root.nodeCatalog.getAllNodeTypesWithVariables(canvas.elementModel)
                 var searchText = searchField.text
                 
                 // Filter out Event type nodes and specific nodes
                 var filteredTypes = allTypes.filter(function(type) {
-                    var nodeType = root.nodeCatalog.catalog[type]
+                    var nodeType = root.nodeCatalog.getNodeTypeWithVariables(type, canvas.elementModel)
+                    if (!nodeType) return false
+                    
                     // Filter out Event type nodes
                     if (nodeType.type === "Event") {
                         return false
@@ -126,8 +128,8 @@ Rectangle {
                 // Filter based on search text (case insensitive)
                 var searchLower = searchText.toLowerCase()
                 return filteredTypes.filter(function(type) {
-                    var nodeType = root.nodeCatalog.catalog[type]
-                    return nodeType.name.toLowerCase().indexOf(searchLower) !== -1
+                    var nodeType = root.nodeCatalog.getNodeTypeWithVariables(type, canvas.elementModel)
+                    return nodeType && nodeType.name.toLowerCase().indexOf(searchLower) !== -1
                 })
             }
             spacing: 4 * canvas.zoom
@@ -138,7 +140,7 @@ Rectangle {
                 color: mouseArea.containsMouse ? "#f0f0f0" : "transparent"
                 radius: 4 * canvas.zoom
 
-                property var nodeType: root.nodeCatalog.catalog[modelData]
+                property var nodeType: root.nodeCatalog.getNodeTypeWithVariables(modelData, canvas.elementModel)
                 
                 Component.onCompleted: {
                     if (!nodeType) {
@@ -155,7 +157,7 @@ Rectangle {
                         // Selected node type
 
                         // Create the node at the catalog position
-                        var nodeData = root.nodeCatalog.createNodeData(modelData, root.position.x, root.position.y);
+                        var nodeData = root.nodeCatalog.createNodeData(modelData, root.position.x, root.position.y, canvas.elementModel);
 
                         if (nodeData) {
                             // Create node from JSON

@@ -87,3 +87,25 @@ void Variable::setArrayValue(int index, const QVariant &value)
         }
     }
 }
+
+void Variable::setVariableScope(const QString &scope)
+{
+    if (scope == "global" || scope == "element") {
+        if (m_variableScope != scope) {
+            m_variableScope = scope;
+            emit variableScopeChanged();
+            emit elementChanged();
+        }
+    } else {
+        qWarning() << "Invalid variable scope:" << scope << ". Must be 'global' or 'element'.";
+    }
+}
+
+void Variable::setLinkedElementId(const QString &elementId)
+{
+    if (m_linkedElementId != elementId) {
+        m_linkedElementId = elementId;
+        emit linkedElementIdChanged();
+        emit elementChanged();
+    }
+}

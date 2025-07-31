@@ -10,6 +10,8 @@
 #include "ElementTypeRegistry.h"
 #include "ProjectApiClient.h"
 #include "PlatformConfig.h"
+#include "Variable.h"
+#include "UniqueIdGenerator.h"
 #include <QDebug>
 
 CreateDesignElementCommand::CreateDesignElementCommand(ElementModel* model, SelectionManager* selectionManager,
@@ -138,6 +140,45 @@ void CreateDesignElementCommand::execute()
         m_selectionManager->selectOnly(m_element);
     }
     
+    // Create a Variable element for this design element
+    // Only for design elements (not variants or components themselves)
+    if (!isVariantMode && !isGlobalElementsMode && 
+        m_element && project) {
+        
+        // Check if it's a design element (Frame, Text, Shape) or component instance
+        bool shouldCreateVariable = false;
+        
+        if (m_elementType == "frame" || m_elementType == "text" || 
+            m_elementType == "shape" || m_elementType == "webtextinput") {
+            shouldCreateVariable = true;
+        } else if (m_element->isComponentInstance()) {
+            shouldCreateVariable = true;
+        }
+        
+        if (shouldCreateVariable) {
+            // Create a Variable element that represents this design element
+            QString variableId = UniqueIdGenerator::generate16DigitId();
+            Variable* variable = new Variable(variableId, m_elementModel);
+            
+            // Configure the variable as an element variable
+            variable->setName(m_element->getName());
+            variable->setValue(m_elementId);  // Store the element ID as the value
+            variable->setVariableType("string");
+            variable->setVariableScope("element");  // Mark as element variable
+            variable->setLinkedElementId(m_elementId);  // Link to the source element
+            
+            // Add the variable to the element model
+            m_elementModel->addElement(variable);
+            
+            // Connect element's nameChanged signal to update the Variable
+            connect(m_element, &Element::nameChanged, variable, [variable, element = m_element]() {
+                variable->setName(element->getName());
+            });
+            
+            qDebug() << "Created Variable element for design element:" << m_element->getName() 
+                     << "with ID:" << variableId;
+        }
+    }
     
     // Don't sync with API here - it will be synced after resize is complete
 }
@@ -177,6 +218,21 @@ void CreateDesignElementCommand::undo()
 
     // Remove element from model
     if (m_element) {
+        // First, remove the associated Variable element if it exists
+        if (!isVariantMode && !isGlobalElementsMode && project) {
+            // Find and remove the Variable element with linkedElementId matching our element
+            QList<Element*> allElements = m_elementModel->getAllElements();
+            for (Element* elem : allElements) {
+                if (Variable* var = qobject_cast<Variable*>(elem)) {
+                    if (var->linkedElementId() == m_element->getId()) {
+                        m_elementModel->removeElement(var->getId());
+                        qDebug() << "Removed Variable element for design element:" << m_element->getName();
+                        break;
+                    }
+                }
+            }
+        }
+        
         m_elementModel->removeElement(m_element->getId());
         if (isVariantMode && editingComponent) {
             editingComponent->removeVariant(m_element);

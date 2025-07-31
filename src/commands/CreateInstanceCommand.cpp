@@ -7,6 +7,9 @@
 #include "../ComponentVariant.h"
 #include "../Serializer.h"
 #include "../Application.h"
+#include "../Project.h"
+#include "../Variable.h"
+#include "../UniqueIdGenerator.h"
 #include <QDebug>
 #include <QJsonObject>
 
@@ -79,6 +82,32 @@ void CreateInstanceCommand::execute()
     
     // Add to element model
     m_elementModel->addElement(m_createdInstance);
+    
+    // Create a Variable element for this component instance
+    // Get the Project from the ElementModel's parent
+    if (Project* project = qobject_cast<Project*>(m_elementModel->parent())) {
+        // Create a Variable element that represents this instance
+        QString variableId = UniqueIdGenerator::generate16DigitId();
+        Variable* variable = new Variable(variableId, m_elementModel);
+        
+        // Configure the variable as an element variable
+        variable->setName(m_createdInstance->getName());
+        variable->setValue(m_instanceId);  // Store the instance ID as the value
+        variable->setVariableType("string");
+        variable->setVariableScope("element");  // Mark as element variable
+        variable->setLinkedElementId(m_instanceId);  // Link to the instance element
+        
+        // Add the variable to the element model
+        m_elementModel->addElement(variable);
+        
+        // Connect element's nameChanged signal to update the Variable
+        connect(m_createdInstance, &Element::nameChanged, variable, [variable, instance = m_createdInstance]() {
+            variable->setName(instance->getName());
+        });
+        
+        qDebug() << "Created Variable element for component instance:" << m_createdInstance->getName() 
+                 << "with ID:" << variableId;
+    }
 }
 
 void CreateInstanceCommand::undo()
@@ -88,6 +117,21 @@ void CreateInstanceCommand::undo()
         return;
     }
 
+    // First, remove the associated Variable element if it exists
+    if (Project* project = qobject_cast<Project*>(m_elementModel->parent())) {
+        // Find and remove the Variable element with linkedElementId matching our instance
+        QList<Element*> allElements = m_elementModel->getAllElements();
+        for (Element* elem : allElements) {
+            if (Variable* var = qobject_cast<Variable*>(elem)) {
+                if (var->linkedElementId() == m_instanceId) {
+                    m_elementModel->removeElement(var->getId());
+                    qDebug() << "Removed Variable element for component instance:" << m_createdInstance->getName();
+                    break;
+                }
+            }
+        }
+    }
+    
     // Remove the instance from the element model
     m_elementModel->removeElement(m_createdInstance);
     

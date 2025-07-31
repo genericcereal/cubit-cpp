@@ -289,6 +289,7 @@ void AuthenticationManager::clearAuthData()
     m_idToken.clear();
     m_refreshToken.clear();
     m_currentState.clear();
+    m_isRefreshing = false;
     
     setUserName("");
     setUserEmail("");
@@ -381,6 +382,13 @@ void AuthenticationManager::refreshAccessToken() {
         return;
     }
     
+    // Prevent concurrent refresh attempts
+    if (m_isRefreshing) {
+        qDebug() << "Token refresh already in progress, skipping duplicate request";
+        return;
+    }
+    
+    m_isRefreshing = true;
     setIsLoading(true);
     
     // Construct the token refresh URL
@@ -410,6 +418,7 @@ void AuthenticationManager::refreshAccessToken() {
             clearAuthData();
             emit authenticationError("Token refresh failed: " + errorString);
             setIsLoading(false);
+            m_isRefreshing = false;
             return;
         }
         
@@ -426,6 +435,7 @@ void AuthenticationManager::refreshAccessToken() {
             saveTokens();
             
             qDebug() << "Successfully refreshed access token";
+            m_isRefreshing = false;
             emit tokensRefreshed();
             
             // Fetch updated user info with the new token
@@ -435,6 +445,7 @@ void AuthenticationManager::refreshAccessToken() {
             qDebug() << "Token refresh failed:" << error;
             clearAuthData();
             emit authenticationError("Token refresh failed: " + error);
+            m_isRefreshing = false;
         }
         
         setIsLoading(false);

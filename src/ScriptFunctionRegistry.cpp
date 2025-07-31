@@ -25,6 +25,21 @@ QString ScriptFunctionRegistry::getFunctionCode(Node* node) const
         return it.value()(node);
     }
     
+    // Check if this is a "Set Variable Value" node
+    if (nodeType.startsWith("set") && nodeType.endsWith("value")) {
+        // This is a variable setter node
+        // The function will return an object with the variable ID and value
+        QString variableId = node->sourceElementId();
+        if (!variableId.isEmpty()) {
+            return QString("(params) => { "
+                          "return { "
+                          "variableId: '%1', "
+                          "value: params && params.length > 0 && params[0] ? params[0].value : '' "
+                          "}; "
+                          "}").arg(variableId);
+        }
+    }
+    
     // Default: return an empty function
     return "(params) => { }";
 }
@@ -57,6 +72,9 @@ void ScriptFunctionRegistry::registerDefaultFunctions()
     
     // AI Prompt
     registerFunction("aiprompt", &ScriptFunctionRegistry::buildAiPromptFunction);
+    
+    // Set Variable Value - dynamic registration handled separately
+    // We need to handle all "setvariable*value" patterns dynamically
 }
 
 QString ScriptFunctionRegistry::buildConsoleLogFunction(Node* node)

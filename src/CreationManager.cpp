@@ -33,8 +33,8 @@ Element* CreationManager::createElement(const QString& type, qreal x, qreal y, q
     qDebug() << "CreationManager::createElement() called - Type:" << type << "Pos:" << x << y << "Size:" << width << height << "Parent:" << (parent ? parent->getId() : "none");
     if (!m_elementModel) return nullptr;
     
-    // Only create elements for design canvas
-    if (m_canvasType != CanvasType::Design) {
+    // Only create elements for design canvas, except for Variables which can be created on any canvas
+    if (m_canvasType != CanvasType::Design && type != "variable") {
         qDebug() << "Cannot create elements on script canvas";
         return nullptr;
     }

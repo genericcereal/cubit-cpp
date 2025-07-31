@@ -11,6 +11,8 @@ class Variable : public Element {
     Q_PROPERTY(bool isArray READ isArray WRITE setIsArray NOTIFY isArrayChanged)
     Q_PROPERTY(QVariantList arrayValues READ arrayValues NOTIFY arrayValuesChanged)
     Q_PROPERTY(int arrayLength READ arrayLength NOTIFY arrayValuesChanged)
+    Q_PROPERTY(QString variableScope READ variableScope WRITE setVariableScope NOTIFY variableScopeChanged)
+    Q_PROPERTY(QString linkedElementId READ linkedElementId WRITE setLinkedElementId NOTIFY linkedElementIdChanged)
     
 public:
     explicit Variable(const QString &id, QObject *parent = nullptr);
@@ -39,12 +41,22 @@ public:
     Q_INVOKABLE void removeArrayValue(int index);
     Q_INVOKABLE void setArrayValue(int index, const QVariant &value);
     
+    // Variable scope - "global" for user-created variables, "element" for auto-created element variables
+    QString variableScope() const { return m_variableScope; }
+    void setVariableScope(const QString &scope);
+    
+    // For element variables, the ID of the linked design element
+    QString linkedElementId() const { return m_linkedElementId; }
+    void setLinkedElementId(const QString &elementId);
+    
 signals:
     void valueChanged();
     void variableTypeChanged();
     void platformChanged();
     void isArrayChanged();
     void arrayValuesChanged();
+    void variableScopeChanged();
+    void linkedElementIdChanged();
     
 private:
     QVariant m_value;
@@ -52,4 +64,6 @@ private:
     QString m_platform; // Default to empty string (undefined)
     bool m_isArray = false;
     QVariantList m_arrayValues;
+    QString m_variableScope = "global"; // "global" or "element"
+    QString m_linkedElementId; // For element variables, the ID of the linked design element
 };

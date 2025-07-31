@@ -8,7 +8,11 @@
 #include "../Scripts.h"
 #include "../Node.h"
 #include "../Edge.h"
+#include "../CanvasElement.h"
+#include "../DesignElement.h"
+#include "../Variable.h"
 #include <QDebug>
+#include <QCoreApplication>
 #include <vector>
 
 DeleteElementsCommand::DeleteElementsCommand(ElementModel* model, SelectionManager* selectionManager,
@@ -72,6 +76,36 @@ void DeleteElementsCommand::execute()
     if (m_selectionManager) {
         m_selectionManager->clearSelection();
     }
+    
+    // Add associated Variable elements to the deletion list
+    if (!isVariantMode && !isGlobalElementsMode && project) {
+        QList<ElementInfo> variablesToDelete;
+        for (const ElementInfo& info : m_deletedElements) {
+            Element* element = info.element;
+            if (element && element->isVisual()) {
+                CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+                if (canvasElement && canvasElement->isDesignElement()) {
+                    // Find the Variable element with linkedElementId matching our element
+                    QList<Element*> allElements = m_elementModel->getAllElements();
+                    for (Element* elem : allElements) {
+                        if (Variable* var = qobject_cast<Variable*>(elem)) {
+                            if (var->linkedElementId() == element->getId()) {
+                                ElementInfo varInfo;
+                                varInfo.element = var;
+                                varInfo.parent = nullptr;
+                                varInfo.index = m_elementModel->getAllElements().indexOf(var);
+                                variablesToDelete.append(varInfo);
+                                qDebug() << "Will delete Variable element for design element:" << element->getName();
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        // Add variables to the deletion list
+        m_deletedElements.append(variablesToDelete);
+    }
 
     // Set flag to prevent Project from trying to remove nodes/edges again during model removal
     bool isScriptMode = project && project->viewMode() == "script";
@@ -132,6 +166,14 @@ void DeleteElementsCommand::execute()
                     }
                 }
             }
+            
+            // Force QML to update its bindings before we delete the nodes
+            // Emit nodesChanged to force QML to refresh its bindings
+            emit scripts->nodesChanged();
+            emit scripts->edgesChanged();
+            
+            // Process events to ensure QML updates are processed
+            QCoreApplication::processEvents();
         }
     }
 

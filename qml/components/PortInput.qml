@@ -82,7 +82,6 @@ Item {
         id: numberField
         visible: inputConfig.inputType === "numberInput"
         anchors.fill: parent
-        text: root.value !== undefined ? root.value.toString() : "0"
         placeholderText: inputConfig.placeholder || "0"
         font.pixelSize: 11
         selectByMouse: true
@@ -92,6 +91,20 @@ Item {
             decimals: inputConfig && inputConfig.validation && inputConfig.validation.decimals !== undefined ? inputConfig.validation.decimals : 2
         }
         
+        // Use Component.onCompleted to set initial text without triggering binding loop
+        Component.onCompleted: {
+            text = root.value !== undefined ? root.value.toString() : "0"
+        }
+        
+        // Update text when root.value changes externally
+        Connections {
+            target: root
+            function onValueChanged() {
+                if (numberField.text !== root.value.toString()) {
+                    numberField.text = root.value.toString()
+                }
+            }
+        }
         
         onTextChanged: {
             if (inputConfig.inputType === "numberInput") {

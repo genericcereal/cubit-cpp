@@ -71,6 +71,7 @@ SOURCES += \
     src/CommandHistory.cpp \
     src/commands/CreateDesignElementCommand.cpp \
     src/commands/CreateScriptElementCommand.cpp \
+    src/commands/CreateVariableCommand.cpp \
     src/commands/CompileScriptsCommand.cpp \
     src/commands/CreateProjectCommand.cpp \
     src/commands/OpenProjectCommand.cpp \
@@ -163,6 +164,7 @@ HEADERS += \
     src/CommandHistory.h \
     src/commands/CreateDesignElementCommand.h \
     src/commands/CreateScriptElementCommand.h \
+    src/commands/CreateVariableCommand.h \
     src/commands/CompileScriptsCommand.h \
     src/commands/CreateProjectCommand.h \
     src/commands/OpenProjectCommand.h \
