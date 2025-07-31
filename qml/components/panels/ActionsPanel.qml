@@ -91,6 +91,35 @@ Rectangle {
             ToolTip.text: "Compile"
         }
         
+        // Variable button for script mode
+        ToolButton {
+            id: scriptVariableButton
+            visible: isScriptMode
+            Layout.fillHeight: true
+            Layout.preferredWidth: height
+            
+            contentItem: Text {
+                text: "V"
+                color: parent.hovered ? "#ffffff" : "#aaaaaa"
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                font.pixelSize: 16
+            }
+            
+            background: Rectangle {
+                color: parent.hovered ? Qt.rgba(0.4, 0.4, 0.4, 0.3) : "transparent"
+                radius: 4
+                antialiasing: true
+            }
+            
+            onClicked: {
+                root.createVariableClicked()
+            }
+            
+            ToolTip.visible: hovered
+            ToolTip.text: "Create Variable"
+        }
+        
         // Back to Design Canvas button
         ToolButton {
             id: backButton

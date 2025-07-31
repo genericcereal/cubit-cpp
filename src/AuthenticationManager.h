@@ -113,6 +113,7 @@ private:
     // OAuth flow state
     QString m_currentState;
     QTimer* m_callbackTimer;
+    bool m_isRefreshing = false;
 };
 
 #endif // AUTHENTICATIONMANAGER_H

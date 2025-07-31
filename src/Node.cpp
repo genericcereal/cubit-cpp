@@ -4,6 +4,8 @@
 #include "Frame.h"
 #include "Text.h"
 #include "Variable.h"
+#include "Scripts.h"
+#include "Project.h"
 #include <QDebug>
 
 Node::Node(const QString &id, QObject *parent)
@@ -135,6 +137,38 @@ QString Node::value() const
             }
         } else {
             qDebug() << "Node::value() - ElementModel not found in parent hierarchy";
+            // Try to get ElementModel from Scripts parent
+            if (Scripts* scripts = qobject_cast<Scripts*>(parent())) {
+                QObject* scriptsParent = scripts->parent();
+                while (scriptsParent) {
+                    if (ElementModel* model = qobject_cast<ElementModel*>(scriptsParent)) {
+                        Element* sourceElement = model->getElementById(m_sourceElementId);
+                        if (sourceElement) {
+                            if (Variable* var = qobject_cast<Variable*>(sourceElement)) {
+                                QString val = var->value().toString();
+                                qDebug() << "Node::value() - Found Variable through Scripts parent:" << val;
+                                return val;
+                            }
+                        }
+                        break;
+                    }
+                    // Also check if parent is a Project which might have the ElementModel
+                    if (Project* project = qobject_cast<Project*>(scriptsParent)) {
+                        if (ElementModel* model = project->elementModel()) {
+                            Element* sourceElement = model->getElementById(m_sourceElementId);
+                            if (sourceElement) {
+                                if (Variable* var = qobject_cast<Variable*>(sourceElement)) {
+                                    QString val = var->value().toString();
+                                    qDebug() << "Node::value() - Found Variable through Project:" << val;
+                                    return val;
+                                }
+                            }
+                        }
+                        break;
+                    }
+                    scriptsParent = scriptsParent->parent();
+                }
+            }
         }
     }
     

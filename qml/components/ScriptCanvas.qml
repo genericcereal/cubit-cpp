@@ -87,6 +87,18 @@ BaseCanvas {
     property bool showNodeCatalog: false
     property point nodeCatalogPosition: Qt.point(0, 0)
     
+    // Reset drag position when catalog is hidden
+    onShowNodeCatalogChanged: {
+        if (!showNodeCatalog) {
+            // Reset the drag current point to the source point to avoid flicker
+            if (dragSourceNode) {
+                dragCurrentPoint = tempEdgeContainer.sourcePoint
+            } else {
+                dragCurrentPoint = Qt.point(0, 0)
+            }
+        }
+    }
+    
     // Port drag handling functions for nodes
     function startPortDrag(node, handleType, portIndex, portType) {
         isDraggingHandle = true
@@ -95,6 +107,12 @@ BaseCanvas {
         dragSourceHandleType = handleType
         dragSourcePortIndex = portIndex
         dragSourcePortType = portType
+        // Initialize drag current point to source point after properties are set
+        Qt.callLater(function() {
+            if (tempEdgeContainer && tempEdgeContainer.sourcePoint) {
+                dragCurrentPoint = tempEdgeContainer.sourcePoint
+            }
+        })
         // Port drag started
     }
     
@@ -564,78 +582,22 @@ BaseCanvas {
                 color: "orange"
                 opacity: 0.8
             }
-        },
-        
-        // Drop area for elements dragged from ElementList - moved inside contentData
-        DropArea {
-            anchors.fill: parent
-            z: 100  // High z-order to ensure it's above other elements
-            
-            onEntered: (drag) => {
-                console.log("Drag entered DropArea - elementType:", drag.source ? drag.source.elementType : "no source", "elementName:", drag.source ? drag.source.elementName : "no source")
-            }
-            
-            onExited: {
-                console.log("Drag exited DropArea")
-            }
-            
-            onDropped: (drag) => {
-                console.log("DropArea.onDropped called")
-                // Get element information from drag source
-                var elementType = drag.source.elementType
-                var elementName = drag.source.elementName
-                var elementId = drag.source.elementId
-                
-                console.log("Dragged element - type:", elementType, "name:", elementName, "id:", elementId)
-                
-                console.log("DropArea.onDropped - drag.x:", drag.x, "drag.y:", drag.y)
-                console.log("Current zoom level:", root.zoom)
-                console.log("Flickable contentX:", root.flickable.contentX, "contentY:", root.flickable.contentY)
-                
-                // The drag.x and drag.y are relative to the DropArea which fills the contentLayer
-                // The contentLayer is at the canvas coordinate space (before zoom is applied)
-                // So drag.x and drag.y are already in canvas coordinates, just offset by canvasMinX/Y
-                
-                // The drag preview is 200x100 with hotspot at center (100, 50)
-                // So we need to offset by half the node size to align with where the preview appeared
-                var nodeX = drag.x + root.canvasMinX - 100  // Subtract half width
-                var nodeY = drag.y + root.canvasMinY - 50   // Subtract half height
-                
-                console.log("Calculated node position:", nodeX, nodeY)
-                
-                console.log("Creating node at position:", nodeX, nodeY)
-                
-                // Create Variable node for ALL element types (Frame, Text, Variable)
-                var nodeData = {
-                    x: nodeX,
-                    y: nodeY,
-                    width: 150,  // Narrower since it's just a header
-                    name: elementName,
-                    type: "Variable",
-                    sourceElementId: elementId,  // Store reference to source element
-                    targets: [],
-                    sources: [{
-                        id: "value",
-                        label: "Value",
-                        type: "String"
-                    }]
-                }
-                console.log("Creating node with JSON:", JSON.stringify(nodeData))
-                var nodeId = controller.createNodeFromJson(JSON.stringify(nodeData))
-                console.log("Created Variable node for", elementType, "element with ID:", nodeId)
-                
-                // Check if the node was actually created
-                if (nodeId && elementModel) {
-                    var createdNode = elementModel.getElementById(nodeId)
-                    if (createdNode) {
-                        console.log("Node successfully added to model at", createdNode.x, createdNode.y)
-                    } else {
-                        console.log("ERROR: Node was not found in model after creation")
-                    }
-                }
-            }
         }
+        
+        // Note: Drop handling is now done through the dragOverlay in ProjectWindow
+        // The dragOverlay's handleDrop() function creates Variable nodes when elements are dropped on the script canvas
     ]
+    
+    // Full-screen MouseArea to catch clicks when NodeCatalog is showing
+    MouseArea {
+        anchors.fill: parent
+        visible: root.showNodeCatalog
+        z: 999  // Just below the NodeCatalogPopup
+        onClicked: {
+            console.log("Background clicked - dismissing NodeCatalog")
+            nodeCatalogPopup.dismissed()
+        }
+    }
     
     // Node catalog popup - Must be outside content layer to receive mouse events
     NodeCatalogPopup {

@@ -258,25 +258,22 @@ Item {
                                                 
                                                 // Set dragged element
                                                 
-                                                // Only show the ghost for Variable elements
-                                                if (model.elementType === "Variable") {
-                                                    // Show drag overlay for Variable
-                                                    mainWindow.dragOverlay.visible = true
-                                                    
-                                                    // Position the drag ghost at cursor
-                                                    var globalPos = elementsMouseArea.mapToItem(mainWindow.contentItem, mouse.x, mouse.y)
-                                                    mainWindow.dragOverlay.ghostPosition = globalPos
-                                                    
-                                                    // Release mouse capture so the overlay can handle events
-                                                    elementsMouseArea.preventStealing = false
-                                                }
+                                                // Show drag overlay for all element types
+                                                mainWindow.dragOverlay.visible = true
+                                                
+                                                // Position the drag ghost at cursor
+                                                var globalPos = elementsMouseArea.mapToItem(mainWindow.contentItem, mouse.x, mouse.y)
+                                                mainWindow.dragOverlay.ghostPosition = globalPos
+                                                
+                                                // Release mouse capture so the overlay can handle events
+                                                elementsMouseArea.preventStealing = false
                                             }
                                         }
                                         
                                         if (isDragging) {
                                             // Update drag overlay position
                                             var mainWindow = root.Window.window || ApplicationWindow.window
-                                            if (mainWindow && mainWindow.dragOverlay && mainWindow.dragOverlay.visible && model.elementType === "Variable") {
+                                            if (mainWindow && mainWindow.dragOverlay && mainWindow.dragOverlay.visible) {
                                                 var globalPos = elementsMouseArea.mapToItem(mainWindow.contentItem, mouse.x, mouse.y)
                                                 mainWindow.dragOverlay.ghostPosition = globalPos
                                             }

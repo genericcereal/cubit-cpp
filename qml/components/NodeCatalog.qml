@@ -258,10 +258,93 @@ QtObject {
     function getAllNodeTypes() {
         return Object.keys(catalog);
     }
+    
+    // Get variable setter nodes dynamically based on available variables
+    function getVariableSetterNodes(elementModel) {
+        var setterNodes = {};
+        
+        if (!elementModel || typeof elementModel.rowCount !== 'function') {
+            return setterNodes;
+        }
+        
+        try {
+            // Iterate through all elements to find variables
+            var rowCount = elementModel.rowCount();
+            for (var i = 0; i < rowCount; i++) {
+                var element = elementModel.elementAt(i);
+                if (element && element.elementType === "Variable" && element.variableScope !== "element") {
+                    // Create a setter node definition for this variable
+                    var nodeId = "setVariable_" + element.elementId;
+                    var variableName = element.name || ("Variable " + element.elementId.slice(-4));
+                    var variableType = element.variableType || "string";  // Get the variable type
+                    
+                    // Map variable type to port type
+                    var portType = variableType === "number" ? "Number" : "String";
+                    
+                    setterNodes[nodeId] = {
+                        "id": nodeId,
+                        "name": "Set " + variableName + " Value",
+                        "type": "Operation",
+                        "variableId": element.elementId,  // Store the variable ID for later use
+                        "variableType": variableType,      // Store the variable type
+                        "targets": [
+                            {
+                                "id": "exec",
+                                "type": "Flow",
+                                "label": "Exec"
+                            },
+                            {
+                                "id": "value",
+                                "type": portType,  // Use the appropriate port type
+                                "label": "Value"
+                            }
+                        ],
+                        "sources": [
+                            {
+                                "id": "done",
+                                "type": "Flow",
+                                "label": "Done"
+                            }
+                        ]
+                    };
+                }
+            }
+        } catch (e) {
+            console.error("Error getting variable setter nodes:", e);
+        }
+        
+        return setterNodes;
+    }
+    
+    // Get all node types including dynamic variable setters
+    function getAllNodeTypesWithVariables(elementModel) {
+        var allTypes = Object.keys(catalog);
+        var variableSetters = getVariableSetterNodes(elementModel);
+        var variableSetterKeys = Object.keys(variableSetters);
+        
+        // Combine static and dynamic node types
+        return allTypes.concat(variableSetterKeys);
+    }
+    
+    // Get a node definition including dynamic variable setters
+    function getNodeTypeWithVariables(typeName, elementModel) {
+        // Check static catalog first
+        if (catalog[typeName]) {
+            return catalog[typeName];
+        }
+        
+        // Check dynamic variable setters
+        var variableSetters = getVariableSetterNodes(elementModel);
+        if (variableSetters[typeName]) {
+            return variableSetters[typeName];
+        }
+        
+        return null;
+    }
 
     // Create node data with position
-    function createNodeData(typeName, x, y) {
-        var nodeType = getNodeType(typeName);
+    function createNodeData(typeName, x, y, elementModel) {
+        var nodeType = getNodeTypeWithVariables(typeName, elementModel);
         if (!nodeType) {
             console.warn("NodeCatalog: Unknown node type:", typeName);
             return null;
@@ -285,6 +368,11 @@ QtObject {
         // Include isAsync if present
         if (nodeType.isAsync !== undefined) {
             nodeData.isAsync = nodeType.isAsync;
+        }
+        
+        // Include sourceElementId if this is a variable setter node
+        if (nodeType.variableId) {
+            nodeData.sourceElementId = nodeType.variableId;  // Use sourceElementId as expected by JsonImporter
         }
 
         return nodeData;

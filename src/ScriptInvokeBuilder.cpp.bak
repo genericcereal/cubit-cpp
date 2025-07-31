@@ -195,18 +195,6 @@ void ScriptInvokeBuilder::buildInvokesRecursive(Node* node, Scripts* scripts,
         }
     }
     
-    // Create output for "Set Variable Value" nodes
-    QString nodeType = node->nodeTitle().toLower().remove(' ');
-    if (nodeType.startsWith("set") && nodeType.endsWith("value") && !node->sourceElementId().isEmpty()) {
-        // This is a variable setter node - create a variable output
-        QString outputId = generateOutputId(context);
-        QJsonObject output;
-        output["type"] = "variable";
-        output["sourceInvoke"] = invoke.invokeId;
-        output["targetId"] = node->sourceElementId(); // The variable to update
-        context.outputs[outputId] = output;
-    }
-    
     // Find next nodes to invoke
     QList<Edge*> outgoingEdges = getOutgoingFlowEdges(node, scripts);
     QStringList nextInvokeIds;

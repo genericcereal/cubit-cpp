@@ -6,6 +6,7 @@
 #include "AuthenticationManager.h"
 #include "AIService.h"
 #include "Project.h"
+#include "Variable.h"
 #include <QJsonDocument>
 #include <QJsonValue>
 #include <QDebug>
@@ -388,9 +389,43 @@ void ScriptExecutor::handleOutput(const QJsonObject& outputDef, const QJSValue& 
         // This output will be populated by an async result
         // We'll update the outputs in the compiled script so subsequent nodes can use it
     } else if (type == "variable") {
-        // Store in variable (future implementation)
+        // Store in variable
         QString variableId = outputDef["targetId"].toString();
-        // TODO: Implement variable storage
+        
+        if (m_elementModel && !variableId.isEmpty()) {
+            // Get the variable element
+            Element* element = m_elementModel->getElementById(variableId);
+            if (element) {
+                Variable* variable = qobject_cast<Variable*>(element);
+                if (variable) {
+                    // Extract the value from the result
+                    QString newValue;
+                    if (value.isObject()) {
+                        // The result is an object with variableId and value properties
+                        if (value.hasProperty("value")) {
+                            newValue = value.property("value").toString();
+                        } else {
+                            newValue = value.toString();
+                        }
+                    } else {
+                        newValue = value.toString();
+                    }
+                    
+                    // Update the variable value
+                    variable->setValue(QVariant(newValue));
+                    
+                    // Log the update
+                    if (parent()) {
+                        Project* project = qobject_cast<Project*>(parent());
+                        if (project && project->console()) {
+                            project->console()->addOutput(QString("Variable '%1' updated to: %2")
+                                .arg(variable->getName())
+                                .arg(newValue));
+                        }
+                    }
+                }
+            }
+        }
     } else if (type == "element") {
         // Update element property (future implementation)
         QString elementId = outputDef["targetId"].toString();

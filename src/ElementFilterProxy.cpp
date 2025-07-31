@@ -162,9 +162,14 @@ bool ElementFilterProxy::shouldShowElementInMode(Element* element) const {
     
     // Non-visual elements (except Components and Variables) are never shown
     if (!element->isVisual()) {
-        // Allow Variables to be shown even though they're non-visual
-        if (qobject_cast<Variable*>(element)) {
-            return true;
+        // Handle Variables specially
+        if (Variable* var = qobject_cast<Variable*>(element)) {
+            // Element variables (scope="element") only show in script mode
+            if (var->variableScope() == "element") {
+                return m_viewMode == "script";
+            }
+            // Global variables (scope="global") show in both design and script modes
+            return m_viewMode == "design" || m_viewMode == "script";
         }
         return false;
     }
@@ -172,6 +177,12 @@ bool ElementFilterProxy::shouldShowElementInMode(Element* element) const {
     // Check if it's a canvas element
     CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
     if (!canvasElement) {
+        return false;
+    }
+    
+    // Script elements (Nodes and Edges) should NEVER appear in ElementList
+    // They are only viewable on the script canvas itself
+    if (canvasElement->isScriptElement()) {
         return false;
     }
     
@@ -265,8 +276,9 @@ bool ElementFilterProxy::shouldShowElementInMode(Element* element) const {
         
         return true;
     } else if (m_viewMode == "script") {
-        // In script mode, show only script elements (nodes and edges)
-        return canvasElement->isScriptElement();
+        // In script mode, ElementList shows nothing since script elements were already filtered out
+        // Script elements (Nodes and Edges) are only viewable on the script canvas itself
+        return false;
     } else if (m_viewMode == "variant") {
         // In variant mode, show only elements that belong to the editing component's variants
         if (!canvasElement->isDesignElement()) {

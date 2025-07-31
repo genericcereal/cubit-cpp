@@ -67,6 +67,12 @@ Rectangle {
 
     // JavaScript functions
     function fetchProjects() {
+        // Prevent duplicate requests if already loading
+        if (isLoading) {
+            console.log("ProjectList: Already loading projects, skipping duplicate request")
+            return
+        }
+        
         isLoading = true
         errorMessage = ""
         // List projects without filter, with default limit

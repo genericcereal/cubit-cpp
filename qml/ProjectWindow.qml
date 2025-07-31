@@ -133,26 +133,60 @@ ApplicationWindow {
         function handleDrop() {
             // Handle drop
             
-            if (draggedElement && draggedElementType === "Variable" && canvas) {
-                // Handling drop for variable
+            // Check if we're dropping on the script canvas
+            if (dropTarget === "script" && draggedElement && canvas && canvas.controller) {
+                console.log("Dropping element on script canvas:", draggedElementName, draggedElementType)
                 
-                // Check if we have a hovered target
+                // Get the canvas coordinates from the ghost position
+                if (canvasScreen && canvasScreen.canvasContainer) {
+                    var canvasPoint = canvasScreen.canvasContainer.mapFromItem(dragOverlay, ghostPosition.x, ghostPosition.y)
+                    
+                    // Get the actual canvas component through the loader
+                    var scriptCanvas = canvasScreen.canvasContainer.children[0] ? canvasScreen.canvasContainer.children[0].item : null
+                    if (scriptCanvas && scriptCanvas.flickable) {
+                        // Convert to canvas coordinates accounting for scroll and zoom
+                        var canvasX = (scriptCanvas.flickable.contentX + canvasPoint.x) / scriptCanvas.zoom + scriptCanvas.canvasMinX
+                        var canvasY = (scriptCanvas.flickable.contentY + canvasPoint.y) / scriptCanvas.zoom + scriptCanvas.canvasMinY
+                        
+                        // Adjust for ghost center (150x30 for Variable node preview)
+                        canvasX -= 75  // Half width
+                        canvasY -= 15  // Half height
+                        
+                        console.log("Creating Variable node at canvas position:", canvasX, canvasY)
+                        
+                        // Create Variable node for the dropped element
+                        var nodeData = {
+                            x: canvasX,
+                            y: canvasY,
+                            width: 150,
+                            name: draggedElementName,
+                            type: "Variable",
+                            sourceElementId: draggedElement.elementId,
+                            targets: [],
+                            sources: [{
+                                id: "value",
+                                label: "Value",
+                                type: "String"
+                            }]
+                        }
+                        
+                        var nodeId = canvas.controller.createNodeFromJson(JSON.stringify(nodeData))
+                        console.log("Created Variable node with ID:", nodeId)
+                    }
+                }
+            } else if (draggedElement && draggedElementType === "Variable" && canvas) {
+                // Original Variable binding logic for design canvas
                 if (canvas.hoveredVariableTarget && 
                     canvas.hoveredVariableTarget.elementId && 
                     canvas.hoveredVariableTarget.propertyName) {
                     
-                    // Create the binding
                     if (canvas.controller) {
-                        // Create the binding through controller
-                        
                         canvas.controller.assignVariable(
                             draggedElement.elementId, 
                             canvas.hoveredVariableTarget.elementId, 
                             canvas.hoveredVariableTarget.propertyName
                         )
                     }
-                } else {
-                    // No valid hover target for variable drop
                 }
             }
             
@@ -286,53 +320,113 @@ ApplicationWindow {
         }
         
         
-        Rectangle {
-            id: dragGhost
+        // Container that switches between regular drag ghost and node preview
+        Item {
+            id: ghostContainer
             x: dragOverlay.ghostPosition.x - width / 2
             y: dragOverlay.ghostPosition.y - height / 2
-            width: 200
-            height: 28
-            color: {
-                switch(dragOverlay.dropTarget) {
-                    case "canvas": return "#2196F3"  // Blue when over design canvas
-                    case "script": return "#FFC107"  // Yellow when over script canvas
-                    case "properties": return "#4CAF50"  // Green when over properties
-                    default: return "#f5f5f5"  // Default gray
-                }
-            }
-            border.color: {
-                switch(dragOverlay.dropTarget) {
-                    case "canvas": return "#1976D2"  // Darker blue
-                    case "script": return "#F57C00"  // Darker yellow/orange
-                    case "properties": return "#388E3C"  // Darker green
-                    default: return "#2196F3"  // Default blue
-                }
-            }
-            border.width: 2
-            radius: 4
-            opacity: 0.8
+            width: dragOverlay.dropTarget === "script" ? 150 : 200
+            height: dragOverlay.dropTarget === "script" ? 30 : 28
             
-            RowLayout {
+            // Regular drag ghost for non-script targets
+            Rectangle {
+                id: dragGhost
                 anchors.fill: parent
-                anchors.leftMargin: 6
-                anchors.rightMargin: 6
-                anchors.topMargin: 4
-                anchors.bottomMargin: 4
-                spacing: 4
-                
-                Label {
-                    Layout.fillWidth: true
-                    text: dragOverlay.draggedElementName
-                    elide: Text.ElideRight
-                    font.pixelSize: 12
-                    color: (dragOverlay.dropTarget === "none" || dragOverlay.dropTarget === "script") ? "#000000" : "#FFFFFF"
+                visible: dragOverlay.dropTarget !== "script"
+                color: {
+                    switch(dragOverlay.dropTarget) {
+                        case "canvas": return "#2196F3"  // Blue when over design canvas
+                        case "properties": return "#4CAF50"  // Green when over properties
+                        default: return "#f5f5f5"  // Default gray
+                    }
                 }
+                border.color: {
+                    switch(dragOverlay.dropTarget) {
+                        case "canvas": return "#1976D2"  // Darker blue
+                        case "properties": return "#388E3C"  // Darker green
+                        default: return "#2196F3"  // Default blue
+                    }
+                }
+                border.width: 2
+                radius: 4
+                opacity: 0.8
                 
-                Label {
-                    Layout.alignment: Qt.AlignRight
-                    text: dragOverlay.draggedElementType
-                    color: (dragOverlay.dropTarget === "none" || dragOverlay.dropTarget === "script") ? "#666666" : "#EEEEEE"
-                    font.pixelSize: 10
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: 6
+                    anchors.rightMargin: 6
+                    anchors.topMargin: 4
+                    anchors.bottomMargin: 4
+                    spacing: 4
+                    
+                    Label {
+                        Layout.fillWidth: true
+                        text: dragOverlay.draggedElementName
+                        elide: Text.ElideRight
+                        font.pixelSize: 12
+                        color: (dragOverlay.dropTarget === "none") ? "#000000" : "#FFFFFF"
+                    }
+                    
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: dragOverlay.draggedElementType
+                        color: (dragOverlay.dropTarget === "none") ? "#666666" : "#EEEEEE"
+                        font.pixelSize: 10
+                    }
+                }
+            }
+            
+            // Variable Node preview when over script canvas
+            Rectangle {
+                id: nodePreview
+                anchors.fill: parent
+                visible: dragOverlay.dropTarget === "script"
+                color: "#FFFFFF"
+                border.color: "#CCCCCC"
+                border.width: 1
+                radius: 4
+                opacity: 0.9
+                
+                // Purple header like Variable nodes
+                Rectangle {
+                    id: nodeHeader
+                    anchors.top: parent.top
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    height: 30
+                    color: "#9C27B0"  // Purple for Variable nodes
+                    radius: 4
+                    
+                    // Clip bottom corners
+                    Rectangle {
+                        anchors.bottom: parent.bottom
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        height: 4
+                        color: parent.color
+                    }
+                    
+                    Text {
+                        anchors.left: parent.left
+                        anchors.leftMargin: 12
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: dragOverlay.draggedElementName
+                        color: "#FFFFFF"
+                        font.pixelSize: 12
+                        elide: Text.ElideRight
+                    }
+                    
+                    // Source port handle on the right
+                    Rectangle {
+                        anchors.right: parent.right
+                        anchors.rightMargin: 5
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 10
+                        height: 10
+                        color: "#FFB74D"  // Orange color for String type
+                        border.color: "#F57C00"
+                        border.width: 1
+                    }
                 }
             }
         }

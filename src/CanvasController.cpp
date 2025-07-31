@@ -16,6 +16,7 @@
 #include "commands/CreateComponentCommand.h"
 #include "commands/CreateInstanceCommand.h"
 #include "commands/CreateScriptElementCommand.h"
+#include "commands/CreateVariableCommand.h"
 #include "commands/CompileScriptsCommand.h"
 #include "commands/AssignVariableCommand.h"
 #include "IModeHandler.h"
@@ -262,14 +263,9 @@ void CanvasController::createElement(const QString &type, qreal x, qreal y, qrea
 
 void CanvasController::createVariable()
 {
-    // Variables are non-visual, but createElement still requires position/size parameters
-    // The CreationManager will ignore these for non-visual elements
-    Element* variable = m_creationManager->createElement("variable", 0, 0, 0, 0);
-    
-    if (variable) {
-        // Select the newly created variable
-        m_selectionManager.selectOnly(variable);
-    }
+    // Use command pattern for undo/redo support
+    auto command = std::make_unique<CreateVariableCommand>(&m_elementModel, &m_selectionManager);
+    m_commandHistory->execute(std::move(command));
 }
 
 void CanvasController::createNode(qreal x, qreal y, const QString &title, const QString &color)
