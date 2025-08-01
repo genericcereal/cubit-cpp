@@ -35,6 +35,7 @@ private:
     Shape*                m_currentLine = nullptr;
     CreateDesignElementCommand* m_currentCommand = nullptr;
     bool                  m_isCreatingLine = false;
+    QPointF               m_currentMousePos;
     
     void createInitialLine(const QPointF& startPoint);
     void addJointToLine(const QPointF& newPoint);

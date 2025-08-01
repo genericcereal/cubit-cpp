@@ -594,7 +594,25 @@ Item {
             }
             
             // Use root.controller (the canvas controller) for visibility check
-            if (!root.controller || selectedElements.length !== 1) {
+            if (!root.controller) {
+                lastVisibleState = false
+                return false
+            }
+            
+            // Show during line creation mode (ShapeLine) even without selection
+            if (root.controller.mode === CanvasController.ShapeLine) {
+                // During line creation, we need at least one line shape being created
+                if (selectedElements.length === 1) {
+                    var selectedElement = selectedElements[0]
+                    if (selectedElement && selectedElement.elementType === "Shape") {
+                        lastVisibleState = true
+                        return true
+                    }
+                }
+            }
+            
+            // Normal shape editing mode
+            if (selectedElements.length !== 1) {
                 lastVisibleState = false
                 return false
             }
@@ -603,12 +621,6 @@ Item {
             if (!selectedElement || selectedElement.elementType !== "Shape") {
                 lastVisibleState = false
                 return false
-            }
-            
-            // Show during line creation mode (ShapeLine)
-            if (root.controller.mode === CanvasController.ShapeLine) {
-                lastVisibleState = true
-                return true
             }
             
             // Show when explicitly editing shapes
@@ -622,23 +634,27 @@ Item {
         }
         selectedElement: selectedElements.length === 1 ? selectedElements[0] : null
         controller: root.shapeControlsController
+        canvasController: root.controller
         
         // Bind position and size to viewport coordinates
+        // Add padding for joint controls that extend beyond shape bounds
+        property real jointPadding: 15 // Half of controlSize (30/2)
+        
         x: {
             if (!selectedElement) return 0
-            return (selectedElement.x - canvasMinX) * zoomLevel - (flickable ? flickable.contentX : 0)
+            return (selectedElement.x - canvasMinX) * zoomLevel - (flickable ? flickable.contentX : 0) - jointPadding
         }
         y: {
             if (!selectedElement) return 0
-            return (selectedElement.y - canvasMinY) * zoomLevel - (flickable ? flickable.contentY : 0)
+            return (selectedElement.y - canvasMinY) * zoomLevel - (flickable ? flickable.contentY : 0) - jointPadding
         }
         width: {
             if (!selectedElement) return 0
-            return selectedElement.width * zoomLevel
+            return selectedElement.width * zoomLevel + (jointPadding * 2)
         }
         height: {
             if (!selectedElement) return 0
-            return selectedElement.height * zoomLevel
+            return selectedElement.height * zoomLevel + (jointPadding * 2)
         }
     }
 }

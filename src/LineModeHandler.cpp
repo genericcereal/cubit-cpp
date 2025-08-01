@@ -44,10 +44,8 @@ void LineModeHandler::onPress(qreal x, qreal y)
 
 void LineModeHandler::onMove(qreal x, qreal y)
 {
-    // For line mode, we don't do anything on move
-    // Lines are created by discrete clicks, not dragging
-    Q_UNUSED(x)
-    Q_UNUSED(y)
+    m_currentMousePos = QPointF(x, y);
+    // Mouse position is now handled by QML for preview drawing
 }
 
 void LineModeHandler::onRelease(qreal x, qreal y)
@@ -115,7 +113,7 @@ void LineModeHandler::addJointToLine(const QPointF& newPoint)
         normalizedJoints.append(QPointF(normalizedX, normalizedY));
     }
     
-    m_currentLine->setJoints(normalizedJoints);
+    m_currentLine->setJointPositions(normalizedJoints);
     
 }
 
@@ -144,7 +142,7 @@ void LineModeHandler::finishLineCreation()
                 normalizedJoints.append(QPointF(normalizedX, normalizedY));
             }
             
-            m_currentLine->setJoints(normalizedJoints);
+            m_currentLine->setJointPositions(normalizedJoints);
         }
     }
     

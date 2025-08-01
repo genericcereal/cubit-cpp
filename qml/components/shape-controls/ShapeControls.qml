@@ -11,12 +11,26 @@ Item {
     // Properties
     property var selectedElement: null
     property var controller: null  // ShapeControlsController
+    property var canvasController: null  // CanvasController for checking mode
     property real controlSize: 30
+    
+    // During line creation mode, don't block hover events
+    property bool isInLineCreationMode: canvasController && canvasController.mode === 7
     property color jointControlColor: Qt.rgba(1, 1, 0, 0)  // Transparent background
     property color jointHoverColor: Qt.rgba(1, 1, 0, 0)  // Transparent on hover
     property color edgeColor: ConfigObject.controlBarLineColor  // Use same blue as joints from ConfigObject
     property color previewColor: Qt.rgba(0, 0, 1, 0.3)  // Semi-transparent blue for preview
     property alias shapeCanvas: shapeCanvas
+    
+    // Get preview properties from controller
+    property point previewPoint: controller ? controller.linePreviewPoint : Qt.point(0, 0)
+    property bool showPreview: controller ? controller.showLinePreview : false
+    
+    onPreviewPointChanged: {
+    }
+    
+    onShowPreviewChanged: {
+    }
     
     visible: selectedElement !== null && selectedElement.elementType === "Shape"
     
@@ -61,16 +75,23 @@ Item {
         color: "transparent"
         border.color: previewColor
         border.width: 2
-        x: previewX * root.width
-        y: previewY * root.height
-        width: previewWidth * root.width
-        height: previewHeight * root.height
+        x: previewX * (root.width - jointPadding * 2) + jointPadding
+        y: previewY * (root.height - jointPadding * 2) + jointPadding
+        width: previewWidth * (root.width - jointPadding * 2)
+        height: previewHeight * (root.height - jointPadding * 2)
     }
+    
+    // Padding to accommodate joints that extend beyond shape bounds
+    property real jointPadding: controlSize / 2
     
     // Draw the shape edges
     Canvas {
         id: shapeCanvas
-        anchors.fill: parent
+        // Make canvas larger to accommodate preview lines that extend beyond shape bounds
+        anchors.centerIn: parent
+        width: Math.max(parent.width, parent.width + 500)  // Extra space for preview
+        height: Math.max(parent.height, parent.height + 500)  // Extra space for preview
+        clip: false  // Allow drawing outside bounds
         
         onPaint: {
             var ctx = getContext("2d")
@@ -79,7 +100,15 @@ Item {
             if (!selectedElement || !selectedElement.joints) return
             
             var joints = selectedElement.joints
-            if (joints.length < 2) return
+            if (joints.length < 2 && !showPreview) return
+            
+            // Calculate offset since canvas is centered and larger than parent
+            var canvasOffsetX = (width - parent.width) / 2
+            var canvasOffsetY = (height - parent.height) / 2
+            
+            // Adjust for padding - joints are normalized to shape bounds, not control bounds
+            var shapeWidth = parent.width - (jointPadding * 2)
+            var shapeHeight = parent.height - (jointPadding * 2)
             
             ctx.strokeStyle = edgeColor
             ctx.lineWidth = 1
@@ -96,10 +125,42 @@ Item {
                     joints[(i + 1) % joints.length] :  // Closed: wrap around to first joint
                     joints[i + 1]                       // Open: just next joint
                 
-                ctx.moveTo(currentJoint.x * width, currentJoint.y * height)
-                ctx.lineTo(nextJoint.x * width, nextJoint.y * height)
+                ctx.moveTo(currentJoint.x * shapeWidth + jointPadding + canvasOffsetX, 
+                          currentJoint.y * shapeHeight + jointPadding + canvasOffsetY)
+                ctx.lineTo(nextJoint.x * shapeWidth + jointPadding + canvasOffsetX, 
+                          nextJoint.y * shapeHeight + jointPadding + canvasOffsetY)
                 
                 ctx.stroke()
+            }
+            
+            // Draw preview line from last joint to preview point
+            if (showPreview && joints.length > 0 && previewPoint.x !== 0 && previewPoint.y !== 0) {
+                var lastJoint = joints[joints.length - 1]
+                var lastJointX = lastJoint.x * shapeWidth + jointPadding + canvasOffsetX
+                var lastJointY = lastJoint.y * shapeHeight + jointPadding + canvasOffsetY
+                
+                // Convert preview point from canvas coordinates to local coordinates
+                // The ShapeControls is positioned at (selectedElement.x/y - padding) in canvas space
+                // and scaled by zoom. We need to convert the canvas point to local ShapeControls coordinates.
+                var zoom = root.parent && root.parent.zoomLevel ? root.parent.zoomLevel : 1
+                
+                // First, get the position relative to the shape's origin in canvas space
+                var canvasRelativeX = previewPoint.x - selectedElement.x
+                var canvasRelativeY = previewPoint.y - selectedElement.y
+                
+                // Then scale by zoom and offset by padding and canvas offset
+                var localPreviewX = canvasRelativeX * zoom + jointPadding + canvasOffsetX
+                var localPreviewY = canvasRelativeY * zoom + jointPadding + canvasOffsetY
+                
+                
+                ctx.strokeStyle = previewColor
+                ctx.lineWidth = 1
+                ctx.setLineDash([5, 5])  // Dashed line for preview
+                ctx.beginPath()
+                ctx.moveTo(lastJointX, lastJointY)
+                ctx.lineTo(localPreviewX, localPreviewY)
+                ctx.stroke()
+                ctx.setLineDash([])  // Reset to solid line
             }
         }
         
@@ -110,6 +171,21 @@ Item {
             ignoreUnknownSignals: true
             function onJointsChanged() {
                 // Canvas: Joints changed, requesting repaint
+                shapeCanvas.requestPaint()
+            }
+        }
+        
+        // Add connections to controller for preview changes
+        Connections {
+            target: controller
+            enabled: controller !== null
+            ignoreUnknownSignals: true
+            function onLinePreviewPointChanged() {
+                if (showPreview) {
+                    shapeCanvas.requestPaint()
+                }
+            }
+            function onShowLinePreviewChanged() {
                 shapeCanvas.requestPaint()
             }
         }
@@ -167,6 +243,10 @@ Item {
         anchors.fill: parent
         hoverEnabled: true
         acceptedButtons: Qt.LeftButton
+        propagateComposedEvents: true  // Allow events to pass through
+        
+        // Don't accept hover events during line creation mode
+        enabled: !(root.canvasController && root.canvasController.mode === 7)
         
         property int hoveredJointIndex: -1
         
@@ -174,9 +254,12 @@ Item {
         function jointIndexAt(x, y) {
             if (!selectedElement || !selectedElement.joints) return -1
             
+            var shapeWidth = root.width - (jointPadding * 2)
+            var shapeHeight = root.height - (jointPadding * 2)
+            
             for (var i = 0; i < selectedElement.joints.length; i++) {
-                var jointX = selectedElement.joints[i].x * root.width
-                var jointY = selectedElement.joints[i].y * root.height
+                var jointX = selectedElement.joints[i].x * shapeWidth + jointPadding
+                var jointY = selectedElement.joints[i].y * shapeHeight + jointPadding
                 var dx = x - jointX
                 var dy = y - jointY
                 var distance = Math.sqrt(dx * dx + dy * dy)
@@ -193,6 +276,9 @@ Item {
                 mouse.accepted = true
                 
                 if (controller) {
+                    // Select the joint immediately on press
+                    controller.setSelectedJointIndex(jointIndex)
+                    
                     // Use controller for state management
                     var viewportOverlay = root.parent
                     if (viewportOverlay && viewportOverlay.flickable) {
@@ -296,7 +382,7 @@ Item {
                 
                 // Ensure shape remains selected
                 if (viewportOverlay && viewportOverlay.selectionManager && selectedElement) {
-                    viewportOverlay.selectionManager.selectElement(selectedElement.getId())
+                    viewportOverlay.selectionManager.selectElement(selectedElement)
                 }
             } else if (root.dragging) {
                 root.dragging = false
@@ -314,6 +400,14 @@ Item {
                 
                 // Force controls to stay visible
                 root.visible = true
+            }
+        }
+        
+        onClicked: (mouse) => {
+            var jointIndex = jointIndexAt(mouse.x, mouse.y)
+            if (jointIndex >= 0 && controller) {
+                // This is a click on a joint, not a drag
+                controller.setSelectedJointIndex(jointIndex)
             }
         }
         
@@ -347,6 +441,7 @@ Item {
         }
         
         // Mouse position is relative to ShapeControls, convert to absolute viewport position
+        // Note: root.x/y already includes the padding offset from DesignControlsOverlay
         var absoluteViewportX = root.x + mouseX
         var absoluteViewportY = root.y + mouseY
         
@@ -459,13 +554,16 @@ Item {
             isSelected: controller && controller.selectedJointIndex === jointIndex
             
             // Position at the joint location (normalized coords to actual position)
+            // Account for padding since joints are normalized to shape bounds
             x: {
                 if (!selectedElement || !selectedElement.joints || jointIndex >= selectedElement.joints.length) return 0
-                return selectedElement.joints[jointIndex].x * root.width - size / 2
+                var shapeWidth = root.width - (jointPadding * 2)
+                return selectedElement.joints[jointIndex].x * shapeWidth + jointPadding - size / 2
             }
             y: {
                 if (!selectedElement || !selectedElement.joints || jointIndex >= selectedElement.joints.length) return 0
-                return selectedElement.joints[jointIndex].y * root.height - size / 2
+                var shapeHeight = root.height - (jointPadding * 2)
+                return selectedElement.joints[jointIndex].y * shapeHeight + jointPadding - size / 2
             }
         }
     }
@@ -477,7 +575,17 @@ Item {
         anchors.fill: parent
         z: -1  // Behind mainMouseArea
         cursorShape: Qt.SizeAllCursor
-        enabled: !root.dragging  // Disable during joint dragging
+        enabled: {
+            // Disable during joint dragging
+            if (root.dragging) return false
+            
+            // Also disable during line creation mode to allow hover tracking
+            if (root.canvasController && root.canvasController.mode === 7) { // 7 = ShapeLine mode
+                return false
+            }
+            
+            return true
+        }
         
         property point pressPos
         

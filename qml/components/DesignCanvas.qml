@@ -18,6 +18,12 @@ BaseCanvas {
     // Property to access the viewport overlay's controls
     property var viewportControls: null
     
+    // Property to access the shape controls controller
+    property var shapeControlsController: null
+    
+    onShapeControlsControllerChanged: {
+    }
+    
     // Expose the element layer for viewport overlay
     property alias elementLayer: elementLayer
     
@@ -180,11 +186,32 @@ BaseCanvas {
         // Other creation modes don't create on click - require drag
     }
     
+    // Watch for mode changes to clear preview
+    Connections {
+        target: root.controller
+        enabled: root.controller !== null
+        function onModeChanged() {
+            if (root.controller.mode !== CanvasController.ShapeLine && root.shapeControlsController) {
+                // Clear the preview when leaving line mode
+                root.shapeControlsController.showLinePreview = false
+            }
+        }
+    }
+    
     function handleHover(pt) {
+        
         // Let the C++ controller handle hover tracking
         if (root.controller && root.controller.updateHover) {
             root.controller.updateHover(pt.x, pt.y)
         }
+        
+        
+        // Update shape controls preview during line creation
+        if (root.controller && root.controller.mode === CanvasController.ShapeLine && root.shapeControlsController) {
+            root.shapeControlsController.linePreviewPoint = pt
+            root.shapeControlsController.showLinePreview = true
+        }
+        
     }
     
     function handleExit() {
