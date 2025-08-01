@@ -341,8 +341,9 @@ void CanvasController::createEdge(const QString &sourceNodeId, const QString &ta
     
     // Validate that port types can connect
     if (!PortType::canConnect(sourcePortType, targetPortType)) {
-                 << "source:" << sourcePortType 
-                 << "target:" << targetPortType;
+        qWarning() << "Port types cannot connect"
+                   << "source:" << sourcePortType 
+                   << "target:" << targetPortType;
         return;
     }
     
@@ -399,8 +400,9 @@ void CanvasController::createEdgeByPortId(const QString &sourceNodeId, const QSt
     int targetPortIndex = tgtNode->getInputPortIndex(targetPortId);
     
     if (sourcePortIndex == -1 || targetPortIndex == -1) {
-                 << "sourcePortId:" << sourcePortId << "index:" << sourcePortIndex
-                 << "targetPortId:" << targetPortId << "index:" << targetPortIndex;
+        qWarning() << "Invalid port indices"
+                   << "sourcePortId:" << sourcePortId << "index:" << sourcePortIndex
+                   << "targetPortId:" << targetPortId << "index:" << targetPortIndex;
         return;
     }
     

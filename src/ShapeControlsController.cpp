@@ -65,7 +65,7 @@ void ShapeControlsController::startJointDrag(int jointIndex, const QPointF& star
         QPointF pt;
         if (variant.canConvert<QPointF>()) {
             pt = variant.toPointF();
-        } else if (variant.type() == QVariant::Map) {
+        } else if (variant.canConvert<QVariantMap>()) {
             // Handle QVariantMap with "x" and "y" keys
             QVariantMap jointMap = variant.toMap();
             if (jointMap.contains("x") && jointMap.contains("y")) {
@@ -151,7 +151,7 @@ void ShapeControlsController::updateJointPosition(const QPointF& canvasPos)
     m_selectedShape->setY(newY);
     m_selectedShape->setWidth(newWidth);
     m_selectedShape->setHeight(newHeight);
-    m_selectedShape->setJoints(normalizedJoints);
+    m_selectedShape->setJointPositions(normalizedJoints);
 }
 
 void ShapeControlsController::endJointDrag()
@@ -159,8 +159,6 @@ void ShapeControlsController::endJointDrag()
     
     // Ensure the shape is still valid and visible
     if (m_selectedShape) {
-                 << m_selectedShape->width() << m_selectedShape->height();
-        
         // Force a geometry update to ensure the shape is properly rendered
         emit m_selectedShape->geometryChanged();
     }
@@ -194,4 +192,20 @@ void ShapeControlsController::updateShapePosition(const QPointF& delta)
 void ShapeControlsController::endShapeMove()
 {
     setIsDragging(false);
+}
+
+void ShapeControlsController::setLinePreviewPoint(const QPointF& point)
+{
+    if (m_linePreviewPoint != point) {
+        m_linePreviewPoint = point;
+        emit linePreviewPointChanged();
+    }
+}
+
+void ShapeControlsController::setShowLinePreview(bool show)
+{
+    if (m_showLinePreview != show) {
+        m_showLinePreview = show;
+        emit showLinePreviewChanged();
+    }
 }

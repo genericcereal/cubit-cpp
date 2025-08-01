@@ -109,6 +109,10 @@ Item {
                         // Use Qt.binding to ensure the connection stays alive
                         item.viewportControls = Qt.binding(function() { return viewportOverlay.selectionControls })
                     }
+                    // Set shapeControlsController reference for DesignCanvas
+                    if (item.hasOwnProperty("shapeControlsController")) {
+                        item.shapeControlsController = root.shapeControlsController
+                    }
                     
                     // Restore viewport state when switching back to design/variant canvas
                     if ((root.canvas.viewMode === "design" || root.canvas.viewMode === "variant") && 

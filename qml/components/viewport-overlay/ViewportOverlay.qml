@@ -135,7 +135,9 @@ Item {
             
             // Check what's under the mouse
             var overControls = false
-            if (designControlsOverlay.shapeControls && designControlsOverlay.shapeControls.visible && 
+            // During line creation mode, don't check if we're over shape controls
+            var isLineCreationMode = controller && controller.mode === 7 // ShapeLine
+            if (!isLineCreationMode && designControlsOverlay.shapeControls && designControlsOverlay.shapeControls.visible && 
                 designControlsOverlay.shapeControls.contains(
                     designControlsOverlay.shapeControls.mapFromItem(root, mouse.x, mouse.y))) {
                 overControls = true
@@ -145,7 +147,7 @@ Item {
                 overControls = true
             }
             
-            // Only update hover when not over controls and in select mode
+            // Update hover for select mode
             if (!overControls && controller && controller.mode === CanvasController.Select) {
                 // Directly use HitTestService to find hovered element
                 if (controller.hitTestService) {
@@ -157,6 +159,11 @@ Item {
             } else if (overControls && controller && controller.hasOwnProperty('hoveredElement')) {
                 // Clear hover when over controls
                 controller.hoveredElement = null
+            }
+            
+            // Always propagate hover to canvas for other modes (like line creation)
+            if (root.canvasView && root.canvasView.handleHover) {
+                root.canvasView.handleHover(canvasPoint)
             }
         }
     }

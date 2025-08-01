@@ -7,6 +7,7 @@
 #include <QColor>
 #include <QVariantList>
 #include <QList>
+#include <QVariantMap>
 
 class Shape : public DesignElement
 {
@@ -25,6 +26,38 @@ public:
     };
     Q_ENUM(ShapeType)
 
+    enum MirroringType {
+        NoMirroring,
+        MirrorAngle,
+        MirrorAngleAndLength
+    };
+    Q_ENUM(MirroringType)
+
+    struct Joint {
+        QPointF position;
+        MirroringType mirroring = NoMirroring;
+        qreal cornerRadius = 0.0;
+
+        // Convert to/from QVariantMap for QML
+        QVariantMap toVariantMap() const {
+            QVariantMap map;
+            map["x"] = position.x();
+            map["y"] = position.y();
+            map["mirroring"] = static_cast<int>(mirroring);
+            map["cornerRadius"] = cornerRadius;
+            return map;
+        }
+
+        static Joint fromVariantMap(const QVariantMap& map) {
+            Joint joint;
+            joint.position = QPointF(map.value("x", 0.0).toDouble(), 
+                                   map.value("y", 0.0).toDouble());
+            joint.mirroring = static_cast<MirroringType>(map.value("mirroring", NoMirroring).toInt());
+            joint.cornerRadius = map.value("cornerRadius", 0.0).toDouble();
+            return joint;
+        }
+    };
+
     explicit Shape(const QString &id, QObject *parent = nullptr);
     virtual ~Shape() = default;
     
@@ -38,8 +71,17 @@ public:
 
     // Joints (corner points)
     QVariantList joints() const;
-    void setJoints(const QList<QPointF>& joints);
+    void setJoints(const QList<Joint>& joints);
     Q_INVOKABLE void setJoints(const QVariantList& joints);
+    
+    // Helper method for backward compatibility
+    void setJointPositions(const QList<QPointF>& positions);
+    
+    // Joint property access
+    Q_INVOKABLE void setJointMirroring(int jointIndex, MirroringType mirroring);
+    Q_INVOKABLE void setJointCornerRadius(int jointIndex, qreal radius);
+    Q_INVOKABLE int getJointMirroring(int jointIndex) const;
+    Q_INVOKABLE qreal getJointCornerRadius(int jointIndex) const;
 
     // Edge properties
     qreal edgeWidth() const { return m_edgeWidth; }
@@ -82,7 +124,7 @@ private:
     void updateName();
 
     ShapeType m_shapeType = Square;
-    QList<QPointF> m_joints;
+    QList<Joint> m_joints;
     qreal m_edgeWidth = 2.0;
     QColor m_edgeColor = QColor(0, 0, 0, 255); // Black
     QColor m_fillColor = QColor(0, 120, 255, 255); // Blue

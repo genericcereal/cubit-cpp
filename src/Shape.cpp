@@ -29,42 +29,75 @@ void Shape::setShapeType(ShapeType type)
 QVariantList Shape::joints() const
 {
     QVariantList result;
-    for (int i = 0; i < m_joints.size(); ++i) {
-        const QPointF& point = m_joints[i];
-        // Joints are already in normalized coordinates (0-1 range)
-        QVariantMap jointMap;
-        jointMap["x"] = point.x();
-        jointMap["y"] = point.y();
-        result.append(jointMap);
+    for (const Joint& joint : m_joints) {
+        result.append(joint.toVariantMap());
     }
     return result;
 }
 
-void Shape::setJoints(const QList<QPointF>& joints)
+void Shape::setJoints(const QList<Joint>& joints)
 {
-    if (m_joints != joints) {
-        m_joints = joints;
-        emit jointsChanged();
-    }
+    m_joints = joints;
+    emit jointsChanged();
 }
 
 void Shape::setJoints(const QVariantList& joints)
 {
-    QList<QPointF> newJoints;
+    QList<Joint> newJoints;
     for (const QVariant& joint : joints) {
-        if (joint.canConvert<QPointF>()) {
-            newJoints.append(joint.toPointF());
-        } else if (joint.canConvert<QVariantMap>()) {
-            // Handle QVariantMap with "x" and "y" keys (from deserialization)
+        if (joint.canConvert<QVariantMap>()) {
             QVariantMap jointMap = joint.toMap();
-            if (jointMap.contains("x") && jointMap.contains("y")) {
-                qreal x = jointMap["x"].toDouble();
-                qreal y = jointMap["y"].toDouble();
-                newJoints.append(QPointF(x, y));
-            }
+            newJoints.append(Joint::fromVariantMap(jointMap));
         }
     }
     setJoints(newJoints);
+}
+
+void Shape::setJointPositions(const QList<QPointF>& positions)
+{
+    QList<Joint> newJoints;
+    for (const QPointF& pos : positions) {
+        Joint joint;
+        joint.position = pos;
+        newJoints.append(joint);
+    }
+    setJoints(newJoints);
+}
+
+void Shape::setJointMirroring(int jointIndex, MirroringType mirroring)
+{
+    if (jointIndex >= 0 && jointIndex < m_joints.size()) {
+        if (m_joints[jointIndex].mirroring != mirroring) {
+            m_joints[jointIndex].mirroring = mirroring;
+            emit jointsChanged();
+        }
+    }
+}
+
+void Shape::setJointCornerRadius(int jointIndex, qreal radius)
+{
+    if (jointIndex >= 0 && jointIndex < m_joints.size()) {
+        if (!qFuzzyCompare(m_joints[jointIndex].cornerRadius, radius)) {
+            m_joints[jointIndex].cornerRadius = radius;
+            emit jointsChanged();
+        }
+    }
+}
+
+int Shape::getJointMirroring(int jointIndex) const
+{
+    if (jointIndex >= 0 && jointIndex < m_joints.size()) {
+        return static_cast<int>(m_joints[jointIndex].mirroring);
+    }
+    return static_cast<int>(NoMirroring);
+}
+
+qreal Shape::getJointCornerRadius(int jointIndex) const
+{
+    if (jointIndex >= 0 && jointIndex < m_joints.size()) {
+        return m_joints[jointIndex].cornerRadius;
+    }
+    return 0.0;
 }
 
 void Shape::setEdgeWidth(qreal width)
@@ -137,50 +170,83 @@ void Shape::updateJointsForShape()
 
 void Shape::updateSquareJoints()
 {
-    QList<QPointF> newJoints;
+    QList<Joint> newJoints;
     // Four corners of the square in normalized coordinates
-    newJoints.append(QPointF(0.0, 0.0));    // Top-left
-    newJoints.append(QPointF(1.0, 0.0));    // Top-right
-    newJoints.append(QPointF(1.0, 1.0));    // Bottom-right
-    newJoints.append(QPointF(0.0, 1.0));    // Bottom-left
+    Joint topLeft;
+    topLeft.position = QPointF(0.0, 0.0);
+    newJoints.append(topLeft);
+    
+    Joint topRight;
+    topRight.position = QPointF(1.0, 0.0);
+    newJoints.append(topRight);
+    
+    Joint bottomRight;
+    bottomRight.position = QPointF(1.0, 1.0);
+    newJoints.append(bottomRight);
+    
+    Joint bottomLeft;
+    bottomLeft.position = QPointF(0.0, 1.0);
+    newJoints.append(bottomLeft);
+    
     setJoints(newJoints);
 }
 
 void Shape::updateTriangleJoints()
 {
-    QList<QPointF> newJoints;
+    QList<Joint> newJoints;
     // Three corners of the triangle (isosceles triangle pointing up) in normalized coordinates
-    newJoints.append(QPointF(0.5, 0.0));    // Top center
-    newJoints.append(QPointF(1.0, 1.0));    // Bottom-right
-    newJoints.append(QPointF(0.0, 1.0));    // Bottom-left
+    Joint top;
+    top.position = QPointF(0.5, 0.0);
+    newJoints.append(top);
+    
+    Joint bottomRight;
+    bottomRight.position = QPointF(1.0, 1.0);
+    newJoints.append(bottomRight);
+    
+    Joint bottomLeft;
+    bottomLeft.position = QPointF(0.0, 1.0);
+    newJoints.append(bottomLeft);
+    
     setJoints(newJoints);
 }
 
 void Shape::updateLineJoints()
 {
-    
     // Check if we have square corner joints that need to be replaced with line joints
     bool hasSquareCornerJoints = (m_joints.size() == 4 &&
-                                  m_joints[0] == QPointF(0.0, 0.0) &&
-                                  m_joints[1] == QPointF(1.0, 0.0) &&
-                                  m_joints[2] == QPointF(1.0, 1.0) &&
-                                  m_joints[3] == QPointF(0.0, 1.0));
+                                  m_joints[0].position == QPointF(0.0, 0.0) &&
+                                  m_joints[1].position == QPointF(1.0, 0.0) &&
+                                  m_joints[2].position == QPointF(1.0, 1.0) &&
+                                  m_joints[3].position == QPointF(0.0, 1.0));
     
     // For lines, set default joints if we don't have any joints yet OR if we have square corner joints
     // This preserves custom joints created by LineModeHandler or loaded from file, but replaces square corner joints
     if (m_joints.isEmpty()) {
-        QList<QPointF> newJoints;
+        QList<Joint> newJoints;
         // Two endpoints of the line (diagonal from top-left to bottom-right) in normalized coordinates
-        newJoints.append(QPointF(0.0, 0.0));    // Start point
-        newJoints.append(QPointF(1.0, 1.0));    // End point
+        Joint start;
+        start.position = QPointF(0.0, 0.0);
+        newJoints.append(start);
+        
+        Joint end;
+        end.position = QPointF(1.0, 1.0);
+        newJoints.append(end);
+        
         setJoints(newJoints);
     } else if (hasSquareCornerJoints) {
-        QList<QPointF> newJoints;
+        QList<Joint> newJoints;
         // Two endpoints of the line (diagonal from top-left to bottom-right) in normalized coordinates
-        newJoints.append(QPointF(0.0, 0.0));    // Start point
-        newJoints.append(QPointF(1.0, 1.0));    // End point
+        Joint start;
+        start.position = QPointF(0.0, 0.0);
+        newJoints.append(start);
+        
+        Joint end;
+        end.position = QPointF(1.0, 1.0);
+        newJoints.append(end);
+        
         setJoints(newJoints);
     } else {
+        // Keep existing joints
     }
 }
 

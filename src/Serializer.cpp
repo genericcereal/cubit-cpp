@@ -322,7 +322,6 @@ Project* Serializer::deserializeProject(const QJsonObject& projectData) {
             for (const QJsonValue& platformValue : platformsArray) {
                 if (platformValue.isString()) {
                     // Legacy format: just platform names
-                    qDebug() << "  Loading platform (legacy format):" << platformValue.toString();
                     project->addPlatform(platformValue.toString());
                 } else if (platformValue.isObject()) {
                     // New format: platform objects with scripts
@@ -334,19 +333,16 @@ Project* Serializer::deserializeProject(const QJsonObject& projectData) {
                         
                         // Load platform-specific scripts if present
                         if (platformObj.contains("scripts")) {
-                            qDebug() << "Deserializing scripts for platform:" << platformName;
                             QJsonObject scriptsObj = platformObj["scripts"].toObject();
                             Scripts* platformScripts = project->getPlatformScripts(platformName);
                             
                             if (platformScripts) {
                                 // Clear existing default nodes
-                                qDebug() << "  Clearing existing nodes for platform:" << platformName;
                                 platformScripts->clear();
                                 
                                 // Load nodes
                                 if (scriptsObj.contains("nodes")) {
                                     QJsonArray nodesArray = scriptsObj["nodes"].toArray();
-                                    qDebug() << "  Loading" << nodesArray.size() << "nodes for platform:" << platformName;
                                     for (const QJsonValue& nodeValue : nodesArray) {
                                         Node* node = deserializeNode(nodeValue.toObject(), platformScripts);
                                         if (node) {
@@ -359,7 +355,6 @@ Project* Serializer::deserializeProject(const QJsonObject& projectData) {
                                 // Load edges
                                 if (scriptsObj.contains("edges")) {
                                     QJsonArray edgesArray = scriptsObj["edges"].toArray();
-                                    qDebug() << "  Loading" << edgesArray.size() << "edges for platform:" << platformName;
                                     for (const QJsonValue& edgeValue : edgesArray) {
                                         Edge* edge = deserializeEdge(edgeValue.toObject(), platformScripts);
                                         if (edge) {
@@ -369,17 +364,14 @@ Project* Serializer::deserializeProject(const QJsonObject& projectData) {
                                     }
                                 }
                                 
-                                qDebug() << "  Platform" << platformName << "now has" << platformScripts->nodeCount() << "nodes and" << platformScripts->edgeCount() << "edges";
                             } else {
                                 qWarning() << "  Failed to get scripts for platform:" << platformName;
                             }
                         } else {
-                            qDebug() << "  No scripts found for platform:" << platformName;
                         }
                         
                         // Load platform-specific global elements if present
                         if (platformObj.contains("globalElements")) {
-                            qDebug() << "Deserializing global elements for platform:" << platformName;
                             QJsonArray globalElementsArray = platformObj["globalElements"].toArray();
                             
                             // Get the platform's global elements model
@@ -390,7 +382,6 @@ Project* Serializer::deserializeProject(const QJsonObject& projectData) {
                                 // Clear existing global elements (except the default ones created on platform init)
                                 globalElementsModel->clear();
                                 
-                                qDebug() << "  Loading" << globalElementsArray.size() << "global elements for platform:" << platformName;
                                 for (const QJsonValue& elementValue : globalElementsArray) {
                                     QJsonObject elementData = elementValue.toObject();
                                     Element* element = deserializeElement(elementData, globalElementsModel);
@@ -405,7 +396,6 @@ Project* Serializer::deserializeProject(const QJsonObject& projectData) {
                                 qWarning() << "  Failed to get global elements model for platform:" << platformName;
                             }
                         } else {
-                            qDebug() << "  No global elements found for platform:" << platformName;
                         }
                     }
                 }
@@ -460,7 +450,6 @@ Project* Serializer::deserializeProject(const QJsonObject& projectData) {
         return project;
         
     } catch (const std::exception& e) {
-        qDebug() << "Error deserializing project:" << e.what();
         return nullptr;
     }
 }
@@ -520,7 +509,6 @@ Element* Serializer::deserializeElement(const QJsonObject& elementData, ElementM
             } else if (elementType == "Edge") {
                 element = new Edge(elementId, model);
             } else {
-                qDebug() << "  Type not found in registry, trying fallback for type:" << elementType;
                 qWarning() << "Unknown element type in deserialization:" << elementType;
                 return nullptr;
             }
@@ -553,17 +541,32 @@ Element* Serializer::deserializeElement(const QJsonObject& elementData, ElementM
             // Load joints immediately after shape type and before geometry
             if (elementData.contains("joints")) {
                 QJsonArray jointsArray = elementData["joints"].toArray();
-                QList<QPointF> joints;
+                QVariantList variantJoints;
                 for (const QJsonValue& jointValue : jointsArray) {
                     if (jointValue.isObject()) {
                         QJsonObject jointObj = jointValue.toObject();
-                        double x = jointObj["x"].toDouble();
-                        double y = jointObj["y"].toDouble();
-                        joints.append(QPointF(x, y));
+                        QVariantMap jointMap;
+                        jointMap["x"] = jointObj["x"].toDouble();
+                        jointMap["y"] = jointObj["y"].toDouble();
+                        
+                        // Load new properties if they exist (for backward compatibility)
+                        if (jointObj.contains("mirroring")) {
+                            jointMap["mirroring"] = jointObj["mirroring"].toInt();
+                        } else {
+                            jointMap["mirroring"] = 0; // NoMirroring
+                        }
+                        
+                        if (jointObj.contains("cornerRadius")) {
+                            jointMap["cornerRadius"] = jointObj["cornerRadius"].toDouble();
+                        } else {
+                            jointMap["cornerRadius"] = 0.0;
+                        }
+                        
+                        variantJoints.append(jointMap);
                     }
                 }
                 if (Shape* shape = qobject_cast<Shape*>(element)) {
-                    shape->setJoints(joints);
+                    shape->setJoints(variantJoints);
                 }
             }
         }
@@ -691,7 +694,6 @@ Element* Serializer::deserializeElement(const QJsonObject& elementData, ElementM
         return element;
         
     } catch (const std::exception& e) {
-        qDebug() << "Error deserializing element:" << e.what();
         return nullptr;
     }
 }
