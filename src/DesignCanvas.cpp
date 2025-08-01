@@ -59,7 +59,6 @@ DesignCanvas::DesignCanvas(ElementModel& model,
 void DesignCanvas::setHoveredElement(QObject* element)
 {
     if (m_hoveredElement != element) {
-        // qDebug() << "DesignCanvas::setHoveredElement: changing from" << m_hoveredElement << "to" << element;
         m_hoveredElement = element;
         emit hoveredElementChanged();
     }
@@ -94,6 +93,14 @@ void DesignCanvas::setIsEditingShape(bool editing)
     if (m_isEditingShape != editing) {
         m_isEditingShape = editing;
         emit isEditingShapeChanged();
+    }
+}
+
+void DesignCanvas::setIsShapeControlDragging(bool dragging)
+{
+    if (m_isShapeControlDragging != dragging) {
+        m_isShapeControlDragging = dragging;
+        emit isShapeControlDraggingChanged();
     }
 }
 
@@ -238,8 +245,10 @@ void DesignCanvas::onSelectionChanged()
     
     // Don't automatically enter shape editing mode on selection
     // Shape editing mode should be activated explicitly (e.g., double-click)
-    // For now, always disable shape editing when selection changes
-    setIsEditingShape(false);
+    // Don't exit shape editing if we're actively dragging shape controls
+    if (!m_isShapeControlDragging) {
+        setIsEditingShape(false);
+    }
 }
 
 void DesignCanvas::onModeChanged()

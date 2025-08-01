@@ -445,7 +445,7 @@ Item {
         sequence: "Escape"
         onActivated: {
             if (controller) {
-                // First handle specialized escape behavior (like line creation)
+                // First handle specialized escape behavior
                 controller.handleEscapeKey()
                 
                 // Then handle default escape behavior
@@ -453,6 +453,16 @@ Item {
                     selectionManager.clearSelection()
                 }
                 controller.mode = CanvasController.Select
+            }
+        }
+    }
+    
+    Shortcut {
+        sequence: "Return"
+        onActivated: {
+            if (controller) {
+                // Handle enter key for line creation mode
+                controller.handleEnterKey()
             }
         }
     }

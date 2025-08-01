@@ -25,7 +25,6 @@ LineModeHandler::LineModeHandler(ElementModel* model,
 void LineModeHandler::onPress(qreal x, qreal y)
 {
     // Handle line creation with clicks
-    qDebug() << "LineModeHandler::onPress called at" << x << y;
     
     if (!m_commandHistory || !m_elementModel || !m_selectionManager) {
         qWarning() << "LineModeHandler::onPress - Missing dependencies";
@@ -59,7 +58,7 @@ void LineModeHandler::onRelease(qreal x, qreal y)
     Q_UNUSED(y)
 }
 
-void LineModeHandler::onEscapePressed()
+void LineModeHandler::onEnterPressed()
 {
     if (m_isCreatingLine) {
         finishLineCreation();
@@ -90,7 +89,6 @@ void LineModeHandler::createInitialLine(const QPointF& startPoint)
         m_currentLine = qobject_cast<Shape*>(selectedElements.first());
         if (m_currentLine) {
             m_isCreatingLine = true;
-            qDebug() << "LineModeHandler: Started line creation at" << startPoint;
         }
     }
 }

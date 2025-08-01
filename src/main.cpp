@@ -32,6 +32,7 @@
 #include "ElementFilterProxy.h"
 #include "PrototypeController.h"
 #include "DesignControlsController.h"
+#include "ShapeControlsController.h"
 #include "AuthenticationManager.h"
 #include "UrlSchemeHandler.h"
 #include "ElementTypeRegistry.h"
@@ -138,6 +139,7 @@ int main(int argc, char *argv[])
     qmlRegisterType<ElementFilterProxy>("Cubit", 1, 0, "ElementFilterProxy");
     qmlRegisterType<PrototypeController>("Cubit", 1, 0, "PrototypeController");
     qmlRegisterType<DesignControlsController>("Cubit", 1, 0, "DesignControlsController");
+    qmlRegisterType<ShapeControlsController>("Cubit", 1, 0, "ShapeControlsController");
     
     // Register throttling types
     qmlRegisterType<AdaptiveThrottler>("Cubit", 1, 0, "AdaptiveThrottler");

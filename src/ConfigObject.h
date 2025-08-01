@@ -162,9 +162,9 @@ public:
     QString edgePreviewColor() const { return Config::EDGE_PREVIEW_COLOR; }
     
     // Control colors (return QColor for rgba values)
-    QColor controlBarColor() const { return QColor(255, 0, 0, 25); }  // 10% opacity = 25/255
-    QColor controlRotationJointColor() const { return QColor(255, 0, 0, 25); }
-    QColor controlResizeJointColor() const { return QColor(0, 0, 255, 25); }
+    QColor controlBarColor() const { return QColor(255, 0, 0, 0); }  // Completely transparent
+    QColor controlRotationJointColor() const { return QColor(255, 0, 0, 0); }  // Completely transparent
+    QColor controlResizeJointColor() const { return QColor(0, 0, 255, 0); }  // Completely transparent
     QColor controlInnerRectColor() const { return QColor(255, 204, 0, 12); }  // 5% opacity = 12/255
     QColor controlBarLineColor() const { return QColor(0, 100, 255, 255); }
     QColor controlJointCircleFill() const { return QColor(255, 255, 255, 255); }
@@ -172,9 +172,9 @@ public:
     QColor controlsBorderColor() const { return QColor(0, 0, 0, 51); }  // 20% opacity = 51/255
     
     // Component instance colors (purple)
-    QColor componentControlBarColor() const { return QColor(128, 0, 128, 25); }
-    QColor componentControlRotationJointColor() const { return QColor(128, 0, 128, 25); }
-    QColor componentControlResizeJointColor() const { return QColor(128, 0, 128, 25); }
+    QColor componentControlBarColor() const { return QColor(128, 0, 128, 0); }  // Completely transparent
+    QColor componentControlRotationJointColor() const { return QColor(128, 0, 128, 0); }  // Completely transparent
+    QColor componentControlResizeJointColor() const { return QColor(128, 0, 128, 0); }  // Completely transparent
     QColor componentControlBarLineColor() const { return QColor(128, 0, 128, 255); }
     QColor componentControlJointCircleBorder() const { return QColor(128, 0, 128, 255); }
     

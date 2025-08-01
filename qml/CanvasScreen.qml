@@ -16,6 +16,8 @@ Item {
     property var panels: null
     // The design controls controller to use - must be passed in by parent
     property var designControlsController: null
+    // The shape controls controller to use - must be passed in by parent
+    property var shapeControlsController: null
     
     // Expose canvas container and detail panel for drop detection
     property alias canvasContainer: canvasContainer
@@ -208,6 +210,7 @@ Item {
             canvasView: canvasLoader.item
             hoveredElement: canvasLoader.item?.hoveredElement ?? null
             designControlsController: root.designControlsController
+            shapeControlsController: root.shapeControlsController
         }
 
         // Overlay panels

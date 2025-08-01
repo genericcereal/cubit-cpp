@@ -19,6 +19,7 @@ Item {
     property real canvasMinY: 0
     property string canvasType: "design"
     property var designControlsController: null
+    property var shapeControlsController: null
     
     Component.onCompleted: {
         // DesignControlsOverlay initialized
@@ -52,8 +53,16 @@ Item {
             if (controller && controller.isAnimating) {
                 return false
             }
+            // IMPORTANT: Hide whenever ShapeControls are visible to prevent mouse event conflicts
+            if (shapeControls.visible) {
+                return false
+            }
             // Hide when editing shapes - this is when ShapeControls are active
             if (controller && controller.isEditingShape) {
+                return false
+            }
+            // Hide when shape controls are actively dragging (prevents reactivation during drag)
+            if (controller && controller.isShapeControlDragging) {
                 return false
             }
             // Hide during line creation mode
@@ -574,22 +583,45 @@ Item {
     // Shape controls - shown when editing shapes or during line creation
     ShapeControls {
         id: shapeControls
+        
+        // Store the last known visibility state to prevent flickering when controller temporarily becomes null
+        property bool lastVisibleState: false
+        
         visible: {
-            if (!controller || selectedElements.length !== 1) return false
+            // During dragging, maintain the last visible state
+            if (shapeControls.isDragging) {
+                return lastVisibleState
+            }
+            
+            // Use root.controller (the canvas controller) for visibility check
+            if (!root.controller || selectedElements.length !== 1) {
+                lastVisibleState = false
+                return false
+            }
+            
+            var selectedElement = selectedElements[0]
+            if (!selectedElement || selectedElement.elementType !== "Shape") {
+                lastVisibleState = false
+                return false
+            }
             
             // Show during line creation mode (ShapeLine)
-            if (controller.mode === CanvasController.ShapeLine && selectedElements[0] && selectedElements[0].elementType === "Shape") {
+            if (root.controller.mode === CanvasController.ShapeLine) {
+                lastVisibleState = true
                 return true
             }
             
             // Show when explicitly editing shapes
-            if (controller.isEditingShape) {
+            if (root.controller.isEditingShape) {
+                lastVisibleState = true
                 return true
             }
             
+            lastVisibleState = false
             return false
         }
         selectedElement: selectedElements.length === 1 ? selectedElements[0] : null
+        controller: root.shapeControlsController
         
         // Bind position and size to viewport coordinates
         x: {

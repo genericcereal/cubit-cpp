@@ -222,9 +222,7 @@ Element* CanvasController::hitTestForHover(qreal x, qreal y)
 void CanvasController::handleMousePress(qreal x, qreal y)
 {
     // Handle mouse press
-    // qDebug() << "CanvasController::handleMousePress at" << x << y << "mode:" << (int)m_mode;
     if (m_currentHandler) {
-        // qDebug() << "Calling handler onPress";
         m_currentHandler->onPress(x, y);
     } else {
         qWarning() << "CanvasController::handleMousePress - No handler for mode" << static_cast<int>(m_mode);
@@ -247,11 +245,17 @@ void CanvasController::handleMouseRelease(qreal x, qreal y)
 
 void CanvasController::handleEscapeKey()
 {
-    // Handle escape key - currently only used for line creation mode
+    // Handle escape key - no longer used for line creation mode
+    // Left for other escape functionality if needed
+}
+
+void CanvasController::handleEnterKey()
+{
+    // Handle enter key - currently only used for line creation mode
     if (m_mode == Mode::ShapeLine) {
         LineModeHandler* lineHandler = static_cast<LineModeHandler*>(m_currentHandler);
         if (lineHandler) {
-            lineHandler->onEscapePressed();
+            lineHandler->onEnterPressed();
         }
     }
 }
@@ -320,7 +324,6 @@ void CanvasController::createEdge(const QString &sourceNodeId, const QString &ta
     Element *targetElement = m_elementModel.getElementById(targetNodeId);
     
     if (!sourceElement || !targetElement) {
-        qDebug() << "Cannot create edge: source or target node not found";
         return;
     }
     
@@ -329,7 +332,6 @@ void CanvasController::createEdge(const QString &sourceNodeId, const QString &ta
     Node *tgtNode = qobject_cast<Node*>(targetElement);
     
     if (!srcNode || !tgtNode) {
-        qDebug() << "Cannot create edge: elements are not nodes";
         return;
     }
     
@@ -339,7 +341,6 @@ void CanvasController::createEdge(const QString &sourceNodeId, const QString &ta
     
     // Validate that port types can connect
     if (!PortType::canConnect(sourcePortType, targetPortType)) {
-        qDebug() << "Cannot create edge: port types don't match -"
                  << "source:" << sourcePortType 
                  << "target:" << targetPortType;
         return;
@@ -382,7 +383,6 @@ void CanvasController::createEdgeByPortId(const QString &sourceNodeId, const QSt
     Element *targetElement = m_elementModel.getElementById(targetNodeId);
     
     if (!sourceElement || !targetElement) {
-        qDebug() << "Cannot create edge: source or target node not found";
         return;
     }
     
@@ -391,7 +391,6 @@ void CanvasController::createEdgeByPortId(const QString &sourceNodeId, const QSt
     Node *tgtNode = qobject_cast<Node*>(targetElement);
     
     if (!srcNode || !tgtNode) {
-        qDebug() << "Cannot create edge: elements are not nodes";
         return;
     }
     
@@ -400,7 +399,6 @@ void CanvasController::createEdgeByPortId(const QString &sourceNodeId, const QSt
     int targetPortIndex = tgtNode->getInputPortIndex(targetPortId);
     
     if (sourcePortIndex == -1 || targetPortIndex == -1) {
-        qDebug() << "Cannot create edge: port not found -"
                  << "sourcePortId:" << sourcePortId << "index:" << sourcePortIndex
                  << "targetPortId:" << targetPortId << "index:" << targetPortIndex;
         return;
@@ -517,7 +515,6 @@ void CanvasController::duplicateVariant(const QString &variantId)
     m_selectionManager.clearSelection();
     m_selectionManager.selectElement(newElement);
     
-    qDebug() << "Created duplicate variant:" << clonedVariant->variantName() << "with ID:" << newId;
 }
 
 void CanvasController::selectElementsInRect(const QRectF &rect)
@@ -563,12 +560,9 @@ bool CanvasController::canRedo() const
 
 void CanvasController::undo()
 {
-    qDebug() << "CanvasController::undo() called";
     if (m_commandHistory) {
-        qDebug() << "CanvasController::undo() - calling m_commandHistory->undo()";
         m_commandHistory->undo();
     } else {
-        qDebug() << "CanvasController::undo() - m_commandHistory is null!";
     }
 }
 

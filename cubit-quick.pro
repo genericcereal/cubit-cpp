@@ -98,6 +98,7 @@ SOURCES += \
     src/FlexLayoutEngine.cpp \
     src/PrototypeController.cpp \
     src/DesignControlsController.cpp \
+    src/ShapeControlsController.cpp \
     src/AuthenticationManager.cpp \
     src/UrlSchemeHandler.cpp \
     src/StreamingAIClient.cpp \
@@ -191,6 +192,7 @@ HEADERS += \
     src/ElementFilterProxy.h \
     src/PrototypeController.h \
     src/DesignControlsController.h \
+    src/ShapeControlsController.h \
     src/AuthenticationManager.h \
     src/UrlSchemeHandler.h \
     src/StreamingAIClient.h \

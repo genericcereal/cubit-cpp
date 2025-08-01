@@ -100,6 +100,7 @@ public slots:
     
     // Keyboard handling
     Q_INVOKABLE void handleEscapeKey();
+    Q_INVOKABLE void handleEnterKey();
     
     // Element creation (delegated to CreationManager)
     void createElement(const QString &type, qreal x, qreal y, qreal width = 200, qreal height = 150);
