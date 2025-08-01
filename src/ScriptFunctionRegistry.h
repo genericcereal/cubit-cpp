@@ -36,6 +36,8 @@ private:
     static QString buildConditionFunction(Node* node);
     static QString buildEventDataFunction(Node* node);
     static QString buildAiPromptFunction(Node* node);
+    static QString buildConvertNumberToStringFunction(Node* node);
+    static QString buildCreateNumberArrayFunction(Node* node);
 };
 
 #endif // SCRIPTFUNCTIONREGISTRY_H

@@ -18,14 +18,14 @@ void Variable::setValue(const QVariant &value)
 
 void Variable::setVariableType(const QString &type)
 {
-    if (type == "string" || type == "number") {
+    if (type == "string" || type == "number" || type == "array") {
         if (m_variableType != type) {
             m_variableType = type;
             emit variableTypeChanged();
             emit elementChanged();
         }
     } else {
-        qWarning() << "Invalid variable type:" << type << ". Must be 'string' or 'number'.";
+        qWarning() << "Invalid variable type:" << type << ". Must be 'string', 'number', or 'array'.";
     }
 }
 

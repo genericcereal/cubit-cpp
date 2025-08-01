@@ -21,6 +21,8 @@ QString JsonImporter::createNodeFromJson(const QString& jsonData)
         return QString();
     }
     
+    // qDebug() << "JsonImporter::createNodeFromJson - JSON data:" << jsonData;
+    
     QJsonDocument doc = QJsonDocument::fromJson(jsonData.toUtf8());
     if (!doc.isObject()) {
         emit importError("Invalid JSON format - expected object");
@@ -41,10 +43,15 @@ QString JsonImporter::createNodeFromJson(const QString& jsonData)
     qreal y = nodeObj.value("y").toDouble(0);
     QString sourceElementId = nodeObj.value("sourceElementId").toString();
     bool isAsync = nodeObj.value("isAsync").toBool(false);
+    bool isDynamic = nodeObj.value("isDynamic").toBool(false);
+    
+    // qDebug() << "JsonImporter: Creating node" << name << "with type:" << nodeType << "from JSON";
     
     // Create the node
     Node *node = new Node(nodeId);
     node->setNodeType(nodeType);
+    
+    // qDebug() << "JsonImporter: After setNodeType, node type is:" << node->nodeType();
     node->setX(x);
     node->setY(y);
     node->setNodeTitle(name);
@@ -56,6 +63,25 @@ QString JsonImporter::createNodeFromJson(const QString& jsonData)
     
     // Set isAsync if provided
     node->setIsAsync(isAsync);
+    
+    // Set isDynamic if provided
+    node->setIsDynamic(isDynamic);
+    
+    // Set script if provided
+    QString script = nodeObj.value("script").toString();
+    if (!script.isEmpty()) {
+        node->setScript(script);
+    }
+    
+    // Apply style properties if provided
+    QJsonObject style = nodeObj.value("style").toObject();
+    if (!style.isEmpty()) {
+        // Apply width if specified
+        if (style.contains("width")) {
+            node->setWidth(style.value("width").toDouble(200));
+        }
+        // Can add more style properties here in the future (height, color, etc.)
+    }
     
     // Parse targets (input ports)
     QJsonArray targets = nodeObj.value("targets").toArray();
@@ -97,7 +123,6 @@ QString JsonImporter::createNodeFromJson(const QString& jsonData)
         
         if (!sourceId.isEmpty()) {
             outputPorts.append(sourceId);
-            node->setOutputPortType(i, sourceType);
             
             // Check if we can add to existing row or need new row
             if (i < rowConfigs.size()) {
@@ -114,6 +139,9 @@ QString JsonImporter::createNodeFromJson(const QString& jsonData)
                 config.sourcePortIndex = i;
                 rowConfigs.append(config);
             }
+            
+            // Set the output port type using the actual port index
+            node->setOutputPortType(i, sourceType);
         }
     }
     
@@ -126,17 +154,11 @@ QString JsonImporter::createNodeFromJson(const QString& jsonData)
         node->addRow(config);
     }
     
-    // Debug logging for ports and rows
-    qDebug() << "Created node" << name << "with:";
-    qDebug() << "  Input ports:" << inputPorts;
-    qDebug() << "  Output ports:" << outputPorts;
-    qDebug() << "  Row configurations:" << rowConfigs.size();
-    qDebug() << "  isAsync:" << isAsync;
     
     // Add to model
     m_elementModel->addElement(node);
     
-    qDebug() << "Created node from JSON:" << nodeId << "at" << x << "," << y;
+    // qDebug() << "Created node from JSON:" << nodeId << "at" << x << "," << y;
     emit nodeImported(nodeId);
     return nodeId;
 }

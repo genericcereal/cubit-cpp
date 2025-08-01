@@ -22,6 +22,10 @@ public:
         QJsonArray params;
         QList<QString> nextInvokes;
         bool isAsync = false;
+        bool isLoop = false;
+        bool isParam = false;  // True for param nodes that provide data
+        QString loopBodyInvoke;      // Invoke ID for the loop body (Item flow)
+        QString loopCompleteInvoke;  // Invoke ID for after loop completes (On Complete flow)
     };
     
     struct NodeReference {

@@ -38,11 +38,13 @@ Item {
         var containerBottomMargin = ConfigObject.nodeBottomMargin   // Bottom margin from Config
         var rowHeight = 30   // Height of each row
         var rowSpacing = 10  // Spacing between rows
+        var addButtonHeight = nodeElement.isDynamicNode() ? 30 : 0  // Height of add button
+        var addButtonMargin = nodeElement.isDynamicNode() ? 10 : 0  // Bottom margin for add button
         
         var numRows = nodeElement.rowConfigurations.length
         var contentHeight = numRows * rowHeight + (numRows > 0 ? (numRows - 1) * rowSpacing : 0)
         
-        var totalHeight = topMargin + titleHeight + titleBottomMargin + contentHeight + containerBottomMargin
+        var totalHeight = topMargin + titleHeight + titleBottomMargin + contentHeight + containerBottomMargin + addButtonHeight + addButtonMargin
         
         // Ensure minimum height from Config
         return Math.max(totalHeight, ConfigObject.nodeMinHeight)
@@ -363,7 +365,7 @@ Item {
                         
                         property var targetConfig: modelData
                         property bool hasTarget: targetConfig.hasTarget || false
-                        property int targetPortIndex: hasTarget ? (targetConfig.targetPortIndex || -1) : -1
+                        property int targetPortIndex: hasTarget ? (targetConfig.targetPortIndex !== undefined ? targetConfig.targetPortIndex : -1) : -1
                         property string targetType: hasTarget ? (targetConfig.targetType || "Flow") : ""
                         property string targetLabel: hasTarget ? (targetConfig.targetLabel || "") : ""
                         
@@ -417,83 +419,121 @@ Item {
                                    localY >= inputY && localY <= inputY + inputHeight
                         }
                         
-                        // Target handle
-                        Rectangle {
-                            id: targetHandle
-                            visible: hasTarget
+                        // Row layout for target handle, input/label, and delete button
+                        Row {
                             anchors.left: parent.left
+                            anchors.right: parent.right
                             anchors.verticalCenter: parent.verticalCenter
-                            width: 20
-                            height: 20
-                            radius: targetType === "Flow" ? 10 : 0
-                            z: 100  // Higher than node body
-                            color: {
-                                if (handleHovered || targetHandleMouseArea.containsMouse) {
-                                    return targetType === "Flow" ? "#4CAF50" : "#FF9800"
-                                } else {
-                                    return targetType === "Flow" ? "#666666" : "#795548"
-                                }
-                            }
-                            border.width: 2
-                            border.color: {
-                                if (handleHovered || targetHandleMouseArea.containsMouse) {
-                                    return targetType === "Flow" ? "#2E7D32" : "#E65100"
-                                } else {
-                                    return targetType === "Flow" ? "#333333" : "#5D4037"
-                                }
-                            }
+                            spacing: 5
                             
-                            MouseArea {
-                                id: targetHandleMouseArea
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.CrossCursor
-                                propagateComposedEvents: false  // Don't let events bubble to node body
-                                preventStealing: true  // Prevent parent from stealing events
-                                
-                                property bool isDragging: false
-                                
-                                onPressed: (mouse) => {
-                                    // Don't allow dragging from target handles
-                                    mouse.accepted = true
+                            // Target handle
+                            Rectangle {
+                                id: targetHandle
+                                visible: hasTarget
+                                width: 20
+                                height: 20
+                                radius: targetType === "Flow" ? 10 : 0
+                                z: 100  // Higher than node body
+                                color: {
+                                    if (handleHovered || targetHandleMouseArea.containsMouse) {
+                                        return targetType === "Flow" ? "#4CAF50" : "#FF9800"
+                                    } else {
+                                        return targetType === "Flow" ? "#666666" : "#795548"
+                                    }
                                 }
-                            }
-                        }
-                        
-                        // Port input using Loader to ensure proper re-creation
-                        Loader {
-                            id: targetInputLoader
-                            visible: hasTarget && targetType !== "Flow" && !parent.hasIncomingEdge
-                            anchors.left: targetHandle.right
-                            anchors.leftMargin: 5
-                            anchors.verticalCenter: parent.verticalCenter
-                            
-                            sourceComponent: PortInput {
-                                portType: targetType
-                                portIndex: targetPortIndex
-                                hasIncomingEdge: parent.parent.hasIncomingEdge
-                                isHovered: comboBoxHovered
-                                canvas: root.canvas
-                                value: nodeElement ? nodeElement.value : ""
+                                border.width: 2
+                                border.color: {
+                                    if (handleHovered || targetHandleMouseArea.containsMouse) {
+                                        return targetType === "Flow" ? "#2E7D32" : "#E65100"
+                                    } else {
+                                        return targetType === "Flow" ? "#333333" : "#5D4037"
+                                    }
+                                }
                                 
-                                
-                                onPortValueChanged: function(newValue) {
-                                    // Update the node's value property
-                                    if (nodeElement) {
-                                        nodeElement.value = String(newValue)
+                                MouseArea {
+                                    id: targetHandleMouseArea
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.CrossCursor
+                                    propagateComposedEvents: false  // Don't let events bubble to node body
+                                    preventStealing: true  // Prevent parent from stealing events
+                                    
+                                    property bool isDragging: false
+                                    
+                                    onPressed: (mouse) => {
+                                        // Don't allow dragging from target handles
+                                        mouse.accepted = true
                                     }
                                 }
                             }
-                        }
-                        
-                        Text {
-                            visible: hasTarget && targetLabel !== "" && (targetType === "Flow" || hasIncomingEdge)
-                            anchors.left: targetHandle.right
-                            anchors.leftMargin: 5
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: targetLabel
-                            color: "#333333"
-                            font.pixelSize: 12
+                            
+                            // Port input using Loader to ensure proper re-creation
+                            Loader {
+                                id: targetInputLoader
+                                visible: hasTarget && targetType !== "Flow" && parent && !parent.hasIncomingEdge
+                                width: 80
+                                height: 24
+                                
+                                sourceComponent: PortInput {
+                                    portType: targetType
+                                    portIndex: targetPortIndex
+                                    hasIncomingEdge: {
+                                        // Safely access the parent's hasIncomingEdge property
+                                        if (!parent || !parent.parent) return false;
+                                        return parent.parent.hasIncomingEdge || false;
+                                    }
+                                    isHovered: comboBoxHovered
+                                    canvas: root.canvas
+                                    value: nodeElement ? (nodeElement.isDynamicNode() ? nodeElement.getPortValue(targetPortIndex) : nodeElement.value) : ""
+                                    
+                                    
+                                    onPortValueChanged: function(newValue) {
+                                        // Update the node's value property
+                                        if (nodeElement) {
+                                            if (nodeElement.isDynamicNode()) {
+                                                nodeElement.setPortValue(targetPortIndex, String(newValue))
+                                            } else {
+                                                nodeElement.value = String(newValue)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            Text {
+                                visible: hasTarget && targetLabel !== "" && (targetType === "Flow" || hasIncomingEdge)
+                                text: targetLabel
+                                color: "#333333"
+                                font.pixelSize: 12
+                            }
+                            
+                            // Delete button for dynamic nodes
+                            Rectangle {
+                                visible: nodeElement && nodeElement.isDynamicNode() && hasTarget && targetType === "Number" && targetPortIndex > 0
+                                width: 20
+                                height: 20
+                                color: deleteMouseArea.containsMouse ? "#FF5252" : "#F44336"
+                                radius: 2
+                                
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "−"
+                                    color: "white"
+                                    font.pixelSize: 16
+                                    font.bold: true
+                                }
+                                
+                                MouseArea {
+                                    id: deleteMouseArea
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    
+                                    onClicked: {
+                                        nodeElement.removeDynamicRow(targetPortIndex)
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -518,7 +558,7 @@ Item {
                         
                         property var sourceConfig: modelData
                         property bool hasSource: sourceConfig.hasSource || false
-                        property int sourcePortIndex: hasSource ? (sourceConfig.sourcePortIndex || -1) : -1
+                        property int sourcePortIndex: hasSource ? (sourceConfig.sourcePortIndex !== undefined ? sourceConfig.sourcePortIndex : -1) : -1
                         property string sourceType: hasSource ? (sourceConfig.sourceType || "Flow") : ""
                         property string sourceLabel: hasSource ? (sourceConfig.sourceLabel || "") : ""
                         
@@ -633,6 +673,39 @@ Item {
                             }
                         }
                     }
+                }
+            }
+        }
+        
+        // Add row button for dynamic nodes
+        Rectangle {
+            visible: nodeElement && nodeElement.isDynamicNode()
+            anchors.bottom: parent.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: 10
+            anchors.rightMargin: 10
+            anchors.bottomMargin: 10
+            height: 30
+            color: addRowMouseArea.containsMouse ? "#2196F3" : "#1976D2"
+            radius: 4
+            
+            Text {
+                anchors.centerIn: parent
+                text: "+ Add Row"
+                color: "white"
+                font.pixelSize: 13
+                font.bold: true
+            }
+            
+            MouseArea {
+                id: addRowMouseArea
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                
+                onClicked: {
+                    nodeElement.addDynamicRow()
                 }
             }
         }

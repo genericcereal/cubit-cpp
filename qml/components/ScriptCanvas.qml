@@ -175,6 +175,12 @@ BaseCanvas {
                     root.canvasClickedOutside()
                 }
             }
+            
+            onRightClicked: (canvasPoint) => {
+                // Show node catalog at the clicked position
+                root.nodeCatalogPosition = canvasPoint
+                root.showNodeCatalog = true
+            }
         },
         
         // Edges layer

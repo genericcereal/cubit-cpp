@@ -11,8 +11,11 @@
 #include "../CanvasElement.h"
 #include "../DesignElement.h"
 #include "../Variable.h"
+#include "../Application.h"
+#include "../ProjectApiClient.h"
 #include <QDebug>
 #include <QCoreApplication>
+#include <QJsonArray>
 #include <vector>
 
 DeleteElementsCommand::DeleteElementsCommand(ElementModel* model, SelectionManager* selectionManager,
@@ -47,10 +50,16 @@ void DeleteElementsCommand::execute()
 {
     if (!m_elementModel) return;
 
-    qDebug() << "DeleteElementsCommand::execute() - Deleting" << m_deletedElements.size() << "elements";
+    // Store element IDs before deletion for API sync
+    m_deletedElementIds.clear();
     for (const ElementInfo& info : m_deletedElements) {
-        qDebug() << "  - Deleting element:" << info.element->getId() << "type:" << info.element->metaObject()->className();
+        m_deletedElementIds.append(info.element->getId());
     }
+
+    // qDebug() << "DeleteElementsCommand::execute() - Deleting" << m_deletedElements.size() << "elements";
+    // for (const ElementInfo& info : m_deletedElements) {
+    //     qDebug() << "  - Deleting element:" << info.element->getId() << "type:" << info.element->metaObject()->className();
+    // }
 
     // Get the Project from the ElementModel's parent
     Project* project = qobject_cast<Project*>(m_elementModel->parent());
@@ -95,7 +104,7 @@ void DeleteElementsCommand::execute()
                                 varInfo.parent = nullptr;
                                 varInfo.index = m_elementModel->getAllElements().indexOf(var);
                                 variablesToDelete.append(varInfo);
-                                qDebug() << "Will delete Variable element for design element:" << element->getName();
+                                // qDebug() << "Will delete Variable element for design element:" << element->getName();
                                 break;
                             }
                         }
@@ -125,8 +134,8 @@ void DeleteElementsCommand::execute()
                     for (Edge* edge : connectedEdges) {
                         if (edge && !edgesToDelete.contains(edge)) {
                             edgesToDelete.append(edge);
-                            qDebug() << "DeleteElementsCommand: Will delete edge" << edge->getId() 
-                                     << "connected to node" << nodeId;
+                            // qDebug() << "DeleteElementsCommand: Will delete edge" << edge->getId() 
+                            //          << "connected to node" << nodeId;
                         }
                     }
                 }
@@ -149,31 +158,27 @@ void DeleteElementsCommand::execute()
                     edgeInfo.parent = nullptr;
                     edgeInfo.index = m_elementModel->getAllElements().indexOf(edge);
                     m_deletedElements.append(edgeInfo);
-                    qDebug() << "DeleteElementsCommand: Added edge" << edge->getId() << "to deletion list";
+                    // qDebug() << "DeleteElementsCommand: Added edge" << edge->getId() << "to deletion list";
                 }
             }
             
             // Remove nodes from Scripts (this will also remove connected edges)
             for (const ElementInfo& info : m_deletedElements) {
                 if (Node* node = qobject_cast<Node*>(info.element)) {
-                    qDebug() << "DeleteElementsCommand: Removing node" << node->getId() << "from scripts";
+                    // qDebug() << "DeleteElementsCommand: Removing node" << node->getId() << "from scripts";
                     scripts->removeNode(node);
                 } else if (Edge* edge = qobject_cast<Edge*>(info.element)) {
                     // Only remove edges that aren't already removed by removeNode
                     if (scripts->getEdge(edge->getId())) {
-                        qDebug() << "DeleteElementsCommand: Removing edge" << edge->getId() << "from scripts";
+                        // qDebug() << "DeleteElementsCommand: Removing edge" << edge->getId() << "from scripts";
                         scripts->removeEdge(edge);
                     }
                 }
             }
             
-            // Force QML to update its bindings before we delete the nodes
-            // Emit nodesChanged to force QML to refresh its bindings
-            emit scripts->nodesChanged();
-            emit scripts->edgesChanged();
-            
-            // Process events to ensure QML updates are processed
-            QCoreApplication::processEvents();
+            // Don't process events during deletion - this can cause crashes
+            // QML will be updated automatically when the model changes
+            // qDebug() << "DeleteElementsCommand: Script elements removed, model updates will follow";
         }
     }
 
@@ -212,6 +217,11 @@ void DeleteElementsCommand::execute()
     if (isScriptMode) {
         m_elementModel->setProperty("_deleteCommandHandling", false);
     }
+    
+    // Sync with API after all deletions are complete
+    // qDebug() << "DeleteElementsCommand: Starting API sync";
+    syncWithAPI();
+    // qDebug() << "DeleteElementsCommand: API sync complete";
 }
 
 void DeleteElementsCommand::undo()
@@ -278,4 +288,42 @@ void DeleteElementsCommand::undo()
         m_selectionManager->selectAll(elementsToSelect);
     }
 
+}
+
+void DeleteElementsCommand::syncWithAPI()
+{
+    // Get the project from the element model
+    if (!m_elementModel) return;
+    
+    Project* project = qobject_cast<Project*>(m_elementModel->parent());
+    if (!project) {
+        qDebug() << "DeleteElementsCommand: No project found for API sync";
+        return;
+    }
+    
+    // Get the Application and API client
+    Application* app = Application::instance();
+    if (!app) {
+        qDebug() << "DeleteElementsCommand: No application instance for API sync";
+        return;
+    }
+    
+    ProjectApiClient* apiClient = app->projectApiClient();
+    if (!apiClient) {
+        qDebug() << "DeleteElementsCommand: No API client available";
+        return;
+    }
+    
+    // Get the project's API ID
+    QString apiProjectId = project->id();
+    
+    // Use pre-stored element IDs (elements might already be deleted)
+    QJsonArray elementIds;
+    for (const QString& elementId : m_deletedElementIds) {
+        elementIds.append(elementId);
+    }
+    
+    // Sync with API
+    // qDebug() << "DeleteElementsCommand: Syncing deletion of" << elementIds.size() << "elements with API";
+    apiClient->syncDeleteElements(apiProjectId, elementIds);
 }

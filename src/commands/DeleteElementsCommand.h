@@ -23,6 +23,7 @@ public:
     void undo() override;
 
 private:
+    void syncWithAPI();
     struct ElementInfo {
         Element* element;
         Element* parent;
@@ -33,6 +34,7 @@ private:
     SelectionManager* m_selectionManager;
     QList<ElementInfo> m_deletedElements;
     QList<ElementInfo> m_deletedChildren;
+    QStringList m_deletedElementIds;  // Store IDs before deletion for API sync
 };
 
 #endif // DELETEELEMENTSCOMMAND_H

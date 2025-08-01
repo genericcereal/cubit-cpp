@@ -18,6 +18,7 @@ class Node : public ScriptElement {
     Q_PROPERTY(QString value READ value WRITE setValue NOTIFY valueChanged)
     Q_PROPERTY(QString sourceElementId READ sourceElementId WRITE setSourceElementId NOTIFY sourceElementIdChanged)
     Q_PROPERTY(bool isAsync READ isAsync WRITE setIsAsync NOTIFY isAsyncChanged)
+    Q_PROPERTY(QString script READ script WRITE setScript NOTIFY scriptChanged)
     
 public:
     explicit Node(const QString &id, QObject *parent = nullptr);
@@ -32,6 +33,7 @@ public:
     QString value() const;
     QString sourceElementId() const { return m_sourceElementId; }
     bool isAsync() const { return m_isAsync; }
+    QString script() const { return m_script; }
     
     // Property setters
     void setNodeTitle(const QString &title);
@@ -42,6 +44,7 @@ public:
     void setValue(const QString &value);
     void setSourceElementId(const QString &elementId);
     void setIsAsync(bool isAsync);
+    void setScript(const QString &script);
     
     // Port management
     void addInputPort(const QString &portName);
@@ -78,12 +81,25 @@ public:
     Q_INVOKABLE int getRowForInputPort(int portIndex) const;
     Q_INVOKABLE int getRowForOutputPort(int portIndex) const;
     
+    // Dynamic row management
+    Q_INVOKABLE void addDynamicRow();
+    Q_INVOKABLE void removeDynamicRow(int rowIndex);
+    Q_INVOKABLE bool isDynamicNode() const { return m_isDynamic; }
+    void setIsDynamic(bool isDynamic) { m_isDynamic = isDynamic; }
+    
+    // Port-specific value management for dynamic nodes
+    Q_INVOKABLE QString getPortValue(int portIndex) const;
+    Q_INVOKABLE void setPortValue(int portIndex, const QString &value);
+    
     // Port ID lookup
     int getInputPortIndex(const QString &portId) const;
     int getOutputPortIndex(const QString &portId) const;
     
     // Set node type (only in constructor or initialization)
-    void setNodeType(const QString &type) { m_nodeType = type; }
+    void setNodeType(const QString &type) { 
+        // qDebug() << "Node::setNodeType called - changing from" << m_nodeType << "to" << type;
+        m_nodeType = type; 
+    }
     
 signals:
     void nodeTitleChanged();
@@ -95,6 +111,7 @@ signals:
     void valueChanged();
     void sourceElementIdChanged();
     void isAsyncChanged();
+    void scriptChanged();
     
 private:
     QString m_nodeTitle;
@@ -107,6 +124,9 @@ private:
     bool m_isExecuting;
     QList<RowConfig> m_rowConfigs;
     QString m_value;  // Stores input value for non-Flow type inputs
+    QMap<int, QString> m_portValues;  // Stores values for each port in dynamic nodes
     QString m_sourceElementId;  // ID of the design element this Variable node represents
     bool m_isAsync = false;  // Whether this node returns a Promise
+    bool m_isDynamic = false;  // Whether this node supports dynamic rows
+    QString m_script;  // Script code for this node (from catalog)
 };

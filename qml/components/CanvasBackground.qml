@@ -11,6 +11,7 @@ Rectangle {
     
     // Signal emitted when background is clicked
     signal clicked(point canvasPoint)
+    signal rightClicked(point canvasPoint)
     
     // Signals for drag operations
     signal dragStarted(point canvasPoint)
@@ -108,7 +109,11 @@ Rectangle {
                     root.dragEnded(canvasPoint)
                 } else {
                     // It was a click, not a drag
-                    root.clicked(canvasPoint)
+                    if (mouse.button === Qt.RightButton) {
+                        root.rightClicked(canvasPoint)
+                    } else {
+                        root.clicked(canvasPoint)
+                    }
                 }
                 
                 root.isDragging = false

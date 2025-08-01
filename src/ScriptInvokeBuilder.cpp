@@ -26,9 +26,13 @@ ScriptInvokeBuilder::BuildContext ScriptInvokeBuilder::buildInvokes(Node* eventN
     // Start building from the event node's outgoing connections
     QList<Edge*> outgoingEdges = getOutgoingFlowEdges(eventNode, scripts);
     
+    // qDebug() << "ScriptInvokeBuilder::buildInvokes - Event node" << eventNode->nodeTitle() 
+    //          << "has" << outgoingEdges.size() << "outgoing Flow edges";
+    
     for (Edge* edge : outgoingEdges) {
         Node* targetNode = scripts->getNode(edge->targetNodeId());
         if (targetNode) {
+            // qDebug() << "  -> Flow edge to node:" << targetNode->nodeTitle() << "type:" << targetNode->nodeType();
             buildInvokesRecursive(targetNode, scripts, context, elementModel);
         }
     }
@@ -45,8 +49,51 @@ void ScriptInvokeBuilder::buildInvokesRecursive(Node* node, Scripts* scripts,
         return;
     }
     
+    // qDebug() << "ScriptInvokeBuilder::buildInvokesRecursive - Node:" << node->nodeTitle() << "Type:" << node->nodeType();
+    
     // Skip event nodes - they don't generate invokes
     if (node->nodeType() == "Event") {
+        return;
+    }
+    
+    // Skip param nodes - they only provide data, don't execute
+    if (node->nodeType() == "Param") {
+        // qDebug() << "ScriptInvokeBuilder: Skipping Param node:" << node->nodeTitle();
+        // Still need to store node reference for data access
+        NodeReference nodeRef;
+        nodeRef.node = node;
+        nodeRef.scripts = scripts;
+        context.nodeReferences[node->getId()] = nodeRef;
+        
+        // Pre-create outputs for param nodes so their data is available
+        // First, we need to build parameters for this param node
+        QJsonArray paramNodeParams = createNodeParameters(node, scripts, context);
+        
+        // Store the param data in the context
+        QString paramInvokeId = QString("param_%1").arg(context.invokeCounter++);
+        InvokeData paramInvoke;
+        paramInvoke.invokeId = paramInvokeId;
+        paramInvoke.nodeId = node->getId();
+        paramInvoke.functionName = getFunctionNameForNode(node);
+        paramInvoke.params = paramNodeParams;
+        paramInvoke.isAsync = false;
+        paramInvoke.isParam = true;  // Mark as param
+        context.invokes[paramInvokeId] = paramInvoke;
+        
+        // Create outputs for all data ports
+        QList<Edge*> allOutgoingEdges = scripts->getOutgoingEdges(node->getId());
+        for (Edge* edge : allOutgoingEdges) {
+            if (edge->sourcePortType() != "Flow") {
+                QString outputId = generateOutputId(context);
+                QJsonObject output;
+                output["type"] = "paramResult";
+                output["sourceInvoke"] = paramInvokeId;
+                output["sourceNodeId"] = node->getId();
+                output["sourcePortIndex"] = edge->sourcePortIndex();
+                output["sourcePortType"] = edge->sourcePortType();
+                context.outputs[outputId] = output;
+            }
+        }
         return;
     }
     
@@ -56,9 +103,83 @@ void ScriptInvokeBuilder::buildInvokesRecursive(Node* node, Scripts* scripts,
     nodeRef.scripts = scripts;
     context.nodeReferences[node->getId()] = nodeRef;
     
+    // Special handling for ForEachLoop node
+    if (node->nodeTitle() == "For Each Loop") {
+        // qDebug() << "ScriptInvokeBuilder: Processing ForEachLoop node";
+        
+        // Create a special invoke for the loop
+        InvokeData invoke;
+        invoke.invokeId = generateInvokeId(context);
+        invoke.nodeId = node->getId();
+        invoke.functionName = getFunctionNameForNode(node);
+        invoke.params = createNodeParameters(node, scripts, context);
+        invoke.isAsync = false;
+        invoke.isLoop = true;  // Mark this as a loop invoke
+        
+        // Create outputs for the loop's data outputs (Array Element and Array Index) BEFORE processing loop body
+        // These need to exist before we process the loop body so param nodes can reference them
+        
+        // Array Element output (port index 1)
+        QString elementOutputId = generateOutputId(context);
+        QJsonObject elementOutput;
+        elementOutput["type"] = "invokeResult";
+        elementOutput["sourceInvoke"] = invoke.invokeId;
+        elementOutput["sourceNodeId"] = node->getId();
+        elementOutput["sourcePortIndex"] = 1;  // arrayElement port
+        elementOutput["sourcePortType"] = "Number";
+        context.outputs[elementOutputId] = elementOutput;
+        
+        // Array Index output (port index 2)
+        QString indexOutputId = generateOutputId(context);
+        QJsonObject indexOutput;
+        indexOutput["type"] = "invokeResult";
+        indexOutput["sourceInvoke"] = invoke.invokeId;
+        indexOutput["sourceNodeId"] = node->getId();
+        indexOutput["sourcePortIndex"] = 2;  // arrayIndex port
+        indexOutput["sourcePortType"] = "Number";
+        context.outputs[indexOutputId] = indexOutput;
+        
+        // Store the loop invoke
+        context.invokes[invoke.invokeId] = invoke;
+        
+        // Find the edges connected to the "Item" and "On Complete" flow outputs
+        QList<Edge*> allOutgoingEdges = scripts->getOutgoingEdges(node->getId());
+        QString itemInvokeId;
+        QString onCompleteInvokeId;
+        
+        for (Edge* edge : allOutgoingEdges) {
+            if (edge->sourcePortType() == "Flow") {
+                Node* targetNode = scripts->getNode(edge->targetNodeId());
+                if (targetNode) {
+                    // Check which source port this edge is connected to
+                    int sourcePortIndex = edge->sourcePortIndex();
+                    
+                    // Source port 0 is "Item", port 1 is "On Complete"
+                    if (sourcePortIndex == 0) {
+                        // This is the "Item" flow - build invokes for the loop body
+                        itemInvokeId = generateInvokeId(context);
+                        context.invokeCounter++;
+                        buildInvokesRecursiveWithId(targetNode, scripts, context, elementModel, invoke.invokeId, itemInvokeId);
+                    } else if (sourcePortIndex == 1) {
+                        // This is the "On Complete" flow
+                        onCompleteInvokeId = generateInvokeId(context);
+                        context.invokeCounter++;
+                        buildInvokesRecursiveWithId(targetNode, scripts, context, elementModel, invoke.invokeId, onCompleteInvokeId);
+                    }
+                }
+            }
+        }
+        
+        // Store loop-specific information in the invoke
+        context.invokes[invoke.invokeId].loopBodyInvoke = itemInvokeId;
+        context.invokes[invoke.invokeId].loopCompleteInvoke = onCompleteInvokeId;
+        
+        return; // Don't continue with normal flow processing
+    }
+    
     // Special handling for ComponentOnEditorLoadEvents node
     if (node->nodeTitle() == "Component On Editor Load Events") {
-        qDebug() << "ScriptInvokeBuilder: Processing ComponentOnEditorLoadEvents node";
+        // qDebug() << "ScriptInvokeBuilder: Processing ComponentOnEditorLoadEvents node";
         
         // Get the parent element that owns these scripts
         QObject* scriptParent = scripts->parent();
@@ -71,20 +192,20 @@ void ScriptInvokeBuilder::buildInvokesRecursive(Node* node, Scripts* scripts,
         // Check if the scripts belong to a component instance
         if (frameInstance) {
             componentId = frameInstance->componentId();
-            qDebug() << "ScriptInvokeBuilder: Scripts belong to FrameComponentInstanceTemplate" << frameInstance->getId() 
-                     << "instance of" << componentId;
+            // qDebug() << "ScriptInvokeBuilder: Scripts belong to FrameComponentInstanceTemplate" << frameInstance->getId() 
+            //          << "instance of" << componentId;
             
             // Access the component directly from the instance
             component = frameInstance->sourceComponent();
         } else if (textInstance) {
             componentId = textInstance->componentId();
-            qDebug() << "ScriptInvokeBuilder: Scripts belong to TextComponentInstanceTemplate" << textInstance->getId() 
-                     << "instance of" << componentId;
+            // qDebug() << "ScriptInvokeBuilder: Scripts belong to TextComponentInstanceTemplate" << textInstance->getId() 
+            //          << "instance of" << componentId;
             
             // Access the component directly from the instance
             component = textInstance->sourceComponent();
         } else {
-            qDebug() << "ScriptInvokeBuilder: ComponentOnEditorLoadEvents node not in a component instance context";
+            // qDebug() << "ScriptInvokeBuilder: ComponentOnEditorLoadEvents node not in a component instance context";
             // Continue with the normal flow
             QList<Edge*> outgoingEdges = getOutgoingFlowEdges(node, scripts);
             for (Edge* edge : outgoingEdges) {
@@ -98,18 +219,18 @@ void ScriptInvokeBuilder::buildInvokesRecursive(Node* node, Scripts* scripts,
         
         // Check if we have the component (either from frame or text instance)
         if (component && component->scripts()) {
-            qDebug() << "ScriptInvokeBuilder: Found component" << componentId 
-                     << "for instance" << (frameInstance ? frameInstance->getId() : textInstance->getId());
+            // qDebug() << "ScriptInvokeBuilder: Found component" << componentId 
+            //          << "for instance" << (frameInstance ? frameInstance->getId() : textInstance->getId());
             
             // Ensure component scripts are compiled
             Scripts* componentScripts = component->scripts();
-            qDebug() << "ScriptInvokeBuilder: Component has" << componentScripts->nodeCount() << "nodes and" 
-                     << componentScripts->edgeCount() << "edges";
+            // qDebug() << "ScriptInvokeBuilder: Component has" << componentScripts->nodeCount() << "nodes and" 
+            //          << componentScripts->edgeCount() << "edges";
             if (!componentScripts->isCompiled()) {
                 ScriptCompiler compiler;
                 QString compiledJson = compiler.compile(componentScripts, elementModel);
                 if (compiledJson.isEmpty()) {
-                    qDebug() << "ScriptInvokeBuilder: Failed to compile component scripts for" << componentId;
+                    qWarning() << "ScriptInvokeBuilder: Failed to compile component scripts for" << componentId;
                 } else {
                     componentScripts->setCompiledScript(compiledJson);
                     componentScripts->setIsCompiled(true);
@@ -130,7 +251,7 @@ void ScriptInvokeBuilder::buildInvokesRecursive(Node* node, Scripts* scripts,
                 }
                 
                 if (onEditorLoadNode) {
-                    qDebug() << "ScriptInvokeBuilder: Building invokes for component's onEditorLoad event";
+                    // qDebug() << "ScriptInvokeBuilder: Building invokes for component's onEditorLoad event";
                     
                     // Get outgoing edges from the onEditorLoad event
                     QList<Edge*> componentEdges = getOutgoingFlowEdges(onEditorLoadNode, componentScripts);
@@ -143,11 +264,11 @@ void ScriptInvokeBuilder::buildInvokesRecursive(Node* node, Scripts* scripts,
                         }
                     }
                 } else {
-                    qDebug() << "ScriptInvokeBuilder: No onEditorLoad event found in component scripts";
+                    // qDebug() << "ScriptInvokeBuilder: No onEditorLoad event found in component scripts";
                 }
             }
         } else {
-            qDebug() << "ScriptInvokeBuilder: Component" << componentId << "not found or has no scripts";
+            // qDebug() << "ScriptInvokeBuilder: Component" << componentId << "not found or has no scripts";
         }
         
         // Continue with the next nodes after ComponentOnEditorLoadEvents
@@ -167,33 +288,31 @@ void ScriptInvokeBuilder::buildInvokesRecursive(Node* node, Scripts* scripts,
     invoke.invokeId = generateInvokeId(context);
     invoke.nodeId = node->getId();
     invoke.functionName = getFunctionNameForNode(node);
-    invoke.params = createNodeParameters(node, scripts, context);
     invoke.isAsync = node->isAsync();
     
-    // Store this invoke first before processing next nodes
-    context.invokes[invoke.invokeId] = invoke;
-    
-    // Create outputs for nodes that have output ports (source ports)
-    // This is especially important for async nodes like AI Prompt
-    if (node->isAsync() || node->nodeTitle().contains("AI", Qt::CaseInsensitive)) {
-        // Check if this node has any outgoing data edges (not flow edges)
-        QList<Edge*> allOutgoingEdges = scripts->getOutgoingEdges(node->getId());
-        for (Edge* edge : allOutgoingEdges) {
-            if (edge->sourcePortType() != "Flow") {
-                // This node has a data output that's connected to another node
-                // Create an output that will be populated by the async result
-                QString outputId = generateOutputId(context);
-                QJsonObject output;
-                output["type"] = "invokeResult";
-                output["sourceInvoke"] = invoke.invokeId;
-                output["sourceNodeId"] = node->getId();
-                output["sourcePortIndex"] = edge->sourcePortIndex();
-                output["sourcePortType"] = edge->sourcePortType();
-                context.outputs[outputId] = output;
-                
-            }
+    // Pre-create outputs for nodes that have output ports BEFORE creating parameters
+    // This ensures downstream nodes can reference these outputs
+    QList<Edge*> allOutgoingEdges = scripts->getOutgoingEdges(node->getId());
+    for (Edge* edge : allOutgoingEdges) {
+        if (edge->sourcePortType() != "Flow") {
+            // This node has a data output that's connected to another node
+            // Create an output that will be populated by the result
+            QString outputId = generateOutputId(context);
+            QJsonObject output;
+            output["type"] = "invokeResult";
+            output["sourceInvoke"] = invoke.invokeId;
+            output["sourceNodeId"] = node->getId();
+            output["sourcePortIndex"] = edge->sourcePortIndex();
+            output["sourcePortType"] = edge->sourcePortType();
+            context.outputs[outputId] = output;
         }
     }
+    
+    // NOW create parameters after outputs exist
+    invoke.params = createNodeParameters(node, scripts, context);
+    
+    // Store this invoke
+    context.invokes[invoke.invokeId] = invoke;
     
     // Create output for "Set Variable Value" nodes
     QString nodeType = node->nodeTitle().toLower().remove(' ');
@@ -264,6 +383,46 @@ void ScriptInvokeBuilder::buildInvokesRecursiveWithId(Node* node, Scripts* scrip
         return;
     }
     
+    // Skip param nodes - they only provide data, don't execute
+    if (node->nodeType() == "Param") {
+        // Still need to store node reference for data access
+        NodeReference nodeRef;
+        nodeRef.node = node;
+        nodeRef.scripts = scripts;
+        context.nodeReferences[node->getId()] = nodeRef;
+        
+        // Pre-create outputs for param nodes so their data is available
+        // First, we need to build parameters for this param node
+        QJsonArray paramNodeParams = createNodeParameters(node, scripts, context);
+        
+        // Store the param data in the context
+        QString paramInvokeId = QString("param_%1").arg(context.invokeCounter++);
+        InvokeData paramInvoke;
+        paramInvoke.invokeId = paramInvokeId;
+        paramInvoke.nodeId = node->getId();
+        paramInvoke.functionName = getFunctionNameForNode(node);
+        paramInvoke.params = paramNodeParams;
+        paramInvoke.isAsync = false;
+        paramInvoke.isParam = true;  // Mark as param
+        context.invokes[paramInvokeId] = paramInvoke;
+        
+        // Create outputs for all data ports
+        QList<Edge*> allOutgoingEdges = scripts->getOutgoingEdges(node->getId());
+        for (Edge* edge : allOutgoingEdges) {
+            if (edge->sourcePortType() != "Flow") {
+                QString outputId = generateOutputId(context);
+                QJsonObject output;
+                output["type"] = "paramResult";
+                output["sourceInvoke"] = paramInvokeId;
+                output["sourceNodeId"] = node->getId();
+                output["sourcePortIndex"] = edge->sourcePortIndex();
+                output["sourcePortType"] = edge->sourcePortType();
+                context.outputs[outputId] = output;
+            }
+        }
+        return;
+    }
+    
     // Store node reference for function generation
     NodeReference nodeRef;
     nodeRef.node = node;
@@ -281,33 +440,31 @@ void ScriptInvokeBuilder::buildInvokesRecursiveWithId(Node* node, Scripts* scrip
     invoke.invokeId = preAssignedId;
     invoke.nodeId = node->getId();
     invoke.functionName = getFunctionNameForNode(node);
-    invoke.params = createNodeParameters(node, scripts, context);
     invoke.isAsync = node->isAsync();
     
-    // Store this invoke first before processing next nodes
-    context.invokes[invoke.invokeId] = invoke;
-    
-    // Create outputs for nodes that have output ports (source ports)
-    // This is especially important for async nodes like AI Prompt
-    if (node->isAsync() || node->nodeTitle().contains("AI", Qt::CaseInsensitive)) {
-        // Check if this node has any outgoing data edges (not flow edges)
-        QList<Edge*> allOutgoingEdges = scripts->getOutgoingEdges(node->getId());
-        for (Edge* edge : allOutgoingEdges) {
-            if (edge->sourcePortType() != "Flow") {
-                // This node has a data output that's connected to another node
-                // Create an output that will be populated by the async result
-                QString outputId = generateOutputId(context);
-                QJsonObject output;
-                output["type"] = "invokeResult";
-                output["sourceInvoke"] = invoke.invokeId;
-                output["sourceNodeId"] = node->getId();
-                output["sourcePortIndex"] = edge->sourcePortIndex();
-                output["sourcePortType"] = edge->sourcePortType();
-                context.outputs[outputId] = output;
-                
-            }
+    // Pre-create outputs for nodes that have output ports BEFORE creating parameters
+    // This ensures downstream nodes can reference these outputs
+    QList<Edge*> allOutgoingEdges = scripts->getOutgoingEdges(node->getId());
+    for (Edge* edge : allOutgoingEdges) {
+        if (edge->sourcePortType() != "Flow") {
+            // This node has a data output that's connected to another node
+            // Create an output that will be populated by the result
+            QString outputId = generateOutputId(context);
+            QJsonObject output;
+            output["type"] = "invokeResult";
+            output["sourceInvoke"] = invoke.invokeId;
+            output["sourceNodeId"] = node->getId();
+            output["sourcePortIndex"] = edge->sourcePortIndex();
+            output["sourcePortType"] = edge->sourcePortType();
+            context.outputs[outputId] = output;
         }
     }
+    
+    // NOW create parameters after outputs exist
+    invoke.params = createNodeParameters(node, scripts, context);
+    
+    // Store this invoke
+    context.invokes[invoke.invokeId] = invoke;
     
     // Find next nodes to invoke
     QList<Edge*> outgoingEdges = getOutgoingFlowEdges(node, scripts);
@@ -356,30 +513,72 @@ QJsonArray ScriptInvokeBuilder::createNodeParameters(Node* node, Scripts* script
 {
     QJsonArray params;
     
-    // Check if node has a direct value
-    QString nodeValue = node->value();
+    // qDebug() << "ScriptInvokeBuilder::createNodeParameters - Node:" << node->nodeTitle() << "isDynamic:" << node->isDynamicNode() << "value:" << node->value();
     
-    // Look for incoming data edges
-    QList<Edge*> dataEdges = getIncomingDataEdges(node, scripts);
-    
-    if (!nodeValue.isEmpty()) {
-        // Node has its own value - create a literal output
-        QString outputId = generateOutputId(context);
-        QJsonObject output;
-        output["type"] = "literal";
-        output["value"] = nodeValue;
-        context.outputs[outputId] = output;
+    // Check if this is a dynamic node with multiple values
+    if (node->isDynamicNode()) {
+        // qDebug() << "ScriptInvokeBuilder::createNodeParameters - Processing dynamic node:" << node->nodeTitle();
+        // For dynamic nodes, create a parameter object with all port values
+        QJsonObject paramObj;
         
-        // Reference this output in params
-        QJsonObject param;
-        param["output"] = outputId;
-        params.append(param);
+        // Get all row configurations to find all value ports
+        QVariantList rowConfigs = node->rowConfigurations();
+        // qDebug() << "  Node has" << rowConfigs.size() << "row configurations";
         
-    } else if (!dataEdges.isEmpty()) {
+        // For dynamic nodes, create an array of parameters in the "new format"
+        // This will make params = [{value: "998"}, {value: "454"}] in JavaScript
+        for (const QVariant& rowVar : rowConfigs) {
+            QVariantMap row = rowVar.toMap();
+            // qDebug() << "    Row:" << row;
+            if (row["hasTarget"].toBool() && row["targetType"].toString() != "Flow") {
+                int portIndex = row["targetPortIndex"].toInt();
+                QString portValue = node->getPortValue(portIndex);
+                // qDebug() << "    Port" << portIndex << "value:" << portValue;
+                
+                // If no specific value, use default
+                if (portValue.isEmpty()) {
+                    portValue = "0";  // Default for number inputs
+                    // qDebug() << "    Using default value:" << portValue;
+                } else {
+                    // qDebug() << "    Using configured value:" << portValue;
+                }
+                
+                // Create a separate parameter for each port value
+                QJsonObject param;
+                param["value"] = portValue;
+                params.append(param);
+            }
+        }
+        
+    } else {
+        // Original logic for non-dynamic nodes
+        // Check if node has a direct value
+        QString nodeValue = node->value();
+        
+        // Look for incoming data edges
+        QList<Edge*> dataEdges = getIncomingDataEdges(node, scripts);
+        
+        if (!nodeValue.isEmpty()) {
+            // Node has its own value - create a literal output
+            QString outputId = generateOutputId(context);
+            QJsonObject output;
+            output["type"] = "literal";
+            output["value"] = nodeValue;
+            context.outputs[outputId] = output;
+            
+            // Reference this output in params
+            QJsonObject param;
+            param["output"] = outputId;
+            params.append(param);
+            
+        } else if (!dataEdges.isEmpty()) {
         // Node gets data from connected edges
+        // qDebug() << "ScriptInvokeBuilder::createNodeParameters - Node" << node->nodeTitle() << "has" << dataEdges.size() << "incoming data edges";
         for (Edge* edge : dataEdges) {
             Node* sourceNode = scripts->getNode(edge->sourceNodeId());
             if (sourceNode) {
+                // qDebug() << "  Processing edge from" << sourceNode->nodeTitle() << "port" << edge->sourcePortIndex() 
+                //          << "to" << node->nodeTitle() << "port" << edge->targetPortIndex();
                 // Check if the source node is an event node
                 if (sourceNode->nodeType() == "Event") {
                     // For event nodes, create an output that references event data
@@ -398,12 +597,16 @@ QJsonArray ScriptInvokeBuilder::createNodeParameters(Node* node, Scripts* script
                     // For regular nodes, check if we already have an output for this source
                     // This happens for async nodes where we pre-created outputs
                     QString existingOutputId;
+                    // qDebug() << "    Looking for existing output for sourceNode:" << sourceNode->getId() << "port:" << edge->sourcePortIndex();
                     for (auto it = context.outputs.begin(); it != context.outputs.end(); ++it) {
                         QJsonObject output = it.value();
+                        // qDebug() << "      Checking output" << it.key() << "sourceNode:" << output["sourceNodeId"].toString() 
+                        //          << "port:" << output["sourcePortIndex"].toInt() << "type:" << output["type"].toString();
                         if (output["sourceNodeId"].toString() == sourceNode->getId() &&
                             output["sourcePortIndex"].toInt() == edge->sourcePortIndex() &&
                             output["type"].toString() == "invokeResult") {
                             existingOutputId = it.key();
+                            // qDebug() << "      Found matching output:" << existingOutputId;
                             break;
                         }
                     }
@@ -414,28 +617,78 @@ QJsonArray ScriptInvokeBuilder::createNodeParameters(Node* node, Scripts* script
                         param["output"] = existingOutputId;
                         params.append(param);
                     } else {
-                        // For non-async nodes, use the static value
-                        QString sourceValue = sourceNode->value();
-                        
-                        if (!sourceValue.isEmpty()) {
-                            // Create output for source node's value
+                        // Check if this is a Param node that needs to be evaluated
+                        if (sourceNode->nodeType() == "Param") {
+                            // Create an invoke for this Param node if not already created
+                            QString paramInvokeId;
+                            for (auto it = context.invokes.begin(); it != context.invokes.end(); ++it) {
+                                if (it.value().nodeId == sourceNode->getId()) {
+                                    paramInvokeId = it.key();
+                                    break;
+                                }
+                            }
+                            
+                            if (paramInvokeId.isEmpty()) {
+                                // Create a new invoke for this Param node
+                                paramInvokeId = generateInvokeId(context);
+                                
+                                // Store node reference
+                                NodeReference nodeRef;
+                                nodeRef.node = sourceNode;
+                                nodeRef.scripts = scripts;
+                                context.nodeReferences[sourceNode->getId()] = nodeRef;
+                                
+                                // Create invoke
+                                InvokeData invoke;
+                                invoke.invokeId = paramInvokeId;
+                                invoke.nodeId = sourceNode->getId();
+                                invoke.functionName = getFunctionNameForNode(sourceNode);
+                                invoke.params = createNodeParameters(sourceNode, scripts, context);
+                                invoke.isAsync = false;
+                                invoke.isParam = true;  // Mark as param since this is a Param node
+                                
+                                context.invokes[paramInvokeId] = invoke;
+                            }
+                            
+                            // Create an output for this Param node's result
                             QString outputId = generateOutputId(context);
                             QJsonObject output;
-                            output["type"] = "literal";
-                            output["value"] = sourceValue;
+                            output["type"] = "paramResult";  // Use paramResult to trigger param evaluation
+                            output["sourceInvoke"] = paramInvokeId;
                             output["sourceNodeId"] = sourceNode->getId();
+                            output["sourcePortIndex"] = edge->sourcePortIndex();
+                            output["sourcePortType"] = edge->sourcePortType();
                             context.outputs[outputId] = output;
                             
                             // Reference this output in params
                             QJsonObject param;
                             param["output"] = outputId;
                             params.append(param);
+                        } else {
+                            // For non-async, non-param nodes, use the static value
+                            QString sourceValue = sourceNode->value();
+                            
+                            if (!sourceValue.isEmpty()) {
+                                // Create output for source node's value
+                                QString outputId = generateOutputId(context);
+                                QJsonObject output;
+                                output["type"] = "literal";
+                                output["value"] = sourceValue;
+                                output["sourceNodeId"] = sourceNode->getId();
+                                context.outputs[outputId] = output;
+                                
+                                // Reference this output in params
+                                QJsonObject param;
+                                param["output"] = outputId;
+                                params.append(param);
+                            }
                         }
                     }
                 }
             }
         }
     }
+    }  // End of else block for non-dynamic nodes
     
     // If no params were added, add an empty value
     if (params.isEmpty()) {
@@ -511,6 +764,46 @@ void ScriptInvokeBuilder::buildComponentInvokesRecursive(Node* node, Scripts* sc
         return;
     }
     
+    // Skip param nodes - they only provide data, don't execute
+    if (node->nodeType() == "Param") {
+        // Still need to store node reference for data access
+        NodeReference nodeRef;
+        nodeRef.node = node;
+        nodeRef.scripts = scripts;
+        context.nodeReferences[node->getId()] = nodeRef;
+        
+        // Pre-create outputs for param nodes so their data is available
+        // First, we need to build parameters for this param node
+        QJsonArray paramNodeParams = createNodeParameters(node, scripts, context);
+        
+        // Store the param data in the context
+        QString paramInvokeId = QString("param_%1").arg(context.invokeCounter++);
+        InvokeData paramInvoke;
+        paramInvoke.invokeId = paramInvokeId;
+        paramInvoke.nodeId = node->getId();
+        paramInvoke.functionName = getFunctionNameForNode(node);
+        paramInvoke.params = paramNodeParams;
+        paramInvoke.isAsync = false;
+        paramInvoke.isParam = true;  // Mark as param
+        context.invokes[paramInvokeId] = paramInvoke;
+        
+        // Create outputs for all data ports
+        QList<Edge*> allOutgoingEdges = scripts->getOutgoingEdges(node->getId());
+        for (Edge* edge : allOutgoingEdges) {
+            if (edge->sourcePortType() != "Flow") {
+                QString outputId = generateOutputId(context);
+                QJsonObject output;
+                output["type"] = "paramResult";
+                output["sourceInvoke"] = paramInvokeId;
+                output["sourceNodeId"] = node->getId();
+                output["sourcePortIndex"] = edge->sourcePortIndex();
+                output["sourcePortType"] = edge->sourcePortType();
+                context.outputs[outputId] = output;
+            }
+        }
+        return;
+    }
+    
     // Store node reference for function generation
     NodeReference nodeRef;
     nodeRef.node = node;
@@ -522,8 +815,26 @@ void ScriptInvokeBuilder::buildComponentInvokesRecursive(Node* node, Scripts* sc
     invoke.invokeId = generateInvokeId(context);
     invoke.nodeId = node->getId();
     invoke.functionName = getFunctionNameForNode(node);
-    invoke.params = createNodeParameters(node, scripts, context);
     invoke.isAsync = node->isAsync();
+    
+    // Pre-create outputs for nodes that have output ports BEFORE creating parameters
+    QList<Edge*> allOutgoingEdges = scripts->getOutgoingEdges(node->getId());
+    for (Edge* edge : allOutgoingEdges) {
+        if (edge->sourcePortType() != "Flow") {
+            // This node has a data output that's connected to another node
+            QString outputId = generateOutputId(context);
+            QJsonObject output;
+            output["type"] = "invokeResult";
+            output["sourceInvoke"] = invoke.invokeId;
+            output["sourceNodeId"] = node->getId();
+            output["sourcePortIndex"] = edge->sourcePortIndex();
+            output["sourcePortType"] = edge->sourcePortType();
+            context.outputs[outputId] = output;
+        }
+    }
+    
+    // NOW create parameters after outputs exist
+    invoke.params = createNodeParameters(node, scripts, context);
     
     // Find next nodes to invoke
     QList<Edge*> outgoingEdges = getOutgoingFlowEdges(node, scripts);
