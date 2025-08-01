@@ -282,6 +282,39 @@ Rectangle {
             ToolTip.text: "Shapes"
         }
         
+        ToolButton {
+            id: penButton
+            visible: !isScriptMode
+            Layout.fillHeight: true
+            Layout.preferredWidth: height
+            checkable: true
+            checked: currentMode === CanvasController.ShapePen
+            
+            contentItem: Text {
+                text: "P"
+                color: parent.checked ? "#ffffff" : "#aaaaaa"
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                font.pixelSize: 16
+            }
+            
+            background: Rectangle {
+                color: parent.checked ? "#0066cc" : "transparent"
+                radius: 4
+                antialiasing: true
+            }
+            
+            onClicked: {
+                if (!isScriptMode) {
+                    currentMode = CanvasController.ShapePen
+                    root.modeChanged(CanvasController.ShapePen)
+                }
+            }
+            
+            ToolTip.visible: hovered
+            ToolTip.text: "Pen Mode"
+        }
+        
         
         ToolButton {
             id: variableButton
@@ -454,8 +487,7 @@ Rectangle {
             
             options: [
                 { text: "Square", value: "square" },
-                { text: "Triangle", value: "triangle" },
-                { text: "Line", value: "line" }
+                { text: "Triangle", value: "triangle" }
             ]
             
             onOptionSelected: function(value) {
@@ -472,9 +504,6 @@ Rectangle {
                     } else if (value === "triangle") {
                         currentMode = CanvasController.ShapeTriangle
                         root.modeChanged(CanvasController.ShapeTriangle)
-                    } else if (value === "line") {
-                        currentMode = CanvasController.ShapeLine
-                        root.modeChanged(CanvasController.ShapeLine)
                     }
                 }
             }

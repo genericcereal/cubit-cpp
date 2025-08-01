@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include "Element.h"
 #include "HitTestService.h"
+#include "ShapeControlsController.h"
 
 class ElementModel;
 class SelectionManager;
@@ -13,7 +14,7 @@ class HitTestService;
 class JsonImporter;
 class CommandHistory;
 struct IModeHandler;
-class LineModeHandler;
+class PenModeHandler;
 class Frame;
 class CanvasElement;
 class DesignElement;
@@ -29,6 +30,7 @@ class CanvasController : public QObject {
     Q_PROPERTY(qreal savedContentY READ savedContentY WRITE setSavedContentY NOTIFY savedContentYChanged)
     Q_PROPERTY(qreal savedZoom READ savedZoom WRITE setSavedZoom NOTIFY savedZoomChanged)
     Q_PROPERTY(HitTestService* hitTestService READ hitTestService CONSTANT)
+    Q_PROPERTY(QObject* shapeControlsController READ shapeControlsController WRITE setShapeControlsController NOTIFY shapeControlsControllerChanged)
     
 public:
     // Enum for canvas interaction modes
@@ -40,7 +42,7 @@ public:
         Shape,  // Generic shape mode (not used directly)
         ShapeSquare,
         ShapeTriangle,
-        ShapeLine
+        ShapePen
     };
     Q_ENUM(Mode)
     
@@ -90,6 +92,10 @@ public:
     void setSavedContentX(qreal x);
     void setSavedContentY(qreal y);
     void setSavedZoom(qreal zoom);
+    
+    // Shape controls support
+    QObject* shapeControlsController() const { return m_shapeControlsController; }
+    void setShapeControlsController(QObject* controller);
     
     
 public slots:
@@ -165,6 +171,7 @@ signals:
     void savedContentXChanged();
     void savedContentYChanged();
     void savedZoomChanged();
+    void shapeControlsControllerChanged();
     
 protected:
     ElementModel& m_elementModel;
@@ -188,6 +195,8 @@ private:
     qreal m_savedContentX = 0.0;
     qreal m_savedContentY = 0.0;
     qreal m_savedZoom = 0.0;  // Invalid zoom triggers centerViewAtOrigin() in main.qml
+    
+    ShapeControlsController* m_shapeControlsController = nullptr;
     
     
     // Initialize subcontrollers

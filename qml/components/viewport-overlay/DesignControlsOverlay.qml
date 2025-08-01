@@ -65,8 +65,8 @@ Item {
             if (controller && controller.isShapeControlDragging) {
                 return false
             }
-            // Hide during line creation mode
-            if (controller && controller.mode === CanvasController.ShapeLine) {
+            // Hide during pen creation mode
+            if (controller && controller.mode === CanvasController.ShapePen) {
                 return false
             }
             // Also hide if ShapeControls are currently dragging
@@ -599,8 +599,8 @@ Item {
                 return false
             }
             
-            // Show during line creation mode (ShapeLine) even without selection
-            if (root.controller.mode === CanvasController.ShapeLine) {
+            // Show during pen creation mode (ShapePen) even without selection
+            if (root.controller.mode === CanvasController.ShapePen) {
                 // During line creation, we need at least one line shape being created
                 if (selectedElements.length === 1) {
                     var selectedElement = selectedElements[0]

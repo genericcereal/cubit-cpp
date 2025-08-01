@@ -316,8 +316,8 @@ ScrollView {
             shapeProps.push({
                 name: "Shape Type",
                 type: "enum",
-                value: ["Square", "Triangle", "Line"][selectedElement.getProperty("shapeType")],
-                enumValues: ["Square", "Triangle", "Line"],
+                value: ["Square", "Triangle", "Pen"][selectedElement.getProperty("shapeType")],
+                enumValues: ["Square", "Triangle", "Pen"],
                 visible: true
             })
         }

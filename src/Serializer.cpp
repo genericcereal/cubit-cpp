@@ -532,8 +532,8 @@ Element* Serializer::deserializeElement(const QJsonObject& elementData, ElementM
                         shape->setShapeType(Shape::Square);
                     } else if (shapeTypeStr == "Triangle") {
                         shape->setShapeType(Shape::Triangle);
-                    } else if (shapeTypeStr == "Line") {
-                        shape->setShapeType(Shape::Line);
+                    } else if (shapeTypeStr == "Line" || shapeTypeStr == "Pen") {
+                        shape->setShapeType(Shape::Pen);
                     }
                 }
             }

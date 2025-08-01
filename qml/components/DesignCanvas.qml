@@ -22,6 +22,15 @@ BaseCanvas {
     property var shapeControlsController: null
     
     onShapeControlsControllerChanged: {
+        if (root.controller && root.shapeControlsController) {
+            root.controller.shapeControlsController = root.shapeControlsController
+        }
+    }
+    
+    onControllerChanged: {
+        if (root.controller && root.shapeControlsController) {
+            root.controller.shapeControlsController = root.shapeControlsController
+        }
     }
     
     // Expose the element layer for viewport overlay
@@ -179,8 +188,8 @@ BaseCanvas {
             // In select mode, handle click for selection
             root.controller.handleMousePress(pt.x, pt.y)
             root.controller.handleMouseRelease(pt.x, pt.y)
-        } else if (root.controller.mode === CanvasController.ShapeLine) {
-            // Line creation mode - handle clicks to add joints
+        } else if (root.controller.mode === CanvasController.ShapePen) {
+            // Pen creation mode - handle clicks to add joints
             root.controller.handleMousePress(pt.x, pt.y)
         }
         // Other creation modes don't create on click - require drag
@@ -191,8 +200,8 @@ BaseCanvas {
         target: root.controller
         enabled: root.controller !== null
         function onModeChanged() {
-            if (root.controller.mode !== CanvasController.ShapeLine && root.shapeControlsController) {
-                // Clear the preview when leaving line mode
+            if (root.controller.mode !== CanvasController.ShapePen && root.shapeControlsController) {
+                // Clear the preview when leaving pen mode
                 root.shapeControlsController.showLinePreview = false
             }
         }
@@ -206,8 +215,8 @@ BaseCanvas {
         }
         
         
-        // Update shape controls preview during line creation
-        if (root.controller && root.controller.mode === CanvasController.ShapeLine && root.shapeControlsController) {
+        // Update shape controls preview during pen creation
+        if (root.controller && root.controller.mode === CanvasController.ShapePen && root.shapeControlsController) {
             root.shapeControlsController.linePreviewPoint = pt
             root.shapeControlsController.showLinePreview = true
         }

@@ -39,6 +39,10 @@ void Shape::setJoints(const QList<Joint>& joints)
 {
     m_joints = joints;
     emit jointsChanged();
+    // Notify property system that joints have changed
+    if (m_properties) {
+        m_properties->set("joints", this->joints());
+    }
 }
 
 void Shape::setJoints(const QVariantList& joints)
@@ -62,6 +66,54 @@ void Shape::setJointPositions(const QList<QPointF>& positions)
         newJoints.append(joint);
     }
     setJoints(newJoints);
+}
+
+QVariantList Shape::edges() const
+{
+    QVariantList result;
+    for (const Edge& edge : m_edges) {
+        result.append(edge.toVariantMap());
+    }
+    return result;
+}
+
+void Shape::setEdges(const QList<Edge>& edges)
+{
+    m_edges = edges;
+    emit edgesChanged();
+    // Notify property system that edges have changed
+    if (m_properties) {
+        m_properties->set("edges", this->edges());
+    }
+}
+
+void Shape::setEdges(const QVariantList& edges)
+{
+    QList<Edge> newEdges;
+    for (const QVariant& edge : edges) {
+        if (edge.canConvert<QVariantMap>()) {
+            QVariantMap edgeMap = edge.toMap();
+            newEdges.append(Edge::fromVariantMap(edgeMap));
+        }
+    }
+    setEdges(newEdges);
+}
+
+void Shape::addEdge(int fromIndex, int toIndex)
+{
+    if (fromIndex >= 0 && fromIndex < m_joints.size() && 
+        toIndex >= 0 && toIndex < m_joints.size() && 
+        fromIndex != toIndex) {
+        Edge edge;
+        edge.fromIndex = fromIndex;
+        edge.toIndex = toIndex;
+        m_edges.append(edge);
+        emit edgesChanged();
+        // Notify property system that edges have changed
+        if (m_properties) {
+            m_properties->set("edges", this->edges());
+        }
+    }
 }
 
 void Shape::setJointMirroring(int jointIndex, MirroringType mirroring)
@@ -162,8 +214,8 @@ void Shape::updateJointsForShape()
         case Triangle:
             updateTriangleJoints();
             break;
-        case Line:
-            updateLineJoints();
+        case Pen:
+            updatePenJoints();
             break;
     }
 }
@@ -210,7 +262,7 @@ void Shape::updateTriangleJoints()
     setJoints(newJoints);
 }
 
-void Shape::updateLineJoints()
+void Shape::updatePenJoints()
 {
     // Check if we have square corner joints that need to be replaced with line joints
     bool hasSquareCornerJoints = (m_joints.size() == 4 &&
@@ -219,11 +271,11 @@ void Shape::updateLineJoints()
                                   m_joints[2].position == QPointF(1.0, 1.0) &&
                                   m_joints[3].position == QPointF(0.0, 1.0));
     
-    // For lines, set default joints if we don't have any joints yet OR if we have square corner joints
-    // This preserves custom joints created by LineModeHandler or loaded from file, but replaces square corner joints
+    // For pens, set default joints if we don't have any joints yet OR if we have square corner joints
+    // This preserves custom joints created by PenModeHandler or loaded from file, but replaces square corner joints
     if (m_joints.isEmpty()) {
         QList<Joint> newJoints;
-        // Two endpoints of the line (diagonal from top-left to bottom-right) in normalized coordinates
+        // Two endpoints of the pen (diagonal from top-left to bottom-right) in normalized coordinates
         Joint start;
         start.position = QPointF(0.0, 0.0);
         newJoints.append(start);
@@ -235,7 +287,7 @@ void Shape::updateLineJoints()
         setJoints(newJoints);
     } else if (hasSquareCornerJoints) {
         QList<Joint> newJoints;
-        // Two endpoints of the line (diagonal from top-left to bottom-right) in normalized coordinates
+        // Two endpoints of the pen (diagonal from top-left to bottom-right) in normalized coordinates
         Joint start;
         start.position = QPointF(0.0, 0.0);
         newJoints.append(start);
@@ -260,8 +312,8 @@ void Shape::updateName()
         case Triangle:
             shapeName = "Triangle";
             break;
-        case Line:
-            shapeName = "Line";
+        case Pen:
+            shapeName = "Pen";
             break;
     }
     
@@ -276,6 +328,7 @@ void Shape::registerProperties() {
     // Register Shape-specific properties
     m_properties->registerProperty("shapeType", static_cast<int>(Square));
     m_properties->registerProperty("joints", QVariantList());
+    m_properties->registerProperty("edges", QVariantList());
     m_properties->registerProperty("edgeWidth", 2.0);
     m_properties->registerProperty("edgeColor", QColor(0, 0, 0, 255)); // Black
     m_properties->registerProperty("fillColor", QColor(0, 120, 255, 255)); // Blue
@@ -285,6 +338,7 @@ QVariant Shape::getProperty(const QString& name) const {
     // Handle Shape-specific properties
     if (name == "shapeType") return static_cast<int>(shapeType());
     if (name == "joints") return joints();
+    if (name == "edges") return edges();
     if (name == "edgeWidth") return edgeWidth();
     if (name == "edgeColor") return edgeColor();
     if (name == "fillColor") return fillColor();
@@ -301,6 +355,10 @@ void Shape::setProperty(const QString& name, const QVariant& value) {
     }
     if (name == "joints") {
         setJoints(value.toList());
+        return;
+    }
+    if (name == "edges") {
+        setEdges(value.toList());
         return;
     }
     if (name == "edgeWidth") {
@@ -326,6 +384,7 @@ QList<PropertyDefinition> Shape::staticPropertyDefinitions() {
     // Shape properties
     props.append(PropertyDefinition("shapeType", QMetaType::Int, static_cast<int>(Shape::Square), PropertyDefinition::Appearance));
     props.append(PropertyDefinition("joints", QMetaType::QVariantList, QVariantList(), PropertyDefinition::Advanced, false)); // Not editable
+    props.append(PropertyDefinition("edges", QMetaType::QVariantList, QVariantList(), PropertyDefinition::Advanced, false)); // Not editable
     
     // Appearance properties
     props.append(PropertyDefinition("edgeWidth", QMetaType::Double, 2.0, PropertyDefinition::Appearance));

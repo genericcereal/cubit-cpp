@@ -209,3 +209,11 @@ void ShapeControlsController::setShowLinePreview(bool show)
         emit showLinePreviewChanged();
     }
 }
+
+void ShapeControlsController::setHoveredJointIndex(int index)
+{
+    if (m_hoveredJointIndex != index) {
+        m_hoveredJointIndex = index;
+        emit hoveredJointIndexChanged();
+    }
+}
