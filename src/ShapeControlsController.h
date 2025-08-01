@@ -19,6 +19,7 @@ class ShapeControlsController : public QObject
     Q_PROPERTY(QPointF dragStartPos READ dragStartPos WRITE setDragStartPos NOTIFY dragStartPosChanged)
     Q_PROPERTY(QPointF linePreviewPoint READ linePreviewPoint WRITE setLinePreviewPoint NOTIFY linePreviewPointChanged)
     Q_PROPERTY(bool showLinePreview READ showLinePreview WRITE setShowLinePreview NOTIFY showLinePreviewChanged)
+    Q_PROPERTY(int hoveredJointIndex READ hoveredJointIndex WRITE setHoveredJointIndex NOTIFY hoveredJointIndexChanged)
 
 public:
     explicit ShapeControlsController(QObject *parent = nullptr);
@@ -31,6 +32,7 @@ public:
     QPointF dragStartPos() const { return m_dragStartPos; }
     QPointF linePreviewPoint() const { return m_linePreviewPoint; }
     bool showLinePreview() const { return m_showLinePreview; }
+    int hoveredJointIndex() const { return m_hoveredJointIndex; }
 
     // Property setters
     void setSelectedShape(Shape* shape);
@@ -39,6 +41,7 @@ public:
     void setDragStartPos(const QPointF& pos);
     void setLinePreviewPoint(const QPointF& point);
     void setShowLinePreview(bool show);
+    Q_INVOKABLE void setHoveredJointIndex(int index);
 
     // Joint manipulation
     Q_INVOKABLE void startJointDrag(int jointIndex, const QPointF& startPos);
@@ -57,6 +60,7 @@ signals:
     void dragStartPosChanged();
     void linePreviewPointChanged();
     void showLinePreviewChanged();
+    void hoveredJointIndexChanged();
 
 private:
     Shape* m_selectedShape = nullptr;
@@ -65,6 +69,7 @@ private:
     QPointF m_dragStartPos;
     QPointF m_linePreviewPoint;
     bool m_showLinePreview = false;
+    int m_hoveredJointIndex = -1;
     
     // Store original state for undo
     QList<QPointF> m_originalJoints;

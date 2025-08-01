@@ -93,7 +93,7 @@ SOURCES += \
     src/ScriptSerializer.cpp \
     src/SelectModeHandler.cpp \
     src/CreationModeHandler.cpp \
-    src/LineModeHandler.cpp \
+    src/PenModeHandler.cpp \
     src/ElementFilterProxy.cpp \
     src/FlexLayoutEngine.cpp \
     src/PrototypeController.cpp \
@@ -188,7 +188,7 @@ HEADERS += \
     src/IModeHandler.h \
     src/SelectModeHandler.h \
     src/CreationModeHandler.h \
-    src/LineModeHandler.h \
+    src/PenModeHandler.h \
     src/ElementFilterProxy.h \
     src/PrototypeController.h \
     src/DesignControlsController.h \

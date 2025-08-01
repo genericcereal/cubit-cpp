@@ -13,7 +13,8 @@ class Shape : public DesignElement
 {
     Q_OBJECT
     Q_PROPERTY(ShapeType shapeType READ shapeType WRITE setShapeType NOTIFY shapeTypeChanged)
-    Q_PROPERTY(QVariantList joints READ joints NOTIFY jointsChanged)
+    Q_PROPERTY(QVariantList joints READ joints WRITE setJoints NOTIFY jointsChanged)
+    Q_PROPERTY(QVariantList edges READ edges WRITE setEdges NOTIFY edgesChanged)
     Q_PROPERTY(qreal edgeWidth READ edgeWidth WRITE setEdgeWidth NOTIFY edgeWidthChanged)
     Q_PROPERTY(QColor edgeColor READ edgeColor WRITE setEdgeColor NOTIFY edgeColorChanged)
     Q_PROPERTY(QColor fillColor READ fillColor WRITE setFillColor NOTIFY fillColorChanged)
@@ -22,7 +23,7 @@ public:
     enum ShapeType {
         Square,
         Triangle,
-        Line
+        Pen
     };
     Q_ENUM(ShapeType)
 
@@ -37,6 +38,7 @@ public:
         QPointF position;
         MirroringType mirroring = NoMirroring;
         qreal cornerRadius = 0.0;
+        bool isPathStart = false; // Indicates this joint starts a new path
 
         // Convert to/from QVariantMap for QML
         QVariantMap toVariantMap() const {
@@ -45,6 +47,7 @@ public:
             map["y"] = position.y();
             map["mirroring"] = static_cast<int>(mirroring);
             map["cornerRadius"] = cornerRadius;
+            map["isPathStart"] = isPathStart;
             return map;
         }
 
@@ -54,7 +57,28 @@ public:
                                    map.value("y", 0.0).toDouble());
             joint.mirroring = static_cast<MirroringType>(map.value("mirroring", NoMirroring).toInt());
             joint.cornerRadius = map.value("cornerRadius", 0.0).toDouble();
+            joint.isPathStart = map.value("isPathStart", false).toBool();
             return joint;
+        }
+    };
+
+    struct Edge {
+        int fromIndex;
+        int toIndex;
+
+        // Convert to/from QVariantMap for QML
+        QVariantMap toVariantMap() const {
+            QVariantMap map;
+            map["from"] = fromIndex;
+            map["to"] = toIndex;
+            return map;
+        }
+
+        static Edge fromVariantMap(const QVariantMap& map) {
+            Edge edge;
+            edge.fromIndex = map.value("from", -1).toInt();
+            edge.toIndex = map.value("to", -1).toInt();
+            return edge;
         }
     };
 
@@ -73,6 +97,12 @@ public:
     QVariantList joints() const;
     void setJoints(const QList<Joint>& joints);
     Q_INVOKABLE void setJoints(const QVariantList& joints);
+
+    // Edges (connections between joints)
+    QVariantList edges() const;
+    void setEdges(const QList<Edge>& edges);
+    Q_INVOKABLE void setEdges(const QVariantList& edges);
+    Q_INVOKABLE void addEdge(int fromIndex, int toIndex);
     
     // Helper method for backward compatibility
     void setJointPositions(const QList<QPointF>& positions);
@@ -112,6 +142,7 @@ public:
 signals:
     void shapeTypeChanged();
     void jointsChanged();
+    void edgesChanged();
     void edgeWidthChanged();
     void edgeColorChanged();
     void fillColorChanged();
@@ -120,11 +151,12 @@ private:
     void updateJointsForShape();
     void updateSquareJoints();
     void updateTriangleJoints();
-    void updateLineJoints();
+    void updatePenJoints();
     void updateName();
 
     ShapeType m_shapeType = Square;
     QList<Joint> m_joints;
+    QList<Edge> m_edges;
     qreal m_edgeWidth = 2.0;
     QColor m_edgeColor = QColor(0, 0, 0, 255); // Black
     QColor m_fillColor = QColor(0, 120, 255, 255); // Blue

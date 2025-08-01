@@ -22,7 +22,7 @@
 #include "IModeHandler.h"
 #include "SelectModeHandler.h"
 #include "CreationModeHandler.h"
-#include "LineModeHandler.h"
+#include "PenModeHandler.h"
 #include "ComponentVariantTemplate.h"
 #include "Frame.h"
 #include "Text.h"
@@ -33,6 +33,7 @@
 #include "Project.h"
 #include "DesignElement.h"
 #include "Scripts.h"
+#include "ShapeControlsController.h"
 #include "ConsoleMessageRepository.h"
 #include "UniqueIdGenerator.h"
 #include "HandleType.h"
@@ -139,10 +140,10 @@ void CanvasController::initializeModeHandlers()
         &m_elementModel, &m_selectionManager,
         m_commandHistory.get(), setModeFunc);
     
-    // Shape Line mode - use specialized LineModeHandler
-    m_modeHandlers[Mode::ShapeLine] = std::make_unique<LineModeHandler>(
+    // Shape Pen mode - use specialized PenModeHandler
+    m_modeHandlers[Mode::ShapePen] = std::make_unique<PenModeHandler>(
         &m_elementModel, &m_selectionManager,
-        m_commandHistory.get(), setModeFunc);
+        m_commandHistory.get(), setModeFunc, m_shapeControlsController);
     
     
     // Set initial handler
@@ -251,11 +252,11 @@ void CanvasController::handleEscapeKey()
 
 void CanvasController::handleEnterKey()
 {
-    // Handle enter key - currently only used for line creation mode
-    if (m_mode == Mode::ShapeLine) {
-        LineModeHandler* lineHandler = static_cast<LineModeHandler*>(m_currentHandler);
-        if (lineHandler) {
-            lineHandler->onEnterPressed();
+    // Handle enter key - currently only used for pen creation mode
+    if (m_mode == Mode::ShapePen) {
+        PenModeHandler* penHandler = static_cast<PenModeHandler*>(m_currentHandler);
+        if (penHandler) {
+            penHandler->onEnterPressed();
         }
     }
 }
@@ -306,6 +307,8 @@ void CanvasController::createEdge(const QString &sourceNodeId, const QString &ta
                                   const QString &sourceHandleType, const QString &targetHandleType,
                                   int sourcePortIndex, int targetPortIndex)
 {
+    Q_UNUSED(sourceHandleType)
+    Q_UNUSED(targetHandleType)
     // Get the Project from the ElementModel's parent
     Project* project = qobject_cast<Project*>(m_elementModel.parent());
     if (!project) {
@@ -596,6 +599,31 @@ void CanvasController::setSavedZoom(qreal zoom)
     if (m_savedZoom != zoom) {
         m_savedZoom = zoom;
         emit savedZoomChanged();
+    }
+}
+
+void CanvasController::setShapeControlsController(QObject* controller)
+{
+    ShapeControlsController* shapeController = qobject_cast<ShapeControlsController*>(controller);
+    if (m_shapeControlsController != shapeController) {
+        m_shapeControlsController = shapeController;
+        
+        // Update existing PenModeHandler if it exists
+        auto it = m_modeHandlers.find(Mode::ShapePen);
+        if (it != m_modeHandlers.end()) {
+            // Recreate the PenModeHandler with the new controller
+            auto setModeFunc = [this](Mode newMode) { this->setMode(newMode); };
+            m_modeHandlers[Mode::ShapePen] = std::make_unique<PenModeHandler>(
+                &m_elementModel, &m_selectionManager,
+                m_commandHistory.get(), setModeFunc, m_shapeControlsController);
+            
+            // Update current handler if we're in pen mode
+            if (m_mode == Mode::ShapePen) {
+                m_currentHandler = m_modeHandlers[Mode::ShapePen].get();
+            }
+        }
+        
+        emit shapeControlsControllerChanged();
     }
 }
 

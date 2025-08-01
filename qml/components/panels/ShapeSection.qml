@@ -24,7 +24,7 @@ ColumnLayout {
                     switch (selectedElement.shapeType) {
                         case 0: return "Square"
                         case 1: return "Triangle"
-                        case 2: return "Line"
+                        case 2: return "Pen"
                         default: return "Unknown"
                     }
                 }

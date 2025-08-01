@@ -135,9 +135,9 @@ Item {
             
             // Check what's under the mouse
             var overControls = false
-            // During line creation mode, don't check if we're over shape controls
-            var isLineCreationMode = controller && controller.mode === 7 // ShapeLine
-            if (!isLineCreationMode && designControlsOverlay.shapeControls && designControlsOverlay.shapeControls.visible && 
+            // During pen creation mode, don't check if we're over shape controls
+            var isPenCreationMode = controller && controller.mode === 7 // ShapePen
+            if (!isPenCreationMode && designControlsOverlay.shapeControls && designControlsOverlay.shapeControls.visible && 
                 designControlsOverlay.shapeControls.contains(
                     designControlsOverlay.shapeControls.mapFromItem(root, mouse.x, mouse.y))) {
                 overControls = true

@@ -114,30 +114,85 @@ Item {
             ctx.lineWidth = 1
             
             // Draw edges based on shape type
-            var isClosedShape = selectedElement.shapeType !== 2 // 2 = Line (from Shape.h enum)
-            var edgeCount = isClosedShape ? joints.length : joints.length - 1
+            var isClosedShape = selectedElement.shapeType !== 2 // 2 = Pen (from Shape.h enum)
             
-            for (var i = 0; i < edgeCount; i++) {
-                ctx.beginPath()
+            if (isClosedShape) {
+                // For closed shapes, draw all edges including closing edge
+                for (var i = 0; i < joints.length; i++) {
+                    var currentJoint = joints[i]
+                    var nextJoint = joints[(i + 1) % joints.length]
+                    
+                    ctx.beginPath()
+                    ctx.moveTo(currentJoint.x * shapeWidth + jointPadding + canvasOffsetX, 
+                              currentJoint.y * shapeHeight + jointPadding + canvasOffsetY)
+                    ctx.lineTo(nextJoint.x * shapeWidth + jointPadding + canvasOffsetX, 
+                              nextJoint.y * shapeHeight + jointPadding + canvasOffsetY)
+                    ctx.stroke()
+                }
+            } else {
+                // For pen shapes, draw edges based on the edges list if available, otherwise consecutive joints
+                var edges = selectedElement.edges || []
                 
-                var currentJoint = joints[i]
-                var nextJoint = isClosedShape ? 
-                    joints[(i + 1) % joints.length] :  // Closed: wrap around to first joint
-                    joints[i + 1]                       // Open: just next joint
-                
-                ctx.moveTo(currentJoint.x * shapeWidth + jointPadding + canvasOffsetX, 
-                          currentJoint.y * shapeHeight + jointPadding + canvasOffsetY)
-                ctx.lineTo(nextJoint.x * shapeWidth + jointPadding + canvasOffsetX, 
-                          nextJoint.y * shapeHeight + jointPadding + canvasOffsetY)
-                
-                ctx.stroke()
+                if (edges.length > 0) {
+                    // First, detect and fill closed loops
+                    var closedLoops = findClosedLoops(edges, joints.length)
+                    for (var loopIndex = 0; loopIndex < closedLoops.length; loopIndex++) {
+                        var loop = closedLoops[loopIndex]
+                        if (loop.length >= 3) { // Need at least 3 joints for a fillable area
+                            ctx.beginPath()
+                            ctx.moveTo(joints[loop[0]].x * shapeWidth + jointPadding + canvasOffsetX, 
+                                      joints[loop[0]].y * shapeHeight + jointPadding + canvasOffsetY)
+                            for (var k = 1; k < loop.length; k++) {
+                                ctx.lineTo(joints[loop[k]].x * shapeWidth + jointPadding + canvasOffsetX, 
+                                          joints[loop[k]].y * shapeHeight + jointPadding + canvasOffsetY)
+                            }
+                            ctx.closePath()
+                            
+                            // Fill the closed loop
+                            if (selectedElement.fillColor && selectedElement.fillColor.a > 0) {
+                                ctx.fillStyle = selectedElement.fillColor
+                                ctx.fill()
+                            }
+                        }
+                    }
+                    
+                    // Then draw edges from the edges list
+                    for (var i = 0; i < edges.length; i++) {
+                        var edge = edges[i]
+                        var fromIndex = edge.from
+                        var toIndex = edge.to
+                        
+                        if (fromIndex >= 0 && fromIndex < joints.length && 
+                            toIndex >= 0 && toIndex < joints.length) {
+                            ctx.beginPath()
+                            ctx.moveTo(joints[fromIndex].x * shapeWidth + jointPadding + canvasOffsetX, 
+                                      joints[fromIndex].y * shapeHeight + jointPadding + canvasOffsetY)
+                            ctx.lineTo(joints[toIndex].x * shapeWidth + jointPadding + canvasOffsetX, 
+                                      joints[toIndex].y * shapeHeight + jointPadding + canvasOffsetY)
+                            ctx.stroke()
+                        }
+                    }
+                } else {
+                    // Fallback: draw edges between consecutive joints
+                    for (var i = 1; i < joints.length; i++) {
+                        ctx.beginPath()
+                        ctx.moveTo(joints[i-1].x * shapeWidth + jointPadding + canvasOffsetX, 
+                                  joints[i-1].y * shapeHeight + jointPadding + canvasOffsetY)
+                        ctx.lineTo(joints[i].x * shapeWidth + jointPadding + canvasOffsetX, 
+                                  joints[i].y * shapeHeight + jointPadding + canvasOffsetY)
+                        ctx.stroke()
+                    }
+                }
             }
             
-            // Draw preview line from last joint to preview point
+            // Draw preview line from selected joint (or last joint if no selection) to preview point
             if (showPreview && joints.length > 0 && previewPoint.x !== 0 && previewPoint.y !== 0) {
-                var lastJoint = joints[joints.length - 1]
-                var lastJointX = lastJoint.x * shapeWidth + jointPadding + canvasOffsetX
-                var lastJointY = lastJoint.y * shapeHeight + jointPadding + canvasOffsetY
+                var selectedJointIndex = controller ? controller.selectedJointIndex : -1
+                var activeJoint = (selectedJointIndex >= 0 && selectedJointIndex < joints.length) 
+                    ? joints[selectedJointIndex] 
+                    : joints[joints.length - 1]
+                var activeJointX = activeJoint.x * shapeWidth + jointPadding + canvasOffsetX
+                var activeJointY = activeJoint.y * shapeHeight + jointPadding + canvasOffsetY
                 
                 // Convert preview point from canvas coordinates to local coordinates
                 // The ShapeControls is positioned at (selectedElement.x/y - padding) in canvas space
@@ -157,7 +212,7 @@ Item {
                 ctx.lineWidth = 1
                 ctx.setLineDash([5, 5])  // Dashed line for preview
                 ctx.beginPath()
-                ctx.moveTo(lastJointX, lastJointY)
+                ctx.moveTo(activeJointX, activeJointY)
                 ctx.lineTo(localPreviewX, localPreviewY)
                 ctx.stroke()
                 ctx.setLineDash([])  // Reset to solid line
@@ -187,6 +242,11 @@ Item {
             }
             function onShowLinePreviewChanged() {
                 shapeCanvas.requestPaint()
+            }
+            function onSelectedJointIndexChanged() {
+                if (showPreview) {
+                    shapeCanvas.requestPaint()
+                }
             }
         }
     }
@@ -245,8 +305,8 @@ Item {
         acceptedButtons: Qt.LeftButton
         propagateComposedEvents: true  // Allow events to pass through
         
-        // Don't accept hover events during line creation mode
-        enabled: !(root.canvasController && root.canvasController.mode === 7)
+        // Enable hover tracking in all modes
+        enabled: true
         
         property int hoveredJointIndex: -1
         
@@ -271,6 +331,12 @@ Item {
         }
         
         onPressed: (mouse) => {
+            // In pen mode, don't handle press events
+            if (root.canvasController && root.canvasController.mode === 7) {
+                mouse.accepted = false
+                return
+            }
+            
             var jointIndex = jointIndexAt(mouse.x, mouse.y)
             if (jointIndex >= 0) {
                 mouse.accepted = true
@@ -336,6 +402,37 @@ Item {
         }
         
         onPositionChanged: (mouse) => {
+            // In pen mode, track hover and update preview
+            if (root.canvasController && root.canvasController.mode === 7) {
+                var jointIndex = jointIndexAt(mouse.x, mouse.y)
+                if (controller) {
+                    controller.setHoveredJointIndex(jointIndex)
+                    
+                    // Convert mouse position to canvas coordinates and update preview
+                    var viewportOverlay = root.parent
+                    if (viewportOverlay && viewportOverlay.flickable) {
+                        var viewportPoint = Qt.point(root.x + mouse.x, root.y + mouse.y)
+                        
+                        var actualMinX = viewportOverlay.canvasMinX !== undefined ? viewportOverlay.canvasMinX : -10000
+                        var actualMinY = viewportOverlay.canvasMinY !== undefined ? viewportOverlay.canvasMinY : -10000
+                        
+                        var canvasPoint = CanvasUtils.viewportToCanvas(
+                            viewportPoint,
+                            viewportOverlay.flickable.contentX,
+                            viewportOverlay.flickable.contentY,
+                            viewportOverlay.zoomLevel,
+                            actualMinX,
+                            actualMinY
+                        )
+                        
+                        // Update the preview point
+                        controller.linePreviewPoint = canvasPoint
+                        controller.showLinePreview = true
+                    }
+                }
+                return
+            }
+            
             if (controller && controller.isDragging) {
                 // Use controller to update position
                 var viewportOverlay = root.parent
@@ -362,6 +459,9 @@ Item {
             } else {
                 // Update hover state
                 hoveredJointIndex = jointIndexAt(mouse.x, mouse.y)
+                if (controller) {
+                    controller.setHoveredJointIndex(hoveredJointIndex)
+                }
             }
         }
         
@@ -413,6 +513,9 @@ Item {
         
         onExited: {
             hoveredJointIndex = -1
+            if (controller) {
+                controller.setHoveredJointIndex(-1)
+            }
         }
         
         cursorShape: {
@@ -547,9 +650,10 @@ Item {
             baseColor: jointControlColor
             hoverColor: jointHoverColor
             activeColor: jointHoverColor
+            innerCircleColor: isHovered ? Qt.rgba(0.5, 0.5, 0.5, 1) : ConfigObject.controlJointCircleFill  // Gray when hovered, white otherwise
             
             property int jointIndex: index
-            isHovered: mainMouseArea.hoveredJointIndex === jointIndex
+            isHovered: controller ? controller.hoveredJointIndex === jointIndex : mainMouseArea.hoveredJointIndex === jointIndex
             isActive: root.dragging && root.draggedJointIndex === jointIndex
             isSelected: controller && controller.selectedJointIndex === jointIndex
             
@@ -579,8 +683,8 @@ Item {
             // Disable during joint dragging
             if (root.dragging) return false
             
-            // Also disable during line creation mode to allow hover tracking
-            if (root.canvasController && root.canvasController.mode === 7) { // 7 = ShapeLine mode
+            // Also disable during pen creation mode to allow hover tracking
+            if (root.canvasController && root.canvasController.mode === 7) { // 7 = ShapePen mode
                 return false
             }
             
@@ -614,5 +718,110 @@ Item {
                 selectedElement.y += canvasDelta.y
             }
         }
+    }
+    
+    // Function to find closed loops in the edge graph
+    function findClosedLoops(edges, jointCount) {
+        // Build adjacency list
+        var adjacencyList = []
+        for (var i = 0; i < jointCount; i++) {
+            adjacencyList[i] = []
+        }
+        
+        for (var e = 0; e < edges.length; e++) {
+            var edge = edges[e]
+            adjacencyList[edge.from].push(edge.to)
+            adjacencyList[edge.to].push(edge.from) // Undirected graph
+        }
+        
+        var visited = []
+        var loops = []
+        
+        // DFS to find cycles
+        function findCycles(node, path, start) {
+            if (visited[node] && node === start && path.length >= 3) {
+                // Found a cycle, add it to loops
+                var cycle = path.slice()
+                cycle.push(node) // Close the cycle
+                loops.push(cycle)
+                return
+            }
+            
+            if (visited[node]) {
+                return // Already processed
+            }
+            
+            visited[node] = true
+            path.push(node)
+            
+            var neighbors = adjacencyList[node]
+            for (var n = 0; n < neighbors.length; n++) {
+                var neighbor = neighbors[n]
+                if (path.length === 1 || neighbor !== path[path.length - 2]) { // Avoid immediate backtrack
+                    findCycles(neighbor, path, start)
+                }
+            }
+            
+            path.pop()
+            visited[node] = false
+        }
+        
+        // Try starting from each joint
+        for (var startNode = 0; startNode < jointCount; startNode++) {
+            visited = []
+            for (var v = 0; v < jointCount; v++) {
+                visited[v] = false
+            }
+            findCycles(startNode, [], startNode)
+        }
+        
+        // Remove duplicate cycles and return unique ones
+        var uniqueLoops = []
+        for (var l = 0; l < loops.length; l++) {
+            var loop = loops[l]
+            var isUnique = true
+            
+            for (var ul = 0; ul < uniqueLoops.length; ul++) {
+                if (areLoopsEqual(loop, uniqueLoops[ul])) {
+                    isUnique = false
+                    break
+                }
+            }
+            
+            if (isUnique) {
+                uniqueLoops.push(loop.slice(0, -1)) // Remove the duplicate closing node
+            }
+        }
+        
+        return uniqueLoops
+    }
+    
+    // Helper function to check if two loops are the same (considering rotation and direction)
+    function areLoopsEqual(loop1, loop2) {
+        if (loop1.length !== loop2.length) return false
+        
+        var len = loop1.length - 1 // Exclude duplicate closing node
+        for (var offset = 0; offset < len; offset++) {
+            var match = true
+            for (var i = 0; i < len; i++) {
+                if (loop1[i] !== loop2[(i + offset) % len]) {
+                    match = false
+                    break
+                }
+            }
+            if (match) return true
+            
+            // Check reverse direction
+            match = true
+            for (var j = 0; j < len; j++) {
+                if (loop1[j] !== loop2[(len - 1 - j + offset) % len]) {
+                    match = false
+                    break
+                }
+            }
+            if (match) return true
+        }
+        
+        return false
     }
 }

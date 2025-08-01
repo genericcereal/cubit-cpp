@@ -1,6 +1,7 @@
 #pragma once
 #include "IModeHandler.h"
 #include "CanvasController.h"
+#include "Shape.h"
 #include <QPointF>
 #include <QList>
 #include <functional>
@@ -8,21 +9,22 @@
 class ElementModel;
 class SelectionManager;
 class CommandHistory;
-class Shape;
 class CreateDesignElementCommand;
+class ShapeControlsController;
 
-class LineModeHandler : public IModeHandler {
+class PenModeHandler : public IModeHandler {
 public:
-    LineModeHandler(ElementModel* model,
+    PenModeHandler(ElementModel* model,
                     SelectionManager* selection,
                     CommandHistory* history,
-                    std::function<void(CanvasController::Mode)> setMode);
+                    std::function<void(CanvasController::Mode)> setMode,
+                    ShapeControlsController* shapeControlsController = nullptr);
 
     void onPress(qreal x, qreal y) override;
     void onMove(qreal x, qreal y) override;
     void onRelease(qreal x, qreal y) override;
     
-    // Handle enter key to finish line creation
+    // Handle enter key to finish pen creation
     void onEnterPressed();
 
 private:
@@ -30,15 +32,17 @@ private:
     SelectionManager*     m_selectionManager;
     CommandHistory*       m_commandHistory;
     std::function<void(CanvasController::Mode)> m_setModeFunc;
+    ShapeControlsController* m_shapeControlsController;
 
-    QList<QPointF>        m_joints;
-    Shape*                m_currentLine = nullptr;
+    QList<Shape::Joint>   m_joints;
+    Shape*                m_currentPen = nullptr;
     CreateDesignElementCommand* m_currentCommand = nullptr;
-    bool                  m_isCreatingLine = false;
+    bool                  m_isCreatingPen = false;
+    bool                  m_startNewPath = false;
     QPointF               m_currentMousePos;
     
-    void createInitialLine(const QPointF& startPoint);
-    void addJointToLine(const QPointF& newPoint);
-    void finishLineCreation();
-    void updateLineBounds();
+    void createInitialPen(const QPointF& startPoint);
+    void addJointToPen(const QPointF& newPoint);
+    void finishPenCreation();
+    void updatePenBounds();
 };
