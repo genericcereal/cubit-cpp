@@ -87,10 +87,13 @@ Item {
         
         onPressed: (mouse) => {
             // Check if resizing is globally disabled
-            // CornerResizeJoint -> Item -> Repeater -> DesignControls
-            var designControlsItem = parent.parent.parent
-            var controller = designControlsItem.getDesignControlsController()
-            if (!controller.isResizingEnabled) {
+            // Find the DesignControls ancestor by looking for the designControlsController property
+            var designControlsItem = parent
+            while (designControlsItem && !designControlsItem.hasOwnProperty('designControlsController')) {
+                designControlsItem = designControlsItem.parent
+            }
+            
+            if (!designControlsItem || !designControlsItem.designControlsController || !designControlsItem.designControlsController.isResizingEnabled) {
                 mouse.accepted = false
                 return
             }

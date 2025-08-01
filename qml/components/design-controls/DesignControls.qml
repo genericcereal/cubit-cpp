@@ -24,7 +24,6 @@ Item {
     
     // Helper function to get the controller (for child components)
     function getDesignControlsController() {
-        console.log("DesignControls.getDesignControlsController: designControlsController =", designControlsController)
         return designControlsController
     }
     
@@ -295,6 +294,7 @@ Item {
                         viewportOverlay.controller.isEditingShape = true
                         mouse.accepted = true
                         return
+                    } else {
                     }
                 } else {
                     if (root.canvas && root.canvas.console) root.canvas.console.addOutput("Selected element is neither Frame, Text, nor Shape")

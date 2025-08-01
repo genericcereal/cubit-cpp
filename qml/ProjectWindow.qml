@@ -53,6 +53,11 @@ ApplicationWindow {
         }
     }
     
+    // Window-specific ShapeControlsController
+    property var shapeControlsController: ShapeControlsController {
+        // Will be connected to element model and selection manager when canvas is available
+    }
+    
     Component.onCompleted: {
         // Project window initialized
         
@@ -75,6 +80,7 @@ ApplicationWindow {
         canvas: projectWindow.canvas
         panels: projectWindow.windowPanels
         designControlsController: projectWindow.designControlsController
+        shapeControlsController: projectWindow.shapeControlsController
         
         Component.onCompleted: {
             // Canvas screen initialized
@@ -135,7 +141,6 @@ ApplicationWindow {
             
             // Check if we're dropping on the script canvas
             if (dropTarget === "script" && draggedElement && canvas && canvas.controller) {
-                console.log("Dropping element on script canvas:", draggedElementName, draggedElementType)
                 
                 // Get the canvas coordinates from the ghost position
                 if (canvasScreen && canvasScreen.canvasContainer) {
@@ -152,7 +157,6 @@ ApplicationWindow {
                         canvasX -= 75  // Half width
                         canvasY -= 15  // Half height
                         
-                        console.log("Creating Variable node at canvas position:", canvasX, canvasY)
                         
                         // Create Variable node for the dropped element
                         var nodeData = {
@@ -171,7 +175,6 @@ ApplicationWindow {
                         }
                         
                         var nodeId = canvas.controller.createNodeFromJson(JSON.stringify(nodeData))
-                        console.log("Created Variable node with ID:", nodeId)
                     }
                 }
             } else if (draggedElement && draggedElementType === "Variable" && canvas) {
@@ -247,43 +250,34 @@ ApplicationWindow {
             acceptedButtons: Qt.LeftButton
             
             onEntered: {
-                console.log("DragOverlay MouseArea - Mouse entered")
             }
             
             onExited: {
-                console.log("DragOverlay MouseArea - Mouse exited")
             }
             
             onPositionChanged: (mouse) => {
-                console.log("DragOverlay MouseArea - Mouse moved to:", mouse.x, mouse.y)
             }
             
             onPressed: (mouse) => {
-                console.log("DragOverlay MouseArea - Mouse pressed at:", mouse.x, mouse.y)
                 mouse.accepted = true  // Accept the press to get the release
             }
             
             onReleased: (mouse) => {
-                console.log("DragOverlay MouseArea - Mouse released at:", mouse.x, mouse.y)
                 
                 // Check if we're dropping a Variable
                 if (dragOverlay.draggedElement && dragOverlay.draggedElementType === "Variable") {
-                    console.log("DragOverlay - Dropping variable:", dragOverlay.draggedElement.elementId)
                     
                     // Find what's under the mouse using childAt
                     var item = projectWindow.childAt(mouse.x, mouse.y)
-                    console.log("DragOverlay - Item under mouse:", item)
                     
                     // Walk up the parent chain to find a VariableAwareSpinBox
                     while (item) {
                         if (item.objectName === "VariableAwareSpinBox" || 
                             (item.propertyName !== undefined && item.elementId !== undefined && item.acceptsDraggedType !== undefined)) {
-                            console.log("DragOverlay - Found VariableAwareSpinBox:", item.propertyName)
                             
                             // Manually trigger the binding creation
                             if (item.acceptsDraggedType && item.elementId && item.propertyName) {
                                 if (canvas && canvas.bindingManager) {
-                                    console.log("DragOverlay - Creating binding")
                                     canvas.bindingManager.createBinding(
                                         dragOverlay.draggedElement.elementId, 
                                         item.elementId, 

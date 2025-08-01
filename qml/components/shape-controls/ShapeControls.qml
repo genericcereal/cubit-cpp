@@ -2,23 +2,49 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import Cubit 1.0
 import "../.."
+import "../shared"
+import "../../CanvasUtils.js" as CanvasUtils
 
 Item {
     id: root
     
     // Properties
     property var selectedElement: null
+    property var controller: null  // ShapeControlsController
     property real controlSize: 30
-    property color jointControlColor: Qt.rgba(1, 1, 0, 0.8)  // Yellow for joints
-    property color jointHoverColor: Qt.rgba(1, 1, 0, 1.0)  // Brighter yellow on hover
-    property color edgeColor: Qt.rgba(0, 0, 1, 1.0)  // Fully opaque blue for edges
+    property color jointControlColor: Qt.rgba(1, 1, 0, 0)  // Transparent background
+    property color jointHoverColor: Qt.rgba(1, 1, 0, 0)  // Transparent on hover
+    property color edgeColor: ConfigObject.controlBarLineColor  // Use same blue as joints from ConfigObject
     property color previewColor: Qt.rgba(0, 0, 1, 0.3)  // Semi-transparent blue for preview
     property alias shapeCanvas: shapeCanvas
     
     visible: selectedElement !== null && selectedElement.elementType === "Shape"
     
     // Expose dragging state for parent components
-    readonly property bool isDragging: dragging
+    readonly property bool isDragging: controller ? controller.isDragging : dragging
+    
+    // Sync controller with selected element and update shape
+    onSelectedElementChanged: {
+        if (controller) {
+            controller.selectedShape = selectedElement
+        }
+        
+        if (selectedElement && visible) {
+            // ShapeControls selected element changed, requesting repaint
+            shapeCanvas.requestPaint()
+            
+            // Update bounding box preview
+            if (selectedElement.joints && selectedElement.joints.length > 0) {
+                updateBoundingBoxPreview(selectedElement.joints)
+            }
+        }
+    }
+    
+    onControllerChanged: {
+        if (controller && selectedElement) {
+            controller.selectedShape = selectedElement
+        }
+    }
     
     // Bounding box preview properties
     property real previewX: 0
@@ -56,7 +82,7 @@ Item {
             if (joints.length < 2) return
             
             ctx.strokeStyle = edgeColor
-            ctx.lineWidth = 2
+            ctx.lineWidth = 1
             
             // Draw edges based on shape type
             var isClosedShape = selectedElement.shapeType !== 2 // 2 = Line (from Shape.h enum)
@@ -102,18 +128,6 @@ Item {
         }
     }
     
-    // Update shape when selected element changes
-    onSelectedElementChanged: {
-        if (selectedElement && visible) {
-            // ShapeControls selected element changed, requesting repaint
-            shapeCanvas.requestPaint()
-            
-            // Update bounding box preview
-            if (selectedElement.joints && selectedElement.joints.length > 0) {
-                updateBoundingBoxPreview(selectedElement.joints)
-            }
-        }
-    }
     
     // Properties for tracking drag state
     property bool dragging: false
@@ -122,13 +136,27 @@ Item {
     property var originalJoints: []
     property var originalBounds: null
     
+    // Store controller reference to prevent it from being lost
+    property var cachedController: null
+    
+    Component.onCompleted: {
+        // Cache the controller when the component is created
+        if (root.parent && root.parent.controller) {
+            cachedController = root.parent.controller
+        }
+    }
+    
     // Notify controller when dragging state changes - this needs to happen immediately
     onDraggingChanged: {
         // ShapeControls dragging changed
-        if (root.parent && root.parent.controller) {
+        var ctrl = (root.parent && root.parent.controller) ? root.parent.controller : cachedController
+        if (ctrl) {
             // Keep shape editing mode active while dragging joints
             if (dragging) {
-                root.parent.controller.isEditingShape = true
+                ctrl.isEditingShape = true
+                ctrl.isShapeControlDragging = true
+            } else {
+                ctrl.isShapeControlDragging = false
             }
         }
     }
@@ -162,28 +190,59 @@ Item {
         onPressed: (mouse) => {
             var jointIndex = jointIndexAt(mouse.x, mouse.y)
             if (jointIndex >= 0) {
-                // Set dragging state immediately to prevent DesignControls from reappearing
-                root.dragging = true
-                root.draggedJointIndex = jointIndex
+                mouse.accepted = true
+                
+                if (controller) {
+                    // Use controller for state management
+                    var viewportOverlay = root.parent
+                    if (viewportOverlay && viewportOverlay.flickable) {
+                        // root.x/y are relative to the viewport, mouse.x/y are relative to root
+                        var viewportPoint = Qt.point(root.x + mouse.x, root.y + mouse.y)
+                        
+                        // Check if zoom is valid
+                        if (!viewportOverlay.zoomLevel || viewportOverlay.zoomLevel === 0) {
+                            return
+                        }
+                        
+                        // Use the actual canvas bounds, not the defaults
+                        var actualMinX = viewportOverlay.canvasMinX !== undefined ? viewportOverlay.canvasMinX : -10000
+                        var actualMinY = viewportOverlay.canvasMinY !== undefined ? viewportOverlay.canvasMinY : -10000
+                        
+                        var canvasPoint = CanvasUtils.viewportToCanvas(
+                            viewportPoint,
+                            viewportOverlay.flickable.contentX,
+                            viewportOverlay.flickable.contentY,
+                            viewportOverlay.zoomLevel,
+                            actualMinX,
+                            actualMinY
+                        )
+                        controller.startJointDrag(jointIndex, canvasPoint)
+                    }
+                } else {
+                    // Fallback to local state management
+                    root.dragging = true
+                    root.draggedJointIndex = jointIndex
+                    
+                    if (selectedElement && selectedElement.joints) {
+                        root.originalJoints = JSON.parse(JSON.stringify(selectedElement.joints))
+                        root.originalBounds = {
+                            x: selectedElement.x,
+                            y: selectedElement.y,
+                            width: selectedElement.width,
+                            height: selectedElement.height
+                        }
+                        // Initialize bounding box preview
+                        root.updateBoundingBoxPreview(selectedElement.joints)
+                    }
+                }
                 
                 // Force shape editing mode
-                if (root.parent && root.parent.controller) {
-                    root.parent.controller.isEditingShape = true
-                }
-                
-                if (selectedElement && selectedElement.joints) {
-                    root.originalJoints = JSON.parse(JSON.stringify(selectedElement.joints))
-                    root.originalBounds = {
-                        x: selectedElement.x,
-                        y: selectedElement.y,
-                        width: selectedElement.width,
-                        height: selectedElement.height
-                    }
-                    // Initialize bounding box preview
-                    root.updateBoundingBoxPreview(selectedElement.joints)
+                var ctrl = (root.parent && root.parent.controller) ? root.parent.controller : cachedController
+                if (ctrl) {
+                    ctrl.isEditingShape = true
+                    ctrl.isShapeControlDragging = true
                 }
                 // Joint drag started
-                mouse.accepted = true
             } else {
                 // Start moving the whole shape
                 mouse.accepted = false // Let moveArea handle it
@@ -191,7 +250,28 @@ Item {
         }
         
         onPositionChanged: (mouse) => {
-            if (root.dragging && root.draggedJointIndex >= 0) {
+            if (controller && controller.isDragging) {
+                // Use controller to update position
+                var viewportOverlay = root.parent
+                if (viewportOverlay && viewportOverlay.flickable) {
+                    var viewportPoint = Qt.point(root.x + mouse.x, root.y + mouse.y)
+                    
+                    // Use the actual canvas bounds, not the defaults
+                    var actualMinX = viewportOverlay.canvasMinX !== undefined ? viewportOverlay.canvasMinX : -10000
+                    var actualMinY = viewportOverlay.canvasMinY !== undefined ? viewportOverlay.canvasMinY : -10000
+                    
+                    var canvasPoint = CanvasUtils.viewportToCanvas(
+                        viewportPoint,
+                        viewportOverlay.flickable.contentX,
+                        viewportOverlay.flickable.contentY,
+                        viewportOverlay.zoomLevel,
+                        actualMinX,
+                        actualMinY
+                    )
+                    controller.updateJointPosition(canvasPoint)
+                }
+            } else if (root.dragging && root.draggedJointIndex >= 0) {
+                // Fallback to local update
                 root.updateJointPosition(mouse.x, mouse.y)
             } else {
                 // Update hover state
@@ -200,11 +280,40 @@ Item {
         }
         
         onReleased: {
-            if (root.dragging) {
+            if (controller && controller.isDragging) {
+                controller.endJointDrag()
+                
+                // Keep shape editing mode active after releasing
+                var viewportOverlay = root.parent
+                var ctrl = (viewportOverlay && viewportOverlay.controller) ? viewportOverlay.controller : cachedController
+                if (ctrl) {
+                    ctrl.isEditingShape = true
+                    ctrl.isShapeControlDragging = false
+                }
+                
+                // Force controls to stay visible
+                root.visible = true
+                
+                // Ensure shape remains selected
+                if (viewportOverlay && viewportOverlay.selectionManager && selectedElement) {
+                    viewportOverlay.selectionManager.selectElement(selectedElement.getId())
+                }
+            } else if (root.dragging) {
                 root.dragging = false
                 root.draggedJointIndex = -1
                 root.originalBounds = null
                 // Joint drag ended
+                
+                // Keep shape editing mode active after releasing
+                var viewportOverlay = root.parent
+                var ctrl = (viewportOverlay && viewportOverlay.controller) ? viewportOverlay.controller : cachedController
+                if (ctrl) {
+                    ctrl.isEditingShape = true
+                    ctrl.isShapeControlDragging = false
+                }
+                
+                // Force controls to stay visible
+                root.visible = true
             }
         }
         
@@ -231,17 +340,30 @@ Item {
         var viewportOverlay = root.parent
         if (!viewportOverlay || !viewportOverlay.flickable) return
         
+        // Ensure shape editing mode stays active during updates
+        var ctrl = (viewportOverlay && viewportOverlay.controller) ? viewportOverlay.controller : cachedController
+        if (ctrl) {
+            ctrl.isEditingShape = true
+        }
+        
         // Mouse position is relative to ShapeControls, convert to absolute viewport position
         var absoluteViewportX = root.x + mouseX
         var absoluteViewportY = root.y + mouseY
         
         // Convert to canvas coordinates using CanvasUtils
+        var viewportPoint = Qt.point(absoluteViewportX, absoluteViewportY)
+        
+        // Use the actual canvas bounds, not the defaults
+        var actualMinX = viewportOverlay.canvasMinX !== undefined ? viewportOverlay.canvasMinX : -10000
+        var actualMinY = viewportOverlay.canvasMinY !== undefined ? viewportOverlay.canvasMinY : -10000
+        
         var canvasPoint = CanvasUtils.viewportToCanvas(
-            absoluteViewportX, 
-            absoluteViewportY,
+            viewportPoint,
             viewportOverlay.flickable.contentX,
             viewportOverlay.flickable.contentY,
-            viewportOverlay.zoomLevel
+            viewportOverlay.zoomLevel,
+            actualMinX,
+            actualMinY
         )
         
         // Update joints with absolute canvas positions
@@ -323,29 +445,28 @@ Item {
         id: jointRepeater
         model: selectedElement ? selectedElement.joints : []
         
-        Rectangle {
+        ControlJoint {
             id: jointVisual
-            width: controlSize
-            height: controlSize
-            radius: controlSize / 2
+            size: controlSize
+            showInnerCircle: true  // Show inner circle for consistency with DesignControls
+            baseColor: jointControlColor
+            hoverColor: jointHoverColor
+            activeColor: jointHoverColor
             
             property int jointIndex: index
-            property bool isHovered: mainMouseArea.hoveredJointIndex === jointIndex
-            property bool isDragging: root.dragging && root.draggedJointIndex === jointIndex
+            isHovered: mainMouseArea.hoveredJointIndex === jointIndex
+            isActive: root.dragging && root.draggedJointIndex === jointIndex
+            isSelected: controller && controller.selectedJointIndex === jointIndex
             
             // Position at the joint location (normalized coords to actual position)
             x: {
                 if (!selectedElement || !selectedElement.joints || jointIndex >= selectedElement.joints.length) return 0
-                return selectedElement.joints[jointIndex].x * root.width - controlSize / 2
+                return selectedElement.joints[jointIndex].x * root.width - size / 2
             }
             y: {
                 if (!selectedElement || !selectedElement.joints || jointIndex >= selectedElement.joints.length) return 0
-                return selectedElement.joints[jointIndex].y * root.height - controlSize / 2
+                return selectedElement.joints[jointIndex].y * root.height - size / 2
             }
-            
-            color: isHovered || isDragging ? jointHoverColor : jointControlColor
-            border.color: Qt.darker(jointControlColor)
-            border.width: 1
         }
     }
     

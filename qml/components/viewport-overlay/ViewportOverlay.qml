@@ -20,9 +20,14 @@ Item {
     property var controller: canvas?.controller ?? null
     property string canvasType: canvasView?.canvasType ?? "design"
     property var designControlsController: null
+    property var shapeControlsController: null
     
     Component.onCompleted: {
         // ViewportOverlay initialized
+    }
+    
+    onControllerChanged: {
+        // Controller changed
     }
     
     onCanvasChanged: {
@@ -73,6 +78,7 @@ Item {
         canvasMinY: root.canvasMinY
         canvasType: root.canvasType
         designControlsController: root.designControlsController
+        shapeControlsController: root.shapeControlsController
     }
     
     // Prototype controls (viewable area, play button)

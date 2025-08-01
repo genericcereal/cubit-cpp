@@ -22,8 +22,8 @@ public:
     void onMove(qreal x, qreal y) override;
     void onRelease(qreal x, qreal y) override;
     
-    // Handle escape key to finish line creation
-    void onEscapePressed();
+    // Handle enter key to finish line creation
+    void onEnterPressed();
 
 private:
     ElementModel*         m_elementModel;

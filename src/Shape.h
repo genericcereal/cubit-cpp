@@ -38,7 +38,6 @@ public:
 
     // Joints (corner points)
     QVariantList joints() const;
-    QList<QPointF> jointsAsPoints() const { return m_joints; }
     void setJoints(const QList<QPointF>& joints);
     Q_INVOKABLE void setJoints(const QVariantList& joints);
 

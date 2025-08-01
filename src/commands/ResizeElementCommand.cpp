@@ -35,14 +35,6 @@ void ResizeElementCommand::execute()
         m_element->setRect(m_newRect);
     }
     
-    // Log to console
-    qDebug() << QString("Resized element (ID: %1) from %2x%3 to %4x%5")
-                .arg(m_element ? m_element->getId() : "unknown")
-                .arg(m_oldRect.width())
-                .arg(m_oldRect.height())
-                .arg(m_newRect.width())
-                .arg(m_newRect.height());
-    
     // Sync with API after the resize
     syncWithAPI();
 }
@@ -114,7 +106,4 @@ void ResizeElementCommand::syncWithAPI()
     
     // Sync with API
     apiClient->syncUpdateElement(apiProjectId, m_element->getId());
-    
-    qDebug() << "ResizeElementCommand: Syncing element resize with API for project" << apiProjectId 
-             << "element:" << m_element->getId() << "new size:" << m_newRect.size();
 }
