@@ -376,7 +376,7 @@ void ElementModel::refresh()
     beginResetModel();
     endResetModel();
     emit elementChanged();
-    qDebug() << "ElementModel::refresh - Forced model refresh";
+    // qDebug() << "ElementModel::refresh - Forced model refresh";
 }
 
 void ElementModel::connectSourceElement(Element* sourceElement)

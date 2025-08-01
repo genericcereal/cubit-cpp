@@ -17,8 +17,24 @@ QString ScriptFunctionRegistry::getFunctionCode(Node* node) const
         return QString();
     }
     
-    // Use the registered function builder
+    // Use the registered function builder first for certain node types that we want to override
     QString nodeType = node->nodeTitle().toLower().remove(' ');
+    
+    // Priority override for specific nodes we want to use registry functions for
+    if (nodeType == "consolelog" || nodeType == "convertnumbertostring" || nodeType == "createnumberarray") {
+        auto it = m_functionBuilders.find(nodeType);
+        if (it != m_functionBuilders.end()) {
+            return it.value()(node);
+        }
+    }
+    
+    // For other nodes, check if the node has a script property
+    QString nodeScript = node->script();
+    if (!nodeScript.isEmpty()) {
+        return nodeScript;
+    }
+    
+    // Use the registered function builder as fallback
     
     auto it = m_functionBuilders.find(nodeType);
     if (it != m_functionBuilders.end()) {
@@ -73,6 +89,12 @@ void ScriptFunctionRegistry::registerDefaultFunctions()
     // AI Prompt
     registerFunction("aiprompt", &ScriptFunctionRegistry::buildAiPromptFunction);
     
+    // Convert Number to String
+    registerFunction("convertnumbertostring", &ScriptFunctionRegistry::buildConvertNumberToStringFunction);
+    
+    // Create Number Array
+    registerFunction("createnumberarray", &ScriptFunctionRegistry::buildCreateNumberArrayFunction);
+    
     // Set Variable Value - dynamic registration handled separately
     // We need to handle all "setvariable*value" patterns dynamically
 }
@@ -82,7 +104,17 @@ QString ScriptFunctionRegistry::buildConsoleLogFunction(Node* node)
     Q_UNUSED(node);
     return "(params) => { "
            "if (params && params.length > 0 && params[0]) { "
-           "console.log(params[0].value || ''); "
+           "let message = params[0].value || ''; "
+           "if (typeof message === 'object' && message !== null) { "
+           "if (message.string !== undefined) { "
+           "message = message.string; "
+           "} else if (message.value !== undefined) { "
+           "message = message.value; "
+           "} else { "
+           "message = String(message); "
+           "} "
+           "} "
+           "console.log(message); "
            "} else { "
            "console.log(''); "
            "} "
@@ -196,5 +228,39 @@ QString ScriptFunctionRegistry::buildAiPromptFunction(Node* node)
            "aiService.errorOccurred.connect(errorHandler); "
            "aiService.callCubitAI(prompt, token); "
            "}); "
+           "}";
+}
+
+QString ScriptFunctionRegistry::buildConvertNumberToStringFunction(Node* node)
+{
+    Q_UNUSED(node);
+    // Convert the first parameter (which should be a number from the ForEachLoop) to a string
+    return "(params) => { "
+           "if (params && params.length > 0 && params[0] !== undefined) { "
+           "const value = params[0].value !== undefined ? params[0].value : params[0]; "
+           "return String(value); "
+           "} "
+           "return ''; "
+           "}";
+}
+
+QString ScriptFunctionRegistry::buildCreateNumberArrayFunction(Node* node)
+{
+    if (!node) {
+        return "(params) => { return { array: [] }; }";
+    }
+    
+    // For dynamic nodes, the parameters contain the individual values
+    // We need to create an array from all the parameter values
+    return "(params) => { "
+           "const array = []; "
+           "if (params && params.length > 0) { "
+           "for (let i = 0; i < params.length; i++) { "
+           "if (params[i] && params[i].value !== undefined) { "
+           "array.push(Number(params[i].value) || 0); "
+           "} "
+           "} "
+           "} "
+           "return { array: array }; "
            "}";
 }

@@ -43,6 +43,9 @@ public:
     Q_INVOKABLE QList<Edge*> getIncomingEdges(const QString& nodeId) const;
     Q_INVOKABLE QList<Edge*> getOutgoingEdges(const QString& nodeId) const;
     
+    // Fix node types based on catalog
+    Q_INVOKABLE void fixNodeTypes();
+    
     // Clear all scripts
     Q_INVOKABLE void clear();
     

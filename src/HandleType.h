@@ -13,6 +13,7 @@ namespace PortType {
     const QString Boolean = "Boolean";
     const QString String = "String";
     const QString Number = "Number";
+    const QString Array = "Array";
     
     // Type categories for future extensibility
     enum Category {
@@ -42,6 +43,9 @@ namespace PortType {
             registry[Boolean] = {Boolean, Primitive, "Boolean", "True/False value", {Boolean}};
             registry[String] = {String, Primitive, "String", "Text value", {String}};
             registry[Number] = {Number, Primitive, "Number", "Numeric value", {Number}};
+            
+            // Collection types
+            registry[Array] = {Array, Collection, "Array", "Array of values", {Array}};
         }
         return registry;
     }

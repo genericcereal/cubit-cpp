@@ -24,14 +24,21 @@ QJsonDocument ScriptSerializer::serialize(const QMap<QString, ScriptInvokeBuilde
         const QString& eventName = it.key();
         const ScriptInvokeBuilder::BuildContext& context = it.value();
         
-        // Get the initial invokes for this event
+        // Get the initial invokes for this event (excluding param nodes)
         QList<QString> initialInvokes;
         for (const auto& invoke : context.invokes) {
+            // Skip param invokes - they don't execute in the chain
+            if (invoke.isParam) {
+                continue;
+            }
+            
             bool isInitial = true;
             // Check if this invoke is referenced by any other invoke
             for (const auto& other : context.invokes) {
                 if (other.invokeId != invoke.invokeId && 
-                    other.nextInvokes.contains(invoke.invokeId)) {
+                    (other.nextInvokes.contains(invoke.invokeId) ||
+                     other.loopBodyInvoke == invoke.invokeId ||
+                     other.loopCompleteInvoke == invoke.invokeId)) {
                     isInitial = false;
                     break;
                 }
@@ -59,8 +66,53 @@ QJsonObject ScriptSerializer::serializeEventContext(const ScriptInvokeBuilder::B
     // Outputs
     event["outputs"] = serializeOutputs(context);
     
-    // Invokes
-    event["invoke"] = serializeInvokes(context);
+    // Separate param invokes from regular invokes
+    QJsonObject regularInvokes;
+    QJsonObject paramInvokes;
+    
+    for (auto it = context.invokes.constBegin(); it != context.invokes.constEnd(); ++it) {
+        const QString& invokeId = it.key();
+        const ScriptInvokeBuilder::InvokeData& invokeData = it.value();
+        
+        if (invokeData.isParam) {
+            // Serialize param invokes separately
+            QJsonObject invoke;
+            invoke["nodeId"] = invokeData.nodeId;
+            invoke["function"] = invokeData.functionName;
+            invoke["params"] = invokeData.params;
+            paramInvokes[invokeId] = invoke;
+        } else {
+            // Regular invokes
+            QJsonObject invoke;
+            invoke["nodeId"] = invokeData.nodeId;
+            invoke["function"] = invokeData.functionName;
+            invoke["params"] = invokeData.params;
+            invoke["isAsync"] = invokeData.isAsync;
+            
+            if (invokeData.isLoop) {
+                invoke["isLoop"] = true;
+                if (!invokeData.loopBodyInvoke.isEmpty()) {
+                    invoke["loopBody"] = invokeData.loopBodyInvoke;
+                }
+                if (!invokeData.loopCompleteInvoke.isEmpty()) {
+                    invoke["loopComplete"] = invokeData.loopCompleteInvoke;
+                }
+            }
+            
+            if (!invokeData.nextInvokes.isEmpty()) {
+                QJsonArray nextArray;
+                for (const QString& nextId : invokeData.nextInvokes) {
+                    nextArray.append(nextId);
+                }
+                invoke["next"] = nextArray;
+            }
+            
+            regularInvokes[invokeId] = invoke;
+        }
+    }
+    
+    event["invoke"] = regularInvokes;
+    event["params"] = paramInvokes;  // Store param invokes separately
     
     // Next array (initial invokes)
     QJsonArray nextArray;
@@ -85,6 +137,17 @@ QJsonObject ScriptSerializer::serializeInvokes(const ScriptInvokeBuilder::BuildC
         invoke["function"] = invokeData.functionName;
         invoke["params"] = invokeData.params;
         invoke["isAsync"] = invokeData.isAsync;
+        
+        // Add loop-specific properties
+        if (invokeData.isLoop) {
+            invoke["isLoop"] = true;
+            if (!invokeData.loopBodyInvoke.isEmpty()) {
+                invoke["loopBody"] = invokeData.loopBodyInvoke;
+            }
+            if (!invokeData.loopCompleteInvoke.isEmpty()) {
+                invoke["loopComplete"] = invokeData.loopCompleteInvoke;
+            }
+        }
         
         if (!invokeData.nextInvokes.isEmpty()) {
             QJsonArray nextArray;

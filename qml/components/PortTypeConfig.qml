@@ -39,6 +39,11 @@ QtObject {
         "Flow": {
             "inputType": "none",  // Flow ports don't have inputs
             "defaultValue": null
+        },
+        
+        "Array": {
+            "inputType": "none",  // Array ports don't have inputs - they need edges
+            "defaultValue": []
         }
     }
     

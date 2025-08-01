@@ -74,6 +74,7 @@ private:
     QVariantMap m_currentEventData;
     QMap<QString, QPair<QJsonObject, QJsonArray>> m_pendingAsyncInvokes;
     QMap<QString, QJSValue> m_asyncResults; // Store async results by output ID
+    QMap<QString, QJSValue> m_paramResults; // Store param node results by param invoke ID
 };
 
 #endif // SCRIPTEXECUTOR_H

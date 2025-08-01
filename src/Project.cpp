@@ -382,8 +382,8 @@ void Project::initialize() {
                 if (Node* node = qobject_cast<Node*>(element)) {
                     // Check if it's not already in scripts (to avoid duplicates during load)
                     if (!targetScripts->getNode(node->getId())) {
-                        qDebug() << "Project: Adding node" << node->getId() << "to" 
-                                 << (m_editingElement ? "editing element's" : "canvas") << "scripts";
+                        // qDebug() << "Project: Adding node" << node->getId() << "to" 
+                        //          << (m_editingElement ? "editing element's" : "canvas") << "scripts";
                         // The node was created by the controller, we need to transfer it to scripts
                         // Set the parent to scripts so it gets proper ownership
                         node->setParent(targetScripts);
@@ -415,7 +415,7 @@ void Project::initialize() {
                 // Check if already being handled by DeleteElementsCommand
                 bool alreadyHandled = m_elementModel->property("_deleteCommandHandling").toBool();
                 if (alreadyHandled) {
-                    qDebug() << "Project: Skipping node/edge removal - already handled by DeleteElementsCommand";
+                    // qDebug() << "Project: Skipping node/edge removal - already handled by DeleteElementsCommand";
                     return;
                 }
                 
@@ -467,7 +467,7 @@ void Project::setEditingElement(DesignElement* element, const QString& viewMode)
     // If switching to script mode and element is null, try to auto-detect from selection
     if (viewMode == "script" && !element && m_selectionManager) {
         auto selectedElements = m_selectionManager->selectedElements();
-        qDebug() << "Project: Auto-detecting editing element, selected elements:" << selectedElements.size();
+        // qDebug() << "Project: Auto-detecting editing element, selected elements:" << selectedElements.size();
         
         if (selectedElements.size() == 1) {
             auto selectedElement = selectedElements.first();

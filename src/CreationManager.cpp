@@ -367,7 +367,9 @@ Edge* CreationManager::createEdge(const QString& sourceNodeId, const QString& ta
         QString sourcePortType = srcNode->getOutputPortType(sourcePortIndex);
         QString targetPortType = tgtNode->getInputPortType(targetPortIndex);
         
-        qDebug() << "Edge validation - source port" << sourcePortIndex << "type:" << sourcePortType
+        qDebug() << "Edge validation - source node:" << srcNode->nodeTitle() << "id:" << sourceNodeId
+                 << "source port" << sourcePortIndex << "type:" << sourcePortType
+                 << "target node:" << tgtNode->nodeTitle() << "id:" << targetNodeId  
                  << "target port" << targetPortIndex << "type:" << targetPortType;
         
         // Validate that port types can connect

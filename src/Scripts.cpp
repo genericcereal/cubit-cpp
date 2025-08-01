@@ -43,18 +43,18 @@ void Scripts::addNode(Node* node) {
 
 void Scripts::removeNode(Node* node) {
     if (!node) {
-        qDebug() << "Scripts::removeNode - node is null";
+        qWarning() << "Scripts::removeNode - node is null";
         return;
     }
     
-    qDebug() << "Scripts::removeNode - Removing node:" << node->getId();
+    // qDebug() << "Scripts::removeNode - Removing node:" << node->getId();
     
     auto it = std::find(m_nodes.begin(), m_nodes.end(), node);
     
     if (it != m_nodes.end()) {
         // Remove any edges connected to this node
         QString nodeId = node->getId();
-        qDebug() << "Scripts::removeNode - Found node in m_nodes, checking for connected edges";
+        // qDebug() << "Scripts::removeNode - Found node in m_nodes, checking for connected edges";
         
         // Create a list of edge IDs to remove (not pointers) to avoid use-after-free
         QStringList edgeIdsToRemove;
@@ -64,22 +64,22 @@ void Scripts::removeNode(Node* node) {
             }
         }
         
-        qDebug() << "Scripts::removeNode - Found" << edgeIdsToRemove.size() << "connected edges to remove";
+        // qDebug() << "Scripts::removeNode - Found" << edgeIdsToRemove.size() << "connected edges to remove";
         
         // Now remove edges by ID
         for (const QString& edgeId : edgeIdsToRemove) {
             Edge* edge = getEdge(edgeId);
             if (edge) {
-                qDebug() << "Scripts::removeNode - Removing edge:" << edgeId;
+                // qDebug() << "Scripts::removeNode - Removing edge:" << edgeId;
                 removeEdge(edge);
             }
         }
         
-        qDebug() << "Scripts::removeNode - Emitting nodeRemoved signal";
+        // qDebug() << "Scripts::removeNode - Emitting nodeRemoved signal";
         // Emit the removal signal BEFORE erasing the node
         emit nodeRemoved(node);
         
-        qDebug() << "Scripts::removeNode - Erasing node from m_nodes";
+        // qDebug() << "Scripts::removeNode - Erasing node from m_nodes";
         // Now erase the node from the vector
         m_nodes.erase(it);
         
@@ -88,11 +88,11 @@ void Scripts::removeNode(Node* node) {
             setIsCompiled(false);
         }
         
-        qDebug() << "Scripts::removeNode - Emitting nodesChanged signal";
+        // qDebug() << "Scripts::removeNode - Emitting nodesChanged signal";
         emit nodesChanged();
-        qDebug() << "Scripts::removeNode - Complete";
+        // qDebug() << "Scripts::removeNode - Complete";
     } else {
-        qDebug() << "Scripts::removeNode - Node not found in m_nodes";
+        // qDebug() << "Scripts::removeNode - Node not found in m_nodes";
     }
 }
 
@@ -112,10 +112,44 @@ Node* Scripts::getNode(const QString& nodeId) const {
 
 QList<Node*> Scripts::getAllNodes() const {
     QList<Node*> result;
+    // qDebug() << "Scripts::getAllNodes() - Total nodes:" << m_nodes.size();
     for (Node* node : m_nodes) {
-        if (node) result.append(node);
+        if (node) {
+            // qDebug() << "  Node:" << node->nodeTitle() << "ID:" << node->getId() << "Type:" << node->nodeType();
+            result.append(node);
+        }
     }
     return result;
+}
+
+void Scripts::fixNodeTypes() {
+    // qDebug() << "Scripts::fixNodeTypes() - Checking and fixing node types";
+    
+    // Map of known node titles to their correct types
+    QMap<QString, QString> nodeTypeMap;
+    nodeTypeMap["Create Number Array"] = "Param";
+    nodeTypeMap["Convert Number to String"] = "Param";
+    nodeTypeMap["Event Data"] = "Param";
+    // Add more as needed
+    
+    bool anyFixed = false;
+    for (Node* node : m_nodes) {
+        if (node) {
+            QString expectedType = nodeTypeMap.value(node->nodeTitle(), "");
+            if (!expectedType.isEmpty() && node->nodeType() != expectedType) {
+                qDebug() << "Fixing node type for" << node->nodeTitle() 
+                         << "from" << node->nodeType() << "to" << expectedType;
+                node->setNodeType(expectedType);
+                anyFixed = true;
+            }
+        }
+    }
+    
+    if (anyFixed) {
+        // Mark as not compiled to force recompilation
+        setIsCompiled(false);
+        qDebug() << "Node types fixed - marked for recompilation";
+    }
 }
 
 // Edge management
@@ -140,20 +174,20 @@ void Scripts::addEdge(Edge* edge) {
 
 void Scripts::removeEdge(Edge* edge) {
     if (!edge) {
-        qDebug() << "Scripts::removeEdge - edge is null";
+        qWarning() << "Scripts::removeEdge - edge is null";
         return;
     }
     
-    qDebug() << "Scripts::removeEdge - Removing edge:" << edge->getId();
+    // qDebug() << "Scripts::removeEdge - Removing edge:" << edge->getId();
     
     auto it = std::find(m_edges.begin(), m_edges.end(), edge);
     
     if (it != m_edges.end()) {
-        qDebug() << "Scripts::removeEdge - Emitting edgeRemoved signal";
+        // qDebug() << "Scripts::removeEdge - Emitting edgeRemoved signal";
         // Emit the removal signal BEFORE erasing the edge
         emit edgeRemoved(edge);
         
-        qDebug() << "Scripts::removeEdge - Erasing edge from m_edges";
+        // qDebug() << "Scripts::removeEdge - Erasing edge from m_edges";
         // Now erase the edge from the vector
         m_edges.erase(it);
         
@@ -162,11 +196,11 @@ void Scripts::removeEdge(Edge* edge) {
             setIsCompiled(false);
         }
         
-        qDebug() << "Scripts::removeEdge - Emitting edgesChanged signal";
+        // qDebug() << "Scripts::removeEdge - Emitting edgesChanged signal";
         emit edgesChanged();
-        qDebug() << "Scripts::removeEdge - Complete";
+        // qDebug() << "Scripts::removeEdge - Complete";
     } else {
-        qDebug() << "Scripts::removeEdge - Edge not found in m_edges";
+        // qDebug() << "Scripts::removeEdge - Edge not found in m_edges";
     }
 }
 
@@ -186,8 +220,14 @@ Edge* Scripts::getEdge(const QString& edgeId) const {
 
 QList<Edge*> Scripts::getAllEdges() const {
     QList<Edge*> result;
+    // qDebug() << "Scripts::getAllEdges() - Total edges:" << m_edges.size();
     for (Edge* edge : m_edges) {
-        if (edge) result.append(edge);
+        if (edge) {
+            // qDebug() << "  Edge from" << edge->sourceNodeId() << "port" << edge->sourcePortIndex() 
+            //          << "(" << edge->sourcePortType() << ") to" << edge->targetNodeId() 
+            //          << "port" << edge->targetPortIndex() << "(" << edge->targetPortType() << ")";
+            result.append(edge);
+        }
     }
     return result;
 }
@@ -231,6 +271,9 @@ void Scripts::clear() {
 
 // Compile the script graph to JSON
 QString Scripts::compile(ElementModel* elementModel, QObject* console) {
+    // Fix node types before compilation
+    fixNodeTypes();
+    
     ScriptCompiler compiler;
     QString result = compiler.compile(this, elementModel);
     
@@ -249,7 +292,10 @@ QString Scripts::compile(ElementModel* elementModel, QObject* console) {
     setIsCompiled(true);
     emit compiledScriptChanged();
     
-    // Console output removed - scripts compiled successfully
+    // Output the compiled JSON for debugging
+    // qDebug() << "=== Compiled Script JSON ===";
+    // qDebug() << result;
+    // qDebug() << "=== End Compiled Script ===";
     
     return result;
 }

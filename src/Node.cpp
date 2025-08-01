@@ -26,6 +26,8 @@ Node::Node(const QString &id, QObject *parent)
     // Set default size for nodes
     setWidth(200);
     setHeight(180);
+    
+    // qDebug() << "Node constructor - ID:" << id << "Initial nodeType:" << m_nodeType;
 }
 
 void Node::setNodeTitle(const QString &title)
@@ -95,6 +97,15 @@ void Node::setIsAsync(bool isAsync)
     if (m_isAsync != isAsync) {
         m_isAsync = isAsync;
         emit isAsyncChanged();
+        emit elementChanged();
+    }
+}
+
+void Node::setScript(const QString &script)
+{
+    if (m_script != script) {
+        m_script = script;
+        emit scriptChanged();
         emit elementChanged();
     }
 }
@@ -259,6 +270,15 @@ QString Node::getOutputPortType(int index) const
 void Node::addRow(const RowConfig &config)
 {
     m_rowConfigs.append(config);
+    
+    // Also set the port types so they're available for edge creation
+    if (config.hasSource && config.sourcePortIndex >= 0) {
+        setOutputPortType(config.sourcePortIndex, config.sourceType);
+    }
+    if (config.hasTarget && config.targetPortIndex >= 0) {
+        setInputPortType(config.targetPortIndex, config.targetType);
+    }
+    
     emit rowConfigurationsChanged();
 }
 
@@ -314,4 +334,129 @@ int Node::getInputPortIndex(const QString &portId) const
 int Node::getOutputPortIndex(const QString &portId) const
 {
     return m_outputPorts.indexOf(portId);
+}
+
+void Node::addDynamicRow()
+{
+    if (!m_isDynamic) return;
+    
+    // Find the current highest row index for number inputs
+    int maxIndex = -1;
+    for (int i = 0; i < m_rowConfigs.size(); ++i) {
+        if (m_rowConfigs[i].hasTarget && m_rowConfigs[i].targetType == "Number") {
+            maxIndex = i;
+        }
+    }
+    
+    // Add a new row configuration
+    int newIndex = maxIndex + 1;
+    RowConfig newRow;
+    newRow.hasTarget = true;
+    newRow.targetLabel = QString("[%1]").arg(newIndex);
+    newRow.targetType = "Number";
+    newRow.targetPortIndex = newIndex;
+    
+    // Add to row configs
+    m_rowConfigs.append(newRow);
+    
+    // Add to input ports
+    QString portId = QString("value%1").arg(newIndex);
+    m_inputPorts.append(portId);
+    m_inputPortTypes[newIndex] = "Number";
+    
+    emit rowConfigurationsChanged();
+    emit inputPortsChanged();
+    emit elementChanged();
+}
+
+void Node::removeDynamicRow(int rowIndex)
+{
+    if (!m_isDynamic || rowIndex < 1) return;  // Don't remove the first row
+    
+    // Find the row with this index
+    int configIndex = -1;
+    for (int i = 0; i < m_rowConfigs.size(); ++i) {
+        if (m_rowConfigs[i].hasTarget && m_rowConfigs[i].targetPortIndex == rowIndex) {
+            configIndex = i;
+            break;
+        }
+    }
+    
+    if (configIndex >= 0) {
+        // Remove from row configs
+        m_rowConfigs.removeAt(configIndex);
+        
+        // Remove from input ports
+        QString portId = QString("value%1").arg(rowIndex);
+        int portIndex = m_inputPorts.indexOf(portId);
+        if (portIndex >= 0) {
+            m_inputPorts.removeAt(portIndex);
+        }
+        m_inputPortTypes.remove(rowIndex);
+        
+        // Re-index remaining rows
+        for (int i = 0; i < m_rowConfigs.size(); ++i) {
+            if (m_rowConfigs[i].hasTarget && m_rowConfigs[i].targetPortIndex > rowIndex) {
+                m_rowConfigs[i].targetPortIndex--;
+                m_rowConfigs[i].targetLabel = QString("[%1]").arg(m_rowConfigs[i].targetPortIndex);
+            }
+        }
+        
+        // Re-index input ports
+        QStringList newInputPorts;
+        QMap<int, QString> newInputPortTypes;
+        
+        for (int i = 0; i < m_inputPorts.size(); ++i) {
+            QString port = m_inputPorts[i];
+            if (port.startsWith("value")) {
+                QString numStr = port.mid(5);
+                bool ok;
+                int num = numStr.toInt(&ok);
+                if (ok && num > rowIndex) {
+                    newInputPorts.append(QString("value%1").arg(num - 1));
+                    newInputPortTypes[num - 1] = m_inputPortTypes.value(num, "Number");
+                } else {
+                    newInputPorts.append(port);
+                    if (m_inputPortTypes.contains(i)) {
+                        newInputPortTypes[i] = m_inputPortTypes[i];
+                    }
+                }
+            } else {
+                newInputPorts.append(port);
+                if (m_inputPortTypes.contains(i)) {
+                    newInputPortTypes[i] = m_inputPortTypes[i];
+                }
+            }
+        }
+        
+        m_inputPorts = newInputPorts;
+        m_inputPortTypes = newInputPortTypes;
+        
+        emit rowConfigurationsChanged();
+        emit inputPortsChanged();
+        emit elementChanged();
+    }
+}
+
+QString Node::getPortValue(int portIndex) const
+{
+    // For dynamic nodes, return port-specific value
+    if (m_isDynamic && m_portValues.contains(portIndex)) {
+        return m_portValues[portIndex];
+    }
+    // For non-dynamic nodes or if no specific value, return the general value
+    return m_value;
+}
+
+void Node::setPortValue(int portIndex, const QString &value)
+{
+    if (m_isDynamic) {
+        // For dynamic nodes, store value per port
+        m_portValues[portIndex] = value;
+    } else {
+        // For non-dynamic nodes, use the general value
+        m_value = value;
+    }
+    emit valueChanged();
+    emit elementChanged();
 }

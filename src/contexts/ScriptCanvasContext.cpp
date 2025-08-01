@@ -28,14 +28,14 @@ void ScriptCanvasContext::activateContext(ElementModel* targetModel)
 {
     if (!targetModel || !m_scripts) return;
     
-    qDebug() << "ScriptCanvasContext::activateContext - Starting";
+    // qDebug() << "ScriptCanvasContext::activateContext - Starting";
     
     // Clear existing script elements from the model first
     deactivateContext(targetModel);
     
     // Add all nodes to the element model
     auto nodes = m_scripts->getAllNodes();
-    qDebug() << "ScriptCanvasContext: Loading" << nodes.size() << "nodes";
+    // qDebug() << "ScriptCanvasContext: Loading" << nodes.size() << "nodes";
     for (Node* node : nodes) {
         if (node) {
             // Add to model but Scripts retains ownership
@@ -45,7 +45,7 @@ void ScriptCanvasContext::activateContext(ElementModel* targetModel)
     
     // Add all edges to the element model
     auto edges = m_scripts->getAllEdges();
-    qDebug() << "ScriptCanvasContext: Loading" << edges.size() << "edges";
+    // qDebug() << "ScriptCanvasContext: Loading" << edges.size() << "edges";
     for (Edge* edge : edges) {
         if (edge) {
             // Add to model but Scripts retains ownership

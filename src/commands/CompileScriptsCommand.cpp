@@ -5,7 +5,6 @@
 #include "../ConsoleMessageRepository.h"
 #include "../Application.h"
 #include "../ProjectApiClient.h"
-#include "../ScriptCompiler.h"
 #include <QJsonObject>
 #include <QDateTime>
 #include <QDebug>
@@ -41,24 +40,16 @@ void CompileScriptsCommand::execute()
     m_previousCompiledScript = m_scripts->compiledScript();
     m_previousIsCompiled = m_scripts->isCompiled();
 
-    // Compile the scripts
-    ScriptCompiler compiler;
-    m_compiledScript = compiler.compile(m_scripts, m_elementModel);
+    // Compile the scripts using the Scripts::compile method which includes debug output
+    m_compiledScript = m_scripts->compile(m_elementModel, m_console);
     
     if (m_compiledScript.isEmpty()) {
-        QString error = compiler.getLastError();
-        if (m_console) {
-            m_console->addError("Compilation failed: " + error);
-        }
-        m_scripts->setCompiledScript(QString());
-        m_scripts->setIsCompiled(false);
+        // Error already handled by Scripts::compile
         m_wasSuccessful = false;
         return;
     }
     
-    // Store the compiled script
-    m_scripts->setCompiledScript(m_compiledScript);
-    m_scripts->setIsCompiled(true);
+    // Scripts::compile already sets isCompiled and compiledScript
     m_wasSuccessful = true;
     
     if (m_console) {
@@ -110,5 +101,5 @@ void CompileScriptsCommand::syncWithApi()
     // This ensures all nodes, edges, and the compiled script are synced
     apiClient->syncCreateElement(apiProjectId, compilationData);
     
-    qDebug() << "CompileScriptsCommand: Syncing compiled scripts with API for project:" << apiProjectId;
+    // qDebug() << "CompileScriptsCommand: Syncing compiled scripts with API for project:" << apiProjectId;
 }
