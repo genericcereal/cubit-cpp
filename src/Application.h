@@ -4,6 +4,8 @@
 #include <QObject>
 #include <QQmlEngine>
 #include <QJsonObject>
+#include <QLocalServer>
+#include <QLocalSocket>
 #include <memory>
 #include <vector>
 #include "Project.h"
@@ -37,6 +39,10 @@ public:
     void setAuthenticationManager(AuthenticationManager* authManager);
 
     static Application* instance();
+    
+    // Single instance handling
+    bool setupSingleInstance(const QString& uniqueKey);
+    bool sendMessageToRunningInstance(const QString& message);
 
     // Project management
     Q_INVOKABLE QString createProject(const QString& name = QString());
@@ -95,8 +101,11 @@ signals:
     void projectCreatedInAPI(const QString& projectId, const QString& projectName);
     void projectDeletedFromAPI(const QString& projectId);
     void apiErrorOccurred(const QString& error);
+    void messageReceivedFromOtherInstance(const QString& message);
 
 private slots:
+    void handleNewConnection();
+    void handleMessage();
 
 private:
     static Application* s_instance;
@@ -109,6 +118,9 @@ private:
     std::unique_ptr<FileManager> m_fileManager;
     std::unique_ptr<Serializer> m_serializer;
     std::vector<std::unique_ptr<Command>> m_pendingCommands;  // Keep async commands alive
+    
+    // Single instance handling
+    std::unique_ptr<QLocalServer> m_localServer;
     
     Project* findProject(const QString& projectId);
     const Project* findProject(const QString& projectId) const;
