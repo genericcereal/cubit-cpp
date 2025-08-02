@@ -289,12 +289,12 @@ Item {
                 } else if (element && element.elementType === "Shape") {
                     // Shape selected - entering shape edit mode
                     
-                    // Set isEditingShape on the controller
-                    if (viewportOverlay.controller) {
-                        viewportOverlay.controller.isEditingShape = true
+                    // Set isEditingShape on the shape controls controller
+                    var viewportOverlay = root.parent
+                    if (viewportOverlay && viewportOverlay.shapeControlsController) {
+                        viewportOverlay.shapeControlsController.isEditingShape = true
                         mouse.accepted = true
                         return
-                    } else {
                     }
                 } else {
                     if (root.canvas && root.canvas.console) root.canvas.console.addOutput("Selected element is neither Frame, Text, nor Shape")

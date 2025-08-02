@@ -1,7 +1,7 @@
-import QtQuick 2.15
-import QtQuick.Window 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.15
+import QtQuick
+import QtQuick.Window
+import QtQuick.Controls
+import QtQuick.Layouts
 import Cubit
 
 ApplicationWindow {
@@ -10,6 +10,46 @@ ApplicationWindow {
     height: 800
     visible: true
     title: qsTr("Cubit - %1").arg(canvas ? canvas.name : "Untitled")
+    
+    menuBar: MenuBar {
+        Menu {
+            title: qsTr("File")
+            MenuItem {
+                text: qsTr("Open...")
+                onTriggered: {
+                    Application.openFile()
+                }
+            }
+            MenuSeparator { }
+            MenuItem {
+                text: qsTr("Save As...")
+                onTriggered: {
+                    Application.saveAs()
+                }
+            }
+        }
+        Menu {
+            title: qsTr("Edit")
+            MenuItem {
+                text: qsTr("Undo")
+                enabled: canvas && canvas.controller && canvas.controller.canUndo
+                onTriggered: {
+                    if (canvas && canvas.controller) {
+                        canvas.controller.undo()
+                    }
+                }
+            }
+            MenuItem {
+                text: qsTr("Redo")
+                enabled: canvas && canvas.controller && canvas.controller.canRedo
+                onTriggered: {
+                    if (canvas && canvas.controller) {
+                        canvas.controller.redo()
+                    }
+                }
+            }
+        }
+    }
     
     property string canvasId: ""
     property var canvas: null
@@ -71,6 +111,16 @@ ApplicationWindow {
         }
         
         // Canvas will be set by onCanvasIdChanged
+    }
+    
+    Component.onDestruction: {
+        // Clear controller references before destruction
+        if (shapeControlsController) {
+            shapeControlsController = null
+        }
+        if (designControlsController) {
+            designControlsController = null
+        }
     }
     
     // Use CanvasScreen for the window content

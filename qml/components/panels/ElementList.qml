@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Window
 import Cubit
+import Cubit 1.0
 
 Item {
     id: root
@@ -55,7 +56,7 @@ Item {
                     id: elementsDropIndicator
                     width: parent.width
                     height: 2
-                    color: "#2196F3"
+                    color: ConfigObject.dropIndicatorColor
                     visible: false
                     z: 1000
                 }
@@ -72,7 +73,7 @@ Item {
                             id: elementsDelegateRect
                             width: elementsListView.width
                             height: visible ? 28 : 0
-                            color: model.selected ? "#e3f2fd" : (elementsMouseArea.containsMouse ? "#f5f5f5" : "#ffffff")
+                            color: model.selected ? ConfigObject.listItemSelected : (elementsMouseArea.containsMouse ? ConfigObject.listItemHover : ConfigObject.listItemBackground)
                             antialiasing: true
                             
                             // Visual states for dragging
@@ -87,7 +88,7 @@ Item {
                             property bool isDropTarget: false
                             property bool isFrame: model.elementType === "Frame"
                             border.width: isDropTarget && isFrame ? 2 : 0
-                            border.color: "#2196F3"
+                            border.color: ConfigObject.dropIndicatorColor
                             
                             // Calculate indent level and check if has children
                             property int indentLevel: {
@@ -175,9 +176,9 @@ Item {
                                 width: 14
                                 height: 14
                                 visible: hasChildren
-                                color: elementsExpandMouseArea.containsMouse ? "#e0e0e0" : "#f5f5f5"
+                                color: elementsExpandMouseArea.containsMouse ? ConfigObject.expandBoxHover : ConfigObject.expandBoxBackground
                                 border.width: 1
-                                border.color: "#cccccc"
+                                border.color: ConfigObject.expandBoxBorder
                                 radius: 2
                                 z: 1  // Above the main mouse area
                                 
@@ -186,7 +187,7 @@ Item {
                                     text: elementsDelegateRect.isExpanded ? "−" : "+"
                                     font.pixelSize: 10
                                     font.weight: Font.Medium
-                                    color: "#444444"
+                                    color: ConfigObject.expandBoxText
                                 }
                                 
                                 MouseArea {
@@ -217,7 +218,7 @@ Item {
                                 Label {
                                     Layout.alignment: Qt.AlignRight
                                     text: model.elementType
-                                    color: "#666666"
+                                    color: ConfigObject.secondaryTextColor
                                     font.pixelSize: 10
                                 }
                             }
@@ -522,7 +523,7 @@ Item {
                             id: componentsDelegateRect
                             width: componentsListView.width
                             height: visible ? 28 : 0
-                            color: model.selected ? "#e3f2fd" : (componentsMouseArea.containsMouse ? "#f5f5f5" : "#ffffff")
+                            color: model.selected ? ConfigObject.listItemSelected : (componentsMouseArea.containsMouse ? ConfigObject.listItemHover : ConfigObject.listItemBackground)
                             antialiasing: true
                             
                             // Calculate indent level and check if has children
@@ -611,9 +612,9 @@ Item {
                                 width: 14
                                 height: 14
                                 visible: hasChildren
-                                color: componentsExpandMouseArea.containsMouse ? "#e0e0e0" : "#f5f5f5"
+                                color: componentsExpandMouseArea.containsMouse ? ConfigObject.expandBoxHover : ConfigObject.expandBoxBackground
                                 border.width: 1
-                                border.color: "#cccccc"
+                                border.color: ConfigObject.expandBoxBorder
                                 radius: 2
                                 z: 1  // Above the main mouse area
                                 
@@ -622,7 +623,7 @@ Item {
                                     text: componentsDelegateRect.isExpanded ? "−" : "+"
                                     font.pixelSize: 10
                                     font.weight: Font.Medium
-                                    color: "#444444"
+                                    color: ConfigObject.expandBoxText
                                 }
                                 
                                 MouseArea {
@@ -653,7 +654,7 @@ Item {
                                 Label {
                                     Layout.alignment: Qt.AlignRight
                                     text: model.elementType
-                                    color: "#666666"
+                                    color: ConfigObject.secondaryTextColor
                                     font.pixelSize: 10
                                 }
                             }

@@ -1,12 +1,13 @@
 import QtQuick
 import QtQuick.Controls
+import Cubit 1.0
 import "../CanvasUtils.js" as Utils
 
 Rectangle {
     id: root
     
     // Background styling
-    color: "#f5f5f5"
+    color: ConfigObject.canvasBackground
     antialiasing: true
     
     // Signal emitted when background is clicked

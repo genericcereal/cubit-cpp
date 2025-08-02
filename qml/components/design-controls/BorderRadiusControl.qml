@@ -3,12 +3,10 @@ import QtQuick.Controls
 import Cubit 1.0
 import "../.."
 
-Rectangle {
+Item {
     id: borderRadiusControl
     width: 10
     height: 10
-    radius: 5
-    antialiasing: true
     z: 2
     
     property bool allSelectedAreComponentRelated: false
@@ -16,8 +14,6 @@ Rectangle {
     property real parentWidth: 100
     property real parentHeight: 100
     property var selectedFrame: null
-    
-    color: allSelectedAreComponentRelated ? ConfigObject.componentControlResizeJointColor : ConfigObject.controlResizeJointColor
     
     // Drag progress along diagonal (0 = top-left corner, 1 = center)
     property real dragProgress: 0
@@ -55,6 +51,26 @@ Rectangle {
         var newRadius = dragProgress * maxRadius
         
         borderRadiusControl.borderRadiusChanged(newRadius)
+    }
+    
+    // Visual representation matching resize joints
+    Rectangle {
+        id: outerRect
+        anchors.fill: parent
+        color: allSelectedAreComponentRelated ? ConfigObject.componentControlResizeJointColor : ConfigObject.controlResizeJointColor
+        antialiasing: true
+        
+        // Decorative circle inside matching resize joints
+        Rectangle {
+            anchors.centerIn: parent
+            width: 10
+            height: 10
+            radius: 5
+            color: ConfigObject.controlJointCircleFill
+            border.color: allSelectedAreComponentRelated ? ConfigObject.componentControlJointCircleBorder : ConfigObject.controlJointCircleBorder
+            border.width: 1
+            antialiasing: true
+        }
     }
     
     MouseArea {

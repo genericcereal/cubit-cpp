@@ -40,7 +40,12 @@ Item {
     // Sync controller with selected element and update shape
     onSelectedElementChanged: {
         if (controller) {
-            controller.selectedShape = selectedElement
+            // Only assign if selectedElement is actually a Shape
+            if (selectedElement && selectedElement.elementType === "Shape") {
+                controller.selectedShape = selectedElement
+            } else {
+                controller.selectedShape = null
+            }
         }
         
         if (selectedElement && visible) {
@@ -248,6 +253,12 @@ Item {
                     shapeCanvas.requestPaint()
                 }
             }
+            function onIsEditingShapeChanged() {
+                // Clear selected joint when exiting shape editing mode
+                if (controller && !controller.isEditingShape && controller.selectedJointIndex >= 0) {
+                    controller.setSelectedJointIndex(-1)
+                }
+            }
         }
     }
     
@@ -282,17 +293,23 @@ Item {
         }
     }
     
+    // Clean up connections on destruction
+    Component.onDestruction: {
+        // Disconnect from controller to prevent crashes during shutdown
+        if (controller) {
+            controller.selectedShape = null
+        }
+    }
+    
     // Notify controller when dragging state changes - this needs to happen immediately
     onDraggingChanged: {
         // ShapeControls dragging changed
-        var ctrl = (root.parent && root.parent.controller) ? root.parent.controller : cachedController
-        if (ctrl) {
-            // Keep shape editing mode active while dragging joints
+        if (root.controller) {
+            // Update shape control dragging state
             if (dragging) {
-                ctrl.isEditingShape = true
-                ctrl.isShapeControlDragging = true
+                root.controller.isShapeControlDragging = true
             } else {
-                ctrl.isShapeControlDragging = false
+                root.controller.isShapeControlDragging = false
             }
         }
     }
@@ -388,11 +405,13 @@ Item {
                     }
                 }
                 
-                // Force shape editing mode
-                var ctrl = (root.parent && root.parent.controller) ? root.parent.controller : cachedController
-                if (ctrl) {
-                    ctrl.isEditingShape = true
-                    ctrl.isShapeControlDragging = true
+                // Set shape control dragging state and ensure editing mode is true
+                if (root.controller) {
+                    root.controller.isShapeControlDragging = true
+                    // Ensure editing mode is true during drag
+                    if (!root.controller.isEditingShape) {
+                        root.controller.isEditingShape = true
+                    }
                 }
                 // Joint drag started
             } else {
@@ -469,16 +488,10 @@ Item {
             if (controller && controller.isDragging) {
                 controller.endJointDrag()
                 
-                // Keep shape editing mode active after releasing
-                var viewportOverlay = root.parent
-                var ctrl = (viewportOverlay && viewportOverlay.controller) ? viewportOverlay.controller : cachedController
-                if (ctrl) {
-                    ctrl.isEditingShape = true
-                    ctrl.isShapeControlDragging = false
+                // Clear shape control dragging state
+                if (root.controller) {
+                    root.controller.isShapeControlDragging = false
                 }
-                
-                // Force controls to stay visible
-                root.visible = true
                 
                 // Ensure shape remains selected
                 if (viewportOverlay && viewportOverlay.selectionManager && selectedElement) {
@@ -490,16 +503,10 @@ Item {
                 root.originalBounds = null
                 // Joint drag ended
                 
-                // Keep shape editing mode active after releasing
-                var viewportOverlay = root.parent
-                var ctrl = (viewportOverlay && viewportOverlay.controller) ? viewportOverlay.controller : cachedController
-                if (ctrl) {
-                    ctrl.isEditingShape = true
-                    ctrl.isShapeControlDragging = false
+                // Clear shape control dragging state
+                if (root.controller) {
+                    root.controller.isShapeControlDragging = false
                 }
-                
-                // Force controls to stay visible
-                root.visible = true
             }
         }
         
@@ -508,6 +515,10 @@ Item {
             if (jointIndex >= 0 && controller) {
                 // This is a click on a joint, not a drag
                 controller.setSelectedJointIndex(jointIndex)
+                // Make sure dragging state is cleared for clicks
+                if (root.controller) {
+                    root.controller.isShapeControlDragging = false
+                }
             }
         }
         
@@ -537,11 +548,8 @@ Item {
         var viewportOverlay = root.parent
         if (!viewportOverlay || !viewportOverlay.flickable) return
         
-        // Ensure shape editing mode stays active during updates
+        // Get controller reference
         var ctrl = (viewportOverlay && viewportOverlay.controller) ? viewportOverlay.controller : cachedController
-        if (ctrl) {
-            ctrl.isEditingShape = true
-        }
         
         // Mouse position is relative to ShapeControls, convert to absolute viewport position
         // Note: root.x/y already includes the padding offset from DesignControlsOverlay
@@ -698,6 +706,11 @@ Item {
             // Check if we clicked near a line (for line shapes)
             // For now, just handle general movement
             pressPos = Qt.point(mouse.x, mouse.y)
+            
+            // Ensure editing mode is true when starting to drag the shape
+            if (root.controller && !root.controller.isEditingShape) {
+                root.controller.isEditingShape = true
+            }
         }
         
         onPositionChanged: (mouse) => {
@@ -716,6 +729,13 @@ Item {
                 
                 selectedElement.x += canvasDelta.x
                 selectedElement.y += canvasDelta.y
+            }
+        }
+        
+        onClicked: (mouse) => {
+            // Clear selected joint when clicking on the shape body (not on a joint)
+            if (controller) {
+                controller.setSelectedJointIndex(-1)
             }
         }
     }

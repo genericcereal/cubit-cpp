@@ -217,3 +217,19 @@ void ShapeControlsController::setHoveredJointIndex(int index)
         emit hoveredJointIndexChanged();
     }
 }
+
+void ShapeControlsController::setIsEditingShape(bool editing)
+{
+    if (m_isEditingShape != editing) {
+        m_isEditingShape = editing;
+        emit isEditingShapeChanged();
+    }
+}
+
+void ShapeControlsController::setIsShapeControlDragging(bool dragging)
+{
+    if (m_isShapeControlDragging != dragging) {
+        m_isShapeControlDragging = dragging;
+        emit isShapeControlDraggingChanged();
+    }
+}

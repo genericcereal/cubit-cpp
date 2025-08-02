@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Cubit
+import Cubit 1.0
 import "."
 
 Rectangle {
@@ -9,7 +10,7 @@ Rectangle {
     width: 300
     height: 50
     radius: 8
-    color: Qt.rgba(0, 0, 0, 0.8)
+    color: ConfigObject.actionsPanelBackground
     antialiasing: true
     
     signal modeChanged(int mode)

@@ -74,3 +74,7 @@ node_modules
 .amplify
 amplify_outputs*
 amplifyconfiguration*
+
+# Secrets and configuration
+src/Secrets.h
+Secrets.h

@@ -88,22 +88,6 @@ void DesignCanvas::setIsDesignControlsMovementDisabled(bool disabled)
     }
 }
 
-void DesignCanvas::setIsEditingShape(bool editing)
-{
-    if (m_isEditingShape != editing) {
-        m_isEditingShape = editing;
-        emit isEditingShapeChanged();
-    }
-}
-
-void DesignCanvas::setIsShapeControlDragging(bool dragging)
-{
-    if (m_isShapeControlDragging != dragging) {
-        m_isShapeControlDragging = dragging;
-        emit isShapeControlDraggingChanged();
-    }
-}
-
 void DesignCanvas::updateHover(qreal x, qreal y)
 {
     // Update hover in select mode
@@ -243,12 +227,7 @@ void DesignCanvas::onSelectionChanged()
 {
     clearHoverIfSelected();
     
-    // Don't automatically enter shape editing mode on selection
-    // Shape editing mode should be activated explicitly (e.g., double-click)
-    // Don't exit shape editing if we're actively dragging shape controls
-    if (!m_isShapeControlDragging) {
-        setIsEditingShape(false);
-    }
+    // Shape editing is now handled through ShapeControlsController
 }
 
 void DesignCanvas::onModeChanged()

@@ -20,6 +20,8 @@ class ShapeControlsController : public QObject
     Q_PROPERTY(QPointF linePreviewPoint READ linePreviewPoint WRITE setLinePreviewPoint NOTIFY linePreviewPointChanged)
     Q_PROPERTY(bool showLinePreview READ showLinePreview WRITE setShowLinePreview NOTIFY showLinePreviewChanged)
     Q_PROPERTY(int hoveredJointIndex READ hoveredJointIndex WRITE setHoveredJointIndex NOTIFY hoveredJointIndexChanged)
+    Q_PROPERTY(bool isEditingShape READ isEditingShape WRITE setIsEditingShape NOTIFY isEditingShapeChanged)
+    Q_PROPERTY(bool isShapeControlDragging READ isShapeControlDragging WRITE setIsShapeControlDragging NOTIFY isShapeControlDraggingChanged)
 
 public:
     explicit ShapeControlsController(QObject *parent = nullptr);
@@ -33,6 +35,8 @@ public:
     QPointF linePreviewPoint() const { return m_linePreviewPoint; }
     bool showLinePreview() const { return m_showLinePreview; }
     int hoveredJointIndex() const { return m_hoveredJointIndex; }
+    bool isEditingShape() const { return m_isEditingShape; }
+    bool isShapeControlDragging() const { return m_isShapeControlDragging; }
 
     // Property setters
     void setSelectedShape(Shape* shape);
@@ -42,6 +46,8 @@ public:
     void setLinePreviewPoint(const QPointF& point);
     void setShowLinePreview(bool show);
     Q_INVOKABLE void setHoveredJointIndex(int index);
+    Q_INVOKABLE void setIsEditingShape(bool editing);
+    Q_INVOKABLE void setIsShapeControlDragging(bool dragging);
 
     // Joint manipulation
     Q_INVOKABLE void startJointDrag(int jointIndex, const QPointF& startPos);
@@ -61,6 +67,8 @@ signals:
     void linePreviewPointChanged();
     void showLinePreviewChanged();
     void hoveredJointIndexChanged();
+    void isEditingShapeChanged();
+    void isShapeControlDraggingChanged();
 
 private:
     Shape* m_selectedShape = nullptr;
@@ -70,6 +78,8 @@ private:
     QPointF m_linePreviewPoint;
     bool m_showLinePreview = false;
     int m_hoveredJointIndex = -1;
+    bool m_isEditingShape = false;
+    bool m_isShapeControlDragging = false;
     
     // Store original state for undo
     QList<QPointF> m_originalJoints;
