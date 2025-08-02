@@ -39,6 +39,7 @@
 #include <QJsonObject>
 #include <QMetaProperty>
 #include <QCoreApplication>
+#include <QLocalSocket>
 
 Application* Application::s_instance = nullptr;
 
@@ -74,6 +75,76 @@ Application::~Application() {
 
 Application* Application::instance() {
     return s_instance;
+}
+
+bool Application::setupSingleInstance(const QString& uniqueKey) {
+    // Try to connect to existing instance first
+    QLocalSocket socket;
+    socket.connectToServer(uniqueKey);
+    
+    if (socket.waitForConnected(1000)) {
+        // Another instance is already running
+        socket.close();
+        return false;
+    }
+    
+    // No other instance found, create server
+    m_localServer = std::make_unique<QLocalServer>(this);
+    
+    // Remove any existing server with the same name
+    QLocalServer::removeServer(uniqueKey);
+    
+    if (!m_localServer->listen(uniqueKey)) {
+        qWarning() << "Failed to create local server:" << m_localServer->errorString();
+        return false;
+    }
+    
+    connect(m_localServer.get(), &QLocalServer::newConnection,
+            this, &Application::handleNewConnection);
+    
+    return true;
+}
+
+bool Application::sendMessageToRunningInstance(const QString& message) {
+    QLocalSocket socket;
+    socket.connectToServer("cubit-app-instance");  // Should match the unique key
+    
+    if (!socket.waitForConnected(1000)) {
+        return false;
+    }
+    
+    QTextStream stream(&socket);
+    stream << message;
+    stream.flush();
+    
+    socket.waitForBytesWritten(1000);
+    socket.close();
+    
+    return true;
+}
+
+void Application::handleNewConnection() {
+    QLocalSocket* socket = m_localServer->nextPendingConnection();
+    if (!socket) {
+        return;
+    }
+    
+    connect(socket, &QLocalSocket::readyRead, this, &Application::handleMessage);
+    connect(socket, &QLocalSocket::disconnected, socket, &QLocalSocket::deleteLater);
+}
+
+void Application::handleMessage() {
+    QLocalSocket* socket = qobject_cast<QLocalSocket*>(sender());
+    if (!socket) {
+        return;
+    }
+    
+    QTextStream stream(socket);
+    QString message = stream.readAll();
+    
+    emit messageReceivedFromOtherInstance(message);
+    
+    socket->close();
 }
 
 void Application::setAuthenticationManager(AuthenticationManager* authManager) {
@@ -219,7 +290,6 @@ void Application::addProject(Project* project) {
     emit canvasListChanged();
     emit canvasCreated(project->id());
     
-    qDebug() << "Application::addProject: Added project" << project->name() << "with ID" << project->id();
 }
 
 void Application::createNewProject(const QString& projectName) {
@@ -255,7 +325,6 @@ void Application::createNewProject(const QString& projectName) {
                 if (window) {
                     // Set the canvas ID property on the window
                     window->setProperty("canvasId", projectId);
-                    qDebug() << "Created window for new project:" << projectId;
                 } else {
                     qWarning() << "Failed to create project window:" << component.errorString();
                 }
@@ -347,7 +416,6 @@ void Application::createNewProjectWithTemplate(const QString& projectName, const
 }
 
 void Application::openAPIProject(const QString& projectId, const QString& projectName, const QJsonObject& canvasData) {
-    // qDebug() << "Application::openAPIProject called with ID:" << projectId << "Name:" << projectName;
     
     // Use OpenProjectCommand to open and deserialize the project
     // Execute directly without adding to command history (project management operations don't support undo)
@@ -475,7 +543,6 @@ void Application::deleteProject(const QString& projectId) {
 }
 
 void Application::closeProjectWindow(const QString& projectId) {
-    qDebug() << "Application::closeProjectWindow() called for project:" << projectId;
     
     // Use CloseProjectCommand to properly close the project with undo support and API sync
     auto command = std::make_unique<CloseProjectCommand>(this, projectId);

@@ -165,6 +165,28 @@ int main(int argc, char *argv[])
     Application *appInstance = new Application(&app);
     appInstance->setAuthenticationManager(authManager);
     appInstance->setEngine(&engine);
+    
+    // Setup single instance handling
+    const QString uniqueKey = "cubit-app-instance";
+    if (!appInstance->setupSingleInstance(uniqueKey)) {
+        // Another instance is already running
+        // Send command line arguments to the running instance
+        if (args.size() > 1) {
+            for (int i = 1; i < args.size(); ++i) {
+                appInstance->sendMessageToRunningInstance(args[i]);
+            }
+        }
+        return 0; // Exit this instance
+    }
+    
+    // Connect to handle messages from other instances
+    QObject::connect(appInstance, &Application::messageReceivedFromOtherInstance,
+                     [urlHandler](const QString& message) {
+        QUrl url(message);
+        if (url.scheme() == "cubitapp") {
+            urlHandler->handleUrl(url);
+        }
+    });
 
 
     // IMPORTANT: Set Application as context property FIRST
