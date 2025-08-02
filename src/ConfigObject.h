@@ -95,6 +95,7 @@ class ConfigObject : public QObject
     Q_PROPERTY(QColor controlJointCircleFill READ controlJointCircleFill CONSTANT)
     Q_PROPERTY(QColor controlJointCircleBorder READ controlJointCircleBorder CONSTANT)
     Q_PROPERTY(QColor controlsBorderColor READ controlsBorderColor CONSTANT)
+    Q_PROPERTY(QString controlsBorderColorString READ controlsBorderColorString CONSTANT)
     
     // Component instance colors (purple)
     Q_PROPERTY(QColor componentControlBarColor READ componentControlBarColor CONSTANT)
@@ -102,6 +103,8 @@ class ConfigObject : public QObject
     Q_PROPERTY(QColor componentControlResizeJointColor READ componentControlResizeJointColor CONSTANT)
     Q_PROPERTY(QColor componentControlBarLineColor READ componentControlBarLineColor CONSTANT)
     Q_PROPERTY(QColor componentControlJointCircleBorder READ componentControlJointCircleBorder CONSTANT)
+    Q_PROPERTY(QColor componentControlsBorderColor READ componentControlsBorderColor CONSTANT)
+    Q_PROPERTY(QString componentControlsBorderColorString READ componentControlsBorderColorString CONSTANT)
     
     // Element creation preview
     Q_PROPERTY(QColor elementCreationPreviewColor READ elementCreationPreviewColor CONSTANT)
@@ -328,11 +331,12 @@ public:
     QColor controlBarColor() const { return QColor(255, 0, 0, 0); }  // Completely transparent
     QColor controlRotationJointColor() const { return QColor(255, 0, 0, 0); }  // Completely transparent
     QColor controlResizeJointColor() const { return QColor(0, 0, 255, 0); }  // Completely transparent
-    QColor controlInnerRectColor() const { return QColor(255, 204, 0, 12); }  // 5% opacity = 12/255
+    QColor controlInnerRectColor() const { return Qt::transparent; }
     QColor controlBarLineColor() const { return QColor(0, 100, 255, 255); }
     QColor controlJointCircleFill() const { return QColor(255, 255, 255, 255); }
     QColor controlJointCircleBorder() const { return QColor(0, 100, 255, 255); }
-    QColor controlsBorderColor() const { return QColor(0, 0, 0, 51); }  // 20% opacity = 51/255
+    QColor controlsBorderColor() const { return QColor(Config::CONTROLS_BORDER_COLOR); }
+    QString controlsBorderColorString() const { return Config::CONTROLS_BORDER_COLOR; }
     
     // Component instance colors (purple)
     QColor componentControlBarColor() const { return QColor(128, 0, 128, 0); }  // Completely transparent
@@ -340,6 +344,8 @@ public:
     QColor componentControlResizeJointColor() const { return QColor(128, 0, 128, 0); }  // Completely transparent
     QColor componentControlBarLineColor() const { return QColor(128, 0, 128, 255); }
     QColor componentControlJointCircleBorder() const { return QColor(128, 0, 128, 255); }
+    QColor componentControlsBorderColor() const { return QColor(Config::COMPONENT_CONTROLS_BORDER_COLOR); }
+    QString componentControlsBorderColorString() const { return Config::COMPONENT_CONTROLS_BORDER_COLOR; }
     
     // Element creation preview
     QColor elementCreationPreviewColor() const { return QColor(0, 100, 255, 25); }

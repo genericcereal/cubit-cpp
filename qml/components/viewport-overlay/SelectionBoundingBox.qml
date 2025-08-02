@@ -17,9 +17,27 @@ Rectangle {
     property real boundingWidth: 0
     property real boundingHeight: 0
     
+    // Check if all selected elements are component-related
+    property bool allSelectedAreComponentRelated: {
+        if (!Application || !Application.activeSelectionManager) return false
+        var selectedElements = Application.activeSelectionManager.selectedElements
+        if (selectedElements.length === 0) return false
+        
+        for (var i = 0; i < selectedElements.length; i++) {
+            var element = selectedElements[i]
+            if (!element) continue
+            
+            // Check if it's a ComponentInstance or ComponentVariant
+            if (element.elementType !== "ComponentInstance" && element.elementType !== "ComponentVariant") {
+                return false
+            }
+        }
+        return true
+    }
+    
     // Visual properties
     color: "transparent"
-    border.color: Qt.rgba(0, 0, 0, 1)  // Fully opaque black
+    border.color: allSelectedAreComponentRelated ? ConfigObject.componentControlsBorderColorString : ConfigObject.controlsBorderColorString
     border.width: 1
     visible: boundingWidth > 0 && boundingHeight > 0
     

@@ -140,7 +140,7 @@ Item {
     Rectangle {
         anchors.fill: parent
         color: "transparent"
-        border.color: "red"
+        border.color: "transparent"
         border.width: 1
         opacity: 0.5
     }
