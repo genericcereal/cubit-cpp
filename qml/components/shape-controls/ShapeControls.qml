@@ -3,6 +3,7 @@ import QtQuick.Controls 2.15
 import Cubit 1.0
 import "../.."
 import "../shared"
+import "../design-controls"
 import "../../CanvasUtils.js" as CanvasUtils
 
 Item {
@@ -283,8 +284,31 @@ Item {
     property var originalJoints: []
     property var originalBounds: null
     
+    // Visual position for dragged joint (updated immediately for smooth tracking)
+    property point draggedJointVisualPos: Qt.point(0, 0)
+    
     // Store controller reference to prevent it from being lost
     property var cachedController: null
+    
+    // Throttled update for joint position changes
+    ThrottledUpdate {
+        id: jointDragThrottle
+        active: root.dragging && root.draggedJointIndex >= 0
+        
+        onUpdate: (data) => {
+            if (data) {
+                if (controller && controller.isDragging && data.canvasPoint) {
+                    controller.updateJointPosition(data.canvasPoint)
+                } else if (root.dragging && root.draggedJointIndex >= 0 && data.mouseX !== undefined && data.mouseY !== undefined) {
+                    // Fallback to local update
+                    root.updateJointPosition(data.mouseX, data.mouseY)
+                }
+            }
+        }
+        
+        onActiveChanged: {
+        }
+    }
     
     Component.onCompleted: {
         // Cache the controller when the component is created
@@ -358,6 +382,9 @@ Item {
             if (jointIndex >= 0) {
                 mouse.accepted = true
                 
+                // Store the pressed joint but don't set dragging yet
+                root.draggedJointIndex = jointIndex
+                
                 if (controller) {
                     // Select the joint immediately on press
                     controller.setSelectedJointIndex(jointIndex)
@@ -389,9 +416,6 @@ Item {
                     }
                 } else {
                     // Fallback to local state management
-                    root.dragging = true
-                    root.draggedJointIndex = jointIndex
-                    
                     if (selectedElement && selectedElement.joints) {
                         root.originalJoints = JSON.parse(JSON.stringify(selectedElement.joints))
                         root.originalBounds = {
@@ -421,6 +445,13 @@ Item {
         }
         
         onPositionChanged: (mouse) => {
+            // Check if we need to start dragging
+            if (!root.dragging && root.draggedJointIndex >= 0 && pressed) {
+                // Start dragging
+                root.dragging = true
+                root.draggedJointVisualPos = Qt.point(mouse.x, mouse.y)
+            }
+            
             // In pen mode, track hover and update preview
             if (root.canvasController && root.canvasController.mode === 7) {
                 var jointIndex = jointIndexAt(mouse.x, mouse.y)
@@ -453,7 +484,10 @@ Item {
             }
             
             if (controller && controller.isDragging) {
-                // Use controller to update position
+                // Update visual position immediately for smooth tracking
+                root.draggedJointVisualPos = Qt.point(mouse.x, mouse.y)
+                
+                // Request throttled update for actual position
                 var viewportOverlay = root.parent
                 if (viewportOverlay && viewportOverlay.flickable) {
                     var viewportPoint = Qt.point(root.x + mouse.x, root.y + mouse.y)
@@ -470,11 +504,23 @@ Item {
                         actualMinX,
                         actualMinY
                     )
-                    controller.updateJointPosition(canvasPoint)
+                    
+                    // Request throttled update
+                    jointDragThrottle.requestUpdate({
+                        canvasPoint: canvasPoint,
+                        mouseX: mouse.x,
+                        mouseY: mouse.y
+                    })
                 }
             } else if (root.dragging && root.draggedJointIndex >= 0) {
-                // Fallback to local update
-                root.updateJointPosition(mouse.x, mouse.y)
+                // Update visual position immediately for smooth tracking
+                root.draggedJointVisualPos = Qt.point(mouse.x, mouse.y)
+                
+                // Request throttled update for fallback local dragging
+                jointDragThrottle.requestUpdate({
+                    mouseX: mouse.x,
+                    mouseY: mouse.y
+                })
             } else {
                 // Update hover state
                 hoveredJointIndex = jointIndexAt(mouse.x, mouse.y)
@@ -485,6 +531,9 @@ Item {
         }
         
         onReleased: {
+            // Force final update to ensure precise final position
+            jointDragThrottle.forceUpdate()
+            
             if (controller && controller.isDragging) {
                 controller.endJointDrag()
                 
@@ -497,10 +546,14 @@ Item {
                 if (viewportOverlay && viewportOverlay.selectionManager && selectedElement) {
                     viewportOverlay.selectionManager.selectElement(selectedElement)
                 }
-            } else if (root.dragging) {
+            }
+            
+            // Always clear dragging state and reset visual position
+            if (root.dragging) {
                 root.dragging = false
                 root.draggedJointIndex = -1
                 root.originalBounds = null
+                root.draggedJointVisualPos = Qt.point(0, 0) // Reset visual position
                 // Joint drag ended
                 
                 // Clear shape control dragging state
@@ -669,11 +722,23 @@ Item {
             // Account for padding since joints are normalized to shape bounds
             x: {
                 if (!selectedElement || !selectedElement.joints || jointIndex >= selectedElement.joints.length) return 0
+                
+                // Use visual position when this joint is being dragged
+                if (root.dragging && root.draggedJointIndex === jointIndex) {
+                    return root.draggedJointVisualPos.x - size / 2
+                }
+                
                 var shapeWidth = root.width - (jointPadding * 2)
                 return selectedElement.joints[jointIndex].x * shapeWidth + jointPadding - size / 2
             }
             y: {
                 if (!selectedElement || !selectedElement.joints || jointIndex >= selectedElement.joints.length) return 0
+                
+                // Use visual position when this joint is being dragged
+                if (root.dragging && root.draggedJointIndex === jointIndex) {
+                    return root.draggedJointVisualPos.y - size / 2
+                }
+                
                 var shapeHeight = root.height - (jointPadding * 2)
                 return selectedElement.joints[jointIndex].y * shapeHeight + jointPadding - size / 2
             }

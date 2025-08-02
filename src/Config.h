@@ -119,11 +119,11 @@ namespace Config {
     constexpr const char* CONTROL_BAR_COLOR = "rgba(255, 0, 0, 0.1)";           // Red with 10% opacity
     constexpr const char* CONTROL_ROTATION_JOINT_COLOR = "rgba(255, 0, 0, 0.1)"; // Red with 10% opacity
     constexpr const char* CONTROL_RESIZE_JOINT_COLOR = "rgba(0, 0, 255, 0.1)";  // Blue with 10% opacity
-    constexpr const char* CONTROL_INNER_RECT_COLOR = "rgba(255, 204, 0, 0.05)"; // Yellow with 5% opacity
+    constexpr const char* CONTROL_INNER_RECT_COLOR = "rgba(255, 204, 0, 0.0)"; // Yellow with 0% opacity
     constexpr const char* CONTROL_BAR_LINE_COLOR = "rgba(0, 100, 255, 1.0)";    // Blue with 100% opacity
     constexpr const char* CONTROL_JOINT_CIRCLE_FILL = "rgba(255, 255, 255, 1.0)"; // White fill
     constexpr const char* CONTROL_JOINT_CIRCLE_BORDER = "rgba(0, 100, 255, 1.0)"; // Blue border
-    constexpr const char* CONTROLS_BORDER_COLOR = "rgba(0, 0, 0, 0.2)";      // Black with 20% opacity for selection bounding box
+    constexpr const char* CONTROLS_BORDER_COLOR = "#0064FF";      // Blue for selection bounding box
     
     // Component instance colors (purple)
     constexpr const char* COMPONENT_CONTROL_BAR_COLOR = "rgba(128, 0, 128, 0.1)";           // Purple with 10% opacity
@@ -131,6 +131,7 @@ namespace Config {
     constexpr const char* COMPONENT_CONTROL_RESIZE_JOINT_COLOR = "rgba(128, 0, 128, 0.1)";   // Purple with 10% opacity
     constexpr const char* COMPONENT_CONTROL_BAR_LINE_COLOR = "rgba(128, 0, 128, 1.0)";       // Purple with 100% opacity
     constexpr const char* COMPONENT_CONTROL_JOINT_CIRCLE_BORDER = "rgba(128, 0, 128, 1.0)";  // Purple border
+    constexpr const char* COMPONENT_CONTROLS_BORDER_COLOR = "#800080";      // Purple for component selection bounding box
     
     // Element creation preview
     constexpr const char* ELEMENT_CREATION_PREVIEW_COLOR = "rgba(0, 100, 255, 0.1)";  // Blue with 10% opacity
