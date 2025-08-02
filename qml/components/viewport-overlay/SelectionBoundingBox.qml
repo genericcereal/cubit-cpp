@@ -39,7 +39,6 @@ Rectangle {
     color: "transparent"
     border.color: allSelectedAreComponentRelated ? ConfigObject.componentControlsBorderColorString : ConfigObject.controlsBorderColorString
     border.width: 1
-    visible: boundingWidth > 0 && boundingHeight > 0
     
     // Convert canvas coordinates to viewport coordinates
     x: (boundingX - canvasMinX) * zoomLevel - (flickable?.contentX ?? 0)

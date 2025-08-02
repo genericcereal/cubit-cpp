@@ -74,6 +74,28 @@ ColumnLayout {
                 }
                 return null;
             }
+        },
+        {
+            name: "Line Join",
+            type: "combobox",
+            model: ["miter", "round", "bevel"],
+            getter: () => selectedElement && selectedElement.lineJoin !== undefined ? selectedElement.lineJoin : "miter",
+            setter: v => {
+                if (selectedElement && selectedElement.elementType === "Shape") {
+                    selectedElement.lineJoin = v
+                }
+            }
+        },
+        {
+            name: "Line Cap",
+            type: "combobox",
+            model: ["butt", "round", "square"],
+            getter: () => selectedElement && selectedElement.lineCap !== undefined ? selectedElement.lineCap : "round",
+            setter: v => {
+                if (selectedElement && selectedElement.elementType === "Shape") {
+                    selectedElement.lineCap = v
+                }
+            }
         }
     ]
     
@@ -95,6 +117,13 @@ ColumnLayout {
     Component {
         id: checkBoxComp
         CheckBox {
+            Layout.fillWidth: true
+        }
+    }
+    
+    Component {
+        id: comboBoxComp
+        ComboBox {
             Layout.fillWidth: true
         }
     }
@@ -132,6 +161,7 @@ ColumnLayout {
                             sourceComponent: modelData.type === "label" ? labelComp
                                            : modelData.type === "spinbox" ? spinBoxComp
                                            : modelData.type === "checkbox" ? checkBoxComp
+                                           : modelData.type === "combobox" ? comboBoxComp
                                            : modelData.type === "property_popover" ? propertyPopoverComp
                                            : modelData.type === "object_input" ? objectInputComp
                                            : null
@@ -150,6 +180,18 @@ ColumnLayout {
                                     item.checked = Qt.binding(modelData.getter)
                                     item.toggled.connect(function() {
                                         modelData.setter(item.checked)
+                                    })
+                                } else if (modelData.type === "combobox") {
+                                    item.model = modelData.model
+                                    item.currentIndex = Qt.binding(function() {
+                                        var value = modelData.getter()
+                                        var idx = modelData.model.indexOf(value)
+                                        return idx !== -1 ? idx : 0
+                                    })
+                                    item.currentIndexChanged.connect(function() {
+                                        if (item.currentIndex >= 0 && item.currentIndex < modelData.model.length) {
+                                            modelData.setter(modelData.model[item.currentIndex])
+                                        }
                                     })
                                 } else if (modelData.type === "property_popover") {
                                     if (modelData.elementFillColor) {

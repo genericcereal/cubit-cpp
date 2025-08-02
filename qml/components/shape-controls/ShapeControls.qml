@@ -74,29 +74,16 @@ Item {
     
     // Don't bind position/size here - they will be set by parent
     
-    // Bounding box preview (shown during drag)
-    Rectangle {
-        id: boundingBoxPreview
-        visible: root.dragging
-        color: "transparent"
-        border.color: previewColor
-        border.width: 2
-        x: previewX * (root.width - jointPadding * 2) + jointPadding
-        y: previewY * (root.height - jointPadding * 2) + jointPadding
-        width: previewWidth * (root.width - jointPadding * 2)
-        height: previewHeight * (root.height - jointPadding * 2)
-    }
-    
     // Padding to accommodate joints that extend beyond shape bounds
     property real jointPadding: controlSize / 2
     
     // Draw the shape edges
     Canvas {
         id: shapeCanvas
-        // Make canvas larger to accommodate preview lines that extend beyond shape bounds
+        // Make canvas larger to accommodate preview lines and edge width
         anchors.centerIn: parent
-        width: Math.max(parent.width, parent.width + 500)  // Extra space for preview
-        height: Math.max(parent.height, parent.height + 500)  // Extra space for preview
+        width: Math.max(parent.width + (selectedElement ? selectedElement.edgeWidth * 2 : 0), parent.width + 500)  // Extra space for preview and edge width
+        height: Math.max(parent.height + (selectedElement ? selectedElement.edgeWidth * 2 : 0), parent.height + 500)  // Extra space for preview and edge width
         clip: false  // Allow drawing outside bounds
         
         onPaint: {
@@ -112,12 +99,18 @@ Item {
             var canvasOffsetX = (width - parent.width) / 2
             var canvasOffsetY = (height - parent.height) / 2
             
+            // Account for edge width in calculations
+            var edgeWidth = selectedElement.edgeWidth || 1
+            var edgePadding = edgeWidth
+            
             // Adjust for padding - joints are normalized to shape bounds, not control bounds
             var shapeWidth = parent.width - (jointPadding * 2)
             var shapeHeight = parent.height - (jointPadding * 2)
             
             ctx.strokeStyle = edgeColor
-            ctx.lineWidth = 1
+            ctx.lineWidth = selectedElement.edgeWidth || 1
+            ctx.lineJoin = selectedElement.lineJoin || "miter"
+            ctx.lineCap = selectedElement.lineCap || "round"
             
             // Draw edges based on shape type
             var isClosedShape = selectedElement.shapeType !== 2 // 2 = Pen (from Shape.h enum)

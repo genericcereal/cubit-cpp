@@ -136,19 +136,13 @@ Item {
         // Debug logging removed
     }
     
-    // Debug rectangle to see bounds
-    Rectangle {
-        anchors.fill: parent
-        color: "transparent"
-        border.color: "transparent"
-        border.width: 1
-        opacity: 0.5
-    }
-    
     // Shape rendering  
     Canvas {
         id: shapeCanvas
-        anchors.fill: parent
+        // Add padding to prevent edge clipping
+        anchors.centerIn: parent
+        width: parent.width + (shapeElement ? shapeElement.edgeWidth * 2 : 0)
+        height: parent.height + (shapeElement ? shapeElement.edgeWidth * 2 : 0)
         antialiasing: true
         
         onPaint: {
@@ -161,19 +155,24 @@ Item {
             
             var joints = shapeElement.joints
             var shapeType = shapeElement.shapeType
+            var padding = shapeElement.edgeWidth
+            var drawWidth = width - padding * 2
+            var drawHeight = height - padding * 2
             
             // Set stroke properties
             ctx.strokeStyle = shapeElement.edgeColor
             ctx.lineWidth = shapeElement.edgeWidth
             ctx.fillStyle = shapeElement.fillColor
+            ctx.lineJoin = shapeElement.lineJoin || "miter"
+            ctx.lineCap = shapeElement.lineCap || "round"
             
             // For closed shapes (Square, Triangle)
             if (shapeType !== 2) { // 2 = Pen
                 ctx.beginPath()
-                ctx.moveTo(joints[0].x * width, joints[0].y * height)
+                ctx.moveTo(joints[0].x * drawWidth + padding, joints[0].y * drawHeight + padding)
                 
                 for (var i = 1; i < joints.length; i++) {
-                    ctx.lineTo(joints[i].x * width, joints[i].y * height)
+                    ctx.lineTo(joints[i].x * drawWidth + padding, joints[i].y * drawHeight + padding)
                 }
                 
                 ctx.closePath()
@@ -194,9 +193,9 @@ Item {
                         var loop = closedLoops[loopIndex]
                         if (loop.length >= 3) { // Need at least 3 joints for a fillable area
                             ctx.beginPath()
-                            ctx.moveTo(joints[loop[0]].x * width, joints[loop[0]].y * height)
+                            ctx.moveTo(joints[loop[0]].x * drawWidth + padding, joints[loop[0]].y * drawHeight + padding)
                             for (var k = 1; k < loop.length; k++) {
-                                ctx.lineTo(joints[loop[k]].x * width, joints[loop[k]].y * height)
+                                ctx.lineTo(joints[loop[k]].x * drawWidth + padding, joints[loop[k]].y * drawHeight + padding)
                             }
                             ctx.closePath()
                             
@@ -207,17 +206,73 @@ Item {
                         }
                     }
                     
-                    // Then draw all edges as strokes
+                    // Set line join style for proper corners
+                    ctx.lineJoin = shapeElement.lineJoin || "miter"
+                    ctx.lineCap = shapeElement.lineCap || "round"
+                    
+                    // Build adjacency information to find connected paths
+                    var adjacency = {}
+                    var edgeUsed = []
+                    
                     for (var i = 0; i < edges.length; i++) {
+                        edgeUsed[i] = false
                         var edge = edges[i]
-                        var fromIndex = edge.from
-                        var toIndex = edge.to
+                        if (!adjacency[edge.from]) adjacency[edge.from] = []
+                        if (!adjacency[edge.to]) adjacency[edge.to] = []
+                        adjacency[edge.from].push({to: edge.to, edgeIndex: i})
+                        adjacency[edge.to].push({to: edge.from, edgeIndex: i})
+                    }
+                    
+                    // Draw connected paths
+                    for (var i = 0; i < edges.length; i++) {
+                        if (edgeUsed[i]) continue
                         
-                        if (fromIndex >= 0 && fromIndex < joints.length && 
-                            toIndex >= 0 && toIndex < joints.length) {
+                        var edge = edges[i]
+                        var path = [edge.from]
+                        var current = edge.to
+                        edgeUsed[i] = true
+                        
+                        // Follow the path forward
+                        while (current !== undefined && current !== edge.from) {
+                            path.push(current)
+                            var found = false
+                            
+                            if (adjacency[current]) {
+                                for (var j = 0; j < adjacency[current].length; j++) {
+                                    var neighbor = adjacency[current][j]
+                                    if (!edgeUsed[neighbor.edgeIndex]) {
+                                        edgeUsed[neighbor.edgeIndex] = true
+                                        current = neighbor.to
+                                        found = true
+                                        break
+                                    }
+                                }
+                            }
+                            
+                            if (!found) break
+                        }
+                        
+                        // Draw the path
+                        if (path.length >= 2) {
                             ctx.beginPath()
-                            ctx.moveTo(joints[fromIndex].x * width, joints[fromIndex].y * height)
-                            ctx.lineTo(joints[toIndex].x * width, joints[toIndex].y * height)
+                            ctx.moveTo(joints[path[0]].x * drawWidth + padding, joints[path[0]].y * drawHeight + padding)
+                            for (var k = 1; k < path.length; k++) {
+                                ctx.lineTo(joints[path[k]].x * drawWidth + padding, joints[path[k]].y * drawHeight + padding)
+                            }
+                            // Check if this path forms a closed loop
+                            var isClosedLoop = false
+                            if (adjacency[path[path.length - 1]]) {
+                                for (var j = 0; j < adjacency[path[path.length - 1]].length; j++) {
+                                    if (adjacency[path[path.length - 1]][j].to === path[0]) {
+                                        isClosedLoop = true
+                                        break
+                                    }
+                                }
+                            }
+                            // Close the path to draw the final edge back to start
+                            if (isClosedLoop) {
+                                ctx.closePath()
+                            }
                             ctx.stroke()
                         }
                     }
@@ -234,11 +289,11 @@ Item {
                                 ctx.stroke() // Finish previous path
                             }
                             ctx.beginPath()
-                            ctx.moveTo(joint.x * width, joint.y * height)
+                            ctx.moveTo(joint.x * drawWidth + padding, joint.y * drawHeight + padding)
                             pathStarted = true
                         } else {
                             // Continue current path
-                            ctx.lineTo(joint.x * width, joint.y * height)
+                            ctx.lineTo(joint.x * drawWidth + padding, joint.y * drawHeight + padding)
                         }
                     }
                     
@@ -268,6 +323,12 @@ Item {
                 shapeCanvas.requestPaint()
             }
             function onFillColorChanged() {
+                shapeCanvas.requestPaint()
+            }
+            function onLineJoinChanged() {
+                shapeCanvas.requestPaint()
+            }
+            function onLineCapChanged() {
                 shapeCanvas.requestPaint()
             }
         }

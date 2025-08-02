@@ -12,6 +12,7 @@ Item {
     property real canvasMinX: 0
     property real canvasMinY: 0
     property string canvasType: "design"
+    property var shapeControlsController: null
     
     // Bounding box properties from selection manager
     readonly property real selectionBoundingX: selectionManager?.boundingX ?? 0
@@ -24,7 +25,11 @@ Item {
         id: selectionBoundingBox
         visible: (canvasType === "design" || canvasType === "variant") && 
                  selectionManager && 
-                 selectionManager.hasVisualSelection
+                 selectionManager.hasVisualSelection &&
+                 selectionBoundingWidth > 0 && 
+                 selectionBoundingHeight > 0 &&
+                 !(root.shapeControlsController && root.shapeControlsController.isEditingShape) &&
+                 !(root.shapeControlsController && root.shapeControlsController.isShapeControlDragging)
         canvasMinX: root.canvasMinX
         canvasMinY: root.canvasMinY
         zoomLevel: root.zoomLevel

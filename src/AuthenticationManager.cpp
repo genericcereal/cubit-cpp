@@ -38,16 +38,10 @@ void AuthenticationManager::checkAutoLogin()
 {
     // If we have stored tokens, verify they're still valid
     if (m_isAuthenticated && !m_accessToken.isEmpty()) {
-        qDebug() << "User already authenticated, skipping login";
-        // Set loading to false since we're done checking
-        setIsLoading(false);
         return;
     }
     
-    // Auto-login on startup if not already authenticated
-    if (!m_isAuthenticated) {
-        login();
-    }
+    // Don't automatically login - let the user click the login button
 }
 
 void AuthenticationManager::login()
@@ -71,7 +65,6 @@ void AuthenticationManager::login()
     query.addQueryItem("state", m_currentState);
     authUrl.setQuery(query);
     
-    qDebug() << "Opening authentication URL:" << authUrl.toString();
     
     // Open the URL in the default browser
     bool opened = QDesktopServices::openUrl(authUrl);
@@ -90,13 +83,11 @@ void AuthenticationManager::login()
             qCritical() << "ShellExecute failed with error code:" << reinterpret_cast<INT_PTR>(result);
             emit authenticationError("Failed to open login URL in browser. Please use the 'Open Login URL in Browser' button.");
         } else {
-            qDebug() << "Successfully opened URL using ShellExecute";
         }
 #else
         emit authenticationError("Failed to open login URL in browser. Please use the 'Open Login URL in Browser' button.");
 #endif
     } else {
-        qDebug() << "Successfully opened URL using QDesktopServices";
     }
     
     // Start checking for callback
@@ -119,7 +110,6 @@ void AuthenticationManager::logout()
 
 bool AuthenticationManager::handleCallback(const QUrl& url)
 {
-    qDebug() << "Handling callback URL:" << url.toString();
     
     // Check if this is our callback URL
     if (url.scheme() != "cubitapp" || url.host() != "callback") {
@@ -384,7 +374,6 @@ void AuthenticationManager::refreshAccessToken() {
     
     // Prevent concurrent refresh attempts
     if (m_isRefreshing) {
-        qDebug() << "Token refresh already in progress, skipping duplicate request";
         return;
     }
     
@@ -412,7 +401,6 @@ void AuthenticationManager::refreshAccessToken() {
         
         if (reply->error() != QNetworkReply::NoError) {
             QString errorString = reply->errorString();
-            qDebug() << "Token refresh error:" << errorString;
             
             // If refresh fails, clear authentication and require re-login
             clearAuthData();
@@ -434,7 +422,6 @@ void AuthenticationManager::refreshAccessToken() {
             // Save the new tokens
             saveTokens();
             
-            qDebug() << "Successfully refreshed access token";
             m_isRefreshing = false;
             emit tokensRefreshed();
             
@@ -442,7 +429,6 @@ void AuthenticationManager::refreshAccessToken() {
             fetchUserInfo();
         } else {
             QString error = obj["error"].toString();
-            qDebug() << "Token refresh failed:" << error;
             clearAuthData();
             emit authenticationError("Token refresh failed: " + error);
             m_isRefreshing = false;
