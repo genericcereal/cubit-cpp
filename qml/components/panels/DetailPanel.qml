@@ -2,10 +2,11 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Cubit
+import Cubit 1.0
 
 Rectangle {
     id: root
-    color: "#ffffff"
+    color: ConfigObject.panelBackground
     antialiasing: true
     
     property var elementModel
@@ -71,7 +72,7 @@ Rectangle {
             
             // Details tab content
             Rectangle {
-                color: "#ffffff"
+                color: ConfigObject.panelBackground
                 
                 ColumnLayout {
                     anchors.fill: parent
@@ -89,7 +90,7 @@ Rectangle {
                             SplitView.fillWidth: true
                             SplitView.preferredHeight: parent.height * 0.5
                             SplitView.minimumHeight: 100
-                            color: "#ffffff"
+                            color: ConfigObject.panelBackground
                             
                             ColumnLayout {
                                 anchors.fill: parent
@@ -99,7 +100,7 @@ Rectangle {
                                 Rectangle {
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 30
-                                    color: "#f8f8f8"
+                                    color: ConfigObject.panelHeaderBackground
                                     
                                     Label {
                                         anchors.left: parent.left
@@ -115,7 +116,7 @@ Rectangle {
                                 Rectangle {
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 1
-                                    color: "#e0e0e0"
+                                    color: ConfigObject.panelHeaderBackground
                                 }
                                 
                                 // Elements list
@@ -134,7 +135,7 @@ Rectangle {
                             SplitView.fillWidth: true
                             SplitView.fillHeight: true
                             SplitView.minimumHeight: 100
-                            color: "#ffffff"
+                            color: ConfigObject.panelBackground
                             
                             ColumnLayout {
                                 anchors.fill: parent
@@ -144,7 +145,7 @@ Rectangle {
                                 Rectangle {
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 30
-                                    color: "#f8f8f8"
+                                    color: ConfigObject.panelHeaderBackground
                                     
                                     Label {
                                         anchors.left: parent.left
@@ -160,7 +161,7 @@ Rectangle {
                                 Rectangle {
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 1
-                                    color: "#e0e0e0"
+                                    color: ConfigObject.panelHeaderBackground
                                 }
                                 
                                 // Properties panel

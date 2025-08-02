@@ -58,11 +58,11 @@ Item {
                 return false
             }
             // Hide when editing shapes - this is when ShapeControls are active
-            if (controller && controller.isEditingShape) {
+            if (root.shapeControlsController && root.shapeControlsController.isEditingShape) {
                 return false
             }
             // Hide when shape controls are actively dragging (prevents reactivation during drag)
-            if (controller && controller.isShapeControlDragging) {
+            if (root.shapeControlsController && root.shapeControlsController.isShapeControlDragging) {
                 return false
             }
             // Hide during pen creation mode
@@ -92,9 +92,10 @@ Item {
             
             function onSelectedElementsChanged() {
                 // Handle selection change
-                // Exit shape editing mode if selection changes
-                if (controller && controller.isEditingShape) {
-                    controller.isEditingShape = false
+                // Exit shape editing mode if selection changes (but not while dragging)
+                if (root.shapeControlsController && root.shapeControlsController.isEditingShape && 
+                    !root.shapeControlsController.isShapeControlDragging) {
+                    root.shapeControlsController.isEditingShape = false
                 }
                 
                 // Exit edit mode for any text elements that were being edited
@@ -624,7 +625,7 @@ Item {
             }
             
             // Show when explicitly editing shapes
-            if (root.controller.isEditingShape) {
+            if (root.shapeControlsController && root.shapeControlsController.isEditingShape) {
                 lastVisibleState = true
                 return true
             }

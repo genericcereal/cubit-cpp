@@ -33,6 +33,13 @@ BaseCanvas {
         }
     }
     
+    Component.onDestruction: {
+        // Clear controller references to prevent access during destruction
+        if (root.controller) {
+            root.controller.shapeControlsController = null
+        }
+    }
+    
     // Expose the element layer for viewport overlay
     property alias elementLayer: elementLayer
     
@@ -62,6 +69,42 @@ BaseCanvas {
     
     // Add elements into the default contentData
     contentData: [
+        // Connection to clear shape editing mode when selection changes
+        Connections {
+            target: root.selectionManager
+            enabled: root.selectionManager !== null
+            
+            function onSelectionChanged() {
+                // Don't clear shape editing mode while dragging
+                if (root.canvas && root.canvas.shapeControlsController && 
+                    root.canvas.shapeControlsController.isShapeControlDragging) {
+                    return
+                }
+                
+                // Clear shape editing mode when:
+                // 1. Selection is empty
+                // 2. Selected element is not a shape
+                if (root.canvas && root.canvas.shapeControlsController) {
+                    if (root.selectionManager.selectedElements.length === 0) {
+                        // No selection - clear shape editing mode
+                        root.canvas.shapeControlsController.isEditingShape = false
+                        root.canvas.shapeControlsController.isShapeControlDragging = false
+                    } else if (root.selectionManager.selectedElements.length === 1) {
+                        var element = root.selectionManager.selectedElements[0]
+                        if (!element || element.elementType !== "Shape") {
+                            // Single selection but not a shape - clear shape editing mode
+                            root.canvas.shapeControlsController.isEditingShape = false
+                            root.canvas.shapeControlsController.isShapeControlDragging = false
+                        }
+                    } else {
+                        // Multiple selection - clear shape editing mode
+                        root.canvas.shapeControlsController.isEditingShape = false
+                        root.canvas.shapeControlsController.isShapeControlDragging = false
+                    }
+                }
+            }
+        },
+        
         // Throttled update for element creation
         ThrottledUpdate {
             id: creationThrottle
@@ -180,14 +223,41 @@ BaseCanvas {
     
     function handleClick(pt) {
         if (root.controller.mode === CanvasController.Select) {
-            // Exit shape editing mode if clicking on background
-            if (root.controller.isEditingShape) {
-                root.controller.isEditingShape = false
+            // Check if clicking on empty space (no element under cursor)
+            var element = root.controller.hitTest(pt.x, pt.y)
+            
+            // Always clear shape editing states when clicking on canvas
+            if (root.canvas && root.canvas.shapeControlsController) {
+                // Clear selected joint index
+                root.canvas.shapeControlsController.setSelectedJointIndex(-1)
+                
+                // Exit shape editing mode
+                root.canvas.shapeControlsController.isEditingShape = false
+                
+                // Clear shape control dragging
+                root.canvas.shapeControlsController.isShapeControlDragging = false
             }
             
-            // In select mode, handle click for selection
-            root.controller.handleMousePress(pt.x, pt.y)
-            root.controller.handleMouseRelease(pt.x, pt.y)
+            // If clicking on empty space, clear the selection after a small delay
+            if (!element && root.selectionManager) {
+                Qt.callLater(function() {
+                    if (root.selectionManager) {
+                        root.selectionManager.clearSelection()
+                    }
+                })
+                return // Don't process further
+            }
+            
+            if (!element) {
+                // Clear selection when clicking on empty canvas
+                if (root.selectionManager) {
+                    root.selectionManager.clearSelection()
+                }
+            } else {
+                // In select mode, handle click for selection
+                root.controller.handleMousePress(pt.x, pt.y)
+                root.controller.handleMouseRelease(pt.x, pt.y)
+            }
         } else if (root.controller.mode === CanvasController.ShapePen) {
             // Pen creation mode - handle clicks to add joints
             root.controller.handleMousePress(pt.x, pt.y)
@@ -195,12 +265,35 @@ BaseCanvas {
         // Other creation modes don't create on click - require drag
     }
     
+    // Watch for selection changes to exit shape editing mode
+    Connections {
+        target: root.selectionManager
+        enabled: root.selectionManager !== null
+        
+        function onSelectionChanged() {
+            // Exit shape editing mode when selection changes
+            if (root.controller && root.controller.isEditingShape) {
+                root.controller.isEditingShape = false
+                if (root.controller.isShapeControlDragging) {
+                    root.controller.isShapeControlDragging = false
+                }
+                // Clear selected joint index in shape controls controller
+                // Add extra safety check for the method existence
+                if (root.canvas && root.canvas.shapeControlsController && 
+                    typeof root.canvas.shapeControlsController.setSelectedJointIndex === 'function') {
+                    root.canvas.shapeControlsController.setSelectedJointIndex(-1)
+                }
+            }
+        }
+    }
+    
     // Watch for mode changes to clear preview
     Connections {
         target: root.controller
         enabled: root.controller !== null
         function onModeChanged() {
-            if (root.controller.mode !== CanvasController.ShapePen && root.shapeControlsController) {
+            if (root.controller.mode !== CanvasController.ShapePen && root.shapeControlsController &&
+                typeof root.shapeControlsController.showLinePreview !== 'undefined') {
                 // Clear the preview when leaving pen mode
                 root.shapeControlsController.showLinePreview = false
             }
@@ -217,8 +310,12 @@ BaseCanvas {
         
         // Update shape controls preview during pen creation
         if (root.controller && root.controller.mode === CanvasController.ShapePen && root.shapeControlsController) {
-            root.shapeControlsController.linePreviewPoint = pt
-            root.shapeControlsController.showLinePreview = true
+            if (typeof root.shapeControlsController.linePreviewPoint !== 'undefined') {
+                root.shapeControlsController.linePreviewPoint = pt
+            }
+            if (typeof root.shapeControlsController.showLinePreview !== 'undefined') {
+                root.shapeControlsController.showLinePreview = true
+            }
         }
         
     }

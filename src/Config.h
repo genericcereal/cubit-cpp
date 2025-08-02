@@ -2,7 +2,7 @@
 
 // Application configuration constants
 namespace Config {
-    // Colors
+    // Light mode colors
     constexpr const char* SELECTION_COLOR = "#0066cc";
     constexpr const char* HOVER_COLOR = "#999999";
     constexpr const char* CANVAS_BACKGROUND = "#f5f5f5";
@@ -11,6 +11,90 @@ namespace Config {
     constexpr const char* ELEMENT_BACKGROUND_COLOR = "#E6F3FF";  // Light blue for frames and text
     constexpr const char* NODE_SELECTION_BOUNDS_COLOR = "#0066cc";  // Blue for node multi-select bounding box
     constexpr const char* TEXT_COLOR = "#333333";  // Dark gray for text
+    
+    // Dark mode colors
+    constexpr const char* DARK_SELECTION_COLOR = "#4C9AFF";
+    constexpr const char* DARK_HOVER_COLOR = "#666666";
+    constexpr const char* DARK_CANVAS_BACKGROUND = "#1e1e1e";
+    constexpr const char* DARK_PANEL_BACKGROUND = "#252526";
+    constexpr const char* DARK_PANEL_HEADER_BACKGROUND = "#2d2d30";
+    constexpr const char* DARK_ELEMENT_BACKGROUND_COLOR = "#264F78";  // Dark blue for frames and text
+    constexpr const char* DARK_NODE_SELECTION_BOUNDS_COLOR = "#4C9AFF";  // Light blue for node multi-select bounding box
+    constexpr const char* DARK_TEXT_COLOR = "#CCCCCC";  // Light gray for text
+    
+    // Actions panel colors
+    constexpr const char* ACTIONS_PANEL_BACKGROUND = "rgba(0, 0, 0, 0.8)";  // Semi-transparent black
+    constexpr const char* DARK_ACTIONS_PANEL_BACKGROUND = "rgba(32, 32, 32, 0.9)";  // Semi-transparent dark gray
+    
+    // List item colors
+    constexpr const char* LIST_ITEM_BACKGROUND = "#ffffff";
+    constexpr const char* LIST_ITEM_HOVER = "#f5f5f5";
+    constexpr const char* LIST_ITEM_SELECTED = "#e3f2fd";
+    constexpr const char* DARK_LIST_ITEM_BACKGROUND = "#2d2d30";
+    constexpr const char* DARK_LIST_ITEM_HOVER = "#3e3e42";
+    constexpr const char* DARK_LIST_ITEM_SELECTED = "#094771";
+    
+    // Expand box colors
+    constexpr const char* EXPAND_BOX_BACKGROUND = "#f5f5f5";
+    constexpr const char* EXPAND_BOX_HOVER = "#e0e0e0";
+    constexpr const char* EXPAND_BOX_BORDER = "#cccccc";
+    constexpr const char* EXPAND_BOX_TEXT = "#444444";
+    constexpr const char* DARK_EXPAND_BOX_BACKGROUND = "#3e3e42";
+    constexpr const char* DARK_EXPAND_BOX_HOVER = "#4e4e52";
+    constexpr const char* DARK_EXPAND_BOX_BORDER = "#555555";
+    constexpr const char* DARK_EXPAND_BOX_TEXT = "#cccccc";
+    
+    // Secondary text color
+    constexpr const char* SECONDARY_TEXT_COLOR = "#666666";
+    constexpr const char* DARK_SECONDARY_TEXT_COLOR = "#999999";
+    
+    // Drop indicator color
+    constexpr const char* DROP_INDICATOR_COLOR = "#2196F3";
+    constexpr const char* DARK_DROP_INDICATOR_COLOR = "#4C9AFF";
+    
+    // Project list colors
+    constexpr const char* PROJECT_CARD_BACKGROUND = "#ffffff";
+    constexpr const char* PROJECT_CARD_BORDER = "#E0E0E0";
+    constexpr const char* PROJECT_CARD_HOVER_BORDER = "#1976FF";
+    constexpr const char* PROJECT_THUMBNAIL_BACKGROUND = "#F0F0F0";
+    constexpr const char* DARK_PROJECT_CARD_BACKGROUND = "#2d2d30";
+    constexpr const char* DARK_PROJECT_CARD_BORDER = "#444444";
+    constexpr const char* DARK_PROJECT_CARD_HOVER_BORDER = "#4C9AFF";
+    constexpr const char* DARK_PROJECT_THUMBNAIL_BACKGROUND = "#1e1e1e";
+    
+    // Button colors
+    constexpr const char* PRIMARY_BUTTON_COLOR = "#1976FF";
+    constexpr const char* PRIMARY_BUTTON_HOVER = "#3385FF";
+    constexpr const char* PRIMARY_BUTTON_PRESSED = "#0066FF";
+    constexpr const char* DARK_PRIMARY_BUTTON_COLOR = "#4C9AFF";
+    constexpr const char* DARK_PRIMARY_BUTTON_HOVER = "#5DA8FF";
+    constexpr const char* DARK_PRIMARY_BUTTON_PRESSED = "#3D8AFF";
+    
+    // Error colors
+    constexpr const char* ERROR_BACKGROUND = "#FFEBEE";
+    constexpr const char* ERROR_BORDER = "#F44336";
+    constexpr const char* ERROR_TEXT = "#D32F2F";
+    constexpr const char* DARK_ERROR_BACKGROUND = "#3D1F1F";
+    constexpr const char* DARK_ERROR_BORDER = "#CF6679";
+    constexpr const char* DARK_ERROR_TEXT = "#CF6679";
+    
+    // Delete button colors
+    constexpr const char* DELETE_BUTTON_COLOR = "#FF5555";
+    constexpr const char* DELETE_BUTTON_HOVER = "#FF3333";
+    constexpr const char* DELETE_BUTTON_PRESSED = "#CC0000";
+    constexpr const char* DARK_DELETE_BUTTON_COLOR = "#CF6679";
+    constexpr const char* DARK_DELETE_BUTTON_HOVER = "#E57373";
+    constexpr const char* DARK_DELETE_BUTTON_PRESSED = "#D32F2F";
+    
+    // Disabled state colors
+    constexpr const char* DISABLED_BACKGROUND = "#CCCCCC";
+    constexpr const char* DISABLED_TEXT = "#666666";
+    constexpr const char* DARK_DISABLED_BACKGROUND = "#3e3e42";
+    constexpr const char* DARK_DISABLED_TEXT = "#999999";
+    
+    // Main text color (different from general text color)
+    constexpr const char* MAIN_TEXT_COLOR = "#1A1A1A";
+    constexpr const char* DARK_MAIN_TEXT_COLOR = "#E0E0E0";
     
     // Node colors
     constexpr const char* NODE_DEFAULT_COLOR = "#E6F3FF";       // Light blue (same as element background)

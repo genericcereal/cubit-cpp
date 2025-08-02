@@ -2,10 +2,11 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import Cubit
+import Cubit 1.0
 
 Rectangle {
     id: root
-    color: "#F5F5F5"
+    color: ConfigObject.canvasBackground
 
     property bool isLoading: false
     property string errorMessage: ""
@@ -69,7 +70,6 @@ Rectangle {
     function fetchProjects() {
         // Prevent duplicate requests if already loading
         if (isLoading) {
-            console.log("ProjectList: Already loading projects, skipping duplicate request")
             return
         }
         
@@ -168,7 +168,7 @@ Rectangle {
                 text: "Projects"
                 font.pixelSize: 32
                 font.weight: Font.Bold
-                color: "#1A1A1A"
+                color: ConfigObject.mainTextColor
                 Layout.fillWidth: true
             }
             
@@ -176,7 +176,7 @@ Rectangle {
             Rectangle {
                 width: 100
                 height: 35
-                color: refreshMouseArea.pressed ? "#0066FF" : (refreshMouseArea.containsMouse ? "#3385FF" : "#1976FF")
+                color: refreshMouseArea.pressed ? ConfigObject.primaryButtonPressed : (refreshMouseArea.containsMouse ? ConfigObject.primaryButtonHover : ConfigObject.primaryButtonColor)
                 radius: 6
                 visible: !isLoading
                 
@@ -184,7 +184,7 @@ Rectangle {
                     anchors.centerIn: parent
                     text: "Refresh"
                     font.pixelSize: 14
-                    color: "white"
+                    color: ConfigObject.projectCardBackground
                 }
                 
                 MouseArea {
@@ -201,7 +201,7 @@ Rectangle {
             Rectangle {
                 width: 100
                 height: 35
-                color: "#CCCCCC"
+                color: ConfigObject.disabledBackground
                 radius: 6
                 visible: isLoading
                 
@@ -209,7 +209,7 @@ Rectangle {
                     anchors.centerIn: parent
                     text: "Loading..."
                     font.pixelSize: 14
-                    color: "#666666"
+                    color: ConfigObject.disabledText
                 }
             }
         }
@@ -218,8 +218,8 @@ Rectangle {
         Rectangle {
             Layout.fillWidth: true
             height: 50
-            color: "#FFEBEE"
-            border.color: "#F44336"
+            color: ConfigObject.errorBackground
+            border.color: ConfigObject.errorBorder
             border.width: 1
             radius: 8
             visible: errorMessage !== ""
@@ -227,7 +227,7 @@ Rectangle {
             Text {
                 anchors.centerIn: parent
                 text: errorMessage
-                color: "#D32F2F"
+                color: ConfigObject.errorText
                 font.pixelSize: 14
             }
         }
@@ -268,14 +268,14 @@ Rectangle {
                         Text {
                             text: "No projects found"
                             font.pixelSize: 18
-                            color: "#666666"
+                            color: ConfigObject.disabledText
                             anchors.horizontalCenter: parent.horizontalCenter
                         }
                         
                         Text {
                             text: "Create your first project to get started"
                             font.pixelSize: 14
-                            color: "#999999"
+                            color: ConfigObject.secondaryTextColor
                             anchors.horizontalCenter: parent.horizontalCenter
                         }
                     }
@@ -289,14 +289,14 @@ Rectangle {
             Layout.alignment: Qt.AlignHCenter
             width: 200
             height: 50
-            color: mouseArea.pressed ? "#0066FF" : (mouseArea.containsMouse ? "#3385FF" : "#1976FF")
+            color: mouseArea.pressed ? ConfigObject.primaryButtonPressed : (mouseArea.containsMouse ? ConfigObject.primaryButtonHover : ConfigObject.primaryButtonColor)
             radius: 8
 
             Text {
                 anchors.centerIn: parent
                 text: "Create New Project"
                 font.pixelSize: 16
-                color: "white"
+                color: ConfigObject.projectCardBackground
             }
 
             MouseArea {
@@ -336,9 +336,9 @@ Rectangle {
         Rectangle {
             width: 280
             height: 180
-            color: "white"
+            color: ConfigObject.projectCardBackground
             radius: 12
-            border.color: isHovered ? "#1976FF" : "#E0E0E0"
+            border.color: isHovered ? ConfigObject.projectCardHoverBorder : ConfigObject.projectCardBorder
             border.width: 1
             
             property bool isHovered: projectHoverArea.containsMouse || deleteMouseArea.containsMouse
@@ -362,7 +362,7 @@ Rectangle {
                 anchors.top: parent.top
                 anchors.right: parent.right
                 anchors.margins: 10
-                color: deleteMouseArea.pressed ? "#CC0000" : (deleteMouseArea.containsMouse ? "#FF3333" : "#FF5555")
+                color: deleteMouseArea.pressed ? ConfigObject.deleteButtonPressed : (deleteMouseArea.containsMouse ? ConfigObject.deleteButtonHover : ConfigObject.deleteButtonColor)
                 radius: 6
                 visible: parent.isHovered
                 opacity: visible ? 1.0 : 0.0
@@ -376,7 +376,7 @@ Rectangle {
                     anchors.centerIn: parent
                     text: "✕"
                     font.pixelSize: 16
-                    color: "white"
+                    color: ConfigObject.projectCardBackground
                     font.weight: Font.Bold
                 }
 
@@ -406,7 +406,7 @@ Rectangle {
                 Rectangle {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    color: "#F0F0F0"
+                    color: ConfigObject.projectThumbnailBackground
                     radius: 8
 
                     Text {
@@ -422,7 +422,7 @@ Rectangle {
                     text: model.name
                     font.pixelSize: 16
                     font.weight: Font.Medium
-                    color: "#1A1A1A"
+                    color: ConfigObject.mainTextColor
                     elide: Text.ElideRight
                     Layout.fillWidth: true
                 }
@@ -431,7 +431,7 @@ Rectangle {
                 Text {
                     text: "Modified " + model.lastModified
                     font.pixelSize: 12
-                    color: "#666666"
+                    color: ConfigObject.disabledText
                 }
             }
         }

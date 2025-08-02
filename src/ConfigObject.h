@@ -5,6 +5,8 @@
 #include <QColor>
 #include <QQmlEngine>
 #include <QVariantList>
+#include <QGuiApplication>
+#include <QStyleHints>
 #include "Config.h"
 
 // Singleton to expose Config values to QML
@@ -14,15 +16,56 @@ class ConfigObject : public QObject
     QML_ELEMENT
     QML_SINGLETON
     
-    // Colors
-    Q_PROPERTY(QString selectionColor READ selectionColor CONSTANT)
-    Q_PROPERTY(QString hoverColor READ hoverColor CONSTANT)
-    Q_PROPERTY(QString canvasBackground READ canvasBackground CONSTANT)
-    Q_PROPERTY(QString panelBackground READ panelBackground CONSTANT)
-    Q_PROPERTY(QString panelHeaderBackground READ panelHeaderBackground CONSTANT)
-    Q_PROPERTY(QString elementBackgroundColor READ elementBackgroundColor CONSTANT)
-    Q_PROPERTY(QString nodeSelectionBoundsColor READ nodeSelectionBoundsColor CONSTANT)
-    Q_PROPERTY(QString textColor READ textColor CONSTANT)
+    // Dark mode (follows system setting)
+    Q_PROPERTY(bool darkMode READ darkMode NOTIFY darkModeChanged)
+    
+    // Colors (now dynamic based on dark mode)
+    Q_PROPERTY(QString selectionColor READ selectionColor NOTIFY darkModeChanged)
+    Q_PROPERTY(QString hoverColor READ hoverColor NOTIFY darkModeChanged)
+    Q_PROPERTY(QString canvasBackground READ canvasBackground NOTIFY darkModeChanged)
+    Q_PROPERTY(QString panelBackground READ panelBackground NOTIFY darkModeChanged)
+    Q_PROPERTY(QString panelHeaderBackground READ panelHeaderBackground NOTIFY darkModeChanged)
+    Q_PROPERTY(QString elementBackgroundColor READ elementBackgroundColor NOTIFY darkModeChanged)
+    Q_PROPERTY(QString nodeSelectionBoundsColor READ nodeSelectionBoundsColor NOTIFY darkModeChanged)
+    Q_PROPERTY(QString textColor READ textColor NOTIFY darkModeChanged)
+    Q_PROPERTY(QString actionsPanelBackground READ actionsPanelBackground NOTIFY darkModeChanged)
+    Q_PROPERTY(QString listItemBackground READ listItemBackground NOTIFY darkModeChanged)
+    Q_PROPERTY(QString listItemHover READ listItemHover NOTIFY darkModeChanged)
+    Q_PROPERTY(QString listItemSelected READ listItemSelected NOTIFY darkModeChanged)
+    Q_PROPERTY(QString expandBoxBackground READ expandBoxBackground NOTIFY darkModeChanged)
+    Q_PROPERTY(QString expandBoxHover READ expandBoxHover NOTIFY darkModeChanged)
+    Q_PROPERTY(QString expandBoxBorder READ expandBoxBorder NOTIFY darkModeChanged)
+    Q_PROPERTY(QString expandBoxText READ expandBoxText NOTIFY darkModeChanged)
+    Q_PROPERTY(QString secondaryTextColor READ secondaryTextColor NOTIFY darkModeChanged)
+    Q_PROPERTY(QString dropIndicatorColor READ dropIndicatorColor NOTIFY darkModeChanged)
+    
+    // Project list colors
+    Q_PROPERTY(QString projectCardBackground READ projectCardBackground NOTIFY darkModeChanged)
+    Q_PROPERTY(QString projectCardBorder READ projectCardBorder NOTIFY darkModeChanged)
+    Q_PROPERTY(QString projectCardHoverBorder READ projectCardHoverBorder NOTIFY darkModeChanged)
+    Q_PROPERTY(QString projectThumbnailBackground READ projectThumbnailBackground NOTIFY darkModeChanged)
+    
+    // Button colors
+    Q_PROPERTY(QString primaryButtonColor READ primaryButtonColor NOTIFY darkModeChanged)
+    Q_PROPERTY(QString primaryButtonHover READ primaryButtonHover NOTIFY darkModeChanged)
+    Q_PROPERTY(QString primaryButtonPressed READ primaryButtonPressed NOTIFY darkModeChanged)
+    
+    // Error colors
+    Q_PROPERTY(QString errorBackground READ errorBackground NOTIFY darkModeChanged)
+    Q_PROPERTY(QString errorBorder READ errorBorder NOTIFY darkModeChanged)
+    Q_PROPERTY(QString errorText READ errorText NOTIFY darkModeChanged)
+    
+    // Delete button colors
+    Q_PROPERTY(QString deleteButtonColor READ deleteButtonColor NOTIFY darkModeChanged)
+    Q_PROPERTY(QString deleteButtonHover READ deleteButtonHover NOTIFY darkModeChanged)
+    Q_PROPERTY(QString deleteButtonPressed READ deleteButtonPressed NOTIFY darkModeChanged)
+    
+    // Disabled state colors
+    Q_PROPERTY(QString disabledBackground READ disabledBackground NOTIFY darkModeChanged)
+    Q_PROPERTY(QString disabledText READ disabledText NOTIFY darkModeChanged)
+    
+    // Main text color
+    Q_PROPERTY(QString mainTextColor READ mainTextColor NOTIFY darkModeChanged)
     
     // Node colors
     Q_PROPERTY(QString nodeDefaultColor READ nodeDefaultColor CONSTANT)
@@ -130,17 +173,137 @@ class ConfigObject : public QObject
     Q_PROPERTY(QVariantList platformOptions READ platformOptions CONSTANT)
     
 public:
-    ConfigObject(QObject *parent = nullptr) : QObject(parent) {}
+    ConfigObject(QObject *parent = nullptr) : QObject(parent) {
+        // Connect to system theme changes
+        if (QGuiApplication::styleHints()) {
+            connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged,
+                    this, &ConfigObject::darkModeChanged);
+        }
+    }
     
-    // Color getters
-    QString selectionColor() const { return Config::SELECTION_COLOR; }
-    QString hoverColor() const { return Config::HOVER_COLOR; }
-    QString canvasBackground() const { return Config::CANVAS_BACKGROUND; }
-    QString panelBackground() const { return Config::PANEL_BACKGROUND; }
-    QString panelHeaderBackground() const { return Config::PANEL_HEADER_BACKGROUND; }
-    QString elementBackgroundColor() const { return Config::ELEMENT_BACKGROUND_COLOR; }
-    QString nodeSelectionBoundsColor() const { return Config::NODE_SELECTION_BOUNDS_COLOR; }
-    QString textColor() const { return Config::TEXT_COLOR; }
+    // Dark mode getter (follows system setting)
+    bool darkMode() const { 
+        if (QGuiApplication::styleHints()) {
+            return QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark;
+        }
+        return false;
+    }
+    
+    // Color getters (now conditional on dark mode)
+    QString selectionColor() const { 
+        return darkMode() ? Config::DARK_SELECTION_COLOR : Config::SELECTION_COLOR; 
+    }
+    QString hoverColor() const { 
+        return darkMode() ? Config::DARK_HOVER_COLOR : Config::HOVER_COLOR; 
+    }
+    QString canvasBackground() const { 
+        return darkMode() ? Config::DARK_CANVAS_BACKGROUND : Config::CANVAS_BACKGROUND; 
+    }
+    QString panelBackground() const { 
+        return darkMode() ? Config::DARK_PANEL_BACKGROUND : Config::PANEL_BACKGROUND; 
+    }
+    QString panelHeaderBackground() const { 
+        return darkMode() ? Config::DARK_PANEL_HEADER_BACKGROUND : Config::PANEL_HEADER_BACKGROUND; 
+    }
+    QString elementBackgroundColor() const { 
+        return darkMode() ? Config::DARK_ELEMENT_BACKGROUND_COLOR : Config::ELEMENT_BACKGROUND_COLOR; 
+    }
+    QString nodeSelectionBoundsColor() const { 
+        return darkMode() ? Config::DARK_NODE_SELECTION_BOUNDS_COLOR : Config::NODE_SELECTION_BOUNDS_COLOR; 
+    }
+    QString textColor() const { 
+        return darkMode() ? Config::DARK_TEXT_COLOR : Config::TEXT_COLOR; 
+    }
+    QString actionsPanelBackground() const { 
+        return darkMode() ? Config::DARK_ACTIONS_PANEL_BACKGROUND : Config::ACTIONS_PANEL_BACKGROUND; 
+    }
+    QString listItemBackground() const { 
+        return darkMode() ? Config::DARK_LIST_ITEM_BACKGROUND : Config::LIST_ITEM_BACKGROUND; 
+    }
+    QString listItemHover() const { 
+        return darkMode() ? Config::DARK_LIST_ITEM_HOVER : Config::LIST_ITEM_HOVER; 
+    }
+    QString listItemSelected() const { 
+        return darkMode() ? Config::DARK_LIST_ITEM_SELECTED : Config::LIST_ITEM_SELECTED; 
+    }
+    QString expandBoxBackground() const { 
+        return darkMode() ? Config::DARK_EXPAND_BOX_BACKGROUND : Config::EXPAND_BOX_BACKGROUND; 
+    }
+    QString expandBoxHover() const { 
+        return darkMode() ? Config::DARK_EXPAND_BOX_HOVER : Config::EXPAND_BOX_HOVER; 
+    }
+    QString expandBoxBorder() const { 
+        return darkMode() ? Config::DARK_EXPAND_BOX_BORDER : Config::EXPAND_BOX_BORDER; 
+    }
+    QString expandBoxText() const { 
+        return darkMode() ? Config::DARK_EXPAND_BOX_TEXT : Config::EXPAND_BOX_TEXT; 
+    }
+    QString secondaryTextColor() const { 
+        return darkMode() ? Config::DARK_SECONDARY_TEXT_COLOR : Config::SECONDARY_TEXT_COLOR; 
+    }
+    QString dropIndicatorColor() const { 
+        return darkMode() ? Config::DARK_DROP_INDICATOR_COLOR : Config::DROP_INDICATOR_COLOR; 
+    }
+    
+    // Project list colors
+    QString projectCardBackground() const { 
+        return darkMode() ? Config::DARK_PROJECT_CARD_BACKGROUND : Config::PROJECT_CARD_BACKGROUND; 
+    }
+    QString projectCardBorder() const { 
+        return darkMode() ? Config::DARK_PROJECT_CARD_BORDER : Config::PROJECT_CARD_BORDER; 
+    }
+    QString projectCardHoverBorder() const { 
+        return darkMode() ? Config::DARK_PROJECT_CARD_HOVER_BORDER : Config::PROJECT_CARD_HOVER_BORDER; 
+    }
+    QString projectThumbnailBackground() const { 
+        return darkMode() ? Config::DARK_PROJECT_THUMBNAIL_BACKGROUND : Config::PROJECT_THUMBNAIL_BACKGROUND; 
+    }
+    
+    // Button colors
+    QString primaryButtonColor() const { 
+        return darkMode() ? Config::DARK_PRIMARY_BUTTON_COLOR : Config::PRIMARY_BUTTON_COLOR; 
+    }
+    QString primaryButtonHover() const { 
+        return darkMode() ? Config::DARK_PRIMARY_BUTTON_HOVER : Config::PRIMARY_BUTTON_HOVER; 
+    }
+    QString primaryButtonPressed() const { 
+        return darkMode() ? Config::DARK_PRIMARY_BUTTON_PRESSED : Config::PRIMARY_BUTTON_PRESSED; 
+    }
+    
+    // Error colors
+    QString errorBackground() const { 
+        return darkMode() ? Config::DARK_ERROR_BACKGROUND : Config::ERROR_BACKGROUND; 
+    }
+    QString errorBorder() const { 
+        return darkMode() ? Config::DARK_ERROR_BORDER : Config::ERROR_BORDER; 
+    }
+    QString errorText() const { 
+        return darkMode() ? Config::DARK_ERROR_TEXT : Config::ERROR_TEXT; 
+    }
+    
+    // Delete button colors
+    QString deleteButtonColor() const { 
+        return darkMode() ? Config::DARK_DELETE_BUTTON_COLOR : Config::DELETE_BUTTON_COLOR; 
+    }
+    QString deleteButtonHover() const { 
+        return darkMode() ? Config::DARK_DELETE_BUTTON_HOVER : Config::DELETE_BUTTON_HOVER; 
+    }
+    QString deleteButtonPressed() const { 
+        return darkMode() ? Config::DARK_DELETE_BUTTON_PRESSED : Config::DELETE_BUTTON_PRESSED; 
+    }
+    
+    // Disabled state colors
+    QString disabledBackground() const { 
+        return darkMode() ? Config::DARK_DISABLED_BACKGROUND : Config::DISABLED_BACKGROUND; 
+    }
+    QString disabledText() const { 
+        return darkMode() ? Config::DARK_DISABLED_TEXT : Config::DISABLED_TEXT; 
+    }
+    
+    // Main text color
+    QString mainTextColor() const { 
+        return darkMode() ? Config::DARK_MAIN_TEXT_COLOR : Config::MAIN_TEXT_COLOR; 
+    }
     
     // Node colors
     QString nodeDefaultColor() const { return Config::NODE_DEFAULT_COLOR; }
@@ -252,6 +415,9 @@ public:
         }
         return options;
     }
+
+signals:
+    void darkModeChanged();
 };
 
 #endif // CONFIGOBJECT_H
