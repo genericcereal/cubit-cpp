@@ -23,7 +23,20 @@ Item {
         color: "transparent"
         border.color: "#0066cc"
         border.width: selected ? 2 : 0
-        visible: selected
+        visible: {
+            // Hide selection border for shapes when shape controls are active
+            if (selected && element && element.elementType === "Shape") {
+                // Try to find the shape controls controller
+                var canvas = Application?.activeCanvas
+                if (canvas && canvas.shapeControlsController) {
+                    var controller = canvas.shapeControlsController
+                    if (controller.isEditingShape || controller.isShapeControlDragging) {
+                        return false
+                    }
+                }
+            }
+            return selected
+        }
         z: 1000
         antialiasing: true
     }

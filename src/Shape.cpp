@@ -332,6 +332,8 @@ void Shape::registerProperties() {
     m_properties->registerProperty("edgeWidth", 2.0);
     m_properties->registerProperty("edgeColor", QColor(0, 0, 0, 255)); // Black
     m_properties->registerProperty("fillColor", QColor(0, 120, 255, 255)); // Blue
+    m_properties->registerProperty("lineJoin", QString("miter"));
+    m_properties->registerProperty("lineCap", QString("round"));
 }
 
 QVariant Shape::getProperty(const QString& name) const {
@@ -342,6 +344,8 @@ QVariant Shape::getProperty(const QString& name) const {
     if (name == "edgeWidth") return edgeWidth();
     if (name == "edgeColor") return edgeColor();
     if (name == "fillColor") return fillColor();
+    if (name == "lineJoin") return lineJoin();
+    if (name == "lineCap") return lineCap();
     
     // Fall back to parent implementation
     return DesignElement::getProperty(name);
@@ -373,6 +377,14 @@ void Shape::setProperty(const QString& name, const QVariant& value) {
         setFillColor(value.value<QColor>());
         return;
     }
+    if (name == "lineJoin") {
+        setLineJoin(value.toString());
+        return;
+    }
+    if (name == "lineCap") {
+        setLineCap(value.toString());
+        return;
+    }
     
     // Fall back to parent implementation
     DesignElement::setProperty(name, value);
@@ -391,5 +403,25 @@ QList<PropertyDefinition> Shape::staticPropertyDefinitions() {
     props.append(PropertyDefinition("edgeColor", QMetaType::QColor, QColor(0, 0, 0, 255), PropertyDefinition::Appearance));
     props.append(PropertyDefinition("fillColor", QMetaType::QColor, QColor(0, 120, 255, 255), PropertyDefinition::Appearance));
     
+    // Line style properties
+    props.append(PropertyDefinition("lineJoin", QMetaType::QString, QString("miter"), PropertyDefinition::Appearance));
+    props.append(PropertyDefinition("lineCap", QMetaType::QString, QString("round"), PropertyDefinition::Appearance));
+    
     return props;
+}
+
+void Shape::setLineJoin(const QString& lineJoin)
+{
+    if (m_lineJoin != lineJoin) {
+        m_lineJoin = lineJoin;
+        emit lineJoinChanged();
+    }
+}
+
+void Shape::setLineCap(const QString& lineCap)
+{
+    if (m_lineCap != lineCap) {
+        m_lineCap = lineCap;
+        emit lineCapChanged();
+    }
 }

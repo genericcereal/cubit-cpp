@@ -101,7 +101,7 @@ private:
     
     // Authentication state
     bool m_isAuthenticated = false;
-    bool m_isLoading = true;  // Start with loading state
+    bool m_isLoading = false;  // Start with no loading state
     QString m_userName;
     QString m_userEmail;
     

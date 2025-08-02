@@ -63,6 +63,7 @@ Item {
         canvasMinX: root.canvasMinX
         canvasMinY: root.canvasMinY
         canvasType: root.canvasType
+        shapeControlsController: root.shapeControlsController
     }
     
     // Design controls overlay (design/variant canvases only)

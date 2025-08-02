@@ -18,6 +18,8 @@ class Shape : public DesignElement
     Q_PROPERTY(qreal edgeWidth READ edgeWidth WRITE setEdgeWidth NOTIFY edgeWidthChanged)
     Q_PROPERTY(QColor edgeColor READ edgeColor WRITE setEdgeColor NOTIFY edgeColorChanged)
     Q_PROPERTY(QColor fillColor READ fillColor WRITE setFillColor NOTIFY fillColorChanged)
+    Q_PROPERTY(QString lineJoin READ lineJoin WRITE setLineJoin NOTIFY lineJoinChanged)
+    Q_PROPERTY(QString lineCap READ lineCap WRITE setLineCap NOTIFY lineCapChanged)
 
 public:
     enum ShapeType {
@@ -124,6 +126,13 @@ public:
     QColor fillColor() const { return m_fillColor; }
     void setFillColor(const QColor& color);
 
+    // Line style properties
+    QString lineJoin() const { return m_lineJoin; }
+    void setLineJoin(const QString& lineJoin);
+
+    QString lineCap() const { return m_lineCap; }
+    void setLineCap(const QString& lineCap);
+
     // Override geometry setters to update joints
     void setWidth(qreal w) override;
     void setHeight(qreal h) override;
@@ -146,6 +155,8 @@ signals:
     void edgeWidthChanged();
     void edgeColorChanged();
     void fillColorChanged();
+    void lineJoinChanged();
+    void lineCapChanged();
 
 private:
     void updateJointsForShape();
@@ -160,6 +171,8 @@ private:
     qreal m_edgeWidth = 2.0;
     QColor m_edgeColor = QColor(0, 0, 0, 255); // Black
     QColor m_fillColor = QColor(0, 120, 255, 255); // Blue
+    QString m_lineJoin = "miter"; // miter, round, or bevel
+    QString m_lineCap = "round"; // butt, round, or square
 };
 
 #endif // SHAPE_H

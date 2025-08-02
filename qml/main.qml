@@ -51,13 +51,13 @@ ApplicationWindow {
     }
     // Note: PropertyPopoverPanel and its components have been moved to CanvasScreen
     
-    // Authentication/Loading overlay - covers entire window when loading or not authenticated
+    // Authentication overlay - covers entire window when not authenticated
     Rectangle {
         id: authOverlay
         anchors.fill: parent
         color: "white"
         opacity: 1.0
-        visible: !authManager.isAuthenticated || authManager.isLoading
+        visible: !authManager.isAuthenticated
         z: 9999 // Above everything else
         
         // Prevent interaction with underlying content
@@ -76,7 +76,7 @@ ApplicationWindow {
             spacing: 20
             
             Text {
-                text: authManager.isLoading && authManager.isAuthenticated ? "Loading..." : "Authentication Required"
+                text: "Authentication Required"
                 font.pixelSize: 24
                 font.weight: Font.Medium
                 color: "#333333"
@@ -84,7 +84,7 @@ ApplicationWindow {
             }
             
             Text {
-                text: authManager.isLoading ? "Checking authentication..." : "Please log in to continue"
+                text: "Please log in to continue"
                 font.pixelSize: 14
                 color: "#666666"
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -92,15 +92,12 @@ ApplicationWindow {
             
             Button {
                 text: "Login with AWS Cognito"
-                visible: !authManager.isLoading
                 anchors.horizontalCenter: parent.horizontalCenter
                 onClicked: authManager.login()
-                
             }
             
             Button {
                 text: "Open Login URL in Browser"
-                visible: !authManager.isLoading
                 anchors.horizontalCenter: parent.horizontalCenter
                 onClicked: {
                     var url = authManager.getLoginUrl()
@@ -108,12 +105,6 @@ ApplicationWindow {
                     // Start checking for callback
                     authManager.login()
                 }
-            }
-            
-            BusyIndicator {
-                running: authManager.isLoading
-                visible: authManager.isLoading
-                anchors.horizontalCenter: parent.horizontalCenter
             }
         }
         
