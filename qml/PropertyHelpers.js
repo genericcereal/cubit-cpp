@@ -93,6 +93,10 @@ function canShowAlign(el, editableProps) {
     return canShow("align", el, editableProps) && !isVariable(el)
 }
 
+function canShowBoxShadow(el, editableProps) {
+    return canShow("boxShadow", el, editableProps)
+}
+
 // Element visibility checks
 function showPositionSize(el) {
     return el && isVisual(el) && !(isDesignElement(el) && el.parentId)

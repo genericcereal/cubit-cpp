@@ -97,6 +97,7 @@ SOURCES += \
     src/ElementFilterProxy.cpp \
     src/FlexLayoutEngine.cpp \
     src/PrototypeController.cpp \
+    src/GoogleFonts.cpp \
     src/DesignControlsController.cpp \
     src/ShapeControlsController.cpp \
     src/AuthenticationManager.cpp \
@@ -130,6 +131,7 @@ HEADERS += \
     src/platforms/web/WebTextInput.h \
     src/Shape.h \
     src/Variable.h \
+    src/BoxShadow.h \
     src/Component.h \
     src/ComponentInstance.h \
     src/ComponentVariant.h \
@@ -191,6 +193,7 @@ HEADERS += \
     src/PenModeHandler.h \
     src/ElementFilterProxy.h \
     src/PrototypeController.h \
+    src/GoogleFonts.h \
     src/DesignControlsController.h \
     src/ShapeControlsController.h \
     src/AuthenticationManager.h \

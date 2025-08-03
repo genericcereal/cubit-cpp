@@ -24,6 +24,7 @@
         <file>qml/components/PropertyPopover.qml</file>
         <file>qml/components/ObjectInput.qml</file>
         <file>qml/components/FontPicker.qml</file>
+        <file>qml/components/GoogleFontLoader.qml</file>
         <file>qml/components/LabeledField.qml</file>
         <file>qml/components/PropertyGroup.qml</file>
         <file>qml/components/CollapsibleGroup.qml</file>

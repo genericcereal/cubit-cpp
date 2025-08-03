@@ -2,6 +2,7 @@
 #define DESIGNELEMENT_H
 
 #include "CanvasElement.h"
+#include "BoxShadow.h"
 #include <memory>
 #include <QString>
 #include <QVariantMap>
@@ -31,6 +32,9 @@ class DesignElement : public CanvasElement
     
     // Global element tracking
     Q_PROPERTY(QString sourceId READ sourceId WRITE setSourceId NOTIFY sourceIdChanged)
+    
+    // Box shadow
+    Q_PROPERTY(BoxShadow boxShadow READ boxShadow WRITE setBoxShadow NOTIFY boxShadowChanged)
     
 public:
     explicit DesignElement(const QString &id, QObject *parent = nullptr);
@@ -82,6 +86,10 @@ public:
     QString sourceId() const { return m_sourceId; }
     void setSourceId(const QString& sourceId);
     
+    // Box shadow
+    BoxShadow boxShadow() const { return m_boxShadow; }
+    void setBoxShadow(const BoxShadow& boxShadow);
+    
     // Update layout based on parent changes
     void updateFromParentGeometry();
     
@@ -128,6 +136,7 @@ signals:
     void bottomAnchoredChanged();
     void isFrozenChanged();
     void sourceIdChanged();
+    void boxShadowChanged();
 
 private slots:
     void onParentGeometryChanged();
@@ -160,6 +169,9 @@ private:
     
     // Global element tracking
     QString m_sourceId;
+    
+    // Box shadow
+    BoxShadow m_boxShadow;
 };
 
 #endif // DESIGNELEMENT_H

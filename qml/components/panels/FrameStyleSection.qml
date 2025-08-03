@@ -94,6 +94,20 @@ PropertyGroup {
             popoverType: "style",
             placeholderText: "Select style...",
             visible: () => PropertyHelpers.canShowBorderColor(selectedElement, editableProperties)
+        },
+        {
+            name: "Box Shadow",
+            type: "property_popover",
+            popoverType: "boxShadow",
+            placeholderText: "Add shadow...",
+            textGetter: () => {
+                if (selectedElement && selectedElement.boxShadow && selectedElement.boxShadow.enabled) {
+                    const shadow = selectedElement.boxShadow
+                    return `${shadow.offsetX}px ${shadow.offsetY}px ${shadow.blurRadius}px`
+                }
+                return ""
+            },
+            visible: () => PropertyHelpers.canShowBoxShadow(selectedElement, editableProperties)
         }
     ]
     
