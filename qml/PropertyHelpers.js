@@ -97,6 +97,10 @@ function canShowBoxShadow(el, editableProps) {
     return canShow("boxShadow", el, editableProps)
 }
 
+function canShowBorder(el, editableProps) {
+    return canShow("border", el, editableProps)
+}
+
 // Element visibility checks
 function showPositionSize(el) {
     return el && isVisual(el) && !(isDesignElement(el) && el.parentId)

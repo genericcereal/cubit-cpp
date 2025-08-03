@@ -74,6 +74,7 @@ public:
     Q_INVOKABLE PlatformConfig* getPlatform(const QString& platformName) const;
     Q_INVOKABLE QList<PlatformConfig*> getAllPlatforms() const;
     Q_INVOKABLE Scripts* getPlatformScripts(const QString& platformName) const;
+    void addPlatformDirectly(const QString& platformName);  // Direct method for command to use
 
     // Property setters
     void setName(const QString& name);

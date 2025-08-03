@@ -90,6 +90,15 @@ void Frame::setBorderWidth(int width)
     }
 }
 
+void Frame::setBorderStyle(const QString &style)
+{
+    if (m_borderStyle != style) {
+        m_borderStyle = style;
+        emit borderStyleChanged();
+        emit elementChanged();
+    }
+}
+
 void Frame::setBorderRadius(int radius)
 {
     if (m_borderRadius != radius) {
@@ -333,7 +342,6 @@ void Frame::triggerLayout()
 {
     // If we have flex enabled, schedule a layout through the layout engine
     if (m_flex && m_layoutEngine) {
-        qDebug() << "Frame::triggerLayout - Called for frame" << getId();
         m_layoutEngine->scheduleLayout(this, m_elementModel);
     }
 }
@@ -492,7 +500,6 @@ void Frame::setupElementModelConnections()
             triggerLayout();
         }
     } else {
-        qDebug() << "Frame::setupElementModelConnections - No active canvas/model yet for frame" << getId();
     }
 }
 
@@ -510,6 +517,7 @@ void Frame::registerProperties() {
     m_properties->registerProperty("colorFormat", static_cast<int>(HEX));
     m_properties->registerProperty("borderColor", QColor(Qt::black));
     m_properties->registerProperty("borderWidth", 1);
+    m_properties->registerProperty("borderStyle", QString("Solid"));
     m_properties->registerProperty("borderRadius", 0);
     m_properties->registerProperty("overflow", static_cast<int>(Hidden));
     m_properties->registerProperty("acceptsChildren", true);
@@ -532,6 +540,7 @@ QVariant Frame::getProperty(const QString& name) const {
     if (name == "colorFormat") return static_cast<int>(colorFormat());
     if (name == "borderColor") return borderColor();
     if (name == "borderWidth") return borderWidth();
+    if (name == "borderStyle") return borderStyle();
     if (name == "borderRadius") return borderRadius();
     if (name == "overflow") return static_cast<int>(overflow());
     if (name == "acceptsChildren") return acceptsChildren();
@@ -569,6 +578,10 @@ void Frame::setProperty(const QString& name, const QVariant& value) {
     }
     if (name == "borderWidth") {
         setBorderWidth(value.toInt());
+        return;
+    }
+    if (name == "borderStyle") {
+        setBorderStyle(value.toString());
         return;
     }
     if (name == "borderRadius") {
@@ -651,6 +664,7 @@ QList<PropertyDefinition> Frame::staticPropertyDefinitions() {
     props.append(PropertyDefinition("fill", QMetaType::QColor, QColor(173, 216, 230), PropertyDefinition::Appearance));
     props.append(PropertyDefinition("borderColor", QMetaType::QColor, QColor(Qt::black), PropertyDefinition::Appearance));
     props.append(PropertyDefinition("borderWidth", QMetaType::Int, 0, PropertyDefinition::Appearance));
+    props.append(PropertyDefinition("borderStyle", QMetaType::QString, QString("Solid"), PropertyDefinition::Appearance));
     props.append(PropertyDefinition("borderRadius", QMetaType::Int, 0, PropertyDefinition::Appearance));
     
     // Layout properties

@@ -14,8 +14,17 @@ Rectangle {
     // Property to accept a source component
     property alias contentComponent: contentLoader.sourceComponent
     
+    // Property for the title text
+    property string title: ""
+    
+    // Property to control back button visibility
+    property bool showBackButton: false
+    
     // Signal to notify when close is requested
     signal closeRequested()
+    
+    // Signal to notify when back button is clicked
+    signal backRequested()
     
     // Draggable header area
     MouseArea {
@@ -45,6 +54,53 @@ Rectangle {
         }
         
         cursorShape: pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+    }
+    
+    // Header content row
+    Row {
+        anchors.left: parent.left
+        anchors.leftMargin: 12
+        anchors.verticalCenter: dragArea.verticalCenter
+        spacing: 8
+        
+        // Back button
+        Rectangle {
+            id: backButton
+            width: 24
+            height: 24
+            color: backButtonArea.containsMouse ? "#e0e0e0" : "transparent"
+            radius: 2
+            visible: root.showBackButton
+            
+            Text {
+                anchors.centerIn: parent
+                text: "←"
+                font.pixelSize: 16
+                font.weight: Font.Medium
+                color: backButtonArea.containsMouse ? "#333333" : "#666666"
+            }
+            
+            MouseArea {
+                id: backButtonArea
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: {
+                    root.backRequested()
+                }
+            }
+        }
+        
+        // Title text
+        Text {
+            id: titleText
+            text: root.title
+            font.pixelSize: 14
+            font.weight: Font.Medium
+            color: "#333333"
+            visible: root.title !== ""
+            anchors.verticalCenter: parent.verticalCenter
+        }
     }
     
     // Close button in top right corner

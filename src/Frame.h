@@ -13,6 +13,7 @@ class Frame : public DesignElement {
     Q_PROPERTY(ColorFormat colorFormat READ colorFormat WRITE setColorFormat NOTIFY colorFormatChanged)
     Q_PROPERTY(QColor borderColor READ borderColor WRITE setBorderColor NOTIFY borderColorChanged)
     Q_PROPERTY(int borderWidth READ borderWidth WRITE setBorderWidth NOTIFY borderWidthChanged)
+    Q_PROPERTY(QString borderStyle READ borderStyle WRITE setBorderStyle NOTIFY borderStyleChanged)
     Q_PROPERTY(int borderRadius READ borderRadius WRITE setBorderRadius NOTIFY borderRadiusChanged)
     Q_PROPERTY(OverflowMode overflow READ overflow WRITE setOverflow NOTIFY overflowChanged)
     Q_PROPERTY(bool acceptsChildren READ acceptsChildren WRITE setAcceptsChildren NOTIFY acceptsChildrenChanged)
@@ -108,6 +109,7 @@ public:
     ColorFormat colorFormat() const { return m_colorFormat; }
     QColor borderColor() const { return m_borderColor; }
     int borderWidth() const { return m_borderWidth; }
+    QString borderStyle() const { return m_borderStyle; }
     int borderRadius() const { return m_borderRadius; }
     OverflowMode overflow() const { return m_overflow; }
     bool acceptsChildren() const { return m_acceptsChildren; }
@@ -130,6 +132,7 @@ public:
     void setColorFormat(ColorFormat format);
     void setBorderColor(const QColor &color);
     void setBorderWidth(int width);
+    void setBorderStyle(const QString &style);
     void setBorderRadius(int radius);
     void setOverflow(OverflowMode mode);
     void setAcceptsChildren(bool accepts);
@@ -168,6 +171,7 @@ signals:
     void colorFormatChanged();
     void borderColorChanged();
     void borderWidthChanged();
+    void borderStyleChanged();
     void borderRadiusChanged();
     void overflowChanged();
     void acceptsChildrenChanged();
@@ -197,6 +201,7 @@ private:
     ColorFormat m_colorFormat = HEX; // Default to HEX
     QColor m_borderColor;
     int m_borderWidth;
+    QString m_borderStyle = "Solid"; // Default to Solid
     int m_borderRadius;
     OverflowMode m_overflow;
     bool m_acceptsChildren;

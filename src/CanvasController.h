@@ -84,6 +84,7 @@ public:
     bool canRedo() const;
     Q_INVOKABLE void undo();
     Q_INVOKABLE void redo();
+    CommandHistory* commandHistory() const { return m_commandHistory.get(); }
     
     // Viewport state management
     qreal savedContentX() const { return m_savedContentX; }
