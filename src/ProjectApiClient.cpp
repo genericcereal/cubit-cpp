@@ -329,6 +329,64 @@ void ProjectApiClient::syncDeleteElements(const QString& apiProjectId, const QJs
     emit elementsDeleted(apiProjectId, elementIds);
 }
 
+void ProjectApiClient::syncAddPlatform(const QString& apiProjectId, const QString& platformName)
+{
+    if (!m_authManager || !m_authManager->isAuthenticated()) {
+        emit syncAddPlatformFailed(apiProjectId, platformName, "Not authenticated");
+        return;
+    }
+    
+    if (!m_application) {
+        emit syncAddPlatformFailed(apiProjectId, platformName, "Application not available");
+        return;
+    }
+
+    // Find the project by its ID
+    Project* project = m_application->getProject(apiProjectId);
+    if (!project) {
+        emit syncAddPlatformFailed(apiProjectId, platformName, "Project not found");
+        return;
+    }
+    
+    // Get current project data
+    QJsonObject currentProjectData = m_application->serializeProjectData(project);
+    
+    // Update the project via API with the new platform
+    updateProject(apiProjectId, project->name(), currentProjectData);
+    
+    // Emit success immediately since updateProject handles API communication
+    emit platformAdded(apiProjectId, platformName);
+}
+
+void ProjectApiClient::syncRemovePlatform(const QString& apiProjectId, const QString& platformName)
+{
+    if (!m_authManager || !m_authManager->isAuthenticated()) {
+        emit syncRemovePlatformFailed(apiProjectId, platformName, "Not authenticated");
+        return;
+    }
+    
+    if (!m_application) {
+        emit syncRemovePlatformFailed(apiProjectId, platformName, "Application not available");
+        return;
+    }
+
+    // Find the project by its ID
+    Project* project = m_application->getProject(apiProjectId);
+    if (!project) {
+        emit syncRemovePlatformFailed(apiProjectId, platformName, "Project not found");
+        return;
+    }
+    
+    // Get current project data
+    QJsonObject currentProjectData = m_application->serializeProjectData(project);
+    
+    // Update the project via API without the removed platform
+    updateProject(apiProjectId, project->name(), currentProjectData);
+    
+    // Emit success immediately since updateProject handles API communication
+    emit platformRemoved(apiProjectId, platformName);
+}
+
 QNetworkRequest ProjectApiClient::createAuthenticatedRequest() const
 {
     QNetworkRequest request{QUrl(Config::GRAPHQL_ENDPOINT)};
@@ -455,13 +513,11 @@ void ProjectApiClient::handleGraphQLResponse(QNetworkReply* reply, const Pending
         QJsonObject response = responseDoc.object();
         
         // Debug: Log the parsed response structure
-        // qDebug() << "ProjectApiClient: Parsed response keys:" << response.keys();
         
         if (response.contains("data")) {
             QJsonObject data = response["data"].toObject();
             
             // Debug: Log the data structure
-            // qDebug() << "ProjectApiClient: Data keys:" << data.keys();
             
             if (request.operation == "createProject" && data.contains("createProject")) {
                 QJsonObject createdProject = data["createProject"].toObject();
@@ -490,7 +546,6 @@ void ProjectApiClient::handleGraphQLResponse(QNetworkReply* reply, const Pending
                 }
                 
                 emit projectsFetched(processedProjects);
-                qDebug() << "ProjectApiClient: Successfully fetched" << processedProjects.size() << "projects";
                 
             } else if (request.operation == "listProjects" && data.contains("listProjects")) {
                 QJsonObject listResult = data["listProjects"].toObject();
@@ -498,7 +553,6 @@ void ProjectApiClient::handleGraphQLResponse(QNetworkReply* reply, const Pending
                 QString nextToken = listResult["nextToken"].toString();
                 
                 emit projectsListed(projects, nextToken);
-                // qDebug() << "ProjectApiClient: Successfully listed" << projects.size() << "projects";
                 
             } else if (request.operation == "getProject" && data.contains("getProject")) {
                 QJsonObject project = data["getProject"].toObject();
@@ -511,13 +565,11 @@ void ProjectApiClient::handleGraphQLResponse(QNetworkReply* reply, const Pending
                         project["canvasData"] = canvasDoc.object();
                     } else {
                         emit getProjectFailed(request.projectId, "Failed to parse canvas data");
-                        qDebug() << "ProjectApiClient: Failed to parse canvas data for project:" << request.projectId;
                         return;
                     }
                 }
                 
                 emit projectFetched(request.projectId, project);
-                // qDebug() << "ProjectApiClient: Successfully fetched project:" << request.projectId;
                 
             } else if (request.operation == "updateProject" && data.contains("updateProject")) {
                 QJsonObject updatedProject = data["updateProject"].toObject();
@@ -526,7 +578,6 @@ void ProjectApiClient::handleGraphQLResponse(QNetworkReply* reply, const Pending
                 
             } else if (request.operation == "deleteProject" && data.contains("deleteProject")) {
                 emit projectDeleted(request.projectId);
-                qDebug() << "ProjectApiClient: Successfully deleted project:" << request.projectId;
                 
             } else {
                 QString error = QString("API response missing expected data for operation: %1").arg(request.operation);
@@ -552,7 +603,6 @@ void ProjectApiClient::handleGraphQLResponse(QNetworkReply* reply, const Pending
         // Check if this is an authentication error
         if (error.contains("Token has expired") || error.contains("UnauthorizedException")) {
             // Trigger token refresh
-            qDebug() << "ProjectApiClient: Token expired, triggering refresh";
             if (m_authManager) {
                 m_authManager->refreshAccessToken();
             }

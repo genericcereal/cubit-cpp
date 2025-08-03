@@ -77,7 +77,9 @@ Item {
         
         // Frame-specific properties - use the fill property
         color: frameElement ? frameElement.fill : ConfigObject.elementBackgroundColor
-        border.width: 0
+        // Only use Rectangle border for solid style
+        border.width: (frameElement && frameElement.borderStyle === "Solid") ? frameElement.borderWidth : 0
+        border.color: frameElement ? frameElement.borderColor : Qt.rgba(0, 0, 0, 1)
         radius: frameElement ? frameElement.borderRadius : 0
         antialiasing: true
         
@@ -276,5 +278,17 @@ Item {
             opacity: 0.6
             visible: height > 0
         }
+    }
+    
+    // Custom border for dashed and dotted styles
+    StyledBorder {
+        id: styledBorder
+        anchors.fill: parent
+        visible: frameElement && frameElement.borderWidth > 0 && frameElement.borderStyle !== "Solid"
+        borderWidth: frameElement ? frameElement.borderWidth : 0
+        borderColor: frameElement ? frameElement.borderColor : Qt.rgba(0, 0, 0, 1)
+        borderStyle: frameElement ? frameElement.borderStyle : "Solid"
+        borderRadius: frameElement ? frameElement.borderRadius : 0
+        z: 1 // Ensure border is above the background
     }
 }

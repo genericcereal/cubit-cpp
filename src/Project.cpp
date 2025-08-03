@@ -21,6 +21,8 @@
 #include "contexts/GlobalElementsContext.h"
 #include "contexts/ScriptCanvasContext.h"
 #include "VariableBinding.h"
+#include "CommandHistory.h"
+#include "commands/AddPlatformCommand.h"
 
 Project::Project(const QString& id, const QString& name, QObject *parent)
     : QObject(parent)
@@ -132,6 +134,17 @@ QQmlListProperty<PlatformConfig> Project::platforms() {
 }
 
 void Project::addPlatform(const QString& platformName) {
+    // Use command pattern for undo/redo support
+    if (m_controller && m_controller->commandHistory()) {
+        auto command = std::make_unique<AddPlatformCommand>(this, platformName);
+        m_controller->commandHistory()->execute(std::move(command));
+    } else {
+        // Fallback for cases where command history is not available
+        addPlatformDirectly(platformName);
+    }
+}
+
+void Project::addPlatformDirectly(const QString& platformName) {
     // Check if platform already exists
     for (const auto& platform : m_platforms) {
         if (platform->name() == platformName) {
@@ -382,7 +395,6 @@ void Project::initialize() {
                 if (Node* node = qobject_cast<Node*>(element)) {
                     // Check if it's not already in scripts (to avoid duplicates during load)
                     if (!targetScripts->getNode(node->getId())) {
-                        // qDebug() << "Project: Adding node" << node->getId() << "to" 
                         //          << (m_editingElement ? "editing element's" : "canvas") << "scripts";
                         // The node was created by the controller, we need to transfer it to scripts
                         // Set the parent to scripts so it gets proper ownership
@@ -391,7 +403,6 @@ void Project::initialize() {
                     }
                 } else if (Edge* edge = qobject_cast<Edge*>(element)) {
                     if (!targetScripts->getEdge(edge->getId())) {
-                        qDebug() << "Project: Adding edge" << edge->getId() << "to" 
                                  << (m_editingElement ? "editing element's" : "canvas") << "scripts";
                         // Transfer ownership to scripts
                         edge->setParent(targetScripts);
@@ -415,17 +426,14 @@ void Project::initialize() {
                 // Check if already being handled by DeleteElementsCommand
                 bool alreadyHandled = m_elementModel->property("_deleteCommandHandling").toBool();
                 if (alreadyHandled) {
-                    // qDebug() << "Project: Skipping node/edge removal - already handled by DeleteElementsCommand";
                     return;
                 }
                 
                 // Remove from scripts when removed from model
                 if (Node* node = targetScripts->getNode(elementId)) {
-                    qDebug() << "Project: Removing node" << elementId << "from" 
                              << (m_editingElement ? "editing element's" : "canvas") << "scripts";
                     targetScripts->removeNode(node);
                 } else if (Edge* edge = targetScripts->getEdge(elementId)) {
-                    qDebug() << "Project: Removing edge" << elementId << "from" 
                              << (m_editingElement ? "editing element's" : "canvas") << "scripts";
                     targetScripts->removeEdge(edge);
                 }
@@ -467,14 +475,12 @@ void Project::setEditingElement(DesignElement* element, const QString& viewMode)
     // If switching to script mode and element is null, try to auto-detect from selection
     if (viewMode == "script" && !element && m_selectionManager) {
         auto selectedElements = m_selectionManager->selectedElements();
-        // qDebug() << "Project: Auto-detecting editing element, selected elements:" << selectedElements.size();
         
         if (selectedElements.size() == 1) {
             auto selectedElement = selectedElements.first();
             
             // Check if it's a Component
             if (Component* component = qobject_cast<Component*>(selectedElement)) {
-                qDebug() << "Project: Auto-detected Component:" << component->getId();
                 setEditingComponent(component, viewMode);
                 return;
             }
@@ -484,7 +490,6 @@ void Project::setEditingElement(DesignElement* element, const QString& viewMode)
                 CanvasElement* canvasElement = qobject_cast<CanvasElement*>(selectedElement);
                 if (canvasElement && canvasElement->isDesignElement()) {
                     element = qobject_cast<DesignElement*>(selectedElement);
-                    qDebug() << "Project: Auto-detected editing element:" << (element ? element->getId() : "null");
                 }
             }
         }
@@ -563,7 +568,6 @@ void Project::createContextForViewMode(const QString& mode) {
     } else if (mode == "variant") {
         if (m_editingElement) {
             newContext = std::make_unique<VariantCanvasContext>(m_editingElement, this);
-            qDebug() << "Creating variant context for element:" << m_editingElement;
         } else {
             // Fall back to main canvas if no editing element
             newContext = std::make_unique<MainCanvasContext>(this);

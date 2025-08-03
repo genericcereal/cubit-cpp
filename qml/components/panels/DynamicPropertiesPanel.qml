@@ -268,7 +268,7 @@ ScrollView {
         }
         if (properties.includes("borderRadius")) {
             styleProps.push({
-                name: "Border Radius",
+                name: "Radius",
                 type: "number",
                 value: selectedElement.getProperty("borderRadius"),
                 min: 0,

@@ -85,6 +85,7 @@ SOURCES += \
     src/commands/CreateComponentCommand.cpp \
     src/commands/CreateInstanceCommand.cpp \
     src/commands/AssignVariableCommand.cpp \
+    src/commands/AddPlatformCommand.cpp \
     src/ScriptCompiler.cpp \
     src/ScriptExecutor.cpp \
     src/ScriptGraphValidator.cpp \
@@ -181,6 +182,7 @@ HEADERS += \
     src/commands/CreateComponentCommand.h \
     src/commands/CreateInstanceCommand.h \
     src/commands/AssignVariableCommand.h \
+    src/commands/AddPlatformCommand.h \
     src/ScriptCompiler.h \
     src/ScriptExecutor.h \
     src/ScriptGraphValidator.h \

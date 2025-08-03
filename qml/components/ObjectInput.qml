@@ -69,14 +69,20 @@ Item {
             Rectangle {
                 anchors.fill: parent
                 color: "#ffffff"
-                visible: root.value && root.value.a !== undefined && root.value.a < 1
+                visible: {
+                    if (!root.value || root.value.a === undefined) return false
+                    return root.value.a < 1
+                }
             }
             
             Rectangle {
                 width: 8
                 height: 8
                 color: "#cccccc"
-                visible: root.value && root.value.a !== undefined && root.value.a < 1
+                visible: {
+                    if (!root.value || root.value.a === undefined) return false
+                    return root.value.a < 1
+                }
             }
             
             Rectangle {
@@ -85,7 +91,10 @@ Item {
                 width: 8
                 height: 8
                 color: "#cccccc"
-                visible: root.value && root.value.a !== undefined && root.value.a < 1
+                visible: {
+                    if (!root.value || root.value.a === undefined) return false
+                    return root.value.a < 1
+                }
             }
             
             // Color overlay

@@ -63,7 +63,7 @@ PropertyGroup {
             visible: () => PropertyHelpers.canShowOverflow(selectedElement, editableProperties)
         },
         {
-            name: "Border Radius",
+            name: "Radius",
             type: "spinbox",
             from: 0,
             to: 100,
@@ -76,36 +76,32 @@ PropertyGroup {
             visible: () => PropertyHelpers.canShowBorderRadius(selectedElement, editableProperties)
         },
         {
-            name: "Border Width",
-            type: "spinbox",
-            from: 0,
-            to: 20,
-            getter: () => selectedElement && selectedElement.borderWidth !== undefined ? selectedElement.borderWidth : 0,
-            setter: v => {
-                if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
-                    selectedElement.borderWidth = v
+            name: "Border",
+            type: "object_input",
+            popoverType: "border",
+            placeholderText: "Add border...",
+            valueGetter: () => {
+                if (selectedElement && selectedElement.borderWidth !== undefined && selectedElement.borderWidth > 0) {
+                    return {
+                        width: selectedElement.borderWidth,
+                        color: selectedElement.borderColor || Qt.rgba(0, 0, 0, 1),
+                        style: selectedElement.borderStyle || "Solid"
+                    }
                 }
+                return null
             },
-            visible: () => PropertyHelpers.canShowBorderWidth(selectedElement, editableProperties)
-        },
-        {
-            name: "Style",
-            type: "property_popover",
-            popoverType: "style",
-            placeholderText: "Select style...",
-            visible: () => PropertyHelpers.canShowBorderColor(selectedElement, editableProperties)
+            visible: () => PropertyHelpers.canShowBorder(selectedElement, editableProperties)
         },
         {
             name: "Box Shadow",
-            type: "property_popover",
+            type: "object_input",
             popoverType: "boxShadow",
             placeholderText: "Add shadow...",
-            textGetter: () => {
+            valueGetter: () => {
                 if (selectedElement && selectedElement.boxShadow && selectedElement.boxShadow.enabled) {
-                    const shadow = selectedElement.boxShadow
-                    return `${shadow.offsetX}px ${shadow.offsetY}px ${shadow.blurRadius}px`
+                    return selectedElement.boxShadow
                 }
-                return ""
+                return null
             },
             visible: () => PropertyHelpers.canShowBoxShadow(selectedElement, editableProperties)
         }
@@ -216,23 +212,68 @@ PropertyGroup {
                                 }
                                 item.displayText = Qt.binding(function() {
                                     var val = item.value
-                                    if (val && val.a !== undefined && val.a > 0) {
+                                    if (modelData.popoverType === "boxShadow") {
+                                        // Custom display for box shadow
+                                        if (val && val.enabled) {
+                                            return `${val.offsetX}px ${val.offsetY}px ${val.blurRadius}px`
+                                        }
+                                        return ""
+                                    } else if (modelData.popoverType === "border") {
+                                        // Custom display for border
+                                        if (val && val.width > 0) {
+                                            return `${val.width}px ${val.style}`
+                                        }
+                                        return ""
+                                    } else if (val && val.a !== undefined && val.a > 0) {
+                                        // Color display
                                         var format = selectedElement && selectedElement.colorFormat !== undefined ? selectedElement.colorFormat : 1
                                         return item.formatColor(val, format)
                                     }
                                     return ""
                                 })
-                                item.previewType = ObjectInput.PreviewType.Color
+                                item.previewType = (modelData.popoverType === "boxShadow" || modelData.popoverType === "border") ? ObjectInput.PreviewType.None : ObjectInput.PreviewType.Color
                                 item.clicked.connect(function() {
-                                    // If no value, set default color before opening picker
+                                    // If no value, set default before opening picker
                                     if (!item.value && selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
-                                        selectedElement.fill = Qt.rgba(173/255, 216/255, 230/255, 1) // Default light blue
+                                        if (modelData.popoverType === "fill") {
+                                            selectedElement.fill = Qt.rgba(173/255, 216/255, 230/255, 1) // Default light blue
+                                        } else if (modelData.popoverType === "border") {
+                                            selectedElement.borderWidth = 1
+                                            selectedElement.borderColor = Qt.rgba(0, 0, 0, 1)
+                                            selectedElement.borderStyle = "Solid"
+                                        } else if (modelData.popoverType === "boxShadow") {
+                                            selectedElement.boxShadow = {
+                                                offsetX: 0,
+                                                offsetY: 4,
+                                                blurRadius: 8,
+                                                spreadRadius: 0,
+                                                color: Qt.rgba(0.267, 0.267, 0.267, 1),
+                                                enabled: true
+                                            }
+                                        }
                                     }
                                     root.panelSelectorClicked(item, modelData.popoverType)
                                 })
                                 item.cleared.connect(function() {
                                     if (selectedElement && (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance")) {
-                                        selectedElement.fill = Qt.rgba(0, 0, 0, 0) // Fully transparent
+                                        if (modelData.popoverType === "fill") {
+                                            selectedElement.fill = Qt.rgba(0, 0, 0, 0) // Fully transparent
+                                        } else if (modelData.popoverType === "border") {
+                                            selectedElement.borderWidth = 0
+                                        } else if (modelData.popoverType === "boxShadow") {
+                                            // Use controller to set box shadow to disabled
+                                            if (Application.activeController) {
+                                                var shadow = {
+                                                    offsetX: 0,
+                                                    offsetY: 0,
+                                                    blurRadius: 0,
+                                                    spreadRadius: 0,
+                                                    color: Qt.rgba(0.267, 0.267, 0.267, 1),
+                                                    enabled: false
+                                                }
+                                                Application.activeController.setElementProperty(selectedElement, "boxShadow", shadow)
+                                            }
+                                        }
                                     }
                                 })
                             }

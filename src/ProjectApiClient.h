@@ -35,6 +35,10 @@ public:
     void syncUpdateElement(const QString& apiProjectId, const QString& elementId);
     void syncMoveElements(const QString& apiProjectId, const QJsonArray& elementIds);
     void syncDeleteElements(const QString& apiProjectId, const QJsonArray& elementIds);
+    
+    // Platform synchronization
+    void syncAddPlatform(const QString& apiProjectId, const QString& platformName);
+    void syncRemovePlatform(const QString& apiProjectId, const QString& platformName);
 
 signals:
     // Success signals
@@ -51,6 +55,10 @@ signals:
     void elementsDeleted(const QString& apiProjectId, const QJsonArray& elementIds);
     void elementsMoved(const QString& apiProjectId, const QJsonArray& elementIds);
     
+    // Platform sync signals
+    void platformAdded(const QString& apiProjectId, const QString& platformName);
+    void platformRemoved(const QString& apiProjectId, const QString& platformName);
+    
     // Error signals
     void createProjectFailed(const QString& error);
     void fetchProjectsFailed(const QString& error);
@@ -64,6 +72,10 @@ signals:
     void syncUpdateElementFailed(const QString& apiProjectId, const QString& elementId, const QString& error);
     void syncMoveElementsFailed(const QString& apiProjectId, const QString& error);
     void syncDeleteElementsFailed(const QString& apiProjectId, const QString& error);
+    
+    // Platform sync error signals
+    void syncAddPlatformFailed(const QString& apiProjectId, const QString& platformName, const QString& error);
+    void syncRemovePlatformFailed(const QString& apiProjectId, const QString& platformName, const QString& error);
 
 private slots:
     void onCreateProjectFinished();

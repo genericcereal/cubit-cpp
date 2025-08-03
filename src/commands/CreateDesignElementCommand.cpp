@@ -181,8 +181,6 @@ void CreateDesignElementCommand::execute()
                     safeVariable->setName(safeElement->getName());
                 }
             }, Qt::QueuedConnection);
-            
-                     << "with ID:" << variableId;
         }
     }
     
