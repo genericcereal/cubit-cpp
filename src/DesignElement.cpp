@@ -234,6 +234,13 @@ void DesignElement::setSourceId(const QString& sourceId) {
     }
 }
 
+void DesignElement::setBoxShadow(const BoxShadow& boxShadow) {
+    if (m_boxShadow != boxShadow) {
+        m_boxShadow = boxShadow;
+        emit boxShadowChanged();
+    }
+}
+
 void DesignElement::updateFromParentGeometry() {
     CanvasElement* parent = parentElement();
     if (!parent || m_updatingFromAnchors) {
@@ -519,4 +526,5 @@ void DesignElement::registerProperties() {
     m_properties->registerProperty("bottomAnchored", false);
     m_properties->registerProperty("isFrozen", false);
     m_properties->registerProperty("sourceId", QString());
+    m_properties->registerProperty("boxShadow", QVariant::fromValue(BoxShadow()));
 }

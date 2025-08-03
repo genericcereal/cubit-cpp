@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Effects
 import Cubit 1.0
 
 Item {
@@ -28,6 +29,29 @@ Item {
     // Selection state
     property bool selected: element ? element.selected : false
     
+    // Font loader for Google Fonts
+    GoogleFontLoader {
+        id: fontLoader
+        fontFamily: textElement ? textElement.font.family : ""
+        fontWeight: {
+            if (!textElement || !textElement.font) return "regular"
+            
+            // Map Qt font weights to Google font weights
+            switch (textElement.font.weight) {
+                case Font.Thin: return "100"
+                case Font.ExtraLight: return "200"
+                case Font.Light: return "300"
+                case Font.Normal: return "regular"
+                case Font.Medium: return "500"
+                case Font.DemiBold: return "600"
+                case Font.Bold: return "700"
+                case Font.ExtraBold: return "800"
+                case Font.Black: return "900"
+                default: return "regular"
+            }
+        }
+    }
+    
     // Text visual representation
     Text {
         id: textItem
@@ -52,6 +76,17 @@ Item {
         
         // Ensure text is visible
         clip: true
+        
+        // Apply shadow effect if enabled
+        layer.enabled: element && element.boxShadow && element.boxShadow.enabled
+        layer.effect: MultiEffect {
+            shadowEnabled: true
+            shadowColor: element && element.boxShadow ? element.boxShadow.color : "#444444"
+            shadowHorizontalOffset: element && element.boxShadow ? element.boxShadow.offsetX : 0
+            shadowVerticalOffset: element && element.boxShadow ? element.boxShadow.offsetY : 0
+            shadowBlur: element && element.boxShadow ? element.boxShadow.blurRadius / 10.0 : 0
+            shadowScale: element && element.boxShadow ? 1.0 + (element.boxShadow.spreadRadius / 100.0) : 1.0
+        }
     }
     
     // Text editing input
@@ -68,7 +103,16 @@ Item {
         topPadding: 4
         bottomPadding: 4
         
-        
+        // Apply shadow effect if enabled (same as textItem)
+        layer.enabled: element && element.boxShadow && element.boxShadow.enabled
+        layer.effect: MultiEffect {
+            shadowEnabled: true
+            shadowColor: element && element.boxShadow ? element.boxShadow.color : "#444444"
+            shadowHorizontalOffset: element && element.boxShadow ? element.boxShadow.offsetX : 0
+            shadowVerticalOffset: element && element.boxShadow ? element.boxShadow.offsetY : 0
+            shadowBlur: element && element.boxShadow ? element.boxShadow.blurRadius / 10.0 : 0
+            shadowScale: element && element.boxShadow ? 1.0 + (element.boxShadow.spreadRadius / 100.0) : 1.0
+        }
         
         // Start with focus when editing starts
         onVisibleChanged: {

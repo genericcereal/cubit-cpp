@@ -9,6 +9,7 @@
 #include "Text.h"
 #include "Shape.h"
 #include "Variable.h"
+#include "BoxShadow.h"
 #include "ScriptElement.h"
 #include "Node.h"
 #include "Edge.h"
@@ -238,6 +239,16 @@ QJsonObject Serializer::serializeElement(Element* element) const {
             fontObj["italic"] = font.italic();
             fontObj["weight"] = font.weight();
             elementObj[name] = fontObj;
+        } else if (value.userType() == qMetaTypeId<BoxShadow>()) {
+            BoxShadow shadow = value.value<BoxShadow>();
+            QJsonObject shadowObj;
+            shadowObj["offsetX"] = shadow.offsetX;
+            shadowObj["offsetY"] = shadow.offsetY;
+            shadowObj["blurRadius"] = shadow.blurRadius;
+            shadowObj["spreadRadius"] = shadow.spreadRadius;
+            shadowObj["color"] = shadow.color.name(QColor::HexArgb);
+            shadowObj["enabled"] = shadow.enabled;
+            elementObj[name] = shadowObj;
         } else if (value.canConvert<QString>()) {
             elementObj[name] = value.toString();
         } else if (value.canConvert<double>()) {
@@ -682,6 +693,56 @@ Element* Serializer::deserializeElement(const QJsonObject& elementData, ElementM
                             value = color;
                         }
                     }
+                }
+                
+                // Handle font objects
+                if (jsonValue.isObject() && propNameStr == "font") {
+                    QJsonObject fontObj = jsonValue.toObject();
+                    QFont font;
+                    if (fontObj.contains("family")) {
+                        font.setFamily(fontObj["family"].toString());
+                    }
+                    if (fontObj.contains("pointSize")) {
+                        font.setPointSize(fontObj["pointSize"].toInt());
+                    }
+                    if (fontObj.contains("bold")) {
+                        font.setBold(fontObj["bold"].toBool());
+                    }
+                    if (fontObj.contains("italic")) {
+                        font.setItalic(fontObj["italic"].toBool());
+                    }
+                    if (fontObj.contains("weight")) {
+                        font.setWeight(static_cast<QFont::Weight>(fontObj["weight"].toInt()));
+                    }
+                    value = font;
+                }
+                
+                // Handle BoxShadow objects
+                if (jsonValue.isObject() && propNameStr == "boxShadow") {
+                    QJsonObject shadowObj = jsonValue.toObject();
+                    BoxShadow shadow;
+                    if (shadowObj.contains("offsetX")) {
+                        shadow.offsetX = shadowObj["offsetX"].toDouble();
+                    }
+                    if (shadowObj.contains("offsetY")) {
+                        shadow.offsetY = shadowObj["offsetY"].toDouble();
+                    }
+                    if (shadowObj.contains("blurRadius")) {
+                        shadow.blurRadius = shadowObj["blurRadius"].toDouble();
+                    }
+                    if (shadowObj.contains("spreadRadius")) {
+                        shadow.spreadRadius = shadowObj["spreadRadius"].toDouble();
+                    }
+                    if (shadowObj.contains("color")) {
+                        QString colorStr = shadowObj["color"].toString();
+                        if (colorStr.startsWith("#")) {
+                            shadow.color = QColor(colorStr);
+                        }
+                    }
+                    if (shadowObj.contains("enabled")) {
+                        shadow.enabled = shadowObj["enabled"].toBool();
+                    }
+                    value = QVariant::fromValue(shadow);
                 }
                 
                 // Set the property if the value is valid and writable

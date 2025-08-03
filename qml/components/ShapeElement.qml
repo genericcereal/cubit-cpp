@@ -1,6 +1,7 @@
-import QtQuick 2.15
-import QtQuick.Shapes 1.15
-import Cubit 1.0
+import QtQuick
+import QtQuick.Shapes
+import QtQuick.Effects
+import Cubit
 
 Item {
     id: root
@@ -144,6 +145,17 @@ Item {
         width: parent.width + (shapeElement ? shapeElement.edgeWidth * 2 : 0)
         height: parent.height + (shapeElement ? shapeElement.edgeWidth * 2 : 0)
         antialiasing: true
+        
+        // Apply shadow effect if enabled
+        layer.enabled: element && element.boxShadow && element.boxShadow.enabled
+        layer.effect: MultiEffect {
+            shadowEnabled: true
+            shadowColor: element && element.boxShadow ? element.boxShadow.color : "#444444"
+            shadowHorizontalOffset: element && element.boxShadow ? element.boxShadow.offsetX : 0
+            shadowVerticalOffset: element && element.boxShadow ? element.boxShadow.offsetY : 0
+            shadowBlur: element && element.boxShadow ? element.boxShadow.blurRadius / 10.0 : 0
+            shadowScale: element && element.boxShadow ? 1.0 + (element.boxShadow.spreadRadius / 100.0) : 1.0
+        }
         
         onPaint: {
             var ctx = getContext("2d")

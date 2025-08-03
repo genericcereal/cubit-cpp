@@ -324,6 +324,8 @@ Item {
                         return styleComponent
                     case "font":
                         return fontComponent
+                    case "boxShadow":
+                        return boxShadowComponent
                     default:
                         return null
                 }
@@ -458,6 +460,182 @@ Item {
                 }
                 // Close the popover panel
                 selectorPanel.visible = false
+            }
+        }
+    }
+    
+    // Component for BoxShadow selector
+    Component {
+        id: boxShadowComponent
+        ColumnLayout {
+            property var selectedElement: root.canvas && root.canvas.selectionManager 
+                ? root.canvas.selectionManager.selectedElements[0] : null
+            property var controller: root.canvas ? root.canvas.controller : null
+            
+            spacing: 12
+            
+            // X offset
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 8
+                
+                Label {
+                    text: "X"
+                    Layout.preferredWidth: 80
+                }
+                
+                SpinBox {
+                    id: xSpinBox
+                    Layout.fillWidth: true
+                    from: -100
+                    to: 100
+                    value: selectedElement && selectedElement.boxShadow ? selectedElement.boxShadow.offsetX : 0
+                    editable: true
+                    
+                    onValueModified: {
+                        if (selectedElement && controller) {
+                            var shadow = selectedElement.boxShadow || {
+                                offsetX: 0,
+                                offsetY: 0,
+                                blurRadius: 0,
+                                spreadRadius: 0,
+                                color: Qt.rgba(0.267, 0.267, 0.267, 1), // #444
+                                enabled: true
+                            }
+                            shadow.offsetX = value
+                            shadow.enabled = true
+                            controller.setElementProperty(selectedElement, "boxShadow", shadow)
+                        }
+                    }
+                }
+            }
+            
+            // Y offset
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 8
+                
+                Label {
+                    text: "Y"
+                    Layout.preferredWidth: 80
+                }
+                
+                SpinBox {
+                    id: ySpinBox
+                    Layout.fillWidth: true
+                    from: -100
+                    to: 100
+                    value: selectedElement && selectedElement.boxShadow ? selectedElement.boxShadow.offsetY : 0
+                    editable: true
+                    
+                    onValueModified: {
+                        if (selectedElement && controller) {
+                            var shadow = selectedElement.boxShadow || {
+                                offsetX: 0,
+                                offsetY: 0,
+                                blurRadius: 0,
+                                spreadRadius: 0,
+                                color: Qt.rgba(0.267, 0.267, 0.267, 1), // #444
+                                enabled: true
+                            }
+                            shadow.offsetY = value
+                            shadow.enabled = true
+                            controller.setElementProperty(selectedElement, "boxShadow", shadow)
+                        }
+                    }
+                }
+            }
+            
+            // Blur
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 8
+                
+                Label {
+                    text: "Blur"
+                    Layout.preferredWidth: 80
+                }
+                
+                SpinBox {
+                    id: blurSpinBox
+                    Layout.fillWidth: true
+                    from: 0
+                    to: 100
+                    value: selectedElement && selectedElement.boxShadow ? selectedElement.boxShadow.blurRadius : 0
+                    editable: true
+                    
+                    onValueModified: {
+                        if (selectedElement && controller) {
+                            var shadow = selectedElement.boxShadow || {
+                                offsetX: 0,
+                                offsetY: 0,
+                                blurRadius: 0,
+                                spreadRadius: 0,
+                                color: Qt.rgba(0.267, 0.267, 0.267, 1), // #444
+                                enabled: true
+                            }
+                            shadow.blurRadius = value
+                            shadow.enabled = true
+                            controller.setElementProperty(selectedElement, "boxShadow", shadow)
+                        }
+                    }
+                }
+            }
+            
+            // Spread
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 8
+                
+                Label {
+                    text: "Spread"
+                    Layout.preferredWidth: 80
+                }
+                
+                SpinBox {
+                    id: spreadSpinBox
+                    Layout.fillWidth: true
+                    from: -50
+                    to: 50
+                    value: selectedElement && selectedElement.boxShadow ? selectedElement.boxShadow.spreadRadius : 0
+                    editable: true
+                    
+                    onValueModified: {
+                        if (selectedElement && controller) {
+                            var shadow = selectedElement.boxShadow || {
+                                offsetX: 0,
+                                offsetY: 0,
+                                blurRadius: 0,
+                                spreadRadius: 0,
+                                color: Qt.rgba(0.267, 0.267, 0.267, 1), // #444
+                                enabled: true
+                            }
+                            shadow.spreadRadius = value
+                            shadow.enabled = true
+                            controller.setElementProperty(selectedElement, "boxShadow", shadow)
+                        }
+                    }
+                }
+            }
+            
+            // Remove shadow button
+            Button {
+                Layout.fillWidth: true
+                text: "Remove Shadow"
+                onClicked: {
+                    if (selectedElement && controller) {
+                        var shadow = {
+                            offsetX: 0,
+                            offsetY: 0,
+                            blurRadius: 0,
+                            spreadRadius: 0,
+                            color: Qt.rgba(0.267, 0.267, 0.267, 1),
+                            enabled: false
+                        }
+                        controller.setElementProperty(selectedElement, "boxShadow", shadow)
+                        selectorPanel.visible = false
+                    }
+                }
             }
         }
     }

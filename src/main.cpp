@@ -13,6 +13,7 @@
 #include "platforms/web/WebTextInput.h"
 #include "Shape.h"
 #include "Variable.h"
+#include "BoxShadow.h"
 #include "Component.h"
 #include "ComponentVariantTemplate.h"
 #include "ComponentInstanceTemplate.h"
@@ -43,6 +44,7 @@
 #include "AdaptiveThrottler.h"
 #include "ConfigObject.h"
 #include "VariableBinding.h"
+#include "GoogleFonts.h"
 
 int main(int argc, char *argv[])
 {
@@ -124,6 +126,10 @@ int main(int argc, char *argv[])
     qmlRegisterType<WebTextInputComponentInstanceTemplate>("Cubit", 1, 0, "WebTextInputComponentInstance");
     qmlRegisterType<Node>("Cubit", 1, 0, "Node");
     qmlRegisterType<Edge>("Cubit", 1, 0, "Edge");
+    
+    // Register value types
+    qRegisterMetaType<BoxShadow>("BoxShadow");
+    qmlRegisterUncreatableMetaObject(BoxShadow::staticMetaObject, "Cubit", 1, 0, "BoxShadow", "BoxShadow is a value type");
 
     // Register singleton controllers
     qmlRegisterType<CanvasController>("Cubit", 1, 0, "CanvasController");
@@ -156,6 +162,15 @@ int main(int argc, char *argv[])
 
     // Register ConsoleMessageRepository as a regular type (not singleton)
     qmlRegisterType<ConsoleMessageRepository>("Cubit", 1, 0, "ConsoleMessageRepository");
+    
+    // Register GoogleFonts singleton
+    qmlRegisterSingletonType<GoogleFonts>("Cubit", 1, 0, "GoogleFonts",
+                                         [](QQmlEngine *engine, QJSEngine *scriptEngine) -> QObject *
+                                         {
+                                             Q_UNUSED(engine)
+                                             Q_UNUSED(scriptEngine)
+                                             return GoogleFonts::instance();
+                                         });
     
     // Register PropertyRegistry
     qmlRegisterType<PropertyRegistry>("Cubit", 1, 0, "PropertyRegistry");

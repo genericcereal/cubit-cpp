@@ -1,5 +1,6 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Effects
 import Cubit 1.0
 import ".."
 import "."
@@ -79,6 +80,17 @@ Item {
         border.width: 0
         radius: frameElement ? frameElement.borderRadius : 0
         antialiasing: true
+        
+        // Apply shadow effect if enabled
+        layer.enabled: element && element.boxShadow && element.boxShadow.enabled
+        layer.effect: MultiEffect {
+            shadowEnabled: true
+            shadowColor: element && element.boxShadow ? element.boxShadow.color : "#444444"
+            shadowHorizontalOffset: element && element.boxShadow ? element.boxShadow.offsetX : 0
+            shadowVerticalOffset: element && element.boxShadow ? element.boxShadow.offsetY : 0
+            shadowBlur: element && element.boxShadow ? element.boxShadow.blurRadius / 10.0 : 0 // Scale down blur radius
+            shadowScale: element && element.boxShadow ? 1.0 + (element.boxShadow.spreadRadius / 100.0) : 1.0 // Convert spread to scale
+        }
     }
     
     // Content that needs to be masked
@@ -114,7 +126,6 @@ Item {
                     
                     Component.onCompleted: {
                         if (active && root.element.elementType === "FrameComponentInstance") {
-                            console.log("FrameComponentInstance child - parentId:", childParentId, 
                                        "parent elementId:", root.element.elementId,
                                        "child type:", childElementType,
                                        "child showInList:", childElement.showInElementList)

@@ -13,6 +13,7 @@
 #include "Variable.h"
 #include "UniqueIdGenerator.h"
 #include <QDebug>
+#include <QPointer>
 
 CreateDesignElementCommand::CreateDesignElementCommand(ElementModel* model, SelectionManager* selectionManager,
                                                      const QString& elementType, const QRectF& rect,
@@ -171,11 +172,16 @@ void CreateDesignElementCommand::execute()
             m_elementModel->addElement(variable);
             
             // Connect element's nameChanged signal to update the Variable
-            connect(m_element, &Element::nameChanged, variable, [variable, element = m_element]() {
-                variable->setName(element->getName());
-            });
+            // Use QPointer to safely handle potential deletions
+            QPointer<Variable> safeVariable = variable;
+            QPointer<Element> safeElement = m_element;
             
-            qDebug() << "Created Variable element for design element:" << m_element->getName() 
+            connect(m_element, &Element::nameChanged, variable, [safeVariable, safeElement]() {
+                if (safeVariable && safeElement) {
+                    safeVariable->setName(safeElement->getName());
+                }
+            }, Qt::QueuedConnection);
+            
                      << "with ID:" << variableId;
         }
     }
@@ -226,7 +232,6 @@ void CreateDesignElementCommand::undo()
                 if (Variable* var = qobject_cast<Variable*>(elem)) {
                     if (var->linkedElementId() == m_element->getId()) {
                         m_elementModel->removeElement(var->getId());
-                        qDebug() << "Removed Variable element for design element:" << m_element->getName();
                         break;
                     }
                 }
