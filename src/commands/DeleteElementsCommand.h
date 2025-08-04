@@ -24,6 +24,8 @@ public:
 
 private:
     void syncWithAPI();
+    void findChildElements(const QString& parentId, const QList<Element*>& allElements);
+    
     struct ElementInfo {
         Element* element;
         Element* parent;

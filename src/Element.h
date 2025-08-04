@@ -26,16 +26,8 @@ public:
         VariableType,
         NodeType,
         EdgeType,
-        ComponentType,
-        FrameComponentInstanceType,
-        FrameComponentVariantType,
-        TextVariantType,
         WebTextInputType,
-        WebTextInputComponentInstanceType,
-        WebTextInputComponentVariantType,
-        ShapeType,
-        ShapeComponentInstanceType,
-        ShapeComponentVariantType
+        ShapeType
     };
     Q_ENUM(ElementType)
 

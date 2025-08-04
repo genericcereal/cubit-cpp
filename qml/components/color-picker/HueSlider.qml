@@ -14,6 +14,9 @@ Item {
     implicitWidth: 200
     implicitHeight: 20  // Height to accommodate the handle
     
+    // Ensure we have a valid width
+    width: implicitWidth
+    
     // Throttled update for drag operations
     ThrottledUpdate {
         id: hueThrottle
@@ -49,28 +52,47 @@ Item {
         border.color: "#d0d0d0"
     }
     
-    // Slider handle
-    Rectangle {
-        id: handle
-        width: 20
-        height: 20
-        radius: height / 2
-        x: (root.hue / 360) * (track.width - width)
-        y: (parent.height - height) / 2  // Center vertically on the track
+    // Handle container to ensure proper positioning
+    Item {
+        id: handleContainer
+        anchors.left: track.left
+        anchors.right: track.right
+        anchors.verticalCenter: track.verticalCenter
+        height: parent.height
         
-        color: Qt.hsla(root.hue / 360, root.saturation, root.lightness, 1.0)
-        border.width: 2
-        border.color: "#ffffff"
-        
-        // Drop shadow effect
+        // Slider handle
         Rectangle {
-            anchors.fill: parent
-            anchors.margins: -1
-            radius: parent.radius
-            color: "transparent"
-            border.width: 1
-            border.color: "#40000000"
-            z: -1
+            id: handle
+            width: 20
+            height: 20
+            radius: height / 2
+            anchors.verticalCenter: parent.verticalCenter
+            
+            // Position based on hue value
+            x: {
+                // Handle NaN case when pure black/white is selected
+                var normalizedHue = isNaN(root.hue) ? 0 : Math.max(0, Math.min(root.hue, 360))
+                // Calculate position within the container
+                var containerWidth = parent.width
+                if (containerWidth <= handle.width) return 0
+                var position = (normalizedHue / 360) * (containerWidth - handle.width)
+                return Math.max(0, Math.min(position, containerWidth - handle.width))
+            }
+            
+            color: Qt.hsla(root.hue / 360, root.saturation, root.lightness, 1.0)
+            border.width: 2
+            border.color: "#ffffff"
+            
+            // Drop shadow effect
+            Rectangle {
+                anchors.fill: parent
+                anchors.margins: -1
+                radius: parent.radius
+                color: "transparent"
+                border.width: 1
+                border.color: "#40000000"
+                z: -1
+            }
         }
     }
     
@@ -80,8 +102,8 @@ Item {
         anchors.fill: track
         
         function updateHue(mouseX) {
-            var normalizedX = Math.max(0, Math.min(mouseX, track.width))
-            var newHue = (normalizedX / track.width) * 360
+            var normalizedX = Math.max(0, Math.min(mouseX, width))
+            var newHue = (normalizedX / width) * 360
             
             // Use throttled update during drag
             hueThrottle.requestUpdate({

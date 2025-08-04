@@ -4,7 +4,7 @@
 #include "../CanvasContext.h"
 #include <QPointer>
 
-class Component;
+// class Component; // Component system removed
 class DesignElement;
 
 /**
@@ -30,7 +30,7 @@ public:
     
 private:
     QPointer<QObject> m_editingElement;
-    Component* getComponent() const;
+    // Component* getComponent() const; // Component system removed
     DesignElement* getDesignElement() const;
 };
 

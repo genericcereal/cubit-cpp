@@ -5,9 +5,7 @@
 #include "ScriptElement.h"
 #include "ElementModel.h"
 #include "QuadTree.h"
-#include "Component.h"
-#include "ComponentVariantTemplate.h"
-#include "ComponentInstanceTemplate.h"
+// #include "ComponentInstanceTemplate.h" // Component system removed
 #include "PlatformConfig.h"
 #include "Project.h"
 #include "CanvasContext.h"
@@ -314,25 +312,25 @@ bool HitTestService::isInAnyComponentVariants(Element* element) const
     if (!element || !m_elementModel) return false;
     
     // Check all elements to find Components
-    QList<Element*> allElements = m_elementModel->getAllElements();
-    for (Element* el : allElements) {
-        Component* component = qobject_cast<Component*>(el);
-        if (component) {
-            // Check if element is in this component's variants
-            const QList<Element*>& variants = component->variants();
-            if (variants.contains(element)) {
-                return true;
-            }
-            
-            // Also check if element is a descendant of any variant
-            for (Element* variant : variants) {
-                QList<Element*> descendants = m_elementModel->getChildrenRecursive(variant->getId());
-                if (descendants.contains(element)) {
-                    return true;
-                }
-            }
-        }
-    }
+    // QList<Element*> allElements = m_elementModel->getAllElements();
+    // for (Element* el : allElements) {
+    //     Component* component = qobject_cast<Component*>(el);
+    //     if (component) {
+    //         // Check if element is in this component's variants
+    //         const QList<Element*>& variants = component->variants();
+    //         if (variants.contains(element)) {
+    //             return true;
+    //         }
+    //         
+    //         // Also check if element is a descendant of any variant
+    //         for (Element* variant : variants) {
+    //             QList<Element*> descendants = m_elementModel->getChildrenRecursive(variant->getId());
+    //             if (descendants.contains(element)) {
+    //                 return true;
+    //             }
+    //         }
+    //     }
+    // }
     
     return false;
 }
@@ -349,9 +347,9 @@ bool HitTestService::shouldTestElement(Element* element) const
     // Fall back to original logic if no context
     // Special handling for Component elements - they should never be hit-testable on canvas
     // Components only appear in the ElementList, not as visual elements on canvas
-    if (qobject_cast<Component*>(element)) {
-        return false;
-    }
+    // if (qobject_cast<Component*>(element)) {
+    //     return false;
+    // }
     
     // Check if mouse events are disabled for this element
     if (element->isVisual()) {
@@ -379,9 +377,9 @@ bool HitTestService::shouldTestElement(Element* element) const
         // 2. ComponentInstance elements
         
         // Check if it's a ComponentInstance
-        if (qobject_cast<FrameComponentInstanceTemplate*>(element)) {
-            return true;
-        }
+        // if (qobject_cast<FrameComponentInstanceTemplate*>(element)) {
+        //     return true;
+        // }
         
         // For other elements, they must be design elements
         if (!canvasElement->isDesignElement()) {
@@ -389,9 +387,9 @@ bool HitTestService::shouldTestElement(Element* element) const
         }
         
         // Check if this element is a ComponentVariant (should not be hit-testable in design mode)
-        if (qobject_cast<FrameComponentVariantTemplate*>(element)) {
-            return false;
-        }
+        // if (Frame* frame = qobject_cast<Frame*>(element)) {
+        //     return false;
+        // }
         
         // Skip elements that are in any component's variants array
         if (isInAnyComponentVariants(element)) {
@@ -430,26 +428,26 @@ bool HitTestService::shouldTestElement(Element* element) const
         // Check if we have an editing element
         if (m_editingElement) {
             // Check if editing a Component
-            Component* component = qobject_cast<Component*>(m_editingElement);
-            if (component) {
-                // Test elements that are in this component's variants array or descendants of variants
-                const QList<Element*>& variants = component->variants();
-                
-                // Check if element is directly in variants
-                if (variants.contains(element)) {
-                    return true;
-                }
-                
-                // Check if element is a descendant of any variant
-                if (m_elementModel) {
-                    for (Element* variant : variants) {
-                        QList<Element*> descendants = m_elementModel->getChildrenRecursive(variant->getId());
-                        if (descendants.contains(element)) {
-                            return true;
-                        }
-                    }
-                }
-            }
+            // Component* component = qobject_cast<Component*>(m_editingElement);
+            // if (component) {
+            //     // Test elements that are in this component's variants array or descendants of variants
+            //     const QList<Element*>& variants = component->variants();
+            //     
+            //     // Check if element is directly in variants
+            //     if (variants.contains(element)) {
+            //         return true;
+            //     }
+            //     
+            //     // Check if element is a descendant of any variant
+            //     if (m_elementModel) {
+            //         for (Element* variant : variants) {
+            //             QList<Element*> descendants = m_elementModel->getChildrenRecursive(variant->getId());
+            //             if (descendants.contains(element)) {
+            //                 return true;
+            //             }
+            //         }
+            //     }
+            // }
             
             // Check if editing a PlatformConfig (for globalElements mode)
             PlatformConfig* platform = qobject_cast<PlatformConfig*>(m_editingElement);

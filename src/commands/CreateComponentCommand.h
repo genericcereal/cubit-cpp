@@ -2,14 +2,10 @@
 #define CREATECOMPONENTCOMMAND_H
 
 #include "../Command.h"
-#include "../Component.h"
 #include <QString>
-#include <QPointer>
-#include <memory>
 
 class ElementModel;
 class DesignElement;
-class CreateInstanceCommand;
 
 class CreateComponentCommand : public Command
 {
@@ -22,16 +18,17 @@ public:
 
     void execute() override;
     void undo() override;
+    void redo() override;
 
-    Component* getCreatedComponent() const { return m_createdComponent; }
+    DesignElement* getCreatedInstance() const { return m_createdInstance; }
 
 private:
-    QPointer<ElementModel> m_elementModel;
-    QPointer<DesignElement> m_sourceElement;
-    QPointer<Component> m_createdComponent;
-    std::unique_ptr<CreateInstanceCommand> m_createInstanceCommand;
-    QString m_componentId;
-    QString m_variantId;
+    ElementModel* m_elementModel;
+    DesignElement* m_sourceElement;
+    DesignElement* m_createdInstance;
+    QString m_sourceElementId;
+    QString m_sourceParentId;
+    QString m_instanceId;
 };
 
 #endif // CREATECOMPONENTCOMMAND_H

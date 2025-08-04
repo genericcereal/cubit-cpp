@@ -79,6 +79,7 @@ ScrollView {
         
         ShapeSection {
             selectedElement: root.selectedElement
+            canvas: root.canvas
             onPanelSelectorClicked: function(selector, type) {
                 root.panelSelectorClicked(selector, type)
             }

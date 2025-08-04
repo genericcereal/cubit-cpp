@@ -7,7 +7,6 @@
 #include "ScriptExecutor.h"
 #include "Node.h"
 #include "Edge.h"
-#include "Component.h"
 #include "PrototypeController.h"
 #include "Application.h"
 #include "StreamingAIClient.h"
@@ -403,7 +402,6 @@ void Project::initialize() {
                     }
                 } else if (Edge* edge = qobject_cast<Edge*>(element)) {
                     if (!targetScripts->getEdge(edge->getId())) {
-                                 << (m_editingElement ? "editing element's" : "canvas") << "scripts";
                         // Transfer ownership to scripts
                         edge->setParent(targetScripts);
                         targetScripts->addEdge(edge);
@@ -431,10 +429,8 @@ void Project::initialize() {
                 
                 // Remove from scripts when removed from model
                 if (Node* node = targetScripts->getNode(elementId)) {
-                             << (m_editingElement ? "editing element's" : "canvas") << "scripts";
                     targetScripts->removeNode(node);
                 } else if (Edge* edge = targetScripts->getEdge(elementId)) {
-                             << (m_editingElement ? "editing element's" : "canvas") << "scripts";
                     targetScripts->removeEdge(edge);
                 }
             }
@@ -448,14 +444,8 @@ QObject* Project::editingElement() const {
 
 Scripts* Project::activeScripts() const {
     if (m_editingElement) {
-        // Check if it's a Component
-        if (Component* component = qobject_cast<Component*>(m_editingElement)) {
-            if (component->scripts()) {
-                return component->scripts();
-            }
-        }
         // Check if it's a DesignElement
-        else if (DesignElement* designElement = qobject_cast<DesignElement*>(m_editingElement)) {
+        if (DesignElement* designElement = qobject_cast<DesignElement*>(m_editingElement)) {
             if (designElement->scripts()) {
                 return designElement->scripts();
             }
@@ -479,11 +469,7 @@ void Project::setEditingElement(DesignElement* element, const QString& viewMode)
         if (selectedElements.size() == 1) {
             auto selectedElement = selectedElements.first();
             
-            // Check if it's a Component
-            if (Component* component = qobject_cast<Component*>(selectedElement)) {
-                setEditingComponent(component, viewMode);
-                return;
-            }
+            // Component system removed - skip to visual design element check
             
             // Check if it's a visual design element
             if (selectedElement && selectedElement->isVisual()) {
@@ -512,23 +498,24 @@ void Project::setEditingElement(DesignElement* element, const QString& viewMode)
     }
 }
 
-void Project::setEditingComponent(Component* component, const QString& viewMode) {
-    if (m_editingElement != component) {
-        m_editingElement = component;
-        emit editingElementChanged();
-        updateActiveScripts();
-        
-        // Update the canvas controller's hit test service
-        if (m_controller) {
-            m_controller->setEditingElement(m_editingElement);
-        }
-    }
-    
-    // If a viewMode is specified, switch to that mode
-    if (!viewMode.isEmpty() && m_viewMode != viewMode) {
-        setViewMode(viewMode);
-    }
-}
+// Component system removed
+// void Project::setEditingComponent(Component* component, const QString& viewMode) {
+//     if (m_editingElement != component) {
+//         m_editingElement = component;
+//         emit editingElementChanged();
+//         updateActiveScripts();
+//         
+//         // Update the canvas controller's hit test service
+//         if (m_controller) {
+//             m_controller->setEditingElement(m_editingElement);
+//         }
+//     }
+//     
+//     // If a viewMode is specified, switch to that mode
+//     if (!viewMode.isEmpty() && m_viewMode != viewMode) {
+//         setViewMode(viewMode);
+//     }
+// }
 
 void Project::setEditingPlatform(PlatformConfig* platform, const QString& viewMode) {
     if (m_editingElement != platform) {

@@ -1,14 +1,15 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import Cubit
 
 Rectangle {
     id: root
     
     width: 250
     height: dragArea.height + (contentLoader.item ? contentLoader.item.implicitHeight : 0) + 20 // header + content + margins
-    color: "#ffffff"
-    border.color: "#d0d0d0"
+    color: ConfigObject.darkMode ? "#2a2a2a" : "#ffffff"
+    border.color: ConfigObject.darkMode ? "#404040" : "#d0d0d0"
     border.width: 1
     
     // Property to accept a source component
@@ -68,7 +69,7 @@ Rectangle {
             id: backButton
             width: 24
             height: 24
-            color: backButtonArea.containsMouse ? "#e0e0e0" : "transparent"
+            color: backButtonArea.containsMouse ? (ConfigObject.darkMode ? "#3e3e42" : "#e0e0e0") : "transparent"
             radius: 2
             visible: root.showBackButton
             
@@ -77,7 +78,7 @@ Rectangle {
                 text: "←"
                 font.pixelSize: 16
                 font.weight: Font.Medium
-                color: backButtonArea.containsMouse ? "#333333" : "#666666"
+                color: backButtonArea.containsMouse ? ConfigObject.textColor : ConfigObject.secondaryTextColor
             }
             
             MouseArea {
@@ -97,7 +98,7 @@ Rectangle {
             text: root.title
             font.pixelSize: 14
             font.weight: Font.Medium
-            color: "#333333"
+            color: ConfigObject.textColor
             visible: root.title !== ""
             anchors.verticalCenter: parent.verticalCenter
         }
@@ -111,7 +112,7 @@ Rectangle {
         anchors.top: parent.top
         anchors.right: parent.right
         anchors.margins: 8
-        color: closeButtonArea.containsMouse ? "#e0e0e0" : "transparent"
+        color: closeButtonArea.containsMouse ? (ConfigObject.darkMode ? "#3e3e42" : "#e0e0e0") : "transparent"
         radius: 2
         
         Text {
@@ -119,7 +120,7 @@ Rectangle {
             text: "✕"
             font.pixelSize: 16
             font.weight: Font.Medium
-            color: closeButtonArea.containsMouse ? "#333333" : "#666666"
+            color: closeButtonArea.containsMouse ? ConfigObject.textColor : ConfigObject.secondaryTextColor
         }
         
         MouseArea {

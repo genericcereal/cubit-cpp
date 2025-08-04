@@ -3,7 +3,6 @@
 #include "../ElementModel.h"
 #include "../Node.h"
 #include "../Edge.h"
-#include "../Component.h"
 #include "../DesignElement.h"
 #include "../PlatformConfig.h"
 #include <QDebug>
@@ -28,14 +27,12 @@ void ScriptCanvasContext::activateContext(ElementModel* targetModel)
 {
     if (!targetModel || !m_scripts) return;
     
-    // qDebug() << "ScriptCanvasContext::activateContext - Starting";
     
     // Clear existing script elements from the model first
     deactivateContext(targetModel);
     
     // Add all nodes to the element model
     auto nodes = m_scripts->getAllNodes();
-    // qDebug() << "ScriptCanvasContext: Loading" << nodes.size() << "nodes";
     for (Node* node : nodes) {
         if (node) {
             // Add to model but Scripts retains ownership
@@ -45,7 +42,6 @@ void ScriptCanvasContext::activateContext(ElementModel* targetModel)
     
     // Add all edges to the element model
     auto edges = m_scripts->getAllEdges();
-    // qDebug() << "ScriptCanvasContext: Loading" << edges.size() << "edges";
     for (Edge* edge : edges) {
         if (edge) {
             // Add to model but Scripts retains ownership
@@ -82,9 +78,9 @@ QString ScriptCanvasContext::getEditingElementName() const
 {
     if (!m_editingElement) return QString();
     
-    if (Component* comp = qobject_cast<Component*>(m_editingElement.data())) {
-        return comp->getName();
-    }
+    // if (Component* comp = qobject_cast<Component*>(m_editingElement.data())) {
+    //     return comp->getName();
+    // }
     if (DesignElement* elem = qobject_cast<DesignElement*>(m_editingElement.data())) {
         return elem->getName();
     }

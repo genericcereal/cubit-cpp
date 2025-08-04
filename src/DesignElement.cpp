@@ -4,9 +4,6 @@
 #include "ScriptExecutor.h"
 #include "Application.h"
 #include "Project.h"
-#include "Component.h"
-#include "ComponentInstanceTemplate.h"
-#include "ComponentVariantTemplate.h"
 #include "Frame.h"
 #include "Text.h"
 #include "platforms/web/WebTextInput.h"
@@ -19,6 +16,7 @@
 #include <QCoreApplication>
 #include <QDebug>
 #include <QHash>
+#include <QMetaProperty>
 
 DesignElement::DesignElement(const QString &id, QObject *parent)
     : CanvasElement(Element::FrameType, id, parent)  // Use FrameType as default, subclasses will override
@@ -227,10 +225,43 @@ void DesignElement::setIsFrozen(bool frozen) {
     }
 }
 
-void DesignElement::setSourceId(const QString& sourceId) {
-    if (m_sourceId != sourceId) {
-        m_sourceId = sourceId;
-        emit sourceIdChanged();
+void DesignElement::setInstanceOf(const QString& sourceId) {
+    if (m_instanceOf != sourceId) {
+        // Disconnect from old source
+        if (!m_instanceOf.isEmpty() && m_sourceElement) {
+            disconnect(m_sourceConnection);
+            m_sourceElement = nullptr;
+        }
+        
+        m_instanceOf = sourceId;
+        emit instanceOfChanged();
+        
+        // Connect to new source
+        if (!sourceId.isEmpty()) {
+            // Find the source element
+            ElementModel* model = qobject_cast<ElementModel*>(parent());
+            if (model) {
+                Element* sourceElement = model->getElementById(sourceId);
+                DesignElement* designSource = qobject_cast<DesignElement*>(sourceElement);
+                if (designSource) {
+                    m_sourceElement = designSource;
+                    
+                    // Subscribe to all property changes
+                    m_sourceConnection = connect(designSource, &QObject::destroyed,
+                                               this, &DesignElement::onSourceElementDestroyed);
+                    
+                    // Connect to property change signal
+                    connect(designSource, &Element::propertyChanged,
+                           this, &DesignElement::onSourceElementChanged,
+                           Qt::UniqueConnection);
+                    
+                    // Initial sync
+                    onSourceElementChanged();
+                } else {
+                    qWarning() << "Source element not found or not a DesignElement:" << sourceId;
+                }
+            }
+        }
     }
 }
 
@@ -475,31 +506,10 @@ void DesignElement::onParentGeometryChanged() {
     updateFromParentGeometry();
 }
 
-Component* DesignElement::createComponent() {
-    // Get the element model from the parent (which should be the ElementModel)
-    ElementModel* elementModel = qobject_cast<ElementModel*>(parent());
-    if (!elementModel) {
-        qWarning() << "DesignElement::createComponent - Parent is not an ElementModel";
-        return nullptr;
-    }
-    
-    // Get the Project from the ElementModel's parent
-    Project* project = qobject_cast<Project*>(elementModel->parent());
-    if (!project) {
-        qWarning() << "DesignElement::createComponent - ElementModel has no Project parent";
-        return nullptr;
-    }
-    
-    // Get the creation manager from the project's controller
-    CreationManager* creationManager = project->controller() ? project->controller()->creationManager() : nullptr;
-    if (!creationManager) {
-        qWarning() << "DesignElement::createComponent - No CreationManager available";
-        return nullptr;
-    }
-    
-    // Delegate to CreationManager
-    return creationManager->createComponent(this);
-}
+// Component system has been removed - use instanceOf pattern instead
+// Component* DesignElement::createComponent() {
+//     ...
+// }
 
 // Note: copyElementRecursively has been moved to CreationManager
 
@@ -525,6 +535,45 @@ void DesignElement::registerProperties() {
     m_properties->registerProperty("topAnchored", false);
     m_properties->registerProperty("bottomAnchored", false);
     m_properties->registerProperty("isFrozen", false);
-    m_properties->registerProperty("sourceId", QString());
+    m_properties->registerProperty("instanceOf", QString());
     m_properties->registerProperty("boxShadow", QVariant::fromValue(BoxShadow()));
+}
+
+void DesignElement::onSourceElementChanged() {
+    if (!m_sourceElement) return;
+    
+    // Get the meta object for property copying
+    const QMetaObject* metaObject = m_sourceElement->metaObject();
+    
+    // Copy all properties except geometry and hierarchy
+    for (int i = 0; i < metaObject->propertyCount(); ++i) {
+        QMetaProperty metaProp = metaObject->property(i);
+        const char* propName = metaProp.name();
+        
+        // Skip certain properties that shouldn't be copied
+        QString propNameStr(propName);
+        if (propNameStr == "objectName" || 
+            propNameStr == "elementId" || 
+            propNameStr == "parentId" ||
+            propNameStr == "x" || 
+            propNameStr == "y" || 
+            propNameStr == "width" || 
+            propNameStr == "height" ||
+            propNameStr == "selected" ||
+            propNameStr == "instanceOf") {
+            continue;
+        }
+        
+        // Copy the property value
+        QVariant value = m_sourceElement->property(propName);
+        if (value.isValid()) {
+            setProperty(propName, value);
+        }
+    }
+}
+
+void DesignElement::onSourceElementDestroyed() {
+    m_sourceElement = nullptr;
+    m_instanceOf.clear();
+    emit instanceOfChanged();
 }

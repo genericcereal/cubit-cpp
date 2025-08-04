@@ -3,7 +3,6 @@
 #include "../ElementModel.h"
 #include "../SelectionManager.h"
 #include "../Project.h"
-#include "../Component.h"
 #include "../PlatformConfig.h"
 #include "../Scripts.h"
 #include "../Node.h"
@@ -29,9 +28,13 @@ DeleteElementsCommand::DeleteElementsCommand(ElementModel* model, SelectionManag
         if (element) {
             ElementInfo info;
             info.element = element;
-            info.parent = nullptr; // TODO: Handle parent-child relationships when implemented
+            info.parent = nullptr;
             info.index = m_elementModel->getAllElements().indexOf(element);
             m_deletedElements.append(info);
+            
+            // Find all child elements recursively
+            QList<Element*> allElements = m_elementModel->getAllElements();
+            findChildElements(element->getId(), allElements);
         }
     }
 
@@ -55,10 +58,12 @@ void DeleteElementsCommand::execute()
     for (const ElementInfo& info : m_deletedElements) {
         m_deletedElementIds.append(info.element->getId());
     }
+    // Also add child element IDs
+    for (const ElementInfo& info : m_deletedChildren) {
+        m_deletedElementIds.append(info.element->getId());
+    }
 
-    // qDebug() << "DeleteElementsCommand::execute() - Deleting" << m_deletedElements.size() << "elements";
     // for (const ElementInfo& info : m_deletedElements) {
-    //     qDebug() << "  - Deleting element:" << info.element->getId() << "type:" << info.element->metaObject()->className();
     // }
 
     // Get the Project from the ElementModel's parent
@@ -70,12 +75,12 @@ void DeleteElementsCommand::execute()
     // Check if we're in variant mode or globalElements mode
     bool isVariantMode = project && project->viewMode() == "variant";
     bool isGlobalElementsMode = project && project->viewMode() == "globalElements";
-    Component* editingComponent = nullptr;
+    // Component* editingComponent = nullptr;
     PlatformConfig* editingPlatform = nullptr;
     
     if (isVariantMode && project) {
         QObject* editingElement = project->editingElement();
-        editingComponent = qobject_cast<Component*>(editingElement);
+        // editingComponent = qobject_cast<Component*>(editingElement);
     } else if (isGlobalElementsMode && project) {
         QObject* editingElement = project->editingElement();
         editingPlatform = qobject_cast<PlatformConfig*>(editingElement);
@@ -104,7 +109,6 @@ void DeleteElementsCommand::execute()
                                 varInfo.parent = nullptr;
                                 varInfo.index = m_elementModel->getAllElements().indexOf(var);
                                 variablesToDelete.append(varInfo);
-                                // qDebug() << "Will delete Variable element for design element:" << element->getName();
                                 break;
                             }
                         }
@@ -134,7 +138,6 @@ void DeleteElementsCommand::execute()
                     for (Edge* edge : connectedEdges) {
                         if (edge && !edgesToDelete.contains(edge)) {
                             edgesToDelete.append(edge);
-                            // qDebug() << "DeleteElementsCommand: Will delete edge" << edge->getId() 
                             //          << "connected to node" << nodeId;
                         }
                     }
@@ -158,19 +161,16 @@ void DeleteElementsCommand::execute()
                     edgeInfo.parent = nullptr;
                     edgeInfo.index = m_elementModel->getAllElements().indexOf(edge);
                     m_deletedElements.append(edgeInfo);
-                    // qDebug() << "DeleteElementsCommand: Added edge" << edge->getId() << "to deletion list";
                 }
             }
             
             // Remove nodes from Scripts (this will also remove connected edges)
             for (const ElementInfo& info : m_deletedElements) {
                 if (Node* node = qobject_cast<Node*>(info.element)) {
-                    // qDebug() << "DeleteElementsCommand: Removing node" << node->getId() << "from scripts";
                     scripts->removeNode(node);
                 } else if (Edge* edge = qobject_cast<Edge*>(info.element)) {
                     // Only remove edges that aren't already removed by removeNode
                     if (scripts->getEdge(edge->getId())) {
-                        // qDebug() << "DeleteElementsCommand: Removing edge" << edge->getId() << "from scripts";
                         scripts->removeEdge(edge);
                     }
                 }
@@ -178,7 +178,6 @@ void DeleteElementsCommand::execute()
             
             // Don't process events during deletion - this can cause crashes
             // QML will be updated automatically when the model changes
-            // qDebug() << "DeleteElementsCommand: Script elements removed, model updates will follow";
         }
     }
 
@@ -187,11 +186,11 @@ void DeleteElementsCommand::execute()
         m_elementModel->removeElement(info.element->getId());
         
         // Also remove from variant array if in variant mode
-        if (isVariantMode && editingComponent) {
-            editingComponent->removeVariant(info.element);
-        }
+        // if (isVariantMode && editingComponent) {
+        //     editingComponent->removeVariant(info.element);
+        // }
         // Also remove from globalElements if in globalElements mode
-        else if (isGlobalElementsMode && editingPlatform) {
+        if (isGlobalElementsMode && editingPlatform) {
             ElementModel* globalElements = editingPlatform->globalElements();
             if (globalElements) {
                 globalElements->removeElement(info.element->getId());
@@ -203,9 +202,10 @@ void DeleteElementsCommand::execute()
     for (const ElementInfo& info : m_deletedChildren) {
         m_elementModel->removeElement(info.element->getId());
         
-        if (isVariantMode && editingComponent) {
-            editingComponent->removeVariant(info.element);
-        } else if (isGlobalElementsMode && editingPlatform) {
+        // if (isVariantMode && editingComponent) {
+        //     editingComponent->removeVariant(info.element);
+        // }
+        if (isGlobalElementsMode && editingPlatform) {
             ElementModel* globalElements = editingPlatform->globalElements();
             if (globalElements) {
                 globalElements->removeElement(info.element->getId());
@@ -219,9 +219,7 @@ void DeleteElementsCommand::execute()
     }
     
     // Sync with API after all deletions are complete
-    // qDebug() << "DeleteElementsCommand: Starting API sync";
     syncWithAPI();
-    // qDebug() << "DeleteElementsCommand: API sync complete";
 }
 
 void DeleteElementsCommand::undo()
@@ -234,12 +232,12 @@ void DeleteElementsCommand::undo()
     // Check if we're in variant mode or globalElements mode
     bool isVariantMode = project && project->viewMode() == "variant";
     bool isGlobalElementsMode = project && project->viewMode() == "globalElements";
-    Component* editingComponent = nullptr;
+    // Component* editingComponent = nullptr;
     PlatformConfig* editingPlatform = nullptr;
     
     if (isVariantMode && project) {
         QObject* editingElement = project->editingElement();
-        editingComponent = qobject_cast<Component*>(editingElement);
+        // editingComponent = qobject_cast<Component*>(editingElement);
     } else if (isGlobalElementsMode && project) {
         QObject* editingElement = project->editingElement();
         editingPlatform = qobject_cast<PlatformConfig*>(editingElement);
@@ -251,11 +249,11 @@ void DeleteElementsCommand::undo()
         m_elementModel->addElement(info.element);
         
         // Also restore to variant array if in variant mode
-        if (isVariantMode && editingComponent) {
-            editingComponent->addVariant(info.element);
-        }
+        // if (isVariantMode && editingComponent) {
+        //     editingComponent->addVariant(info.element);
+        // }
         // Also restore to globalElements if in globalElements mode
-        else if (isGlobalElementsMode && editingPlatform) {
+        if (isGlobalElementsMode && editingPlatform) {
             ElementModel* globalElements = editingPlatform->globalElements();
             if (globalElements) {
                 globalElements->addElement(info.element);
@@ -268,9 +266,10 @@ void DeleteElementsCommand::undo()
         const ElementInfo& info = m_deletedChildren[i];
         m_elementModel->addElement(info.element);
         
-        if (isVariantMode && editingComponent) {
-            editingComponent->addVariant(info.element);
-        } else if (isGlobalElementsMode && editingPlatform) {
+        // if (isVariantMode && editingComponent) {
+        //     editingComponent->addVariant(info.element);
+        // }
+        if (isGlobalElementsMode && editingPlatform) {
             ElementModel* globalElements = editingPlatform->globalElements();
             if (globalElements) {
                 globalElements->addElement(info.element);
@@ -297,20 +296,17 @@ void DeleteElementsCommand::syncWithAPI()
     
     Project* project = qobject_cast<Project*>(m_elementModel->parent());
     if (!project) {
-        qDebug() << "DeleteElementsCommand: No project found for API sync";
         return;
     }
     
     // Get the Application and API client
     Application* app = Application::instance();
     if (!app) {
-        qDebug() << "DeleteElementsCommand: No application instance for API sync";
         return;
     }
     
     ProjectApiClient* apiClient = app->projectApiClient();
     if (!apiClient) {
-        qDebug() << "DeleteElementsCommand: No API client available";
         return;
     }
     
@@ -324,6 +320,40 @@ void DeleteElementsCommand::syncWithAPI()
     }
     
     // Sync with API
-    // qDebug() << "DeleteElementsCommand: Syncing deletion of" << elementIds.size() << "elements with API";
     apiClient->syncDeleteElements(apiProjectId, elementIds);
+}
+
+void DeleteElementsCommand::findChildElements(const QString& parentId, const QList<Element*>& allElements)
+{
+    for (Element* element : allElements) {
+        if (element && element->getParentElementId() == parentId) {
+            // Check if this element is not already in the deletion list
+            bool alreadyDeleting = false;
+            for (const ElementInfo& info : m_deletedElements) {
+                if (info.element == element) {
+                    alreadyDeleting = true;
+                    break;
+                }
+            }
+            for (const ElementInfo& info : m_deletedChildren) {
+                if (info.element == element) {
+                    alreadyDeleting = true;
+                    break;
+                }
+            }
+            
+            if (!alreadyDeleting) {
+                ElementInfo childInfo;
+                childInfo.element = element;
+                childInfo.parent = nullptr;
+                childInfo.index = m_elementModel->getAllElements().indexOf(element);
+                m_deletedChildren.append(childInfo);
+                
+                // Don't store IDs here - will be done in execute()
+                
+                // Recursively find children of this child
+                findChildElements(element->getId(), allElements);
+            }
+        }
+    }
 }

@@ -23,13 +23,11 @@
 #include "SelectModeHandler.h"
 #include "CreationModeHandler.h"
 #include "PenModeHandler.h"
-#include "ComponentVariantTemplate.h"
 #include "Frame.h"
 #include "Text.h"
 #include "Shape.h"
 #include "Node.h"
 #include "Edge.h"
-#include "Component.h"
 #include "Project.h"
 #include "DesignElement.h"
 #include "Scripts.h"
@@ -446,80 +444,9 @@ void CanvasController::createComponent(DesignElement* sourceElement)
 
 void CanvasController::duplicateVariant(const QString &variantId)
 {
-    // Find the source variant
-    Element* sourceElement = m_elementModel.getElementById(variantId);
-    if (!sourceElement) {
-        qWarning() << "duplicateVariant: Could not find variant with id" << variantId;
-        return;
-    }
-    
-    // Check if it's a DesignElement with isComponentVariant
-    DesignElement* designElement = qobject_cast<DesignElement*>(sourceElement);
-    if (!designElement || !designElement->isComponentVariant()) {
-        qWarning() << "duplicateVariant: Element is not a ComponentVariant";
-        return;
-    }
-    
-    // Try to get the ComponentVariant interface
-    ComponentVariant* sourceVariant = dynamic_cast<ComponentVariant*>(sourceElement);
-    if (!sourceVariant) {
-        qWarning() << "duplicateVariant: Element does not implement ComponentVariant interface";
-        return;
-    }
-    
-    // Find the parent component by searching through all components
-    Component* component = nullptr;
-    QList<Element*> allElements = m_elementModel.getAllElements();
-    for (Element* elem : allElements) {
-        if (Component* comp = qobject_cast<Component*>(elem)) {
-            for (Element* variantElem : comp->variants()) {
-                if (variantElem && variantElem->getId() == variantId) {
-                    component = comp;
-                    break;
-                }
-            }
-            if (component) break;
-        }
-    }
-    
-    if (!component) {
-        qWarning() << "duplicateVariant: Could not find parent component for variant";
-        return;
-    }
-    
-    // Generate new ID for the duplicate
-    QString newId = UniqueIdGenerator::generate16DigitId();
-    
-    // Clone the variant using the virtual clone method
-    ComponentVariant* clonedVariant = sourceVariant->clone(newId);
-    Element* newElement = dynamic_cast<Element*>(clonedVariant);
-    
-    if (!clonedVariant || !newElement) {
-        qWarning() << "duplicateVariant: Failed to clone variant";
-        return;
-    }
-    
-    // Generate a unique name
-    int variantCount = component->variants().size();
-    QString variantName = QString("Variant%1").arg(variantCount + 1);
-    clonedVariant->setVariantName(variantName);
-    
-    // Position the new variant next to the source
-    if (CanvasElement* canvasElement = qobject_cast<CanvasElement*>(newElement)) {
-        canvasElement->setX(designElement->x() + designElement->width() + 50);
-        canvasElement->setY(designElement->y());
-    }
-    
-    // Add to component
-    component->addVariant(newElement);
-    
-    // Add to element model
-    m_elementModel.addElement(newElement);
-    
-    // Select the new variant
-    m_selectionManager.clearSelection();
-    m_selectionManager.selectElement(newElement);
-    
+    // This functionality is no longer supported in the new instance pattern
+    Q_UNUSED(variantId);
+    qWarning() << "duplicateVariant: Variant duplication is no longer supported";
 }
 
 void CanvasController::selectElementsInRect(const QRectF &rect)

@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Window
 import Cubit
 import ".."
 import "../../PropertyHelpers.js" as PropertyHelpers
@@ -10,10 +11,26 @@ ColumnLayout {
     spacing: 0
     
     property var selectedElement
+    property var canvas: null
     
     signal panelSelectorClicked(var selector, string type)
     
+    // Track expanded state of joint groups
+    property var expandedJoints: ({})
+    
     visible: selectedElement && selectedElement.elementType === "Shape"
+    
+    // Monitor shape editing state and collapse all joints when exiting edit mode
+    Connections {
+        target: Window.window ? Window.window.shapeControlsController : null
+        enabled: target !== null
+        function onIsEditingShapeChanged() {
+            if (target && !target.isEditingShape) {
+                // Collapse all joint groups when exiting shape edit mode
+                root.expandedJoints = {}
+            }
+        }
+    }
     
     property var shapeProps: [
         {
@@ -282,6 +299,48 @@ ColumnLayout {
                 delegate: CollapsibleGroup {
                     groupTitle: "Joint " + (index + 1)
                     
+                    // Track the joint index for this delegate
+                    property int jointIndex: index
+                    
+                    // Initialize expanded state from external tracking
+                    Component.onCompleted: {
+                        expanded = root.expandedJoints[jointIndex] === true
+                    }
+                    
+                    // Watch for external changes to expandedJoints
+                    Connections {
+                        target: root
+                        function onExpandedJointsChanged() {
+                            // Update expanded state when expandedJoints changes externally
+                            expanded = root.expandedJoints[jointIndex] === true
+                        }
+                    }
+                    
+                    onExpandedChanged: {
+                        // Update the tracking object when user manually toggles
+                        var newExpandedJoints = Object.assign({}, root.expandedJoints)
+                        if (expanded) {
+                            newExpandedJoints[jointIndex] = true
+                        } else {
+                            delete newExpandedJoints[jointIndex]
+                        }
+                        root.expandedJoints = newExpandedJoints
+                    }
+                    
+                    // Check if this joint is currently selected
+                    property bool isActiveJoint: {
+                        // Access shapeControlsController from the window
+                        var window = Window.window
+                        if (window && window.shapeControlsController) {
+                            return window.shapeControlsController.selectedJointIndex === index
+                        }
+                        return false
+                    }
+                    
+                    // Override border color when active
+                    border.color: isActiveJoint ? "#0066ff" : "#e0e0e0"
+                    border.width: isActiveJoint ? 2 : 1
+                    
                     content: [
                         RowLayout {
                             spacing: 8
@@ -328,6 +387,88 @@ ColumnLayout {
                                         if (joints && index < joints.length) {
                                             joints[index] = Qt.point(joints[index].x, newY)
                                             selectedElement.setJoints(joints)
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        
+                        // Mirroring mode - only visible for Pen shapes
+                        RowLayout {
+                            spacing: 8
+                            Layout.fillWidth: true
+                            visible: selectedElement && selectedElement.shapeType === 2 // Pen shape
+                            
+                            Label {
+                                text: "Mirroring:"
+                                font.pixelSize: 12
+                                Layout.preferredWidth: 90
+                            }
+                            
+                            ComboBox {
+                                id: mirroringCombo
+                                Layout.fillWidth: true
+                                model: ["No Mirroring", "Mirror Angle", "Mirror Angle and Length"]
+                                currentIndex: {
+                                    if (modelData.mirroring !== undefined) {
+                                        // 0 = NoMirroring, 1 = MirrorAngle, 2 = MirrorAngleAndLength
+                                        return Math.max(0, Math.min(2, modelData.mirroring))
+                                    }
+                                    return 0
+                                }
+                                
+                                onCurrentIndexChanged: {
+                                    if (selectedElement && selectedElement.elementType === "Shape") {
+                                        // Map combo index directly to mirroring type enum
+                                        selectedElement.setJointMirroring(index, currentIndex)
+                                    }
+                                }
+                                
+                                Connections {
+                                    target: selectedElement
+                                    function onJointsChanged() {
+                                        if (selectedElement && selectedElement.joints && index < selectedElement.joints.length) {
+                                            var joint = selectedElement.joints[index]
+                                            if (joint && joint.mirroring !== undefined) {
+                                                mirroringCombo.currentIndex = Math.max(0, Math.min(2, joint.mirroring))
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        
+                        // Corner radius - only visible for Pen shapes
+                        RowLayout {
+                            spacing: 8
+                            Layout.fillWidth: true
+                            visible: selectedElement && selectedElement.shapeType === 2 // Pen shape
+                            
+                            Label {
+                                text: "Corner Radius:"
+                                font.pixelSize: 12
+                                Layout.preferredWidth: 90
+                            }
+                            
+                            SpinBox {
+                                id: cornerRadiusSpinbox
+                                Layout.fillWidth: true
+                                from: 0
+                                to: 100
+                                value: modelData.cornerRadius !== undefined ? modelData.cornerRadius : 0
+                                editable: true
+                                
+                                onValueModified: {
+                                    if (selectedElement && selectedElement.elementType === "Shape") {
+                                        selectedElement.setJointCornerRadius(index, value)
+                                    }
+                                }
+                                
+                                Connections {
+                                    target: selectedElement
+                                    function onJointsChanged() {
+                                        if (selectedElement && selectedElement.joints && index < selectedElement.joints.length) {
+                                            cornerRadiusSpinbox.value = selectedElement.joints[index].cornerRadius || 0
                                         }
                                     }
                                 }

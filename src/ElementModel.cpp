@@ -322,7 +322,7 @@ void ElementModel::connectElement(Element *element)
     
     // Check if this element is an instance (has a sourceId)
     if (DesignElement* designElement = qobject_cast<DesignElement*>(element)) {
-        QString sourceId = designElement->sourceId();
+        QString sourceId = designElement->instanceOf();
         if (!sourceId.isEmpty()) {
             // Find the source element and connect to its property changes
             Element* sourceElement = getElementById(sourceId);
@@ -376,7 +376,6 @@ void ElementModel::refresh()
     beginResetModel();
     endResetModel();
     emit elementChanged();
-    // qDebug() << "ElementModel::refresh - Forced model refresh";
 }
 
 void ElementModel::connectSourceElement(Element* sourceElement)
@@ -523,7 +522,7 @@ void ElementModel::syncInstancesFromSource(Element* sourceElement)
     // Find all instances with this source ID
     for (Element* element : m_elements) {
         if (DesignElement* designElement = qobject_cast<DesignElement*>(element)) {
-            if (designElement->sourceId() == sourceId) {
+            if (designElement->instanceOf() == sourceId) {
                 // Update properties from source
                 QStringList propNames = sourceElement->propertyNames();
                 

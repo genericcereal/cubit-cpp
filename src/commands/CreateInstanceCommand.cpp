@@ -3,8 +3,8 @@
 #include "../Element.h"
 #include "../DesignElement.h"
 #include "../Frame.h"
-#include "../ComponentInstance.h"
-#include "../ComponentVariant.h"
+// #include "../ComponentInstance.h" // Component system removed
+// #include "../ComponentVariant.h" // Component system removed
 #include "../Serializer.h"
 #include "../Application.h"
 #include "../Project.h"
@@ -77,8 +77,8 @@ void CreateInstanceCommand::execute()
     // Set the master variant if the source element has one
     // This would require accessing the Component/ComponentVariant system
     
-    // Mark as an instance by setting the source ID
-    m_createdInstance->setSourceId(m_sourceElement->getId());
+    // Mark as an instance by setting the instanceOf property
+    m_createdInstance->setInstanceOf(m_sourceElement->getId());
     
     // Add to element model
     m_elementModel->addElement(m_createdInstance);
@@ -105,7 +105,6 @@ void CreateInstanceCommand::execute()
             variable->setName(instance->getName());
         });
         
-        qDebug() << "Created Variable element for component instance:" << m_createdInstance->getName() 
                  << "with ID:" << variableId;
     }
 }
@@ -125,7 +124,6 @@ void CreateInstanceCommand::undo()
             if (Variable* var = qobject_cast<Variable*>(elem)) {
                 if (var->linkedElementId() == m_instanceId) {
                     m_elementModel->removeElement(var->getId());
-                    qDebug() << "Removed Variable element for component instance:" << m_createdInstance->getName();
                     break;
                 }
             }

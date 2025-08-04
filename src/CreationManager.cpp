@@ -13,9 +13,6 @@
 #include "Config.h"
 #include "HandleType.h"
 #include "Project.h"
-#include "Component.h"
-#include "ComponentInstanceTemplate.h"
-#include "ComponentVariantTemplate.h"
 #include "ElementTypeRegistry.h"
 #include "PlatformConfig.h"
 #include "UniqueIdGenerator.h"
@@ -30,27 +27,22 @@ CreationManager::CreationManager(QObject *parent)
 
 Element* CreationManager::createElement(const QString& type, qreal x, qreal y, qreal width, qreal height, Element* parent)
 {
-    qDebug() << "CreationManager::createElement() called - Type:" << type << "Pos:" << x << y << "Size:" << width << height << "Parent:" << (parent ? parent->getId() : "none");
     if (!m_elementModel) return nullptr;
     
     // Only create elements for design canvas, except for Variables which can be created on any canvas
     if (m_canvasType != CanvasType::Design && type != "variable") {
-        qDebug() << "Cannot create elements on script canvas";
         return nullptr;
     }
     
     // Check if we're in variant mode or globalElements mode
     bool isVariantMode = m_project && m_project->viewMode() == "variant";
     bool isGlobalElementsMode = m_project && m_project->viewMode() == "globalElements";
-    Component* editingComponent = nullptr;
+    // Component* editingComponent = nullptr; // Component system removed
     PlatformConfig* editingPlatform = nullptr;
     
     if (isVariantMode && m_project) {
-        QObject* editingElement = m_project->editingElement();
-        editingComponent = qobject_cast<Component*>(editingElement);
-        if (!editingComponent) {
-            qWarning() << "CreationManager: In variant mode but editing element is not a Component";
-        }
+        // Component system removed - variant mode no longer used
+        qWarning() << "CreationManager: Variant mode is no longer supported";
     } else if (isGlobalElementsMode && m_project) {
         QObject* editingElement = m_project->editingElement();
         editingPlatform = qobject_cast<PlatformConfig*>(editingElement);
@@ -62,7 +54,6 @@ Element* CreationManager::createElement(const QString& type, qreal x, qreal y, q
     QString id = m_elementModel->generateId();
     Element *element = nullptr;
     
-    qDebug() << "Creating element with unique ID:" << id;
     
     // Use the ElementTypeRegistry for design elements
     ElementTypeRegistry& registry = ElementTypeRegistry::instance();
@@ -92,9 +83,9 @@ Element* CreationManager::createElement(const QString& type, qreal x, qreal y, q
         }
         
         // Add to appropriate container
-        if (isVariantMode && editingComponent) {
+        if (isVariantMode /* && editingComponent */) {
             // In variant mode, add to the Component's variants array
-            editingComponent->addVariant(element);
+            // editingComponent->addVariant(element); // Component system removed
             // Still add to model for visibility
             m_elementModel->addElement(element);
         } else if (isGlobalElementsMode && editingPlatform) {
@@ -131,178 +122,65 @@ Element* CreationManager::createElement(const QString& type, qreal x, qreal y, q
     return element;
 }
 
-Component* CreationManager::createComponent(DesignElement* sourceElement)
-{
-    if (!sourceElement || !m_elementModel || !m_selectionManager) {
-        qWarning() << "CreationManager::createComponent - Missing required dependencies";
-        return nullptr;
-    }
-    
-    // Create a new Component
-    QString componentId = UniqueIdGenerator::generate16DigitId();
-    Component* component = new Component(componentId, m_elementModel);
-    
-    // Create a mapping of old IDs to new IDs for maintaining parent-child relationships
-    QHash<QString, QString> oldToNewIdMap;
-    
-    // Create a ComponentVariant that is a copy of this element
-    QString variantId = UniqueIdGenerator::generate16DigitId();
-    DesignElement* variant = nullptr;
-    
-    // Store the ID mapping for the root element
-    oldToNewIdMap[sourceElement->getId()] = variantId;
-    
-    // Create the appropriate variant type based on the source element
-    if (Frame* sourceFrame = qobject_cast<Frame*>(sourceElement)) {
-        // Frame elements become ComponentVariants
-        FrameComponentVariantTemplate* variantFrame = new FrameComponentVariantTemplate(variantId, m_elementModel);
-        variantFrame->setVariantName("Variant1");
-        
-        // Center the variant in the canvas by positioning it so its center is at (0,0)
-        // This ensures it will be visible when the viewport centers on entering variant mode
-        qreal variantX = -sourceElement->width() / 2.0;
-        qreal variantY = -sourceElement->height() / 2.0;
-        variantFrame->setRect(QRectF(variantX, variantY, sourceElement->width(), sourceElement->height()));
-        
-        // Copy all style properties from the source frame
-        variantFrame->setFill(sourceFrame->fill());
-        variantFrame->setBorderColor(sourceFrame->borderColor());
-        variantFrame->setBorderWidth(sourceFrame->borderWidth());
-        variantFrame->setBorderRadius(sourceFrame->borderRadius());
-        variantFrame->setOverflow(sourceFrame->overflow());
-        
-        // Copy anchor properties
-        copyElementProperties(variantFrame, sourceFrame, false);
-        
-        variant = variantFrame;
-        component->setComponentType("frame");
-    } else if (Text* sourceText = qobject_cast<Text*>(sourceElement)) {
-        // Text elements become TextComponentVariants
-        TextComponentVariantTemplate* variantText = new TextComponentVariantTemplate(variantId, m_elementModel);
-        variantText->setVariantName("Variant1");
-        
-        // Center the variant in the canvas by positioning it so its center is at (0,0)
-        qreal variantX = -sourceElement->width() / 2.0;
-        qreal variantY = -sourceElement->height() / 2.0;
-        variantText->setRect(QRectF(variantX, variantY, sourceElement->width(), sourceElement->height()));
-        
-        // Copy all text properties from the source text
-        variantText->setContent(sourceText->content());
-        variantText->setFont(sourceText->font());
-        variantText->setColor(sourceText->color());
-        variantText->setPosition(sourceText->position());
-        
-        // Copy anchor properties
-        copyElementProperties(variantText, sourceText, false);
-        
-        variant = variantText;
-        component->setComponentType("text");
-    } else if (WebTextInput* sourceWebTextInput = qobject_cast<WebTextInput*>(sourceElement)) {
-        // WebTextInput elements become WebTextInputComponentVariants
-        WebTextInputComponentVariantTemplate* variantWebTextInput = new WebTextInputComponentVariantTemplate(variantId, m_elementModel);
-        variantWebTextInput->setVariantName("Variant1");
-        
-        // Center the variant in the canvas by positioning it so its center is at (0,0)
-        qreal variantX = -sourceElement->width() / 2.0;
-        qreal variantY = -sourceElement->height() / 2.0;
-        variantWebTextInput->setRect(QRectF(variantX, variantY, sourceElement->width(), sourceElement->height()));
-        
-        // Copy all WebTextInput properties from the source
-        variantWebTextInput->setValue(sourceWebTextInput->value());
-        variantWebTextInput->setPlaceholder(sourceWebTextInput->placeholder());
-        variantWebTextInput->setBorderColor(sourceWebTextInput->borderColor());
-        variantWebTextInput->setBorderWidth(sourceWebTextInput->borderWidth());
-        variantWebTextInput->setBorderRadius(sourceWebTextInput->borderRadius());
-        variantWebTextInput->setPosition(sourceWebTextInput->position());
-        
-        // Copy anchor properties
-        copyElementProperties(variantWebTextInput, sourceWebTextInput, false);
-        
-        variant = variantWebTextInput;
-        component->setComponentType("webtextinput");
-    } else {
-        qWarning() << "CreationManager::createComponent - Only Frame, Text, and WebTextInput elements can be converted to components";
-        delete component;
-        return nullptr;
-    }
-    
-    // Add the variant to the component
-    component->addVariant(variant);
-    
-    // Add the variant to the element model
-    m_elementModel->addElement(variant);
-    
-    // Now copy all children of this element to be children of the variant frame
-    QList<Element*> children = m_elementModel->getChildrenRecursive(sourceElement->getId());
-    
-    // Filter to only get direct children (not grandchildren)
-    QList<CanvasElement*> directChildren;
-    for (Element* child : children) {
-        if (child->getParentElementId() == sourceElement->getId()) {
-            if (CanvasElement* canvasChild = qobject_cast<CanvasElement*>(child)) {
-                directChildren.append(canvasChild);
-            }
-        }
-    }
-    
-    // Recursively copy each direct child
-    for (CanvasElement* child : directChildren) {
-        copyElementRecursively(child, variant, m_elementModel, oldToNewIdMap);
-    }
-    
-    // Add the component to the element model first
-    m_elementModel->addElement(component);
-    
-    // Create the appropriate instance type based on component type
-    QString instanceId = UniqueIdGenerator::generate16DigitId();
-    CanvasElement* instance = nullptr;
-    
-    if (component->componentType() == "text") {
-        TextComponentInstanceTemplate* textInstance = new TextComponentInstanceTemplate(instanceId, m_elementModel);
-        textInstance->setRect(QRectF(sourceElement->x(), sourceElement->y(), sourceElement->width(), sourceElement->height()));
-        instance = textInstance;
-    } else if (component->componentType() == "webtextinput") {
-        WebTextInputComponentInstanceTemplate* webTextInputInstance = new WebTextInputComponentInstanceTemplate(instanceId, m_elementModel);
-        webTextInputInstance->setRect(QRectF(sourceElement->x(), sourceElement->y(), sourceElement->width(), sourceElement->height()));
-        instance = webTextInputInstance;
-    } else {
-        // Default to frame-based ComponentInstance
-        FrameComponentInstance* frameInstance = new FrameComponentInstance(instanceId, m_elementModel);
-        frameInstance->setRect(QRectF(sourceElement->x(), sourceElement->y(), sourceElement->width(), sourceElement->height()));
-        instance = frameInstance;
-    }
-    
-    // Add the instance to the element model
-    m_elementModel->addElement(instance);
-    
-    // Set the instance to reference the variant as its source element
-    if (TextComponentInstanceTemplate* textInstance = qobject_cast<TextComponentInstanceTemplate*>(instance)) {
-        textInstance->setSourceElementId(variantId);
-    } else if (WebTextInputComponentInstanceTemplate* webTextInputInstance = qobject_cast<WebTextInputComponentInstanceTemplate*>(instance)) {
-        webTextInputInstance->setSourceElementId(variantId);
-    } else if (FrameComponentInstanceTemplate* frameInstance = qobject_cast<FrameComponentInstanceTemplate*>(instance)) {
-        frameInstance->setSourceElementId(variantId);
-    }
-    
-    // Clear selection first
-    m_selectionManager->clearSelection();
-    
-    // Get all children of this element recursively
-    QList<Element*> childrenToDelete = m_elementModel->getChildrenRecursive(sourceElement->getId());
-    
-    // Select the new instance
-    m_selectionManager->selectElement(instance);
-    
-    // Delete all children first (in reverse order to handle nested children properly)
-    for (int i = childrenToDelete.size() - 1; i >= 0; --i) {
-        m_elementModel->removeElement(childrenToDelete[i]->getId());
-    }
-    
-    // Finally delete the original element itself
-    m_elementModel->removeElement(sourceElement->getId());
-    
-    return component;
-}
+// Component system removed - use instanceOf pattern instead
+// void CreationManager::createComponent(DesignElement* sourceElement)
+// {
+//     if (!sourceElement || !m_elementModel || !m_selectionManager) {
+//         qWarning() << "CreationManager::createComponent - Missing required dependencies";
+//         return;
+//     }
+//     
+//     // The source element itself becomes the component definition
+//     // Create an instance that references the source element
+//     QString instanceId = UniqueIdGenerator::generate16DigitId();
+//     DesignElement* instance = nullptr;
+//     
+//     // Create the appropriate instance type based on the source element
+//     if (Frame* sourceFrame = qobject_cast<Frame*>(sourceElement)) {
+//         Frame* frameInstance = new Frame(instanceId, m_elementModel);
+//         frameInstance->setRect(QRectF(sourceElement->x(), sourceElement->y(), sourceElement->width(), sourceElement->height()));
+//         frameInstance->setInstanceOf(sourceElement->getId());
+//         instance = frameInstance;
+//     } else if (Text* sourceText = qobject_cast<Text*>(sourceElement)) {
+//         Text* textInstance = new Text(instanceId, m_elementModel);
+//         textInstance->setRect(QRectF(sourceElement->x(), sourceElement->y(), sourceElement->width(), sourceElement->height()));
+//         textInstance->setInstanceOf(sourceElement->getId());
+//         instance = textInstance;
+//     } else if (Shape* sourceShape = qobject_cast<Shape*>(sourceElement)) {
+//         Shape* shapeInstance = new Shape(instanceId, m_elementModel);
+//         shapeInstance->setRect(QRectF(sourceElement->x(), sourceElement->y(), sourceElement->width(), sourceElement->height()));
+//         shapeInstance->setInstanceOf(sourceElement->getId());
+//         instance = shapeInstance;
+//     } else if (WebTextInput* sourceWebTextInput = qobject_cast<WebTextInput*>(sourceElement)) {
+//         WebTextInput* webTextInputInstance = new WebTextInput(instanceId, m_elementModel);
+//         webTextInputInstance->setRect(QRectF(sourceElement->x(), sourceElement->y(), sourceElement->width(), sourceElement->height()));
+//         webTextInputInstance->setInstanceOf(sourceElement->getId());
+//         instance = webTextInputInstance;
+//     } else {
+//         qWarning() << "CreationManager::createComponent - Unsupported element type for component creation";
+//         return;
+//     }
+//     
+//     // Add the instance to the element model
+//     m_elementModel->addElement(instance);
+//     
+//     // Clear selection and select the new instance
+//     m_selectionManager->clearSelection();
+//     m_selectionManager->selectElement(instance);
+//     
+//     // Delete the original element and its children
+//     QList<Element*> childrenToDelete = m_elementModel->getChildrenRecursive(sourceElement->getId());
+//     
+//     // Delete all children first (in reverse order to handle nested children properly)
+//     for (int i = childrenToDelete.size() - 1; i >= 0; --i) {
+//         m_elementModel->removeElement(childrenToDelete[i]->getId());
+//     }
+//     
+//     // Delete the source element itself
+//     m_elementModel->removeElement(sourceElement->getId());
+//     
+//     // No component object needed in the new pattern
+// }
 
 Node* CreationManager::createNode(qreal x, qreal y, const QString& title, const QString& color)
 {
@@ -310,7 +188,6 @@ Node* CreationManager::createNode(qreal x, qreal y, const QString& title, const 
     
     // Only create nodes for script canvas
     if (m_canvasType != CanvasType::Script) {
-        qDebug() << "Cannot create nodes on design canvas";
         return nullptr;
     }
     
@@ -327,7 +204,6 @@ Node* CreationManager::createNode(qreal x, qreal y, const QString& title, const 
         
         setupDefaultNodePorts(node);
         
-        qDebug() << "Created node with ID:" << node->getId() << "title:" << title;
         
         m_elementModel->addElement(node);
         emit elementCreated(node);
@@ -345,7 +221,6 @@ Edge* CreationManager::createEdge(const QString& sourceNodeId, const QString& ta
     
     // Only create edges for script canvas
     if (m_canvasType != CanvasType::Script) {
-        qDebug() << "Cannot create edges on design canvas";
         return nullptr;
     }
     
@@ -354,7 +229,6 @@ Edge* CreationManager::createEdge(const QString& sourceNodeId, const QString& ta
     Element *targetNode = m_elementModel->getElementById(targetNodeId);
     
     if (!sourceNode || !targetNode) {
-        qDebug() << "Cannot create edge: source or target node not found";
         return nullptr;
     }
     
@@ -367,27 +241,23 @@ Edge* CreationManager::createEdge(const QString& sourceNodeId, const QString& ta
         QString sourcePortType = srcNode->getOutputPortType(sourcePortIndex);
         QString targetPortType = tgtNode->getInputPortType(targetPortIndex);
         
-        qDebug() << "Edge validation - source node:" << srcNode->nodeTitle() << "id:" << sourceNodeId
                  << "source port" << sourcePortIndex << "type:" << sourcePortType
                  << "target node:" << tgtNode->nodeTitle() << "id:" << targetNodeId  
                  << "target port" << targetPortIndex << "type:" << targetPortType;
         
         // Validate that port types can connect
         if (!PortType::canConnect(sourcePortType, targetPortType)) {
-            qDebug() << "Cannot create edge: port types don't match -"
                      << "source:" << sourcePortType 
                      << "target:" << targetPortType;
             return nullptr;
         }
         
-        qDebug() << "Port types match, creating edge";
     }
     
     QString id = m_elementModel->generateId();
     Edge *edge = new Edge(id);
     
     if (edge) {
-        qDebug() << "Creating edge with ID:" << id;
         
         // Set connections
         edge->setSourceNodeId(sourceNodeId);
@@ -411,7 +281,6 @@ Edge* CreationManager::createEdge(const QString& sourceNodeId, const QString& ta
         emit elementCreated(edge);
         emit edgeCreated(edge);
         
-        qDebug() << "Created edge from node" << sourceNodeId << "port" << sourcePortIndex
                  << "to node" << targetNodeId << "port" << targetPortIndex;
     }
     
@@ -425,7 +294,6 @@ Edge* CreationManager::createEdgeByPortId(const QString& sourceNodeId, const QSt
     
     // Only create edges for script canvas
     if (m_canvasType != CanvasType::Script) {
-        qDebug() << "Cannot create edges on design canvas";
         return nullptr;
     }
     
@@ -434,7 +302,6 @@ Edge* CreationManager::createEdgeByPortId(const QString& sourceNodeId, const QSt
     Element *targetElement = m_elementModel->getElementById(targetNodeId);
     
     if (!sourceElement || !targetElement) {
-        qDebug() << "Cannot create edge: source or target node not found";
         return nullptr;
     }
     
@@ -443,7 +310,6 @@ Edge* CreationManager::createEdgeByPortId(const QString& sourceNodeId, const QSt
     Node *tgtNode = qobject_cast<Node*>(targetElement);
     
     if (!srcNode || !tgtNode) {
-        qDebug() << "Cannot create edge: elements are not nodes";
         return nullptr;
     }
     
@@ -452,7 +318,6 @@ Edge* CreationManager::createEdgeByPortId(const QString& sourceNodeId, const QSt
     int targetPortIndex = tgtNode->getInputPortIndex(targetPortId);
     
     if (sourcePortIndex == -1 || targetPortIndex == -1) {
-        qDebug() << "Cannot create edge: port not found -"
                  << "sourcePortId:" << sourcePortId << "index:" << sourcePortIndex
                  << "targetPortId:" << targetPortId << "index:" << targetPortIndex;
         return nullptr;
@@ -528,21 +393,16 @@ void CreationManager::calculateEdgePoints(Edge* edge, Element* sourceNode, Eleme
     edge->setSourcePoint(QPointF(sourceX, sourceY));
     edge->setTargetPoint(QPointF(targetX, targetY));
     
-    qDebug() << "Edge points - Source:" << QPointF(sourceX, sourceY) 
              << "Target:" << QPointF(targetX, targetY);
-    qDebug() << "Edge bounds - Position:" << edge->x() << "," << edge->y()
              << "Size:" << edge->width() << "x" << edge->height();
 }
 
 Element* CreationManager::startDragCreation(const QString& type, const QPointF& startPos)
 {
-    qDebug() << "WARNING: startDragCreation() called - this should not happen with new creation flow!";
-    qDebug() << "Type:" << type << "StartPos:" << startPos;
     if (!m_elementModel) return nullptr;
     
     // Only create elements for design canvas
     if (m_canvasType != CanvasType::Design) {
-        qDebug() << "Cannot create elements on script canvas via drag";
         return nullptr;
     }
     

@@ -10,7 +10,7 @@ Rectangle {
     property string groupTitle: ""
     
     Layout.fillWidth: true
-    implicitHeight: headerArea.height + (expanded ? contentLayout.height + 8 : 0)
+    implicitHeight: headerArea.height + (expanded ? contentWrapper.implicitHeight : 0)
     color: "transparent"
     border.color: "#e0e0e0"
     border.width: 1
@@ -53,14 +53,31 @@ Rectangle {
             }
         }
         
-        // Content area
-        ColumnLayout {
-            id: contentLayout
+        // Content area wrapper to handle mouse events
+        Item {
+            id: contentWrapper
             Layout.fillWidth: true
-            Layout.margins: 8
-            Layout.topMargin: 0
+            implicitHeight: contentLayout.implicitHeight + 8
             visible: root.expanded
-            spacing: 4
+            
+            // Prevent clicks on content from propagating to header MouseArea
+            MouseArea {
+                anchors.fill: parent
+                z: -1
+                // Accept mouse events to prevent propagation, but don't do anything
+                onClicked: mouse.accepted = true
+                onPressed: mouse.accepted = true
+                onReleased: mouse.accepted = true
+            }
+            
+            // Actual content layout
+            ColumnLayout {
+                id: contentLayout
+                anchors.fill: parent
+                anchors.margins: 8
+                anchors.topMargin: 0
+                spacing: 4
+            }
         }
     }
 }

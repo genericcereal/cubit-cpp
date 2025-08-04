@@ -139,12 +139,101 @@ Item {
                         var loop = closedLoops[loopIndex]
                         if (loop.length >= 3) { // Need at least 3 joints for a fillable area
                             ctx.beginPath()
-                            ctx.moveTo(joints[loop[0]].x * shapeWidth + jointPadding + canvasOffsetX, 
-                                      joints[loop[0]].y * shapeHeight + jointPadding + canvasOffsetY)
-                            for (var k = 1; k < loop.length; k++) {
-                                ctx.lineTo(joints[loop[k]].x * shapeWidth + jointPadding + canvasOffsetX, 
-                                          joints[loop[k]].y * shapeHeight + jointPadding + canvasOffsetY)
+                            
+                            // Handle first point with potential corner radius
+                            var firstJoint = joints[loop[0]]
+                            var firstX = firstJoint.x * shapeWidth + jointPadding + canvasOffsetX
+                            var firstY = firstJoint.y * shapeHeight + jointPadding + canvasOffsetY
+                            
+                            // Check if first joint has corner radius
+                            if (firstJoint.cornerRadius && firstJoint.cornerRadius > 0) {
+                                // Get adjacent joints for first corner
+                                var lastIdx = loop[loop.length - 1]
+                                var nextIdx = loop[1]
+                                
+                                var prevX = joints[lastIdx].x * shapeWidth + jointPadding + canvasOffsetX
+                                var prevY = joints[lastIdx].y * shapeHeight + jointPadding + canvasOffsetY
+                                var nextX = joints[nextIdx].x * shapeWidth + jointPadding + canvasOffsetX
+                                var nextY = joints[nextIdx].y * shapeHeight + jointPadding + canvasOffsetY
+                                
+                                // Calculate vectors
+                                var v1x = prevX - firstX
+                                var v1y = prevY - firstY
+                                var v2x = nextX - firstX
+                                var v2y = nextY - firstY
+                                
+                                var len1 = Math.sqrt(v1x * v1x + v1y * v1y)
+                                var len2 = Math.sqrt(v2x * v2x + v2y * v2y)
+                                
+                                if (len1 > 0 && len2 > 0) {
+                                    v1x /= len1
+                                    v1y /= len1
+                                    v2x /= len2
+                                    v2y /= len2
+                                    
+                                    var maxRadius = Math.min(len1, len2) * 0.5
+                                    var radius = Math.min(firstJoint.cornerRadius, maxRadius)
+                                    
+                                    // Start at the control point
+                                    ctx.moveTo(firstX + v2x * radius, firstY + v2y * radius)
+                                } else {
+                                    ctx.moveTo(firstX, firstY)
+                                }
+                            } else {
+                                ctx.moveTo(firstX, firstY)
                             }
+                            
+                            // Draw the rest of the loop with corner radius support
+                            for (var k = 1; k <= loop.length; k++) {
+                                var idx = k % loop.length  // Wrap around to close the loop
+                                var currentJoint = joints[loop[idx]]
+                                var currentX = currentJoint.x * shapeWidth + jointPadding + canvasOffsetX
+                                var currentY = currentJoint.y * shapeHeight + jointPadding + canvasOffsetY
+                                
+                                // Check for corner radius
+                                if (currentJoint.cornerRadius && currentJoint.cornerRadius > 0) {
+                                    // Get previous and next indices
+                                    var prevIdx = loop[(k - 1 + loop.length) % loop.length]
+                                    var nextIdx = loop[(k + 1) % loop.length]
+                                    
+                                    var prevX = joints[prevIdx].x * shapeWidth + jointPadding + canvasOffsetX
+                                    var prevY = joints[prevIdx].y * shapeHeight + jointPadding + canvasOffsetY
+                                    var nextX = joints[nextIdx].x * shapeWidth + jointPadding + canvasOffsetX
+                                    var nextY = joints[nextIdx].y * shapeHeight + jointPadding + canvasOffsetY
+                                    
+                                    // Calculate vectors
+                                    var v1x = prevX - currentX
+                                    var v1y = prevY - currentY
+                                    var v2x = nextX - currentX
+                                    var v2y = nextY - currentY
+                                    
+                                    var len1 = Math.sqrt(v1x * v1x + v1y * v1y)
+                                    var len2 = Math.sqrt(v2x * v2x + v2y * v2y)
+                                    
+                                    if (len1 > 0 && len2 > 0) {
+                                        v1x /= len1
+                                        v1y /= len1
+                                        v2x /= len2
+                                        v2y /= len2
+                                        
+                                        var maxRadius = Math.min(len1, len2) * 0.5
+                                        var radius = Math.min(currentJoint.cornerRadius, maxRadius)
+                                        
+                                        var cp1x = currentX + v1x * radius
+                                        var cp1y = currentY + v1y * radius
+                                        var cp2x = currentX + v2x * radius
+                                        var cp2y = currentY + v2y * radius
+                                        
+                                        ctx.lineTo(cp1x, cp1y)
+                                        ctx.quadraticCurveTo(currentX, currentY, cp2x, cp2y)
+                                    } else {
+                                        ctx.lineTo(currentX, currentY)
+                                    }
+                                } else {
+                                    ctx.lineTo(currentX, currentY)
+                                }
+                            }
+                            
                             ctx.closePath()
                             
                             // Fill the closed loop
@@ -155,19 +244,130 @@ Item {
                         }
                     }
                     
-                    // Then draw edges from the edges list
+                    // Set line join style for proper corners
+                    ctx.lineJoin = selectedElement.lineJoin || "miter"
+                    ctx.lineCap = selectedElement.lineCap || "round"
+                    
+                    // Build adjacency information to find connected paths
+                    var adjacency = {}
+                    var edgeUsed = []
+                    
                     for (var i = 0; i < edges.length; i++) {
+                        edgeUsed[i] = false
                         var edge = edges[i]
-                        var fromIndex = edge.from
-                        var toIndex = edge.to
+                        if (!adjacency[edge.from]) adjacency[edge.from] = []
+                        if (!adjacency[edge.to]) adjacency[edge.to] = []
+                        adjacency[edge.from].push({to: edge.to, edgeIndex: i})
+                        adjacency[edge.to].push({to: edge.from, edgeIndex: i})
+                    }
+                    
+                    // Draw connected paths
+                    for (var i = 0; i < edges.length; i++) {
+                        if (edgeUsed[i]) continue
                         
-                        if (fromIndex >= 0 && fromIndex < joints.length && 
-                            toIndex >= 0 && toIndex < joints.length) {
+                        var edge = edges[i]
+                        var path = [edge.from]
+                        var current = edge.to
+                        edgeUsed[i] = true
+                        
+                        // Follow the path forward
+                        while (current !== undefined && current !== edge.from) {
+                            path.push(current)
+                            var found = false
+                            
+                            if (adjacency[current]) {
+                                for (var j = 0; j < adjacency[current].length; j++) {
+                                    var neighbor = adjacency[current][j]
+                                    if (!edgeUsed[neighbor.edgeIndex]) {
+                                        edgeUsed[neighbor.edgeIndex] = true
+                                        current = neighbor.to
+                                        found = true
+                                        break
+                                    }
+                                }
+                            }
+                            
+                            if (!found) break
+                        }
+                        
+                        // Draw the path
+                        if (path.length >= 2) {
                             ctx.beginPath()
-                            ctx.moveTo(joints[fromIndex].x * shapeWidth + jointPadding + canvasOffsetX, 
-                                      joints[fromIndex].y * shapeHeight + jointPadding + canvasOffsetY)
-                            ctx.lineTo(joints[toIndex].x * shapeWidth + jointPadding + canvasOffsetX, 
-                                      joints[toIndex].y * shapeHeight + jointPadding + canvasOffsetY)
+                            ctx.moveTo(joints[path[0]].x * shapeWidth + jointPadding + canvasOffsetX, 
+                                      joints[path[0]].y * shapeHeight + jointPadding + canvasOffsetY)
+                            
+                            // Draw path with corner radius support
+                            for (var k = 1; k < path.length; k++) {
+                                var currentJoint = joints[path[k]]
+                                var currentX = currentJoint.x * shapeWidth + jointPadding + canvasOffsetX
+                                var currentY = currentJoint.y * shapeHeight + jointPadding + canvasOffsetY
+                                
+                                // Check if this joint has a corner radius and is not the last joint
+                                if (k < path.length - 1 && currentJoint.cornerRadius && currentJoint.cornerRadius > 0) {
+                                    // Get previous and next points
+                                    var prevJoint = joints[path[k - 1]]
+                                    var nextJoint = joints[path[k + 1]]
+                                    
+                                    var prevX = prevJoint.x * shapeWidth + jointPadding + canvasOffsetX
+                                    var prevY = prevJoint.y * shapeHeight + jointPadding + canvasOffsetY
+                                    var nextX = nextJoint.x * shapeWidth + jointPadding + canvasOffsetX
+                                    var nextY = nextJoint.y * shapeHeight + jointPadding + canvasOffsetY
+                                    
+                                    // Calculate vectors from current joint to previous and next
+                                    var v1x = prevX - currentX
+                                    var v1y = prevY - currentY
+                                    var v2x = nextX - currentX
+                                    var v2y = nextY - currentY
+                                    
+                                    // Calculate lengths
+                                    var len1 = Math.sqrt(v1x * v1x + v1y * v1y)
+                                    var len2 = Math.sqrt(v2x * v2x + v2y * v2y)
+                                    
+                                    if (len1 > 0 && len2 > 0) {
+                                        // Normalize vectors
+                                        v1x /= len1
+                                        v1y /= len1
+                                        v2x /= len2
+                                        v2y /= len2
+                                        
+                                        // Calculate the actual radius (capped by half the shortest edge length)
+                                        var maxRadius = Math.min(len1, len2) * 0.5
+                                        var radius = Math.min(currentJoint.cornerRadius, maxRadius)
+                                        
+                                        // Calculate control points
+                                        var cp1x = currentX + v1x * radius
+                                        var cp1y = currentY + v1y * radius
+                                        var cp2x = currentX + v2x * radius
+                                        var cp2y = currentY + v2y * radius
+                                        
+                                        // Draw line to the start of the arc
+                                        ctx.lineTo(cp1x, cp1y)
+                                        
+                                        // Draw quadratic curve through the corner
+                                        ctx.quadraticCurveTo(currentX, currentY, cp2x, cp2y)
+                                    } else {
+                                        // Fallback to straight line if vectors are invalid
+                                        ctx.lineTo(currentX, currentY)
+                                    }
+                                } else {
+                                    // No corner radius, draw straight line
+                                    ctx.lineTo(currentX, currentY)
+                                }
+                            }
+                            // Check if this path forms a closed loop
+                            var isClosedLoop = false
+                            if (adjacency[path[path.length - 1]]) {
+                                for (var j = 0; j < adjacency[path[path.length - 1]].length; j++) {
+                                    if (adjacency[path[path.length - 1]][j].to === path[0]) {
+                                        isClosedLoop = true
+                                        break
+                                    }
+                                }
+                            }
+                            // Close the path to draw the final edge back to start
+                            if (isClosedLoop) {
+                                ctx.closePath()
+                            }
                             ctx.stroke()
                         }
                     }

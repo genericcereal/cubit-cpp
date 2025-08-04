@@ -6,6 +6,7 @@
 #include <memory>
 #include <QString>
 #include <QVariantMap>
+#include <QPointer>
 
 class Scripts;
 Q_DECLARE_OPAQUE_POINTER(Scripts*)
@@ -30,8 +31,8 @@ class DesignElement : public CanvasElement
     // Frozen state
     Q_PROPERTY(bool isFrozen READ isFrozen WRITE setIsFrozen NOTIFY isFrozenChanged)
     
-    // Global element tracking
-    Q_PROPERTY(QString sourceId READ sourceId WRITE setSourceId NOTIFY sourceIdChanged)
+    // Instance relationship
+    Q_PROPERTY(QString instanceOf READ instanceOf WRITE setInstanceOf NOTIFY instanceOfChanged)
     
     // Box shadow
     Q_PROPERTY(BoxShadow boxShadow READ boxShadow WRITE setBoxShadow NOTIFY boxShadowChanged)
@@ -44,9 +45,8 @@ public:
     virtual bool isDesignElement() const override { return true; }
     virtual bool isScriptElement() const override { return false; }
     
-    // Check if this is a component variant or instance
-    Q_INVOKABLE virtual bool isComponentVariant() const { return false; }
-    Q_INVOKABLE virtual bool isComponentInstance() const { return false; }
+    // Check if this is an instance
+    Q_INVOKABLE virtual bool isInstance() const { return !m_instanceOf.isEmpty(); }
     
     // Scripts management
     virtual Scripts* scripts() const;
@@ -82,9 +82,9 @@ public:
     bool isFrozen() const { return m_isFrozen; }
     void setIsFrozen(bool frozen);
     
-    // Source element tracking (for instances)
-    QString sourceId() const { return m_sourceId; }
-    void setSourceId(const QString& sourceId);
+    // Instance relationship
+    QString instanceOf() const { return m_instanceOf; }
+    void setInstanceOf(const QString& sourceId);
     
     // Box shadow
     BoxShadow boxShadow() const { return m_boxShadow; }
@@ -113,7 +113,8 @@ public:
     Q_INVOKABLE void setParentElement(CanvasElement* parent, qreal left, qreal top);
     
     // Create a component from this design element
-    Q_INVOKABLE class Component* createComponent();
+    // Component creation no longer needed - using instanceOf pattern instead
+    // Q_INVOKABLE class Component* createComponent();
     
     // Static utility to copy properties between elements
     static void copyElementProperties(CanvasElement* target, CanvasElement* source, bool copyGeometry = false);
@@ -135,11 +136,13 @@ signals:
     void topAnchoredChanged();
     void bottomAnchoredChanged();
     void isFrozenChanged();
-    void sourceIdChanged();
+    void instanceOfChanged();
     void boxShadowChanged();
 
 private slots:
     void onParentGeometryChanged();
+    void onSourceElementChanged();
+    void onSourceElementDestroyed();
     
 protected:
     std::unique_ptr<Scripts> m_scripts;
@@ -167,8 +170,10 @@ private:
     // Frozen state
     bool m_isFrozen = false;
     
-    // Global element tracking
-    QString m_sourceId;
+    // Instance relationship
+    QString m_instanceOf;
+    QMetaObject::Connection m_sourceConnection;
+    DesignElement* m_sourceElement;
     
     // Box shadow
     BoxShadow m_boxShadow;
