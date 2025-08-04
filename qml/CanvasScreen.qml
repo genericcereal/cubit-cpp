@@ -390,7 +390,7 @@ Item {
             Component.onCompleted: {
                 // Set initial values to avoid binding loops
                 if (currentColor) {
-                    hue = currentColor.hslHue * 360  // Qt returns hue as 0-1, convert to 0-360
+                    hue = isNaN(currentColor.hslHue) ? 0 : currentColor.hslHue * 360  // Qt returns hue as 0-1, convert to 0-360
                     saturation = currentColor.hslSaturation
                     lightness = currentColor.hslLightness
                     alphaValue = currentColor.a  // Alpha channel
@@ -400,7 +400,7 @@ Item {
             onCurrentColorChanged: {
                 // Update values when color changes to avoid binding loops
                 if (currentColor) {
-                    hue = currentColor.hslHue * 360
+                    hue = isNaN(currentColor.hslHue) ? hue : currentColor.hslHue * 360
                     saturation = currentColor.hslSaturation
                     lightness = currentColor.hslLightness
                     alphaValue = currentColor.a
@@ -763,7 +763,7 @@ Item {
                         
                         Component.onCompleted: {
                             if (currentColor) {
-                                hue = currentColor.hslHue * 360
+                                hue = isNaN(currentColor.hslHue) ? 0 : currentColor.hslHue * 360
                                 saturation = currentColor.hslSaturation
                                 lightness = currentColor.hslLightness
                                 alphaValue = currentColor.a
@@ -772,7 +772,7 @@ Item {
                         
                         onCurrentColorChanged: {
                             if (currentColor) {
-                                hue = currentColor.hslHue * 360
+                                hue = isNaN(currentColor.hslHue) ? hue : currentColor.hslHue * 360
                                 saturation = currentColor.hslSaturation
                                 lightness = currentColor.hslLightness
                                 alphaValue = currentColor.a
@@ -991,7 +991,7 @@ Item {
                         
                         Component.onCompleted: {
                             if (currentColor) {
-                                hue = currentColor.hslHue * 360
+                                hue = isNaN(currentColor.hslHue) ? 0 : currentColor.hslHue * 360
                                 saturation = currentColor.hslSaturation
                                 lightness = currentColor.hslLightness
                                 alphaValue = currentColor.a
@@ -1000,7 +1000,7 @@ Item {
                         
                         onCurrentColorChanged: {
                             if (currentColor) {
-                                hue = currentColor.hslHue * 360
+                                hue = isNaN(currentColor.hslHue) ? hue : currentColor.hslHue * 360
                                 saturation = currentColor.hslSaturation
                                 lightness = currentColor.hslLightness
                                 alphaValue = currentColor.a

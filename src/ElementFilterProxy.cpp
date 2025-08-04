@@ -2,7 +2,6 @@
 #include "Element.h"
 #include "DesignElement.h"
 #include "ScriptElement.h"
-#include "Component.h"
 #include "Variable.h"
 #include "ElementModel.h"
 #include "PlatformConfig.h"
@@ -92,31 +91,26 @@ bool ElementFilterProxy::filterAcceptsRow(int sourceRow, const QModelIndex &sour
     Q_UNUSED(sourceParent)
     
     if (!sourceModel()) {
-        qDebug() << "ElementFilterProxy: No source model";
         return false;
     }
     
     QModelIndex index = sourceModel()->index(sourceRow, 0);
     if (!index.isValid()) {
-        qDebug() << "ElementFilterProxy: Invalid index for row" << sourceRow;
         return false;
     }
     
     // Get the element from the model data
     QVariant data = sourceModel()->data(index, Qt::UserRole + 1); // ElementRole
     if (!data.isValid()) {
-        qDebug() << "ElementFilterProxy: No valid data for row" << sourceRow;
         return false;
     }
     
     Element* element = data.value<Element*>();
     if (!element) {
-        qDebug() << "ElementFilterProxy: Null element for row" << sourceRow;
         return false;
     }
     
     bool accepted = shouldShowElementInMode(element);
-    // qDebug() << "ElementFilterProxy: Element" << element->getName() << "type" << element->getTypeName() 
     //          << "filterComponentsOut:" << m_filterComponentsOut 
     //          << "filterComponentsOnly:" << m_filterComponentsOnly
     //          << "accepted:" << accepted;
@@ -131,18 +125,18 @@ bool ElementFilterProxy::shouldShowElementInMode(Element* element) const {
     // Special handling for Component elements - they should only show in ElementList, not on canvas
     // Since DesignElementLayer uses this filter, Components will be filtered out there
     // But ElementList can still show them
-    Component* component = qobject_cast<Component*>(element);
-    if (component) {
-        // Apply component filtering
-        if (m_filterComponentsOut) {
-            return false; // Filter out components
-        }
-        if (m_filterComponentsOnly) {
-            return m_viewMode == "design"; // Only show components in design mode
-        }
-        // Components are only shown in design mode, not in script or variant modes
-        return m_viewMode == "design";
-    }
+    // Component* component = qobject_cast<Component*>(element);
+    // if (component) {
+    //     // Apply component filtering
+    //     if (m_filterComponentsOut) {
+    //         return false; // Filter out components
+    //     }
+    //     if (m_filterComponentsOnly) {
+    //         return m_viewMode == "design"; // Only show components in design mode
+    //     }
+    //     // Components are only shown in design mode, not in script or variant modes
+    //     return m_viewMode == "design";
+    // }
     
     // If we're only showing components, filter out non-components
     if (m_filterComponentsOnly) {
@@ -203,13 +197,13 @@ bool ElementFilterProxy::shouldShowElementInMode(Element* element) const {
             return false;
         }
         
-        // Check if it's a ComponentInstance
-        if (designElement->isComponentInstance()) {
+        // Check if it's an instance
+        if (designElement->isInstance()) {
             return true;
         }
         
         // Check if this element is a ComponentVariant (should be hidden in design mode)
-        if (designElement->isComponentVariant()) {
+        if (false) { // Component variants no longer exist
             return false;
         }
         
@@ -228,7 +222,7 @@ bool ElementFilterProxy::shouldShowElementInMode(Element* element) const {
                 
                 // Check if the parent is a ComponentVariant
                 DesignElement* parentDesign = qobject_cast<DesignElement*>(parent);
-                if (parentDesign && parentDesign->isComponentVariant()) {
+                if (false) { // Component variants no longer exist
                     return false; // This element is a descendant of a ComponentVariant
                 }
                 
@@ -245,15 +239,15 @@ bool ElementFilterProxy::shouldShowElementInMode(Element* element) const {
                 QVariant data = sourceModel()->data(index, Qt::UserRole + 1); // ElementRole
                 if (data.isValid()) {
                     Element* el = data.value<Element*>();
-                    if (Component* comp = qobject_cast<Component*>(el)) {
-                        // Check if our element is in this component's variants
-                        const auto& variants = comp->variants();
-                        for (Element* variant : variants) {
-                            if (variant == element) {
-                                return false; // Exclude from design mode
-                            }
-                        }
-                    }
+                    // if (Component* comp = qobject_cast<Component*>(el)) {
+                    //     // Check if our element is in this component's variants
+                    //     const auto& variants = comp->variants();
+                    //     for (Element* variant : variants) {
+                    //         if (variant == element) {
+                    //             return false; // Exclude from design mode
+                    //         }
+                    //     }
+                    // }
                 }
             }
         }
@@ -285,23 +279,23 @@ bool ElementFilterProxy::shouldShowElementInMode(Element* element) const {
             return false;
         }
         
-        if (Component* component = qobject_cast<Component*>(m_editingElement)) {
-            // Check if this element is in the component's variants array or is a descendant of a variant
-            const auto& variants = component->variants();
-            for (Element* variant : variants) {
-                if (variant == element) {
-                    return true;
-                }
-                
-                // Also show descendants of variants
-                if (ElementModel* model = qobject_cast<ElementModel*>(sourceModel())) {
-                    QList<Element*> descendants = model->getChildrenRecursive(variant->getId());
-                    if (descendants.contains(element)) {
-                        return true;
-                    }
-                }
-            }
-        }
+        // if (Component* component = qobject_cast<Component*>(m_editingElement)) {
+        //     // Check if this element is in the component's variants array or is a descendant of a variant
+        //     const auto& variants = component->variants();
+        //     for (Element* variant : variants) {
+        //         if (variant == element) {
+        //             return true;
+        //         }
+        //         
+        //         // Also show descendants of variants
+        //         if (ElementModel* model = qobject_cast<ElementModel*>(sourceModel())) {
+        //             QList<Element*> descendants = model->getChildrenRecursive(variant->getId());
+        //             if (descendants.contains(element)) {
+        //                 return true;
+        //             }
+        //         }
+        //     }
+        // }
         // If no component is being edited or element not in variants, don't show
         return false;
     } else if (m_viewMode == "globalElements") {

@@ -60,9 +60,13 @@ void Shape::setJoints(const QVariantList& joints)
 void Shape::setJointPositions(const QList<QPointF>& positions)
 {
     QList<Joint> newJoints;
-    for (const QPointF& pos : positions) {
+    for (int i = 0; i < positions.size(); ++i) {
         Joint joint;
-        joint.position = pos;
+        // Preserve existing joint properties if available
+        if (i < m_joints.size()) {
+            joint = m_joints[i];  // Copy existing joint properties
+        }
+        joint.position = positions[i];  // Update only the position
         newJoints.append(joint);
     }
     setJoints(newJoints);

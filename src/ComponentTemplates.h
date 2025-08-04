@@ -118,8 +118,8 @@ public:
     // Override to identify this as a visual element
     bool isVisual() const override { return true; }
     
-    // Override to identify this as a component instance
-    bool isComponentInstance() const override { return true; }
+    // Override to identify this as an instance
+    bool isInstance() const override { return true; }
 
     // Property accessors
     QString instanceOf() const { return m_instanceOf; }

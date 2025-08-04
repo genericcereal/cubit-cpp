@@ -6,7 +6,6 @@
 #include "SelectionManager.h"
 #include "Application.h"
 #include "Project.h"
-#include "Component.h"
 #include "ElementTypeRegistry.h"
 #include "ProjectApiClient.h"
 #include "PlatformConfig.h"
@@ -67,16 +66,17 @@ void CreateDesignElementCommand::execute()
     // Check if we're in variant mode or globalElements mode
     bool isVariantMode = project->viewMode() == "variant";
     bool isGlobalElementsMode = project->viewMode() == "globalElements";
-    Component* editingComponent = nullptr;
+    // Component* editingComponent = nullptr;  // Commented out - Component references removed
     PlatformConfig* editingPlatform = nullptr;
     
-    if (isVariantMode) {
-        QObject* editingElement = project->editingElement();
-        editingComponent = qobject_cast<Component*>(editingElement);
-        if (!editingComponent) {
-            qWarning() << "CreateDesignElementCommand: In variant mode but editing element is not a Component";
-        }
-    } else if (isGlobalElementsMode) {
+    // if (isVariantMode) {  // Commented out - Component references removed
+    //     QObject* editingElement = project->editingElement();
+    //     editingComponent = qobject_cast<Component*>(editingElement);
+    //     if (!editingComponent) {
+    //         qWarning() << "CreateDesignElementCommand: In variant mode but editing element is not a Component";
+    //     }
+    // } else 
+    if (isGlobalElementsMode) {
         QObject* editingElement = project->editingElement();
         editingPlatform = qobject_cast<PlatformConfig*>(editingElement);
         if (!editingPlatform) {
@@ -115,12 +115,13 @@ void CreateDesignElementCommand::execute()
     }
 
     // Add element to appropriate container
-    if (isVariantMode && editingComponent) {
-        // In variant mode, add to the Component's variants array
-        editingComponent->addVariant(m_element);
-        // Still add to model for visibility
-        m_elementModel->addElement(m_element);
-    } else if (isGlobalElementsMode && editingPlatform) {
+    // if (isVariantMode && editingComponent) {  // Commented out - Component references removed
+    //     // In variant mode, add to the Component's variants array
+    //     editingComponent->addVariant(m_element);
+    //     // Still add to model for visibility
+    //     m_elementModel->addElement(m_element);
+    // } else 
+    if (isGlobalElementsMode && editingPlatform) {
         // In globalElements mode, add to the PlatformConfig's globalElements
         ElementModel* globalElements = editingPlatform->globalElements();
         if (globalElements) {
@@ -152,7 +153,7 @@ void CreateDesignElementCommand::execute()
         if (m_elementType == "frame" || m_elementType == "text" || 
             m_elementType == "shape" || m_elementType == "webtextinput") {
             shouldCreateVariable = true;
-        } else if (m_element->isComponentInstance()) {
+        } else if (m_element->isInstance()) {
             shouldCreateVariable = true;
         }
         
@@ -201,13 +202,14 @@ void CreateDesignElementCommand::undo()
     // Check if we're in variant mode or globalElements mode
     bool isVariantMode = project->viewMode() == "variant";
     bool isGlobalElementsMode = project->viewMode() == "globalElements";
-    Component* editingComponent = nullptr;
+    // Component* editingComponent = nullptr;  // Commented out - Component references removed
     PlatformConfig* editingPlatform = nullptr;
     
-    if (isVariantMode) {
-        QObject* editingElement = project->editingElement();
-        editingComponent = qobject_cast<Component*>(editingElement);
-    } else if (isGlobalElementsMode) {
+    // if (isVariantMode) {  // Commented out - Component references removed
+    //     QObject* editingElement = project->editingElement();
+    //     editingComponent = qobject_cast<Component*>(editingElement);
+    // } else 
+    if (isGlobalElementsMode) {
         QObject* editingElement = project->editingElement();
         editingPlatform = qobject_cast<PlatformConfig*>(editingElement);
     }
@@ -237,9 +239,10 @@ void CreateDesignElementCommand::undo()
         }
         
         m_elementModel->removeElement(m_element->getId());
-        if (isVariantMode && editingComponent) {
-            editingComponent->removeVariant(m_element);
-        } else if (isGlobalElementsMode && editingPlatform) {
+        // if (isVariantMode && editingComponent) {  // Commented out - Component references removed
+        //     editingComponent->removeVariant(m_element);
+        // } else 
+        if (isGlobalElementsMode && editingPlatform) {
             ElementModel* globalElements = editingPlatform->globalElements();
             if (globalElements) {
                 globalElements->removeElement(m_element->getId());

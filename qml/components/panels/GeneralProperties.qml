@@ -89,7 +89,7 @@ PropertyGroup {
                 }
                 return variantNames.length > 0 ? variantNames : ["Default"]
             },
-            visible: () => selectedElement && selectedElement.isComponentInstance && selectedElement.isComponentInstance()
+            visible: () => selectedElement && selectedElement.isInstance && selectedElement.isInstance()
         },
         {
             name: "Platform",

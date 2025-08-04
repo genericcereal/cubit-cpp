@@ -4,9 +4,9 @@
 #include "Edge.h"
 #include "ElementModel.h"
 #include "Element.h"
-#include "ComponentInstanceTemplate.h"
-#include "ComponentInstance.h"
-#include "Component.h"
+// #include "ComponentInstanceTemplate.h" // Component system removed
+// #include "ComponentInstance.h" // Component system removed
+// #include "Component.h" // Component system removed
 #include "ScriptCompiler.h"
 #include <QDebug>
 #include <QJsonDocument>
@@ -173,101 +173,101 @@ void ScriptInvokeBuilder::buildInvokesRecursive(Node* node, Scripts* scripts,
     }
     
     // Special handling for ComponentOnEditorLoadEvents node
-    if (node->nodeTitle() == "Component On Editor Load Events") {
-        
-        // Get the parent element that owns these scripts
-        QObject* scriptParent = scripts->parent();
-        FrameComponentInstanceTemplate* frameInstance = qobject_cast<FrameComponentInstanceTemplate*>(scriptParent);
-        TextComponentInstanceTemplate* textInstance = qobject_cast<TextComponentInstanceTemplate*>(scriptParent);
-        
-        Component* component = nullptr;
-        QString componentId;
-        
-        // Check if the scripts belong to a component instance
-        if (frameInstance) {
-            componentId = frameInstance->componentId();
-            //          << "instance of" << componentId;
-            
-            // Access the component directly from the instance
-            component = frameInstance->sourceComponent();
-        } else if (textInstance) {
-            componentId = textInstance->componentId();
-            //          << "instance of" << componentId;
-            
-            // Access the component directly from the instance
-            component = textInstance->sourceComponent();
-        } else {
-            // Continue with the normal flow
-            QList<Edge*> outgoingEdges = getOutgoingFlowEdges(node, scripts);
-            for (Edge* edge : outgoingEdges) {
-                Node* nextNode = scripts->getNode(edge->targetNodeId());
-                if (nextNode) {
-                    buildInvokesRecursive(nextNode, scripts, context, elementModel, parentInvokeId);
-                }
-            }
-            return;
-        }
-        
-        // Check if we have the component (either from frame or text instance)
-        if (component && component->scripts()) {
-            //          << "for instance" << (frameInstance ? frameInstance->getId() : textInstance->getId());
-            
-            // Ensure component scripts are compiled
-            Scripts* componentScripts = component->scripts();
-            //          << componentScripts->edgeCount() << "edges";
-            if (!componentScripts->isCompiled()) {
-                ScriptCompiler compiler;
-                QString compiledJson = compiler.compile(componentScripts, elementModel);
-                if (compiledJson.isEmpty()) {
-                    qWarning() << "ScriptInvokeBuilder: Failed to compile component scripts for" << componentId;
-                } else {
-                    componentScripts->setCompiledScript(compiledJson);
-                    componentScripts->setIsCompiled(true);
-                }
-            }
-            
-            if (componentScripts->isCompiled()) {
-                // Find the onEditorLoad event node in the component's scripts
-                QList<Node*> componentNodes = componentScripts->getAllNodes();
-                Node* onEditorLoadNode = nullptr;
-                
-                for (Node* compNode : componentNodes) {
-                    if (compNode && compNode->nodeType() == "Event" && 
-                        compNode->nodeTitle() == "On Editor Load") {
-                        onEditorLoadNode = compNode;
-                        break;
-                    }
-                }
-                
-                if (onEditorLoadNode) {
-                    
-                    // Get outgoing edges from the onEditorLoad event
-                    QList<Edge*> componentEdges = getOutgoingFlowEdges(onEditorLoadNode, componentScripts);
-                    
-                    for (Edge* edge : componentEdges) {
-                        Node* targetNode = componentScripts->getNode(edge->targetNodeId());
-                        if (targetNode) {
-                            // Build invokes for the component's nodes, inserting them into our context
-                            buildComponentInvokesRecursive(targetNode, componentScripts, context, elementModel);
-                        }
-                    }
-                } else {
-                }
-            }
-        } else {
-        }
-        
-        // Continue with the next nodes after ComponentOnEditorLoadEvents
-        QList<Edge*> outgoingEdges = getOutgoingFlowEdges(node, scripts);
-        for (Edge* edge : outgoingEdges) {
-            Node* nextNode = scripts->getNode(edge->targetNodeId());
-            if (nextNode) {
-                buildInvokesRecursive(nextNode, scripts, context, elementModel, parentInvokeId);
-            }
-        }
-        
-        return; // Don't create an invoke for the ComponentOnEditorLoadEvents node itself
-    }
+    // if (node->nodeTitle() == "Component On Editor Load Events") {
+    //     
+    //     // Get the parent element that owns these scripts
+    //     QObject* scriptParent = scripts->parent();
+    //     FrameComponentInstanceTemplate* frameInstance = qobject_cast<FrameComponentInstanceTemplate*>(scriptParent);
+    //     TextComponentInstanceTemplate* textInstance = qobject_cast<TextComponentInstanceTemplate*>(scriptParent);
+    //     
+    //     Component* component = nullptr;
+    //     QString componentId;
+    //     
+    //     // Check if the scripts belong to a component instance
+    //     if (frameInstance) {
+    //         componentId = frameInstance->componentId();
+    //         //          << "instance of" << componentId;
+    //         
+    //         // Access the component directly from the instance
+    //         component = frameInstance->sourceComponent();
+    //     } else if (textInstance) {
+    //         componentId = textInstance->componentId();
+    //         //          << "instance of" << componentId;
+    //         
+    //         // Access the component directly from the instance
+    //         component = textInstance->sourceComponent();
+    //     } else {
+    //         // Continue with the normal flow
+    //         QList<Edge*> outgoingEdges = getOutgoingFlowEdges(node, scripts);
+    //         for (Edge* edge : outgoingEdges) {
+    //             Node* nextNode = scripts->getNode(edge->targetNodeId());
+    //             if (nextNode) {
+    //                 buildInvokesRecursive(nextNode, scripts, context, elementModel, parentInvokeId);
+    //             }
+    //         }
+    //         return;
+    //     }
+    //     
+    //     // Check if we have the component (either from frame or text instance)
+    //     if (component && component->scripts()) {
+    //         //          << "for instance" << (frameInstance ? frameInstance->getId() : textInstance->getId());
+    //         
+    //         // Ensure component scripts are compiled
+    //         Scripts* componentScripts = component->scripts();
+    //         //          << componentScripts->edgeCount() << "edges";
+    //         if (!componentScripts->isCompiled()) {
+    //             ScriptCompiler compiler;
+    //             QString compiledJson = compiler.compile(componentScripts, elementModel);
+    //             if (compiledJson.isEmpty()) {
+    //                 qWarning() << "ScriptInvokeBuilder: Failed to compile component scripts for" << componentId;
+    //             } else {
+    //                 componentScripts->setCompiledScript(compiledJson);
+    //                 componentScripts->setIsCompiled(true);
+    //             }
+    //         }
+    //         
+    //         if (componentScripts->isCompiled()) {
+    //             // Find the onEditorLoad event node in the component's scripts
+    //             QList<Node*> componentNodes = componentScripts->getAllNodes();
+    //             Node* onEditorLoadNode = nullptr;
+    //             
+    //             for (Node* compNode : componentNodes) {
+    //                 if (compNode && compNode->nodeType() == "Event" && 
+    //                     compNode->nodeTitle() == "On Editor Load") {
+    //                     onEditorLoadNode = compNode;
+    //                     break;
+    //                 }
+    //             }
+    //             
+    //             if (onEditorLoadNode) {
+    //                 
+    //                 // Get outgoing edges from the onEditorLoad event
+    //                 QList<Edge*> componentEdges = getOutgoingFlowEdges(onEditorLoadNode, componentScripts);
+    //                 
+    //                 for (Edge* edge : componentEdges) {
+    //                     Node* targetNode = componentScripts->getNode(edge->targetNodeId());
+    //                     if (targetNode) {
+    //                         // Build invokes for the component's nodes, inserting them into our context
+    //                         buildComponentInvokesRecursive(targetNode, componentScripts, context, elementModel);
+    //                     }
+    //                 }
+    //             } else {
+    //             }
+    //         }
+    //     } else {
+    //     }
+    //     
+    //     // Continue with the next nodes after ComponentOnEditorLoadEvents
+    //     QList<Edge*> outgoingEdges = getOutgoingFlowEdges(node, scripts);
+    //     for (Edge* edge : outgoingEdges) {
+    //         Node* nextNode = scripts->getNode(edge->targetNodeId());
+    //         if (nextNode) {
+    //             buildInvokesRecursive(nextNode, scripts, context, elementModel, parentInvokeId);
+    //         }
+    //     }
+    //     
+    //     return; // Don't create an invoke for the ComponentOnEditorLoadEvents node itself
+    // }
     
     // Create invoke for this node
     InvokeData invoke;
@@ -417,10 +417,10 @@ void ScriptInvokeBuilder::buildInvokesRecursiveWithId(Node* node, Scripts* scrip
     context.nodeReferences[node->getId()] = nodeRef;
     
     // Special handling for ComponentOnEditorLoadEvents node
-    if (node->nodeTitle() == "Component On Editor Load Events") {
-        // Handle ComponentOnEditorLoadEvents (code omitted for brevity - same as buildInvokesRecursive)
-        return;
-    }
+    // if (node->nodeTitle() == "Component On Editor Load Events") {
+    //     // Handle ComponentOnEditorLoadEvents (code omitted for brevity - same as buildInvokesRecursive)
+    //     return;
+    // }
     
     // Create invoke for this node with the pre-assigned ID
     InvokeData invoke;
@@ -727,107 +727,107 @@ QString ScriptInvokeBuilder::generateOutputId(BuildContext& context)
     return QString("output_%1").arg(context.outputCounter++);
 }
 
-void ScriptInvokeBuilder::buildComponentInvokesRecursive(Node* node, Scripts* scripts, 
-                                                         BuildContext& context, ElementModel* elementModel)
-{
-    if (!node || !scripts) {
-        return;
-    }
-    
-    // Skip event nodes - they don't generate invokes
-    if (node->nodeType() == "Event") {
-        return;
-    }
-    
-    // Skip param nodes - they only provide data, don't execute
-    if (node->nodeType() == "Param") {
-        // Still need to store node reference for data access
-        NodeReference nodeRef;
-        nodeRef.node = node;
-        nodeRef.scripts = scripts;
-        context.nodeReferences[node->getId()] = nodeRef;
-        
-        // Pre-create outputs for param nodes so their data is available
-        // First, we need to build parameters for this param node
-        QJsonArray paramNodeParams = createNodeParameters(node, scripts, context);
-        
-        // Store the param data in the context
-        QString paramInvokeId = QString("param_%1").arg(context.invokeCounter++);
-        InvokeData paramInvoke;
-        paramInvoke.invokeId = paramInvokeId;
-        paramInvoke.nodeId = node->getId();
-        paramInvoke.functionName = getFunctionNameForNode(node);
-        paramInvoke.params = paramNodeParams;
-        paramInvoke.isAsync = false;
-        paramInvoke.isParam = true;  // Mark as param
-        context.invokes[paramInvokeId] = paramInvoke;
-        
-        // Create outputs for all data ports
-        QList<Edge*> allOutgoingEdges = scripts->getOutgoingEdges(node->getId());
-        for (Edge* edge : allOutgoingEdges) {
-            if (edge->sourcePortType() != "Flow") {
-                QString outputId = generateOutputId(context);
-                QJsonObject output;
-                output["type"] = "paramResult";
-                output["sourceInvoke"] = paramInvokeId;
-                output["sourceNodeId"] = node->getId();
-                output["sourcePortIndex"] = edge->sourcePortIndex();
-                output["sourcePortType"] = edge->sourcePortType();
-                context.outputs[outputId] = output;
-            }
-        }
-        return;
-    }
-    
-    // Store node reference for function generation
-    NodeReference nodeRef;
-    nodeRef.node = node;
-    nodeRef.scripts = scripts;
-    context.nodeReferences[node->getId()] = nodeRef;
-    
-    // Create invoke for this node
-    InvokeData invoke;
-    invoke.invokeId = generateInvokeId(context);
-    invoke.nodeId = node->getId();
-    invoke.functionName = getFunctionNameForNode(node);
-    invoke.isAsync = node->isAsync();
-    
-    // Pre-create outputs for nodes that have output ports BEFORE creating parameters
-    QList<Edge*> allOutgoingEdges = scripts->getOutgoingEdges(node->getId());
-    for (Edge* edge : allOutgoingEdges) {
-        if (edge->sourcePortType() != "Flow") {
-            // This node has a data output that's connected to another node
-            QString outputId = generateOutputId(context);
-            QJsonObject output;
-            output["type"] = "invokeResult";
-            output["sourceInvoke"] = invoke.invokeId;
-            output["sourceNodeId"] = node->getId();
-            output["sourcePortIndex"] = edge->sourcePortIndex();
-            output["sourcePortType"] = edge->sourcePortType();
-            context.outputs[outputId] = output;
-        }
-    }
-    
-    // NOW create parameters after outputs exist
-    invoke.params = createNodeParameters(node, scripts, context);
-    
-    // Find next nodes to invoke
-    QList<Edge*> outgoingEdges = getOutgoingFlowEdges(node, scripts);
-    for (Edge* edge : outgoingEdges) {
-        Node* nextNode = scripts->getNode(edge->targetNodeId());
-        if (nextNode) {
-            QString nextInvokeId = generateInvokeId(context);
-            invoke.nextInvokes.append(nextInvokeId);
-            
-            // Store this invoke before processing next
-            context.invokes[invoke.invokeId] = invoke;
-            
-            // Process next node
-            buildComponentInvokesRecursive(nextNode, scripts, context, elementModel);
-            return; // Already stored invoke
-        }
-    }
-    
-    // Store invoke if not already stored
-    context.invokes[invoke.invokeId] = invoke;
-}
+// void ScriptInvokeBuilder::buildComponentInvokesRecursive(Node* node, Scripts* scripts, 
+//                                                          BuildContext& context, ElementModel* elementModel)
+// {
+//     if (!node || !scripts) {
+//         return;
+//     }
+//     
+//     // Skip event nodes - they don't generate invokes
+//     if (node->nodeType() == "Event") {
+//         return;
+//     }
+//     
+//     // Skip param nodes - they only provide data, don't execute
+//     if (node->nodeType() == "Param") {
+//         // Still need to store node reference for data access
+//         NodeReference nodeRef;
+//         nodeRef.node = node;
+//         nodeRef.scripts = scripts;
+//         context.nodeReferences[node->getId()] = nodeRef;
+//         
+//         // Pre-create outputs for param nodes so their data is available
+//         // First, we need to build parameters for this param node
+//         QJsonArray paramNodeParams = createNodeParameters(node, scripts, context);
+//         
+//         // Store the param data in the context
+//         QString paramInvokeId = QString("param_%1").arg(context.invokeCounter++);
+//         InvokeData paramInvoke;
+//         paramInvoke.invokeId = paramInvokeId;
+//         paramInvoke.nodeId = node->getId();
+//         paramInvoke.functionName = getFunctionNameForNode(node);
+//         paramInvoke.params = paramNodeParams;
+//         paramInvoke.isAsync = false;
+//         paramInvoke.isParam = true;  // Mark as param
+//         context.invokes[paramInvokeId] = paramInvoke;
+//         
+//         // Create outputs for all data ports
+//         QList<Edge*> allOutgoingEdges = scripts->getOutgoingEdges(node->getId());
+//         for (Edge* edge : allOutgoingEdges) {
+//             if (edge->sourcePortType() != "Flow") {
+//                 QString outputId = generateOutputId(context);
+//                 QJsonObject output;
+//                 output["type"] = "paramResult";
+//                 output["sourceInvoke"] = paramInvokeId;
+//                 output["sourceNodeId"] = node->getId();
+//                 output["sourcePortIndex"] = edge->sourcePortIndex();
+//                 output["sourcePortType"] = edge->sourcePortType();
+//                 context.outputs[outputId] = output;
+//             }
+//         }
+//         return;
+//     }
+//     
+//     // Store node reference for function generation
+//     NodeReference nodeRef;
+//     nodeRef.node = node;
+//     nodeRef.scripts = scripts;
+//     context.nodeReferences[node->getId()] = nodeRef;
+//     
+//     // Create invoke for this node
+//     InvokeData invoke;
+//     invoke.invokeId = generateInvokeId(context);
+//     invoke.nodeId = node->getId();
+//     invoke.functionName = getFunctionNameForNode(node);
+//     invoke.isAsync = node->isAsync();
+//     
+//     // Pre-create outputs for nodes that have output ports BEFORE creating parameters
+//     QList<Edge*> allOutgoingEdges = scripts->getOutgoingEdges(node->getId());
+//     for (Edge* edge : allOutgoingEdges) {
+//         if (edge->sourcePortType() != "Flow") {
+//             // This node has a data output that's connected to another node
+//             QString outputId = generateOutputId(context);
+//             QJsonObject output;
+//             output["type"] = "invokeResult";
+//             output["sourceInvoke"] = invoke.invokeId;
+//             output["sourceNodeId"] = node->getId();
+//             output["sourcePortIndex"] = edge->sourcePortIndex();
+//             output["sourcePortType"] = edge->sourcePortType();
+//             context.outputs[outputId] = output;
+//         }
+//     }
+//     
+//     // NOW create parameters after outputs exist
+//     invoke.params = createNodeParameters(node, scripts, context);
+//     
+//     // Find next nodes to invoke
+//     QList<Edge*> outgoingEdges = getOutgoingFlowEdges(node, scripts);
+//     for (Edge* edge : outgoingEdges) {
+//         Node* nextNode = scripts->getNode(edge->targetNodeId());
+//         if (nextNode) {
+//             QString nextInvokeId = generateInvokeId(context);
+//             invoke.nextInvokes.append(nextInvokeId);
+//             
+//             // Store this invoke before processing next
+//             context.invokes[invoke.invokeId] = invoke;
+//             
+//             // Process next node
+//             buildComponentInvokesRecursive(nextNode, scripts, context, elementModel);
+//             return; // Already stored invoke
+//         }
+//     }
+//     
+//     // Store invoke if not already stored
+//     context.invokes[invoke.invokeId] = invoke;
+// }

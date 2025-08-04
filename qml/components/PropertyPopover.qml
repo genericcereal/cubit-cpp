@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import Cubit
 
 // Use a container Item to work with native styling
 Item {
@@ -7,12 +8,12 @@ Item {
     
     property bool panelVisible: false
     property color elementFillColor: "#e0e0e0"
-    property alias text: textField.text
-    property alias placeholderText: textField.placeholderText
+    property string text: ""
+    property string placeholderText: "Click to select..."
     signal panelRequested()
     
-    implicitHeight: textField.implicitHeight
-    implicitWidth: textField.implicitWidth
+    implicitHeight: 32
+    implicitWidth: 200
     
     // Color preview square
     Rectangle {
@@ -23,22 +24,48 @@ Item {
         anchors.leftMargin: 4
         anchors.verticalCenter: parent.verticalCenter
         color: root.elementFillColor
-        border.color: "#b0b0b0"
+        border.color: ConfigObject.darkMode ? "#505050" : "#b0b0b0"
         border.width: 1
         radius: 0
         z: 1 // Above the TextField
     }
     
-    TextField {
-        id: textField
+    // Background rectangle that looks like a TextField
+    Rectangle {
+        id: textFieldBackground
         anchors.fill: parent
-        readOnly: true
-        placeholderText: "Click to select..."
-        leftPadding: 30 // Make room for the square box
+        color: ConfigObject.darkMode ? "#2a2a2a" : "#ffffff"
+        border.color: ConfigObject.darkMode ? "#404040" : "#d0d0d0"
+        border.width: 1
+        radius: 4
+        
+        // Text display
+        Text {
+            id: textDisplay
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.leftMargin: 30 // Make room for the square box
+            anchors.rightMargin: 8
+            text: root.text || root.placeholderText
+            color: root.text ? ConfigObject.textColor : ConfigObject.secondaryTextColor
+            elide: Text.ElideRight
+            font.pixelSize: 14
+        }
         
         MouseArea {
             anchors.fill: parent
             cursorShape: Qt.PointingHandCursor
+            hoverEnabled: true
+            
+            onEntered: {
+                textFieldBackground.border.color = ConfigObject.darkMode ? "#505050" : "#a0a0a0"
+            }
+            
+            onExited: {
+                textFieldBackground.border.color = ConfigObject.darkMode ? "#404040" : "#d0d0d0"
+            }
+            
             onClicked: {
                 root.panelRequested()
                 root.panelVisible = !root.panelVisible

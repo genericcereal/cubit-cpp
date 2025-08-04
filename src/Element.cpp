@@ -48,26 +48,10 @@ QString Element::getTypeName() const
             return "Node";
         case EdgeType:
             return "Edge";
-        case ComponentType:
-            return "Component";
-        case FrameComponentInstanceType:
-            return "FrameComponentInstance";
-        case FrameComponentVariantType:
-            return "FrameComponentVariant";
-        case TextVariantType:
-            return "TextComponentVariant";
         case WebTextInputType:
             return "WebTextInput";
-        case WebTextInputComponentInstanceType:
-            return "WebTextInputComponentInstance";
-        case WebTextInputComponentVariantType:
-            return "WebTextInputComponentVariant";
         case ShapeType:
             return "Shape";
-        case ShapeComponentInstanceType:
-            return "ShapeComponentInstance";
-        case ShapeComponentVariantType:
-            return "ShapeComponentVariant";
         default:
             return "Unknown";
     }

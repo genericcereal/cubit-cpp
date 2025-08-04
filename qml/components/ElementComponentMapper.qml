@@ -5,31 +5,23 @@ QtObject {
     readonly property var elementTypeToComponent: ({
         // Frame types
         "Frame": "FrameElement.qml",
-        "FrameComponentVariant": "FrameElement.qml",
-        "FrameComponentInstance": "FrameElement.qml",
         
         // Text types
         "Text": "TextElement.qml",
-        "TextComponentVariant": "TextElement.qml",
-        "TextComponentInstance": "TextElement.qml",
         
         // WebTextInput types
         "WebTextInput": "platform/web/WebTextInputElement.qml",
-        "WebTextInputComponentVariant": "platform/web/WebTextInputElement.qml",
-        "WebTextInputComponentInstance": "platform/web/WebTextInputElement.qml",
         
         // Shape types
-        "Shape": "ShapeElement.qml",
-        "ShapeComponentVariant": "ShapeElement.qml",
-        "ShapeComponentInstance": "ShapeElement.qml"
+        "Shape": "ShapeElement.qml"
     })
     
     // Get the component path for an element
     function getComponentPath(element) {
         if (!element || !element.elementType) return ""
         
-        // Special case: FrameComponentInstance might be a text-based instance
-        if (element.elementType === "FrameComponentInstance" && element.hasOwnProperty('content')) {
+        // Special case: Frame instance might be a text-based instance
+        if (element.elementType === "Frame" && element.isInstance && element.isInstance() && element.hasOwnProperty('content')) {
             return "TextElement.qml"
         }
         

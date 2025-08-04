@@ -1107,7 +1107,7 @@ Item {
             // Check if element is a ComponentInstance or ComponentVariant using the generic methods
             var isComponentRelated = false
             if (element.isDesignElement) {
-                isComponentRelated = (typeof element.isComponentInstance === 'function' && element.isComponentInstance() === true) || 
+                isComponentRelated = (typeof element.isInstance === 'function' && element.isInstance() === true) || 
                                    (typeof element.isComponentVariant === 'function' && element.isComponentVariant() === true)
             }
             
@@ -1119,7 +1119,7 @@ Item {
                     while (currentId && currentId !== "") {
                         var parentElement = parent.canvasView.elementModel.getElementById(currentId)
                         if (parentElement && parentElement.isDesignElement && 
-                            (parentElement.isComponentInstance() || parentElement.isComponentVariant())) {
+                            (parentElement.isInstance() || parentElement.isComponentVariant())) {
                             isDescendant = true
                             break
                         }

@@ -11,7 +11,7 @@ class Edge;
 class Project;
 class DesignElement;
 class CanvasElement;
-class Component;
+// class Component; // Component system removed
 
 class CreationManager : public QObject {
     Q_OBJECT
@@ -35,7 +35,8 @@ public:
     Element* createElement(const QString& type, qreal x, qreal y, qreal width, qreal height, Element* parent = nullptr);
     
     // Component creation from existing element
-    class Component* createComponent(class DesignElement* sourceElement);
+    // Component system removed - use instanceOf pattern instead
+    // class Component* createComponent(class DesignElement* sourceElement);
     
     // Drag-to-create operations
     Element* startDragCreation(const QString& type, const QPointF& startPos);

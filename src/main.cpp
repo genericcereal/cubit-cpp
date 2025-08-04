@@ -14,9 +14,6 @@
 #include "Shape.h"
 #include "Variable.h"
 #include "BoxShadow.h"
-#include "Component.h"
-#include "ComponentVariantTemplate.h"
-#include "ComponentInstanceTemplate.h"
 #include "Node.h"
 #include "Edge.h"
 #include "CanvasController.h"
@@ -115,15 +112,6 @@ int main(int argc, char *argv[])
     qmlRegisterType<WebTextInput>("Cubit", 1, 0, "WebTextInput");
     qmlRegisterType<Shape>("Cubit", 1, 0, "ShapeElement");
     qmlRegisterType<Variable>("Cubit", 1, 0, "Variable");
-    qmlRegisterType<Component>("Cubit", 1, 0, "ComponentElement");
-    qmlRegisterType<FrameComponentVariantTemplate>("Cubit", 1, 0, "FrameComponentVariant");
-    qmlRegisterType<TextComponentVariantTemplate>("Cubit", 1, 0, "TextComponentVariant");
-    qmlRegisterType<ShapeComponentVariantTemplate>("Cubit", 1, 0, "ShapeComponentVariant");
-    qmlRegisterType<WebTextInputComponentVariantTemplate>("Cubit", 1, 0, "WebTextInputComponentVariant");
-    qmlRegisterType<FrameComponentInstanceTemplate>("Cubit", 1, 0, "FrameComponentInstance");
-    qmlRegisterType<TextComponentInstanceTemplate>("Cubit", 1, 0, "TextComponentInstance");
-    qmlRegisterType<ShapeComponentInstanceTemplate>("Cubit", 1, 0, "ShapeComponentInstance");
-    qmlRegisterType<WebTextInputComponentInstanceTemplate>("Cubit", 1, 0, "WebTextInputComponentInstance");
     qmlRegisterType<Node>("Cubit", 1, 0, "Node");
     qmlRegisterType<Edge>("Cubit", 1, 0, "Edge");
     

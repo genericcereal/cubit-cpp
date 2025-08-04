@@ -217,7 +217,13 @@ Item {
                                 
                                 Label {
                                     Layout.alignment: Qt.AlignRight
-                                    text: model.elementType
+                                    text: {
+                                        // Check if this element has a sourceElementId property that's not empty
+                                        if (model.element && model.element.sourceElementId && model.element.sourceElementId !== "") {
+                                            return "Instance"
+                                        }
+                                        return model.elementType
+                                    }
                                     color: ConfigObject.secondaryTextColor
                                     font.pixelSize: 10
                                 }
@@ -653,7 +659,13 @@ Item {
                                 
                                 Label {
                                     Layout.alignment: Qt.AlignRight
-                                    text: model.elementType
+                                    text: {
+                                        // Check if this element has a sourceElementId property that's not empty
+                                        if (model.element && model.element.sourceElementId && model.element.sourceElementId !== "") {
+                                            return "Instance"
+                                        }
+                                        return model.elementType
+                                    }
                                     color: ConfigObject.secondaryTextColor
                                     font.pixelSize: 10
                                 }

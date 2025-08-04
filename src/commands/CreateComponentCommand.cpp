@@ -2,9 +2,6 @@
 #include "CreateInstanceCommand.h"
 #include "../ElementModel.h"
 #include "../DesignElement.h"
-#include "../Component.h"
-#include "../ComponentVariant.h"
-#include "../ComponentVariantTemplate.h"
 #include "../Frame.h"
 #include "../Text.h"
 #include "../Shape.h"
@@ -19,17 +16,17 @@ CreateComponentCommand::CreateComponentCommand(ElementModel* elementModel, Desig
     : Command(parent)
     , m_elementModel(elementModel)
     , m_sourceElement(sourceElement)
+    , m_sourceElementId(sourceElement ? sourceElement->getId() : QString())
+    , m_sourceParentId(sourceElement ? sourceElement->getParentElementId() : QString())
+    , m_createdInstance(nullptr)
 {
     if (sourceElement) {
-        setDescription(QString("Create component from %1").arg(sourceElement->getName()));
-    } else {
-        setDescription("Create component");
+        setDescription("Create component from " + sourceElement->getName());
     }
 }
 
 CreateComponentCommand::~CreateComponentCommand()
 {
-    // QPointer will automatically be null if objects were deleted
 }
 
 void CreateComponentCommand::execute()
@@ -39,136 +36,70 @@ void CreateComponentCommand::execute()
         return;
     }
 
-    // Generate component ID if not already created
-    if (m_componentId.isEmpty()) {
-        m_componentId = m_elementModel->generateId();
+    // In the new pattern, the source element itself becomes the component definition
+    // We just need to create an instance that references it
+    
+    // Generate instance ID if not already created
+    if (m_instanceId.isEmpty()) {
+        m_instanceId = m_elementModel->generateId();
     }
-
-    // Create the component
-    m_createdComponent = new Component(m_componentId, m_elementModel);
-    m_createdComponent->setName(m_sourceElement->getName() + " Component");
-    m_createdComponent->setComponentType(m_sourceElement->getTypeName());
-
-    // Generate variant ID
-    if (m_variantId.isEmpty()) {
-        m_variantId = m_elementModel->generateId();
-    }
-
-    // Create a ComponentVariant based on the source element type
-    Element* variantElement = nullptr;
     
-    // First serialize the source element to get all its properties
-    Serializer* serializer = Application::instance()->serializer();
-    QJsonObject elementData = serializer->serializeElement(m_sourceElement);
+    // Create an instance of the source element
+    DesignElement* instance = nullptr;
     
-    // Update the element data for the variant
-    elementData["elementId"] = m_variantId;
-    elementData["name"] = "Default Variant";
-    
-    // Create the appropriate ComponentVariant type based on source type
-    if (qobject_cast<Frame*>(m_sourceElement)) {
-        FrameComponentVariant* frameVariant = new FrameComponentVariant(m_variantId, m_elementModel);
-        variantElement = frameVariant;
-    } else if (qobject_cast<Text*>(m_sourceElement)) {
-        TextComponentVariant* textVariant = new TextComponentVariant(m_variantId, m_elementModel);
-        variantElement = textVariant;
-    } else if (qobject_cast<Shape*>(m_sourceElement)) {
-        ShapeComponentVariant* shapeVariant = new ShapeComponentVariant(m_variantId, m_elementModel);
-        variantElement = shapeVariant;
-    } else if (qobject_cast<WebTextInput*>(m_sourceElement)) {
-        WebTextInputComponentVariant* webTextVariant = new WebTextInputComponentVariant(m_variantId, m_elementModel);
-        variantElement = webTextVariant;
+    if (Frame* sourceFrame = qobject_cast<Frame*>(m_sourceElement)) {
+        Frame* frameInstance = new Frame(m_instanceId, m_elementModel);
+        frameInstance->setRect(QRectF(sourceFrame->x(), sourceFrame->y(), 
+                                     sourceFrame->width(), sourceFrame->height()));
+        instance = frameInstance;
+    } else if (Text* sourceText = qobject_cast<Text*>(m_sourceElement)) {
+        Text* textInstance = new Text(m_instanceId, m_elementModel);
+        textInstance->setRect(QRectF(sourceText->x(), sourceText->y(), 
+                                    sourceText->width(), sourceText->height()));
+        instance = textInstance;
+    } else if (Shape* sourceShape = qobject_cast<Shape*>(m_sourceElement)) {
+        Shape* shapeInstance = new Shape(m_instanceId, m_elementModel);
+        shapeInstance->setRect(QRectF(sourceShape->x(), sourceShape->y(), 
+                                     sourceShape->width(), sourceShape->height()));
+        instance = shapeInstance;
+    } else if (WebTextInput* sourceWebText = qobject_cast<WebTextInput*>(m_sourceElement)) {
+        WebTextInput* webTextInstance = new WebTextInput(m_instanceId, m_elementModel);
+        webTextInstance->setRect(QRectF(sourceWebText->x(), sourceWebText->y(), 
+                                       sourceWebText->width(), sourceWebText->height()));
+        instance = webTextInstance;
     } else {
         qWarning() << "CreateComponentCommand: Unsupported element type" << m_sourceElement->getTypeName();
-        delete m_createdComponent;
-        m_createdComponent = nullptr;
         return;
     }
     
-    if (!variantElement) {
-        qWarning() << "CreateComponentCommand: Failed to create variant element";
-        delete m_createdComponent;
-        m_createdComponent = nullptr;
-        return;
-    }
-    
-    // Copy all properties from the serialized data
-    QStringList propNames = m_sourceElement->propertyNames();
-    for (const QString& propName : propNames) {
-        // Skip properties that shouldn't be copied
-        if (propName != "elementId" && propName != "parentId" && propName != "selected") {
-            QVariant value = m_sourceElement->getProperty(propName);
-            variantElement->setProperty(propName, value);
-        }
-    }
-    
-    // Set the name explicitly
-    variantElement->setName("Default Variant");
-
-    // Add the variant element to the element model
-    m_elementModel->addElement(variantElement);
-    
-    // Add the variant to the component
-    m_createdComponent->addVariant(variantElement);
-
-    // Add the component to the element model
-    m_elementModel->addElement(m_createdComponent);
-
-    // Replace the original element with an instance of the component
-    // First, get the parent of the source element
-    QString parentId = m_sourceElement->getParentElementId();
-    
-    // Create an instance command to replace the source element
-    m_createInstanceCommand = std::make_unique<CreateInstanceCommand>(
-        m_elementModel, variantElement, parentId, this);
-    m_createInstanceCommand->execute();
-
-    // Get the created instance
-    DesignElement* instance = m_createInstanceCommand->getCreatedInstance();
     if (instance) {
-        // Copy the position and size from the original element
-        instance->setX(m_sourceElement->x());
-        instance->setY(m_sourceElement->y());
-        instance->setWidth(m_sourceElement->width());
-        instance->setHeight(m_sourceElement->height());
+        // Set the instanceOf property to reference the source element
+        instance->setInstanceOf(m_sourceElement->getId());
+        instance->setName(m_sourceElement->getName() + " Instance");
         
-        // Remove the original element (without deleting it, so we can restore it on undo)
-        m_elementModel->removeElementWithoutDelete(m_sourceElement);
+        // Set parent if the source had one
+        if (!m_sourceParentId.isEmpty()) {
+            instance->setParentElementId(m_sourceParentId);
+        }
+        
+        // Add the instance to the model
+        m_elementModel->addElement(instance);
+        m_createdInstance = instance;
+        
+                 << "of" << m_sourceElement->getId();
     }
 }
 
 void CreateComponentCommand::undo()
 {
-    if (!m_elementModel) {
-        qWarning() << "CreateComponentCommand: Cannot undo - element model is null";
-        return;
+    if (m_createdInstance && m_elementModel) {
+        // Remove the instance
+        m_elementModel->removeElement(m_createdInstance->getId());
+        m_createdInstance = nullptr;
     }
+}
 
-    // Undo the instance creation first
-    if (m_createInstanceCommand) {
-        m_createInstanceCommand->undo();
-    }
-
-    // Restore the original element if it was removed
-    if (m_sourceElement && !m_elementModel->getElementById(m_sourceElement->getId())) {
-        m_elementModel->addElement(m_sourceElement);
-    }
-
-    // Remove the variant element from the model
-    if (m_createdComponent) {
-        // Get the variant from the component before removing
-        const QList<Element*>& variants = m_createdComponent->variants();
-        for (Element* variant : variants) {
-            if (variant && variant->getId() == m_variantId) {
-                m_elementModel->removeElement(variant);
-                break;
-            }
-        }
-    }
-
-    // Remove the component
-    if (m_createdComponent) {
-        m_elementModel->removeElement(m_createdComponent);
-        m_createdComponent = nullptr;
-    }
+void CreateComponentCommand::redo()
+{
+    execute();
 }

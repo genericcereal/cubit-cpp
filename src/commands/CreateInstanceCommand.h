@@ -4,7 +4,6 @@
 #include "../Command.h"
 #include "../DesignElement.h"
 #include <QString>
-#include <QPointer>
 
 class ElementModel;
 class Element;
@@ -26,9 +25,9 @@ public:
     DesignElement* getCreatedInstance() const { return m_createdInstance; }
 
 private:
-    QPointer<ElementModel> m_elementModel;
-    QPointer<Element> m_sourceElement;
-    QPointer<DesignElement> m_createdInstance;
+    ElementModel* m_elementModel;
+    Element* m_sourceElement;
+    DesignElement* m_createdInstance;
     QString m_parentId;
     QString m_instanceId;
 };

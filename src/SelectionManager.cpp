@@ -2,7 +2,6 @@
 #include "DesignElement.h"
 #include "Element.h"
 #include "CanvasElement.h"
-#include "Component.h"
 #include "ElementModel.h"
 #include "Application.h"
 #include "Project.h"
@@ -292,31 +291,5 @@ void SelectionManager::onElementGeometryChanged()
 
 void SelectionManager::checkComponentVariantMembership()
 {
-    // Get the Project from parent
-    Project* project = qobject_cast<Project*>(parent());
-    if (!project) return;
-    
-    ElementModel* elementModel = project->elementModel();
-    if (!elementModel) return;
-    
-    // Check each selected element
-    for (Element* selectedElement : m_selectedElements) {
-        if (!selectedElement) continue;
-        
-        // Get all elements from the model
-        QList<Element*> allElements = elementModel->getAllElements();
-        
-        // Check each component in the model
-        for (Element* element : allElements) {
-            Component* component = qobject_cast<Component*>(element);
-            if (component) {
-                // Check if the selected element is in this component's variants
-                QList<Element*> variants = component->variants();
-                if (variants.contains(selectedElement)) {
-                    break;
-                }
-            }
-        }
-        
-    }
+    // Component system has been removed - this functionality is no longer needed
 }

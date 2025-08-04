@@ -242,7 +242,7 @@ Item {
                 var b = Math.max(0, Math.min(255, parseInt(rgbMatch[3]))) / 255
                 
                 var color = Qt.rgba(r, g, b, 1)
-                root.hue = color.hslHue * 360
+                root.hue = isNaN(color.hslHue) ? root.hue : color.hslHue * 360
                 root.saturation = color.hslSaturation
                 root.lightness = color.hslLightness
                 
@@ -264,7 +264,7 @@ Item {
                 var b = parseInt(hex.substring(4, 6), 16) / 255
                 
                 var color = Qt.rgba(r, g, b, 1)
-                root.hue = color.hslHue * 360
+                root.hue = isNaN(color.hslHue) ? root.hue : color.hslHue * 360
                 root.saturation = color.hslSaturation
                 root.lightness = color.hslLightness
                 

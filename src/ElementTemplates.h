@@ -5,8 +5,6 @@
 #include <QList>
 #include <memory>
 #include "PropertyDefinition.h"
-#include "ComponentVariantTemplate.h"
-#include "ComponentInstanceTemplate.h"
 
 class DesignElement;
 
@@ -49,47 +47,12 @@ public:
 };
 
 /**
- * Template specializations for ComponentVariant and ComponentInstance creation
- */
-template<typename TElement>
-struct ComponentTraits;
-
-// Specializations for each element type
-template<>
-struct ComponentTraits<Frame> {
-    using VariantType = FrameComponentVariantTemplate;
-    using InstanceType = FrameComponentInstanceTemplate;
-};
-
-template<>
-struct ComponentTraits<Text> {
-    using VariantType = TextComponentVariantTemplate;
-    using InstanceType = TextComponentInstanceTemplate;
-};
-
-template<>
-struct ComponentTraits<Shape> {
-    using VariantType = ShapeComponentVariantTemplate;
-    using InstanceType = ShapeComponentInstanceTemplate;
-};
-
-/**
  * Helper functions for element creation using templates
  */
 namespace ElementTemplateHelpers {
     template<typename TElement>
     static TElement* create(const QString& id) {
         return ElementCreator<TElement>::create(id);
-    }
-    
-    template<typename TElement>
-    static typename ComponentTraits<TElement>::VariantType* createVariant(const QString& id) {
-        return new typename ComponentTraits<TElement>::VariantType(id);
-    }
-    
-    template<typename TElement>
-    static typename ComponentTraits<TElement>::InstanceType* createInstance(const QString& id) {
-        return new typename ComponentTraits<TElement>::InstanceType(id);
     }
 }
 

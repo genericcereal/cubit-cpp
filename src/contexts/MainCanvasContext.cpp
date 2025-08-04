@@ -5,7 +5,6 @@
 #include "../DesignElement.h"
 #include "../Project.h"
 #include "../PlatformConfig.h"
-#include "../Component.h"
 #include <QDebug>
 
 MainCanvasContext::MainCanvasContext(QObject *parent)
@@ -68,21 +67,21 @@ bool MainCanvasContext::shouldIncludeInHitTest(Element* element) const
         if (model) {
             QList<Element*> allElements = model->getAllElements();
             for (Element* el : allElements) {
-                Component* component = qobject_cast<Component*>(el);
-                if (component) {
-                    const QList<Element*>& variants = component->variants();
-                    if (variants.contains(element)) {
-                        // This element is a component variant
-                        return false;
-                    }
-                    
-                    // Also check children of variants
-                    for (Element* variant : variants) {
-                        if (element->getParentElementId() == variant->getId()) {
-                            return false;
-                        }
-                    }
-                }
+                // Component* component = qobject_cast<Component*>(el);
+                // if (component) {
+                //     const QList<Element*>& variants = component->variants();
+                //     if (variants.contains(element)) {
+                //         // This element is a component variant
+                //         return false;
+                //     }
+                //     
+                //     // Also check children of variants
+                //     for (Element* variant : variants) {
+                //         if (element->getParentElementId() == variant->getId()) {
+                //             return false;
+                //         }
+                //     }
+                // }
             }
         }
     }

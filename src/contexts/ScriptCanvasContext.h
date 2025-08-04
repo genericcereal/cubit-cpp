@@ -6,7 +6,7 @@
 #include <QPointer>
 class Element;
 class DesignElement;
-class Component;
+// class Component; // Component system removed
 class PlatformConfig;
 
 /**

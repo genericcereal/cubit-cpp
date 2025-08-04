@@ -205,10 +205,101 @@ Item {
                         var loop = closedLoops[loopIndex]
                         if (loop.length >= 3) { // Need at least 3 joints for a fillable area
                             ctx.beginPath()
-                            ctx.moveTo(joints[loop[0]].x * drawWidth + padding, joints[loop[0]].y * drawHeight + padding)
-                            for (var k = 1; k < loop.length; k++) {
-                                ctx.lineTo(joints[loop[k]].x * drawWidth + padding, joints[loop[k]].y * drawHeight + padding)
+                            
+                            // Handle first point with potential corner radius
+                            var firstJoint = joints[loop[0]]
+                            var firstX = firstJoint.x * drawWidth + padding
+                            var firstY = firstJoint.y * drawHeight + padding
+                            
+                            // Check if first joint has corner radius
+                            if (firstJoint.cornerRadius && firstJoint.cornerRadius > 0) {
+                                // Get adjacent joints for first corner
+                                var lastIdx = loop[loop.length - 1]
+                                var nextIdx = loop[1]
+                                
+                                var prevX = joints[lastIdx].x * drawWidth + padding
+                                var prevY = joints[lastIdx].y * drawHeight + padding
+                                var nextX = joints[nextIdx].x * drawWidth + padding
+                                var nextY = joints[nextIdx].y * drawHeight + padding
+                                
+                                // Calculate vectors
+                                var v1x = prevX - firstX
+                                var v1y = prevY - firstY
+                                var v2x = nextX - firstX
+                                var v2y = nextY - firstY
+                                
+                                var len1 = Math.sqrt(v1x * v1x + v1y * v1y)
+                                var len2 = Math.sqrt(v2x * v2x + v2y * v2y)
+                                
+                                if (len1 > 0 && len2 > 0) {
+                                    v1x /= len1
+                                    v1y /= len1
+                                    v2x /= len2
+                                    v2y /= len2
+                                    
+                                    var maxRadius = Math.min(len1, len2) * 0.5
+                                    var radius = Math.min(firstJoint.cornerRadius, maxRadius)
+                                    
+                                    // Start at the control point
+                                    ctx.moveTo(firstX + v2x * radius, firstY + v2y * radius)
+                                } else {
+                                    ctx.moveTo(firstX, firstY)
+                                }
+                            } else {
+                                ctx.moveTo(firstX, firstY)
                             }
+                            
+                            // Draw the rest of the loop with corner radius support
+                            for (var k = 1; k <= loop.length; k++) {
+                                var idx = k % loop.length  // Wrap around to close the loop
+                                var currentJoint = joints[loop[idx]]
+                                var currentX = currentJoint.x * drawWidth + padding
+                                var currentY = currentJoint.y * drawHeight + padding
+                                
+                                // Check for corner radius
+                                if (currentJoint.cornerRadius && currentJoint.cornerRadius > 0) {
+                                    // Get previous and next indices
+                                    var prevIdx = loop[(k - 1 + loop.length) % loop.length]
+                                    var nextIdx = loop[(k + 1) % loop.length]
+                                    
+                                    var prevX = joints[prevIdx].x * drawWidth + padding
+                                    var prevY = joints[prevIdx].y * drawHeight + padding
+                                    var nextX = joints[nextIdx].x * drawWidth + padding
+                                    var nextY = joints[nextIdx].y * drawHeight + padding
+                                    
+                                    // Calculate vectors
+                                    var v1x = prevX - currentX
+                                    var v1y = prevY - currentY
+                                    var v2x = nextX - currentX
+                                    var v2y = nextY - currentY
+                                    
+                                    var len1 = Math.sqrt(v1x * v1x + v1y * v1y)
+                                    var len2 = Math.sqrt(v2x * v2x + v2y * v2y)
+                                    
+                                    if (len1 > 0 && len2 > 0) {
+                                        v1x /= len1
+                                        v1y /= len1
+                                        v2x /= len2
+                                        v2y /= len2
+                                        
+                                        var maxRadius = Math.min(len1, len2) * 0.5
+                                        var radius = Math.min(currentJoint.cornerRadius, maxRadius)
+                                        
+                                        var cp1x = currentX + v1x * radius
+                                        var cp1y = currentY + v1y * radius
+                                        var cp2x = currentX + v2x * radius
+                                        var cp2y = currentY + v2y * radius
+                                        
+                                        ctx.lineTo(cp1x, cp1y)
+                                        ctx.quadraticCurveTo(currentX, currentY, cp2x, cp2y)
+                                    } else {
+                                        ctx.lineTo(currentX, currentY)
+                                    }
+                                } else {
+                                    ctx.lineTo(currentX, currentY)
+                                }
+                            }
+                            
                             ctx.closePath()
                             
                             // Fill the closed loop
@@ -268,8 +359,64 @@ Item {
                         if (path.length >= 2) {
                             ctx.beginPath()
                             ctx.moveTo(joints[path[0]].x * drawWidth + padding, joints[path[0]].y * drawHeight + padding)
+                            
+                            // Draw path with corner radius support
                             for (var k = 1; k < path.length; k++) {
-                                ctx.lineTo(joints[path[k]].x * drawWidth + padding, joints[path[k]].y * drawHeight + padding)
+                                var currentJoint = joints[path[k]]
+                                var currentX = currentJoint.x * drawWidth + padding
+                                var currentY = currentJoint.y * drawHeight + padding
+                                
+                                // Check if this joint has a corner radius and is not the last joint
+                                if (k < path.length - 1 && currentJoint.cornerRadius && currentJoint.cornerRadius > 0) {
+                                    // Get previous and next points
+                                    var prevJoint = joints[path[k - 1]]
+                                    var nextJoint = joints[path[k + 1]]
+                                    
+                                    var prevX = prevJoint.x * drawWidth + padding
+                                    var prevY = prevJoint.y * drawHeight + padding
+                                    var nextX = nextJoint.x * drawWidth + padding
+                                    var nextY = nextJoint.y * drawHeight + padding
+                                    
+                                    // Calculate vectors from current joint to previous and next
+                                    var v1x = prevX - currentX
+                                    var v1y = prevY - currentY
+                                    var v2x = nextX - currentX
+                                    var v2y = nextY - currentY
+                                    
+                                    // Calculate lengths
+                                    var len1 = Math.sqrt(v1x * v1x + v1y * v1y)
+                                    var len2 = Math.sqrt(v2x * v2x + v2y * v2y)
+                                    
+                                    if (len1 > 0 && len2 > 0) {
+                                        // Normalize vectors
+                                        v1x /= len1
+                                        v1y /= len1
+                                        v2x /= len2
+                                        v2y /= len2
+                                        
+                                        // Calculate the actual radius (capped by half the shortest edge length)
+                                        var maxRadius = Math.min(len1, len2) * 0.5
+                                        var radius = Math.min(currentJoint.cornerRadius, maxRadius)
+                                        
+                                        // Calculate control points
+                                        var cp1x = currentX + v1x * radius
+                                        var cp1y = currentY + v1y * radius
+                                        var cp2x = currentX + v2x * radius
+                                        var cp2y = currentY + v2y * radius
+                                        
+                                        // Draw line to the start of the arc
+                                        ctx.lineTo(cp1x, cp1y)
+                                        
+                                        // Draw quadratic curve through the corner
+                                        ctx.quadraticCurveTo(currentX, currentY, cp2x, cp2y)
+                                    } else {
+                                        // Fallback to straight line if vectors are invalid
+                                        ctx.lineTo(currentX, currentY)
+                                    }
+                                } else {
+                                    // No corner radius, draw straight line
+                                    ctx.lineTo(currentX, currentY)
+                                }
                             }
                             // Check if this path forms a closed loop
                             var isClosedLoop = false

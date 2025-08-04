@@ -21,8 +21,8 @@ class ConsoleMessageRepository;
 class VariableBindingManager;
 Q_DECLARE_OPAQUE_POINTER(ConsoleMessageRepository*)
 
-class Component;
-Q_DECLARE_OPAQUE_POINTER(Component*)
+// class Component; // Component system removed
+// Q_DECLARE_OPAQUE_POINTER(Component*)
 Q_DECLARE_OPAQUE_POINTER(VariableBindingManager*)
 
 Q_DECLARE_OPAQUE_POINTER(CanvasContext*)
@@ -82,7 +82,7 @@ public:
     void setCanvasContext(std::unique_ptr<CanvasContext> context);
     void setId(const QString& id);  // Update project ID (e.g., after API sync)
     Q_INVOKABLE void setEditingElement(DesignElement* element, const QString& viewMode = QString());
-    Q_INVOKABLE void setEditingComponent(Component* component, const QString& viewMode = QString());
+    // Q_INVOKABLE void setEditingComponent(Component* component, const QString& viewMode = QString()); // Component system removed
     Q_INVOKABLE void setEditingPlatform(PlatformConfig* platform, const QString& viewMode = QString());
     void setDraggedVariableType(const QString& type);
     void setHoveredVariableTarget(const QVariantMap& target);

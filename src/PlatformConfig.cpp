@@ -8,7 +8,7 @@
 #include "Text.h"
 #include "Shape.h"
 #include "platforms/web/WebTextInput.h"
-#include "ComponentInstanceTemplate.h"
+// #include "ComponentInstanceTemplate.h" // Component system removed
 #include "Project.h"
 #include "CanvasElement.h"
 #include <QDebug>
@@ -360,27 +360,27 @@ void PlatformConfig::addGlobalElementInstancesToFrame(Frame *targetFrame, Elemen
                 if (DesignElement* designInstance = qobject_cast<DesignElement*>(instance)) {
                     designInstance->setIsFrozen(true);
                     // Set the source element ID for tracking
-                    designInstance->setSourceId(elem->getId());
+                    designInstance->setInstanceOf(elem->getId());
                 }
 
                 // Mark as a global instance to prevent recursive parenting
                 // Check if this is a ComponentInstance type
-                if (auto frameInstance = qobject_cast<FrameComponentInstance *>(instance))
-                {
-                    frameInstance->setIsGlobalInstance(true);
-                }
-                else if (auto textInstance = qobject_cast<TextComponentInstance *>(instance))
-                {
-                    textInstance->setIsGlobalInstance(true);
-                }
-                else if (auto shapeInstance = qobject_cast<ShapeComponentInstance *>(instance))
-                {
-                    shapeInstance->setIsGlobalInstance(true);
-                }
-                else if (auto webTextInstance = qobject_cast<WebTextInputComponentInstance *>(instance))
-                {
-                    webTextInstance->setIsGlobalInstance(true);
-                }
+                // if (auto frameInstance = qobject_cast<FrameComponentInstance *>(instance))
+                // {
+                //     frameInstance->setIsGlobalInstance(true);
+                // }
+                // else if (auto textInstance = qobject_cast<TextComponentInstance *>(instance))
+                // {
+                //     textInstance->setIsGlobalInstance(true);
+                // }
+                // else if (auto shapeInstance = qobject_cast<ShapeComponentInstance *>(instance))
+                // {
+                //     shapeInstance->setIsGlobalInstance(true);
+                // }
+                // else if (auto webTextInstance = qobject_cast<WebTextInputComponentInstance *>(instance))
+                // {
+                //     webTextInstance->setIsGlobalInstance(true);
+                // }
 
                 // Add to the model
                 targetModel->addElement(instance);
@@ -489,7 +489,7 @@ void PlatformConfig::updateAllFramesWithNewGlobalElement(Element* globalElement,
                     if (DesignElement* designInstance = qobject_cast<DesignElement*>(instance)) {
                         designInstance->setIsFrozen(true);
                         // Set the source element ID for tracking
-                        designInstance->setSourceId(globalElement->getId());
+                        designInstance->setInstanceOf(globalElement->getId());
                     }
                     
                     // Add to the model
@@ -663,7 +663,7 @@ void PlatformConfig::updateGlobalElementInstances(Element* sourceElement, Elemen
     
     for (Element* element : allElements) {
         if (DesignElement* designElement = qobject_cast<DesignElement*>(element)) {
-            QString instanceSourceId = designElement->sourceId();
+            QString instanceSourceId = designElement->instanceOf();
             if (!instanceSourceId.isEmpty() && instanceSourceId == sourceId) {
                 
                 // Update properties
@@ -741,7 +741,7 @@ void PlatformConfig::updateGlobalElementsAfterMove(const QList<Element*>& movedE
         } else {
             // Check if this is an instance of a global element (has sourceId)
             if (DesignElement* designElement = qobject_cast<DesignElement*>(element)) {
-                QString sourceId = designElement->sourceId();
+                QString sourceId = designElement->instanceOf();
                 if (!sourceId.isEmpty()) {
                     // Find the source global element
                     Element* sourceElement = m_globalElements->getElementById(sourceId);
