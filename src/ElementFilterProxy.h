@@ -19,6 +19,9 @@ public:
     // Override roleNames to expose the source model's roles
     QHash<int, QByteArray> roleNames() const override;
     
+    // Override to connect to component changes
+    void setSourceModel(QAbstractItemModel *sourceModel) override;
+    
     // Convenience method to get element at index (for QML)
     Q_INVOKABLE Element* elementAt(int row) const;
 
@@ -34,11 +37,18 @@ public:
     bool filterComponentsOnly() const;
     void setFilterComponentsOnly(bool filter);
 
+    // Public method to check if an element should be shown
+    Q_INVOKABLE bool shouldShowElement(Element* element) const;
+
 signals:
     void viewModeChanged();
     void editingElementChanged();
     void filterComponentsOutChanged();
     void filterComponentsOnlyChanged();
+    void filterChanged();
+
+public slots:
+    void refreshFilter();
 
 protected:
     bool filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const override;

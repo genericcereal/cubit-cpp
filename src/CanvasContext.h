@@ -14,8 +14,8 @@ class HitTestService;
 
 /**
  * Base class for canvas contexts that provide elements from different sources
- * This allows the canvas to display elements from various locations (component variants,
- * global elements, linked objects, etc.) without hardcoding each case.
+ * This allows the canvas to display elements from various locations (global elements,
+ * linked objects, etc.) without hardcoding each case.
  */
 class CanvasContext : public QObject
 {

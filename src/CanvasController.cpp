@@ -162,10 +162,6 @@ void CanvasController::updateSubcontrollersCanvasType()
             creationType = CreationManager::CanvasType::Script;
             hitTestType = HitTestService::CanvasType::Script;
             break;
-        case CanvasType::Variant:
-            creationType = CreationManager::CanvasType::Design;  // Variant uses design creation
-            hitTestType = HitTestService::CanvasType::Variant;
-            break;
     }
     
     m_creationManager->setCanvasType(creationType);
@@ -442,12 +438,6 @@ void CanvasController::createComponent(DesignElement* sourceElement)
     m_commandHistory->execute(std::move(command));
 }
 
-void CanvasController::duplicateVariant(const QString &variantId)
-{
-    // This functionality is no longer supported in the new instance pattern
-    Q_UNUSED(variantId);
-    qWarning() << "duplicateVariant: Variant duplication is no longer supported";
-}
 
 void CanvasController::selectElementsInRect(const QRectF &rect)
 {

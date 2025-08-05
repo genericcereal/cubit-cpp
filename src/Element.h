@@ -27,7 +27,8 @@ public:
         NodeType,
         EdgeType,
         WebTextInputType,
-        ShapeType
+        ShapeType,
+        ComponentType
     };
     Q_ENUM(ElementType)
 

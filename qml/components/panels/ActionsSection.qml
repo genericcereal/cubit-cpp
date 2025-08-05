@@ -21,7 +21,7 @@ GroupBox {
         if (selectedElement.isDesignElement) return true
         
         // Show for components (to show Variants button)
-        if (selectedElement.elementType === "Component") return true
+        if (selectedElement.elementType === "ComponentElement") return true
         
         // Show for component instances
         if (selectedElement.elementType === "FrameComponentInstance" || 
@@ -80,7 +80,7 @@ GroupBox {
                      selectedElement.elementType !== "TextComponentVariant" &&
                      selectedElement.elementType !== "WebTextInputComponentVariant" &&
                      (selectedElement.isDesignElement || 
-                      selectedElement.elementType === "Component" ||
+                      selectedElement.elementType === "ComponentElement" ||
                       selectedElement.elementType === "FrameComponentInstance" ||
                       selectedElement.elementType === "TextComponentInstance" ||
                       selectedElement.elementType === "WebTextInputComponentInstance")
@@ -89,8 +89,8 @@ GroupBox {
             onClicked: {
                 if (canvas && selectedElement) {
                     // Components need special handling
-                    if (selectedElement.elementType === "Component") {
-                        canvas.setEditingComponent(selectedElement, "script")
+                    if (selectedElement.elementType === "ComponentElement") {
+                        canvas.setEditingComponent(selectedElement.elementId, "script")
                     } else {
                         canvas.setEditingElement(selectedElement, "script")
                     }
@@ -103,12 +103,13 @@ GroupBox {
             Layout.fillWidth: true
             text: "Variants"
             font.pixelSize: 14
-            visible: selectedElement && selectedElement.elementType === "Component"
+            visible: selectedElement && selectedElement.elementType === "ComponentElement"
             
             
             onClicked: {
-                if (canvas && selectedElement && selectedElement.elementType === "Component") {
-                    canvas.setEditingComponent(selectedElement, "variant")
+                if (canvas && selectedElement && selectedElement.elementType === "ComponentElement") {
+                    // Switch to design mode and edit the component
+                    canvas.setEditingComponent(selectedElement.elementId, "design")
                 }
             }
         }

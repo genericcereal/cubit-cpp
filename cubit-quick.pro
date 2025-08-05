@@ -38,6 +38,7 @@ SOURCES += \
     src/main.cpp \
     src/Element.cpp \
     src/CanvasElement.cpp \
+    src/Component.cpp \
     src/DesignElement.cpp \
     src/ScriptElement.cpp \
     src/Frame.cpp \
@@ -106,8 +107,6 @@ SOURCES += \
     src/PlatformConfig.cpp \
     src/CanvasContext.cpp \
     src/contexts/MainCanvasContext.cpp \
-    src/contexts/VariantCanvasContext.cpp \
-    src/contexts/GlobalElementsContext.cpp \
     src/contexts/ScriptCanvasContext.cpp \
     src/PropertyRegistry.cpp \
     src/PropertyTypeMapper.cpp \
@@ -120,6 +119,7 @@ HEADERS += \
     src/Element.h \
     src/FlexLayoutEngine.h \
     src/CanvasElement.h \
+    src/Component.h \
     src/DesignElement.h \
     src/ScriptElement.h \
     src/Frame.h \
@@ -198,8 +198,6 @@ HEADERS += \
     src/PlatformConfig.h \
     src/CanvasContext.h \
     src/contexts/MainCanvasContext.h \
-    src/contexts/VariantCanvasContext.h \
-    src/contexts/GlobalElementsContext.h \
     src/contexts/ScriptCanvasContext.h \
     src/PropertyRegistry.h \
     src/PropertyTypeMapper.h \

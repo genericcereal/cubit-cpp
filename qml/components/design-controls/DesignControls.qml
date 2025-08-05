@@ -29,7 +29,6 @@ Item {
     
     // Check if all selected elements are component-related
     property bool allSelectedAreComponentRelated: false
-    property bool selectedIsComponentVariant: false
     
     // Check if resizing is disabled
     property bool isResizingDisabled: designControlsController ? !designControlsController.isResizingEnabled : true
@@ -1056,44 +1055,12 @@ Item {
     property alias hoverBadge: hoverBadgeComponent
     
     // Component Variant Add Button
-    VariantAddButton {
-        id: componentVariantAddButton
-        visible: selectedIsComponentVariant
-        controller: root.parent ? root.parent.controller : null
-        selectedVariant: {
-            if (root.parent && root.parent.selectedElements && root.parent.selectedElements.length === 1) {
-                var variant = root.parent.selectedElements[0]
-                if (variant && variant.isDesignElement && variant.isComponentVariant()) {
-                    return variant
-                }
-            }
-            return null
-        }
-        
-        onAddVariantClicked: (selectedVariant) => {
-            // Get the controller from the parent ViewportOverlay
-            if (root.parent && root.parent.controller && selectedVariant) {
-                root.parent.controller.duplicateVariant(selectedVariant.elementId)
-            }
-        }
-    }
     
     // Function to check if all selected elements are component-related
     function updateComponentRelatedStatus() {
         if (!parent || !parent.selectedElements || parent.selectedElements.length === 0) {
             allSelectedAreComponentRelated = false
-            selectedIsComponentVariant = false
             return
-        }
-        
-        // Check if exactly one element is selected and it's a ComponentVariant
-        if (parent.selectedElements.length === 1) {
-            var element = parent.selectedElements[0]
-            selectedIsComponentVariant = !!(element && element.isDesignElement && 
-                                           typeof element.isComponentVariant === 'function' && 
-                                           element.isComponentVariant())
-        } else {
-            selectedIsComponentVariant = false
         }
         
         var allComponent = true
@@ -1104,22 +1071,21 @@ Item {
                 break
             }
             
-            // Check if element is a ComponentInstance or ComponentVariant using the generic methods
+            // Check if element is a ComponentInstance using the generic methods
             var isComponentRelated = false
             if (element.isDesignElement) {
-                isComponentRelated = (typeof element.isInstance === 'function' && element.isInstance() === true) || 
-                                   (typeof element.isComponentVariant === 'function' && element.isComponentVariant() === true)
+                isComponentRelated = (typeof element.isInstance === 'function' && element.isInstance() === true)
             }
             
             if (!isComponentRelated) {
-                // Check if it's a descendant of a ComponentInstance or ComponentVariant
+                // Check if it's a descendant of a ComponentInstance
                 var isDescendant = false
                 if (parent.canvasView && parent.canvasView.elementModel) {
                     var currentId = element.parentId
                     while (currentId && currentId !== "") {
                         var parentElement = parent.canvasView.elementModel.getElementById(currentId)
                         if (parentElement && parentElement.isDesignElement && 
-                            (parentElement.isInstance() || parentElement.isComponentVariant())) {
+                            parentElement.isInstance()) {
                             isDescendant = true
                             break
                         }

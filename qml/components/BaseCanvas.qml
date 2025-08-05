@@ -131,8 +131,8 @@ Item {
             if (root.canvasType === "script" && root.isEdgePreview) {
                 return false
             }
-            // Disable for design/variant canvas creation modes (except Pen mode)
-            if ((root.canvasType === "design" || root.canvasType === "variant") && 
+            // Disable for design canvas creation modes (except Pen mode)
+            if (root.canvasType === "design" && 
                 controller && controller.mode !== CanvasController.Select && 
                 controller.mode !== CanvasController.ShapePen) {
                 return false
@@ -184,7 +184,7 @@ Item {
             
             // Disable middle-button panning during creation modes (except Pen mode)
             enabled: {
-                if ((root.canvasType === "design" || root.canvasType === "variant") && 
+                if (root.canvasType === "design" && 
                     controller && controller.mode !== CanvasController.Select && 
                     controller.mode !== CanvasController.ShapePen) {
                     return false

@@ -49,8 +49,7 @@ public:
     // Enum for canvas types
     enum class CanvasType {
         Design,
-        Script,
-        Variant
+        Script
     };
     Q_ENUM(CanvasType)
     
@@ -68,7 +67,7 @@ public:
     CanvasType canvasType() const { return m_canvasType; }
     void setCanvasType(CanvasType type);
     
-    // Editing element management (for variant mode)
+    // Editing element management (for context-specific filtering)
     void setEditingElement(QObject* editingElement);
     
     // Drag state (handled in QML now)
@@ -129,9 +128,6 @@ public slots:
     
     // Component operations
     Q_INVOKABLE void createComponent(DesignElement* sourceElement);
-    
-    // Component variant operations
-    Q_INVOKABLE void duplicateVariant(const QString &variantId);
     
     // Selection
     void selectElementsInRect(const QRectF &rect);

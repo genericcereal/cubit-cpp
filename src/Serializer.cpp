@@ -14,6 +14,7 @@
 #include "Node.h"
 #include "Edge.h"
 #include "Scripts.h"
+#include "Component.h"
 #include "platforms/web/WebTextInput.h"
 #include "PlatformConfig.h"
 #include "ElementTypeRegistry.h"
@@ -35,6 +36,41 @@ Serializer::Serializer(Application* app, QObject *parent)
     : QObject(parent)
     , m_application(app)
 {
+}
+
+void Serializer::resolveComponentRelationships(ElementModel* model)
+{
+    if (!model) return;
+    
+    QList<Element*> allElements = model->getAllElements();
+    
+    for (Element* element : allElements) {
+        if (ComponentElement* component = qobject_cast<ComponentElement*>(element)) {
+            // Check if this component has pending element IDs to restore
+            QStringList elementIds = component->pendingElementIds();
+            
+            if (!elementIds.isEmpty()) {
+                
+                // Add each element to the component
+                for (const QString& elementId : elementIds) {
+                    Element* childElement = model->getElementById(elementId);
+                    if (childElement) {
+                        component->addElement(childElement);
+                        // Note: We keep the element in the model - it will be filtered out in display
+                    } else {
+                        qWarning() << "    Could not find element" << elementId << "to add to component";
+                    }
+                }
+                
+                // Clear the pending IDs now that they're resolved
+                component->setPendingElementIds(QStringList());
+            } else {
+            }
+        }
+    }
+    
+    // Force the filter proxy to refresh after resolving relationships
+    emit model->layoutChanged();
 }
 
 QJsonObject Serializer::serializeProject(Project* project) const {
@@ -165,6 +201,20 @@ QJsonObject Serializer::serializeElement(Element* element) const {
     elementObj["name"] = element->getName();
     elementObj["parentId"] = element->getParentElementId();
     
+    // Special handling for ComponentElement
+    if (ComponentElement* component = qobject_cast<ComponentElement*>(element)) {
+        // Serialize the elements array as element IDs
+        QJsonArray elementsArray;
+        for (Element* elem : component->elements()) {
+            if (elem) {
+                elementsArray.append(elem->getId());
+            }
+        }
+        elementObj["componentElements"] = elementsArray;
+                 << "with" << elementsArray.size() << "elements"
+                 << "array contents:" << elementsArray;
+    }
+    
     // Use Qt's meta-object system to serialize all properties
     const QMetaObject* metaObj = element->metaObject();
     for (int i = 0; i < metaObj->propertyCount(); ++i) {
@@ -174,7 +224,8 @@ QJsonObject Serializer::serializeElement(Element* element) const {
         // Skip properties we don't want to save
         if (QString(name) == "objectName" || 
             QString(name) == "selected" ||
-            QString(name) == "parentElement") {
+            QString(name) == "parentElement" ||
+            QString(name) == "elements") {  // Skip the elements property as we handle it specially
             continue;
         }
         
@@ -431,6 +482,9 @@ Project* Serializer::deserializeProject(const QJsonObject& projectData) {
         // Resolve parent relationships after all elements are loaded
         if (project->elementModel()) {
             project->elementModel()->resolveParentRelationships();
+            
+            // Resolve component element relationships
+            resolveComponentRelationships(project->elementModel());
         }
         
         // Deserialize variable bindings after all elements are loaded
@@ -512,13 +566,15 @@ Element* Serializer::deserializeElement(const QJsonObject& elementData, ElementM
             }
         } else {
             // Fall back to direct creation for types not in registry yet
-            // (Variable, Node, Edge)
+            // (Variable, Node, Edge, ComponentElement)
             if (elementType == "Variable") {
                 element = new Variable(elementId, model);
             } else if (elementType == "Node") {
                 element = new Node(elementId, model);
             } else if (elementType == "Edge") {
                 element = new Edge(elementId, model);
+            } else if (elementType == "ComponentElement") {
+                element = new ComponentElement(elementId, model);
             } else {
                 qWarning() << "Unknown element type in deserialization:" << elementType;
                 return nullptr;
@@ -749,6 +805,22 @@ Element* Serializer::deserializeElement(const QJsonObject& elementData, ElementM
                 if (value.isValid() && property.isWritable()) {
                     property.write(element, value);
                 }
+            }
+        }
+        
+        // Special handling for ComponentElement - store element IDs to restore later
+        if (ComponentElement* component = qobject_cast<ComponentElement*>(element)) {
+            if (elementData.contains("componentElements")) {
+                QJsonArray elementsArray = elementData["componentElements"].toArray();
+                // Store the element IDs for later restoration
+                QStringList elementIds;
+                for (const QJsonValue& val : elementsArray) {
+                    QString id = val.toString();
+                    elementIds.append(id);
+                }
+                // We'll restore these connections after all elements are loaded
+                component->setPendingElementIds(elementIds);
+            } else {
             }
         }
         

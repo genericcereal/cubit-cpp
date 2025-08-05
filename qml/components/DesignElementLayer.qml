@@ -14,12 +14,40 @@ Item {
     required property real canvasMinY
     property var canvas: null  // Will be set by parent
     
+    onCanvasChanged: {
+        // Connect the HitTestService when canvas is set
+        if (canvas && canvas.controller && canvas.controller.hitTestService) {
+            canvas.controller.hitTestService.setElementFilterProxy(filteredModel)
+            // Also sync the editing element
+            canvas.controller.hitTestService.setEditingElement(canvas.editingElement)
+        }
+    }
+    
+    Connections {
+        target: canvas
+        enabled: canvas !== null
+        
+        function onEditingElementChanged() {
+            // Keep HitTestService in sync with canvas editing element
+            if (canvas && canvas.controller && canvas.controller.hitTestService) {
+                canvas.controller.hitTestService.setEditingElement(canvas.editingElement)
+            }
+        }
+    }
+    
     // Create filtered proxy model
     ElementFilterProxy {
         id: filteredModel
         sourceModel: root.elementModel || null
         viewMode: root.canvas ? root.canvas.viewMode : "design"
         editingElement: root.canvas ? root.canvas.editingElement : null
+        
+        Component.onCompleted: {
+            // Connect the HitTestService to this filter proxy
+            if (root.canvas && root.canvas.controller && root.canvas.controller.hitTestService) {
+                root.canvas.controller.hitTestService.setElementFilterProxy(filteredModel)
+            }
+        }
     }
     
     // Element rendering - only render root elements (no parent)

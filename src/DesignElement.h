@@ -33,6 +33,7 @@ class DesignElement : public CanvasElement
     
     // Instance relationship
     Q_PROPERTY(QString instanceOf READ instanceOf WRITE setInstanceOf NOTIFY instanceOfChanged)
+    Q_PROPERTY(QString componentId READ componentId WRITE setComponentId NOTIFY componentIdChanged)
     
     // Box shadow
     Q_PROPERTY(BoxShadow boxShadow READ boxShadow WRITE setBoxShadow NOTIFY boxShadowChanged)
@@ -85,6 +86,8 @@ public:
     // Instance relationship
     QString instanceOf() const { return m_instanceOf; }
     void setInstanceOf(const QString& sourceId);
+    QString componentId() const { return m_componentId; }
+    void setComponentId(const QString& compId);
     
     // Box shadow
     BoxShadow boxShadow() const { return m_boxShadow; }
@@ -127,6 +130,7 @@ public:
     
 signals:
     void scriptsChanged();
+    void componentIdChanged();
     void leftChanged();
     void rightChanged();
     void topChanged();
@@ -172,6 +176,7 @@ private:
     
     // Instance relationship
     QString m_instanceOf;
+    QString m_componentId;
     QMetaObject::Connection m_sourceConnection;
     DesignElement* m_sourceElement;
     
