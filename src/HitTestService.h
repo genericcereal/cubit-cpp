@@ -11,6 +11,7 @@ class CanvasElement;
 class ElementModel;
 class QuadTree;
 class CanvasContext;
+class ElementFilterProxy;
 
 class HitTestService : public QObject {
     Q_OBJECT
@@ -18,8 +19,7 @@ class HitTestService : public QObject {
 public:
     enum class CanvasType {
         Design,
-        Script,
-        Variant
+        Script
     };
     Q_ENUM(CanvasType)
     
@@ -28,8 +28,9 @@ public:
     
     void setElementModel(ElementModel* elementModel);
     void setCanvasType(CanvasType type);
-    void setEditingElement(QObject* editingElement);
+    Q_INVOKABLE void setEditingElement(QObject* editingElement);
     void setCanvasContext(CanvasContext* context);
+    Q_INVOKABLE void setElementFilterProxy(ElementFilterProxy* filterProxy);
     
     // Hit testing
     Q_INVOKABLE Element* hitTest(const QPointF& point) const;
@@ -67,6 +68,7 @@ private:
     CanvasType m_canvasType = CanvasType::Design;
     QObject* m_editingElement = nullptr;
     CanvasContext* m_canvasContext = nullptr;
+    ElementFilterProxy* m_filterProxy = nullptr;
     mutable std::unique_ptr<QuadTree> m_quadTree;
     bool m_useQuadTree = true;
     bool m_needsRebuild = false;
@@ -76,8 +78,6 @@ private:
     // between what's displayed and what's hit-testable
     bool shouldTestElement(Element* element) const;
     
-    // Helper to check if element is in any component's variants array
-    bool isInAnyComponentVariants(Element* element) const;
     
     // Get bounds for the quadtree based on all elements
     QRectF calculateBounds() const;

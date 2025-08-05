@@ -16,9 +16,8 @@
 #include "HitTestService.h"
 #include "CanvasContext.h"
 #include "contexts/MainCanvasContext.h"
-#include "contexts/VariantCanvasContext.h"
-#include "contexts/GlobalElementsContext.h"
 #include "contexts/ScriptCanvasContext.h"
+#include "Component.h"
 #include "VariableBinding.h"
 #include "CommandHistory.h"
 #include "commands/AddPlatformCommand.h"
@@ -211,7 +210,7 @@ void Project::setViewMode(const QString& viewMode) {
         QString previousMode = m_viewMode;
         
         // Emit signal to save viewport state before changing mode
-        if (previousMode == "design" || previousMode == "variant") {
+        if (previousMode == "design") {
             emit viewportStateShouldBeSaved();
         }
         
@@ -230,8 +229,8 @@ void Project::setViewMode(const QString& viewMode) {
             m_controller->setMode(CanvasController::Mode::Select);
         }
         
-        // Emit signal to restore viewport state for design/variant modes
-        if (viewMode == "design" || viewMode == "variant" || viewMode == "globalElements") {
+        // Emit signal to restore viewport state for design mode
+        if (viewMode == "design") {
             emit viewportStateShouldBeRestored();
         }
         
@@ -498,18 +497,41 @@ void Project::setEditingElement(DesignElement* element, const QString& viewMode)
     }
 }
 
-// Component system removed
-// void Project::setEditingComponent(Component* component, const QString& viewMode) {
-//     if (m_editingElement != component) {
-//         m_editingElement = component;
-//         emit editingElementChanged();
-//         updateActiveScripts();
-//         
-//         // Update the canvas controller's hit test service
-//         if (m_controller) {
-//             m_controller->setEditingElement(m_editingElement);
-//         }
-//     }
+void Project::setEditingComponent(const QString& componentId, const QString& viewMode) {
+    
+    if (componentId.isEmpty()) {
+        // Clear component editing mode
+        if (m_editingElement) {
+            m_editingElement = nullptr;
+            emit editingElementChanged();
+        }
+        return;
+    }
+    
+    // Find the component element
+    Element* element = m_elementModel->getElementById(componentId);
+    ComponentElement* component = qobject_cast<ComponentElement*>(element);
+    
+    if (!component) {
+        qWarning() << "Cannot edit component: element" << componentId << "is not a ComponentElement";
+        return;
+    }
+    
+             << "with" << component->elements().size() << "elements";
+    for (Element* elem : component->elements()) {
+    }
+    
+    // Set the component as the editing element
+    if (m_editingElement != component) {
+        m_editingElement = component;
+        emit editingElementChanged();
+    }
+    
+    // If a viewMode is specified, switch to that mode
+    if (!viewMode.isEmpty() && m_viewMode != viewMode) {
+        setViewMode(viewMode);
+    }
+}
 //     
 //     // If a viewMode is specified, switch to that mode
 //     if (!viewMode.isEmpty() && m_viewMode != viewMode) {
@@ -525,7 +547,7 @@ void Project::setEditingPlatform(PlatformConfig* platform, const QString& viewMo
         
         // Update the canvas controller's hit test service
         if (m_controller) {
-            // For globalElements mode, we need to pass the platform to the hit test service
+            // Pass the platform to the hit test service
             m_controller->setEditingElement(platform);
         }
     }
@@ -551,22 +573,6 @@ void Project::createContextForViewMode(const QString& mode) {
             if (platform) {
                 platform->connectAllGlobalElementsPropertySync(m_elementModel.get());
             }
-        }
-    } else if (mode == "variant") {
-        if (m_editingElement) {
-            newContext = std::make_unique<VariantCanvasContext>(m_editingElement, this);
-        } else {
-            // Fall back to main canvas if no editing element
-            newContext = std::make_unique<MainCanvasContext>(this);
-            qWarning() << "No editing element for variant mode, falling back to main canvas";
-        }
-    } else if (mode == "globalElements") {
-        if (PlatformConfig* platform = qobject_cast<PlatformConfig*>(m_editingElement)) {
-            newContext = std::make_unique<GlobalElementsContext>(platform, this);
-        } else {
-            // Fall back to main canvas if no platform
-            newContext = std::make_unique<MainCanvasContext>(this);
-            qWarning() << "No platform for globalElements mode, falling back to main canvas";
         }
     } else if (mode == "script") {
         Scripts* targetScripts = activeScripts();

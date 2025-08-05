@@ -3,6 +3,7 @@
 #include "DesignElement.h"
 #include "ScriptElement.h"
 #include "Variable.h"
+#include "Component.h"
 #include "ElementModel.h"
 #include "PlatformConfig.h"
 #include "Project.h"
@@ -12,6 +13,65 @@ ElementFilterProxy::ElementFilterProxy(QObject *parent)
     : QSortFilterProxyModel(parent)
     , m_viewMode("design")
 {
+}
+
+void ElementFilterProxy::refreshFilter()
+{
+    invalidateFilter();
+    emit filterChanged();
+}
+
+void ElementFilterProxy::setSourceModel(QAbstractItemModel *sourceModel)
+{
+    // Disconnect from previous model
+    if (this->sourceModel()) {
+        if (ElementModel* elementModel = qobject_cast<ElementModel*>(this->sourceModel())) {
+            // Disconnect from all components
+            QList<Element*> allElements = elementModel->getAllElements();
+            for (Element* el : allElements) {
+                if (ComponentElement* comp = qobject_cast<ComponentElement*>(el)) {
+                    disconnect(comp, &ComponentElement::elementsChanged,
+                              this, &ElementFilterProxy::refreshFilter);
+                }
+            }
+            
+            // Disconnect from model changes
+            disconnect(elementModel, &ElementModel::elementAdded,
+                      this, &ElementFilterProxy::refreshFilter);
+            disconnect(elementModel, &ElementModel::elementRemoved,
+                      this, &ElementFilterProxy::refreshFilter);
+        }
+    }
+    
+    // Set the new source model
+    QSortFilterProxyModel::setSourceModel(sourceModel);
+    
+    // Connect to new model
+    if (sourceModel) {
+        if (ElementModel* elementModel = qobject_cast<ElementModel*>(sourceModel)) {
+            // Connect to all components
+            QList<Element*> allElements = elementModel->getAllElements();
+            for (Element* el : allElements) {
+                if (ComponentElement* comp = qobject_cast<ComponentElement*>(el)) {
+                    connect(comp, &ComponentElement::elementsChanged,
+                           this, &ElementFilterProxy::refreshFilter);
+                }
+            }
+            
+            // Connect to model changes to handle new components
+            connect(elementModel, &ElementModel::elementAdded,
+                   this, [this](Element* element) {
+                       // If a new component is added, connect to its elementsChanged signal
+                       if (ComponentElement* comp = qobject_cast<ComponentElement*>(element)) {
+                           connect(comp, &ComponentElement::elementsChanged,
+                                  this, &ElementFilterProxy::refreshFilter);
+                       }
+                       refreshFilter();
+                   });
+            connect(elementModel, &ElementModel::elementRemoved,
+                   this, &ElementFilterProxy::refreshFilter);
+        }
+    }
 }
 
 QHash<int, QByteArray> ElementFilterProxy::roleNames() const {
@@ -87,6 +147,10 @@ void ElementFilterProxy::setFilterComponentsOnly(bool filter) {
     }
 }
 
+bool ElementFilterProxy::shouldShowElement(Element* element) const {
+    return shouldShowElementInMode(element);
+}
+
 bool ElementFilterProxy::filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const {
     Q_UNUSED(sourceParent)
     
@@ -122,21 +186,49 @@ bool ElementFilterProxy::shouldShowElementInMode(Element* element) const {
         return false;
     }
     
-    // Special handling for Component elements - they should only show in ElementList, not on canvas
-    // Since DesignElementLayer uses this filter, Components will be filtered out there
-    // But ElementList can still show them
-    // Component* component = qobject_cast<Component*>(element);
-    // if (component) {
-    //     // Apply component filtering
-    //     if (m_filterComponentsOut) {
-    //         return false; // Filter out components
-    //     }
-    //     if (m_filterComponentsOnly) {
-    //         return m_viewMode == "design"; // Only show components in design mode
-    //     }
-    //     // Components are only shown in design mode, not in script or variant modes
-    //     return m_viewMode == "design";
-    // }
+    // If we're editing a component, only show elements that belong to that component
+    if (m_editingElement) {
+        ComponentElement* component = qobject_cast<ComponentElement*>(m_editingElement);
+        if (component) {
+            // Only show elements that are in the component's elements list
+            bool inComponent = component->elements().contains(element);
+            if (!inComponent && element == component) {
+                // Don't filter out the component itself when editing it
+                return false;
+            }
+                     << "- element" << element->getId() 
+                     << "in component:" << inComponent
+                     << "component has" << component->elements().size() << "elements";
+            return inComponent;
+        }
+    }
+    
+    // Check if this element belongs to any component (and we're not editing that component)
+    if (ElementModel* model = qobject_cast<ElementModel*>(sourceModel())) {
+        QList<Element*> allElements = model->getAllElements();
+        for (Element* el : allElements) {
+            if (ComponentElement* comp = qobject_cast<ComponentElement*>(el)) {
+                if (comp->elements().contains(element)) {
+                    // This element belongs to a component, don't show it in main view
+                             << "because it belongs to component" << comp->getId();
+                    return false;
+                }
+            }
+        }
+    }
+    
+    // Special handling for ComponentElement - check by element type
+    if (element->getTypeName() == "ComponentElement") {
+        // Apply component filtering
+        if (m_filterComponentsOut) {
+            return false; // Filter out components
+        }
+        if (m_filterComponentsOnly) {
+            return m_viewMode == "design"; // Only show components in design mode
+        }
+        // Components are only shown in design mode, not in script modes
+        return m_viewMode == "design";
+    }
     
     // If we're only showing components, filter out non-components
     if (m_filterComponentsOnly) {
@@ -182,7 +274,7 @@ bool ElementFilterProxy::shouldShowElementInMode(Element* element) const {
     
     if (m_viewMode == "design") {
         // In design mode, show:
-        // 1. Design elements (Frame, Text) that are NOT in any component's variants
+        // 1. Design elements (Frame, Text)
         // 2. ComponentInstance elements
         // Note: Component elements are already handled above
         
@@ -202,10 +294,7 @@ bool ElementFilterProxy::shouldShowElementInMode(Element* element) const {
             return true;
         }
         
-        // Check if this element is a ComponentVariant (should be hidden in design mode)
-        if (false) { // Component variants no longer exist
-            return false;
-        }
+        // Component variants no longer exist, so no check needed
         
         // Check if this element has a ComponentVariant as an ancestor
         if (ElementModel* model = qobject_cast<ElementModel*>(sourceModel())) {
@@ -220,99 +309,21 @@ bool ElementFilterProxy::shouldShowElementInMode(Element* element) const {
                     break;
                 }
                 
-                // Check if the parent is a ComponentVariant
-                DesignElement* parentDesign = qobject_cast<DesignElement*>(parent);
-                if (false) { // Component variants no longer exist
-                    return false; // This element is a descendant of a ComponentVariant
-                }
+                // Component variants no longer exist, so no parent check needed
                 
                 current = parent;
                 depth++;
             }
         }
         
-        // Check if this element is in any component's variants array
-        if (sourceModel()) {
-            int rowCount = sourceModel()->rowCount();
-            for (int i = 0; i < rowCount; ++i) {
-                QModelIndex index = sourceModel()->index(i, 0);
-                QVariant data = sourceModel()->data(index, Qt::UserRole + 1); // ElementRole
-                if (data.isValid()) {
-                    Element* el = data.value<Element*>();
-                    // if (Component* comp = qobject_cast<Component*>(el)) {
-                    //     // Check if our element is in this component's variants
-                    //     const auto& variants = comp->variants();
-                    //     for (Element* variant : variants) {
-                    //         if (variant == element) {
-                    //             return false; // Exclude from design mode
-                    //         }
-                    //     }
-                    // }
-                }
-            }
-        }
+        // Component variants no longer exist, so no variants array check needed
         
-        // Check if this element is in any platform's globalElements
-        // Get the Project from the ElementModel's parent
-        if (ElementModel* model = qobject_cast<ElementModel*>(sourceModel())) {
-            if (Project* project = qobject_cast<Project*>(model->parent())) {
-                QList<PlatformConfig*> platforms = project->getAllPlatforms();
-                for (PlatformConfig* platform : platforms) {
-                    if (platform && platform->globalElements()) {
-                        // Check if this element exists in the platform's globalElements
-                        if (platform->globalElements()->getElementById(element->getId())) {
-                            return false; // Exclude from design mode
-                        }
-                    }
-                }
-            }
-        }
+        // Platform global elements no longer used
         
         return true;
     } else if (m_viewMode == "script") {
         // In script mode, ElementList shows nothing since script elements were already filtered out
         // Script elements (Nodes and Edges) are only viewable on the script canvas itself
-        return false;
-    } else if (m_viewMode == "variant") {
-        // In variant mode, show only elements that belong to the editing component's variants
-        if (!canvasElement->isDesignElement()) {
-            return false;
-        }
-        
-        // if (Component* component = qobject_cast<Component*>(m_editingElement)) {
-        //     // Check if this element is in the component's variants array or is a descendant of a variant
-        //     const auto& variants = component->variants();
-        //     for (Element* variant : variants) {
-        //         if (variant == element) {
-        //             return true;
-        //         }
-        //         
-        //         // Also show descendants of variants
-        //         if (ElementModel* model = qobject_cast<ElementModel*>(sourceModel())) {
-        //             QList<Element*> descendants = model->getChildrenRecursive(variant->getId());
-        //             if (descendants.contains(element)) {
-        //                 return true;
-        //             }
-        //         }
-        //     }
-        // }
-        // If no component is being edited or element not in variants, don't show
-        return false;
-    } else if (m_viewMode == "globalElements") {
-        // In globalElements mode, show only elements that belong to the platform's globalElements
-        if (!canvasElement->isDesignElement()) {
-            return false;
-        }
-        
-        // Check if we're editing a platform
-        if (PlatformConfig* platform = qobject_cast<PlatformConfig*>(m_editingElement)) {
-            // Get the platform's global elements
-            if (ElementModel* globalElements = platform->globalElements()) {
-                // Check if this element is in the platform's globalElements
-                return globalElements->getElementById(element->getId()) != nullptr;
-            }
-        }
-        
         return false;
     }
     

@@ -16,6 +16,7 @@
 #include "BoxShadow.h"
 #include "Node.h"
 #include "Edge.h"
+#include "Component.h"
 #include "CanvasController.h"
 #include "DesignCanvas.h"
 #include "ElementModel.h"
@@ -114,6 +115,7 @@ int main(int argc, char *argv[])
     qmlRegisterType<Variable>("Cubit", 1, 0, "Variable");
     qmlRegisterType<Node>("Cubit", 1, 0, "Node");
     qmlRegisterType<Edge>("Cubit", 1, 0, "Edge");
+    qmlRegisterType<ComponentElement>("Cubit", 1, 0, "ComponentElement");
     
     // Register value types
     qRegisterMetaType<BoxShadow>("BoxShadow");

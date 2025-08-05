@@ -1,0 +1,188 @@
+CreateComponentCommand::execute() - sourceElement: Frame(0x16502dfe0) elementModel: ElementModel(0x12f6616a0)
+Creating component from source element: "4582713320048626" "Frame 8626"
+ComponentElement::addElement - added "4582713320048626" to component "9322407430286249" - now has 1 elements
+Added element "4582713320048626" to component "9322407430286249"
+Component now has 1 elements
+PropertyRegistry: Property "elementType" not found
+PropertyRegistry: Property "isVisual" not found
+PropertyRegistry: Property "showInElementList" not found
+PropertyRegistry: Property "isDesignElement" not found
+PropertyRegistry: Property "isScriptElement" not found
+PropertyRegistry: Property "parentElement" not found
+PropertyRegistry: Property "scripts" not found
+PropertyRegistry: Property "componentId" not found
+PropertyRegistry: Property "canResizeWidth" not found
+PropertyRegistry: Property "canResizeHeight" not found
+Created component "9322407430286249" with element "4582713320048626" and instance "7886894953855440"
+Project::setEditingComponent called with componentId: "9322407430286249" viewMode: "design"
+Found component "9322407430286249" with 1 elements
+  - Element: "4582713320048626" "Frame 8626"
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "3515104640533984" in component: false component has 1 elements
+Editing component "9322407430286249" - element "7886894953855440" in component: false component has 1 elements
+Editing component "9322407430286249" - element "7886894953855440" in component: false component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "3515104640533984" in component: false component has 1 elements
+Editing component "9322407430286249" - element "7886894953855440" in component: false component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "3515104640533984" in component: false component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "3515104640533984" in component: false component has 1 elements
+Editing component "9322407430286249" - element "7886894953855440" in component: false component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "3515104640533984" in component: false component has 1 elements
+Editing component "9322407430286249" - element "7886894953855440" in component: false component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "7886894953855440" in component: false component has 1 elements
+Editing component "9322407430286249" - element "7886894953855440" in component: false component has 1 elements
+Editing component "9322407430286249" - element "7886894953855440" in component: false component has 1 elements
+Editing component "9322407430286249" - element "7886894953855440" in component: false component has 1 elements
+Editing component "9322407430286249" - element "7886894953855440" in component: false component has 1 elements
+Editing component "9322407430286249" - element "7886894953855440" in component: false component has 1 elements
+Editing component "9322407430286249" - element "7886894953855440" in component: false component has 1 elements
+Editing component "9322407430286249" - element "7886894953855440" in component: false component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "3515104640533984" in component: false component has 1 elements
+Editing component "9322407430286249" - element "7886894953855440" in component: false component has 1 elements
+Editing component "9322407430286249" - element "7886894953855440" in component: false component has 1 elements
+Editing component "9322407430286249" - element "7886894953855440" in component: false component has 1 elements
+Editing component "9322407430286249" - element "7886894953855440" in component: false component has 1 elements
+Editing component "9322407430286249" - element "7886894953855440" in component: false component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "7886894953855440" in component: false component has 1 elements
+Editing component "9322407430286249" - element "7886894953855440" in component: false component has 1 elements
+Editing component "9322407430286249" - element "7886894953855440" in component: false component has 1 elements
+Editing component "9322407430286249" - element "7886894953855440" in component: false component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "7886894953855440" in component: false component has 1 elements
+Editing component "9322407430286249" - element "7886894953855440" in component: false component has 1 elements
+Editing component "9322407430286249" - element "7886894953855440" in component: false component has 1 elements
+Editing component "9322407430286249" - element "7886894953855440" in component: false component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "7886894953855440" in component: false component has 1 elements
+Editing component "9322407430286249" - element "7886894953855440" in component: false component has 1 elements
+Editing component "9322407430286249" - element "7886894953855440" in component: false component has 1 elements
+Editing component "9322407430286249" - element "7886894953855440" in component: false component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "7886894953855440" in component: false component has 1 elements
+Editing component "9322407430286249" - element "7886894953855440" in component: false component has 1 elements
+Editing component "9322407430286249" - element "7886894953855440" in component: false component has 1 elements
+Editing component "9322407430286249" - element "7886894953855440" in component: false component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "7886894953855440" in component: false component has 1 elements
+Editing component "9322407430286249" - element "7886894953855440" in component: false component has 1 elements
+Editing component "9322407430286249" - element "7886894953855440" in component: false component has 1 elements
+Editing component "9322407430286249" - element "7886894953855440" in component: false component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "7886894953855440" in component: false component has 1 elements
+Editing component "9322407430286249" - element "7886894953855440" in component: false component has 1 elements
+Editing component "9322407430286249" - element "7886894953855440" in component: false component has 1 elements
+Editing component "9322407430286249" - element "7886894953855440" in component: false component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "4582713320048626" in component: true component has 1 elements
+Editing component "9322407430286249" - element "3515104640533984" in component: false component has 1 elements
+Editing component "9322407430286249" - element "7886894953855440" in component: false component has 1 elements
+Project::setEditingComponent called with componentId: "" viewMode: ""
+CloseProjectCommand::execute() called for project: "2cc0fe8d-f641-48b6-b213-4a589a6199cb"
+Closing project: "werwer" ( "2cc0fe8d-f641-48b6-b213-4a589a6199cb" )
+PropertyRegistry: Property "_pendingComponentElements" not found
+CloseProjectCommand::execute() called for project: "718b2848-85f3-413a-a870-4f6b3a7c113f"

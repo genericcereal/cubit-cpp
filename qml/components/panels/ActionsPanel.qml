@@ -25,8 +25,8 @@ Rectangle {
     property int currentMode: CanvasController.Select
     property var canvas: null  // Will be set by parent
     property bool isScriptMode: canvas && canvas.viewMode === "script"
-    property bool isVariantMode: canvas && canvas.viewMode === "variant"
-    property bool isGlobalElementsMode: canvas && canvas.viewMode === "globalElements"
+    property bool isVariantMode: false // Variant mode has been removed
+    property bool isGlobalElementsMode: false // GlobalElements mode has been removed
     property bool needsCompilation: {
         if (!canvas) return false
         if (!canvas.activeScripts) return false
@@ -124,7 +124,7 @@ Rectangle {
         // Back to Design Canvas button
         ToolButton {
             id: backButton
-            visible: isScriptMode || isVariantMode || isGlobalElementsMode
+            visible: isScriptMode || isVariantMode || isGlobalElementsMode || (canvas && canvas.editingElement !== null)
             Layout.fillHeight: true
             Layout.preferredWidth: height
             
@@ -144,6 +144,9 @@ Rectangle {
             
             onClicked: {
                 if (canvas) {
+                    // Clear component editing mode
+                    canvas.setEditingComponent("")
+                    // Also clear element editing mode
                     canvas.setEditingElement(null, "design")
                 }
             }

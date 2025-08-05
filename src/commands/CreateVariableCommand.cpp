@@ -38,26 +38,6 @@ void CreateVariableCommand::execute()
         return;
     }
 
-    // Check if we're in variant mode or globalElements mode
-    bool isVariantMode = project->viewMode() == "variant";
-    bool isGlobalElementsMode = project->viewMode() == "globalElements";
-    // Component* editingComponent = nullptr;  // Commented out - Component references removed
-    PlatformConfig* editingPlatform = nullptr;
-    
-    // if (isVariantMode) {  // Commented out - Component references removed
-    //     QObject* editingElement = project->editingElement();
-    //     editingComponent = qobject_cast<Component*>(editingElement);
-    //     if (!editingComponent) {
-    //         qWarning() << "CreateVariableCommand: In variant mode but editing element is not a Component";
-    //     }
-    // } else 
-    if (isGlobalElementsMode) {
-        QObject* editingElement = project->editingElement();
-        editingPlatform = qobject_cast<PlatformConfig*>(editingElement);
-        if (!editingPlatform) {
-            qWarning() << "CreateVariableCommand: In globalElements mode but editing element is not a PlatformConfig";
-        }
-    }
 
     // Create variable on first execution
     if (!m_variable) {
@@ -74,25 +54,8 @@ void CreateVariableCommand::execute()
         m_variable->setName("Variable " + shortId);
     }
     
-    // Add to appropriate container
-    // if (isVariantMode && editingComponent) {  // Commented out - Component references removed
-    //     // In variant mode, add to the Component's variants array
-    //     editingComponent->addVariant(m_variable);
-    //     // Still add to model for visibility
-    //     m_elementModel->addElement(m_variable);
-    // } else 
-    if (isGlobalElementsMode && editingPlatform) {
-        // In globalElements mode, add to the PlatformConfig's globalElements model
-        ElementModel* globalElementsModel = editingPlatform->globalElements();
-        if (globalElementsModel) {
-            globalElementsModel->addElement(m_variable);
-        }
-        // Still add to main model for visibility
-        m_elementModel->addElement(m_variable);
-    } else {
-        // Normal mode - just add to model
-        m_elementModel->addElement(m_variable);
-    }
+    // Add to model
+    m_elementModel->addElement(m_variable);
     
     // Select the newly created variable
     if (m_selectionManager) {
@@ -111,35 +74,10 @@ void CreateVariableCommand::undo()
     Project* project = qobject_cast<Project*>(m_elementModel->parent());
     if (!project) return;
     
-    // Check if we're in variant mode or globalElements mode
-    bool isVariantMode = project->viewMode() == "variant";
-    bool isGlobalElementsMode = project->viewMode() == "globalElements";
-    // Component* editingComponent = nullptr;  // Commented out - Component references removed
-    PlatformConfig* editingPlatform = nullptr;
-    
-    // if (isVariantMode) {  // Commented out - Component references removed
-    //     QObject* editingElement = project->editingElement();
-    //     editingComponent = qobject_cast<Component*>(editingElement);
-    // } else 
-    if (isGlobalElementsMode) {
-        QObject* editingElement = project->editingElement();
-        editingPlatform = qobject_cast<PlatformConfig*>(editingElement);
-    }
     
     // Clear selection if this variable is selected
     if (m_selectionManager && m_selectionManager->isSelected(m_variable)) {
         m_selectionManager->clearSelection();
-    }
-    
-    // Remove from appropriate container
-    // if (isVariantMode && editingComponent) {  // Commented out - Component references removed
-    //     editingComponent->removeVariant(m_variable);
-    // } else 
-    if (isGlobalElementsMode && editingPlatform) {
-        ElementModel* globalElementsModel = editingPlatform->globalElements();
-        if (globalElementsModel) {
-            globalElementsModel->removeElement(m_variable);
-        }
     }
     
     // Remove from model

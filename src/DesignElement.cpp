@@ -265,6 +265,13 @@ void DesignElement::setInstanceOf(const QString& sourceId) {
     }
 }
 
+void DesignElement::setComponentId(const QString& compId) {
+    if (m_componentId != compId) {
+        m_componentId = compId;
+        emit componentIdChanged();
+    }
+}
+
 void DesignElement::setBoxShadow(const BoxShadow& boxShadow) {
     if (m_boxShadow != boxShadow) {
         m_boxShadow = boxShadow;
@@ -555,12 +562,14 @@ void DesignElement::onSourceElementChanged() {
         if (propNameStr == "objectName" || 
             propNameStr == "elementId" || 
             propNameStr == "parentId" ||
+            propNameStr == "name" ||  // Don't overwrite instance's custom name
             propNameStr == "x" || 
             propNameStr == "y" || 
             propNameStr == "width" || 
             propNameStr == "height" ||
             propNameStr == "selected" ||
-            propNameStr == "instanceOf") {
+            propNameStr == "instanceOf" ||
+            propNameStr == "componentId") {  // Don't copy component ID
             continue;
         }
         

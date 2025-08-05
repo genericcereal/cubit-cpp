@@ -34,22 +34,6 @@ Element* CreationManager::createElement(const QString& type, qreal x, qreal y, q
         return nullptr;
     }
     
-    // Check if we're in variant mode or globalElements mode
-    bool isVariantMode = m_project && m_project->viewMode() == "variant";
-    bool isGlobalElementsMode = m_project && m_project->viewMode() == "globalElements";
-    // Component* editingComponent = nullptr; // Component system removed
-    PlatformConfig* editingPlatform = nullptr;
-    
-    if (isVariantMode && m_project) {
-        // Component system removed - variant mode no longer used
-        qWarning() << "CreationManager: Variant mode is no longer supported";
-    } else if (isGlobalElementsMode && m_project) {
-        QObject* editingElement = m_project->editingElement();
-        editingPlatform = qobject_cast<PlatformConfig*>(editingElement);
-        if (!editingPlatform) {
-            qWarning() << "CreationManager: In globalElements mode but editing element is not a PlatformConfig";
-        }
-    }
     
     QString id = m_elementModel->generateId();
     Element *element = nullptr;
@@ -82,29 +66,8 @@ Element* CreationManager::createElement(const QString& type, qreal x, qreal y, q
             }
         }
         
-        // Add to appropriate container
-        if (isVariantMode /* && editingComponent */) {
-            // In variant mode, add to the Component's variants array
-            // editingComponent->addVariant(element); // Component system removed
-            // Still add to model for visibility
-            m_elementModel->addElement(element);
-        } else if (isGlobalElementsMode && editingPlatform) {
-            // In globalElements mode, add to the PlatformConfig's globalElements
-            ElementModel* globalElements = editingPlatform->globalElements();
-            if (globalElements) {
-                globalElements->addElement(element);
-                // Also add to main model for visibility during editing
-                // The Project class manages loading/clearing these when switching modes
-                m_elementModel->addElement(element);
-            } else {
-                qWarning() << "CreationManager: Platform has no globalElements model";
-                delete element;
-                return nullptr;
-            }
-        } else {
-            // Normal mode, just add to model
-            m_elementModel->addElement(element);
-        }
+        // Add to model
+        m_elementModel->addElement(element);
         
         // Set parent if provided
         if (parent) {
@@ -247,6 +210,7 @@ Edge* CreationManager::createEdge(const QString& sourceNodeId, const QString& ta
         
         // Validate that port types can connect
         if (!PortType::canConnect(sourcePortType, targetPortType)) {
+            qWarning() << "Cannot connect incompatible port types:"
                      << "source:" << sourcePortType 
                      << "target:" << targetPortType;
             return nullptr;
@@ -318,6 +282,7 @@ Edge* CreationManager::createEdgeByPortId(const QString& sourceNodeId, const QSt
     int targetPortIndex = tgtNode->getInputPortIndex(targetPortId);
     
     if (sourcePortIndex == -1 || targetPortIndex == -1) {
+        qWarning() << "Could not find port indices for connection:"
                  << "sourcePortId:" << sourcePortId << "index:" << sourcePortIndex
                  << "targetPortId:" << targetPortId << "index:" << targetPortIndex;
         return nullptr;
@@ -393,7 +358,7 @@ void CreationManager::calculateEdgePoints(Edge* edge, Element* sourceNode, Eleme
     edge->setSourcePoint(QPointF(sourceX, sourceY));
     edge->setTargetPoint(QPointF(targetX, targetY));
     
-             << "Target:" << QPointF(targetX, targetY);
+             << "Target:" << QPointF(targetX, targetY)
              << "Size:" << edge->width() << "x" << edge->height();
 }
 
@@ -552,7 +517,7 @@ CanvasElement* CreationManager::copyElementRecursively(CanvasElement* sourceElem
         qreal relX = sourceElement->x() - sourceElement->parentElement()->x();
         qreal relY = sourceElement->y() - sourceElement->parentElement()->y();
         
-        // Set position relative to parent in variant
+        // Set position relative to parent
         frameCopy->setRect(QRectF(relX, relY, frame->width(), frame->height()));
         
         // Use utility function to copy all properties

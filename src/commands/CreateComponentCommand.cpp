@@ -6,6 +6,7 @@
 #include "../Text.h"
 #include "../Shape.h"
 #include "../platforms/web/WebTextInput.h"
+#include "../Component.h"
 #include "../Serializer.h"
 #include "../Application.h"
 #include <QDebug>
@@ -16,9 +17,10 @@ CreateComponentCommand::CreateComponentCommand(ElementModel* elementModel, Desig
     : Command(parent)
     , m_elementModel(elementModel)
     , m_sourceElement(sourceElement)
+    , m_createdInstance(nullptr)
+    , m_createdComponent(nullptr)
     , m_sourceElementId(sourceElement ? sourceElement->getId() : QString())
     , m_sourceParentId(sourceElement ? sourceElement->getParentElementId() : QString())
-    , m_createdInstance(nullptr)
 {
     if (sourceElement) {
         setDescription("Create component from " + sourceElement->getName());
@@ -31,20 +33,37 @@ CreateComponentCommand::~CreateComponentCommand()
 
 void CreateComponentCommand::execute()
 {
+             << "elementModel:" << m_elementModel;
+    
     if (!m_elementModel || !m_sourceElement) {
         qWarning() << "CreateComponentCommand: Invalid element model or source element";
         return;
     }
-
-    // In the new pattern, the source element itself becomes the component definition
-    // We just need to create an instance that references it
     
-    // Generate instance ID if not already created
+             << m_sourceElement->getName();
+
+    // Step 1: Create a new Component
+    if (m_componentId.isEmpty()) {
+        m_componentId = m_elementModel->generateId();
+    }
+    
+    m_createdComponent = new ComponentElement(m_componentId, m_elementModel);
+    m_createdComponent->setName(m_sourceElement->getName() + " Component");
+    
+    // Step 2: Add the selected element to the component's elements array
+    m_createdComponent->addElement(m_sourceElement);
+    
+    // Note: We keep the source element in the model but it will be filtered out
+    // from the main canvas display since it's part of a component
+    
+    // Add the component to the model
+    m_elementModel->addElement(m_createdComponent);
+    
+    // Step 3: Create an instance of the selected element
     if (m_instanceId.isEmpty()) {
         m_instanceId = m_elementModel->generateId();
     }
     
-    // Create an instance of the source element
     DesignElement* instance = nullptr;
     
     if (Frame* sourceFrame = qobject_cast<Frame*>(m_sourceElement)) {
@@ -73,8 +92,13 @@ void CreateComponentCommand::execute()
     }
     
     if (instance) {
-        // Set the instanceOf property to reference the source element
+        // Set the instanceOf property to reference the source element ID
+        // This allows the sync mechanism to work properly when the source element changes
         instance->setInstanceOf(m_sourceElement->getId());
+        
+        // Also set the componentId to track which component this instance belongs to
+        instance->setComponentId(m_componentId);
+        
         instance->setName(m_sourceElement->getName() + " Instance");
         
         // Set parent if the source had one
@@ -86,7 +110,7 @@ void CreateComponentCommand::execute()
         m_elementModel->addElement(instance);
         m_createdInstance = instance;
         
-                 << "of" << m_sourceElement->getId();
+                 << "and instance" << m_instanceId;
     }
 }
 
@@ -96,6 +120,15 @@ void CreateComponentCommand::undo()
         // Remove the instance
         m_elementModel->removeElement(m_createdInstance->getId());
         m_createdInstance = nullptr;
+    }
+    
+    if (m_createdComponent && m_elementModel) {
+        // Remove the element from the component's list
+        m_createdComponent->removeElement(m_sourceElement);
+        
+        // Remove the component
+        m_elementModel->removeElement(m_createdComponent->getId());
+        m_createdComponent = nullptr;
     }
 }
 

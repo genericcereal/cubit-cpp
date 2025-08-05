@@ -35,6 +35,8 @@ public:
     Edge* deserializeEdge(const QJsonObject& edgeData, Scripts* scripts);
     
 private:
+    void resolveComponentRelationships(ElementModel* model);
+    
     Application* m_application;
 };
 

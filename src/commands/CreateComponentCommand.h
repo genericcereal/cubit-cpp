@@ -6,6 +6,7 @@
 
 class ElementModel;
 class DesignElement;
+class ComponentElement;
 
 class CreateComponentCommand : public Command
 {
@@ -26,9 +27,11 @@ private:
     ElementModel* m_elementModel;
     DesignElement* m_sourceElement;
     DesignElement* m_createdInstance;
+    ComponentElement* m_createdComponent;
     QString m_sourceElementId;
     QString m_sourceParentId;
     QString m_instanceId;
+    QString m_componentId;
 };
 
 #endif // CREATECOMPONENTCOMMAND_H

@@ -3,7 +3,9 @@
 #include "CanvasElement.h"
 #include "DesignElement.h"
 #include "ScriptElement.h"
+#include "Component.h"
 #include "ElementModel.h"
+#include "ElementFilterProxy.h"
 #include "QuadTree.h"
 // #include "ComponentInstanceTemplate.h" // Component system removed
 #include "PlatformConfig.h"
@@ -64,10 +66,9 @@ void HitTestService::setEditingElement(QObject* editingElement)
     if (m_editingElement != editingElement) {
         m_editingElement = editingElement;
         m_visualsCacheValid = false;  // Invalidate cache
-        // In variant mode, we need to rebuild when editing element changes
-        if (m_canvasType == CanvasType::Variant) {
-            rebuildSpatialIndex();
-        }
+        // Rebuild spatial index when editing element changes
+        // This is necessary because the set of hit-testable elements changes
+        rebuildSpatialIndex();
     }
 }
 
@@ -86,6 +87,30 @@ void HitTestService::setCanvasContext(CanvasContext* context)
         // after all setup is complete. This prevents rebuilding before
         // contexts have had a chance to add their elements.
         m_needsRebuild = true;
+    }
+}
+
+void HitTestService::setElementFilterProxy(ElementFilterProxy* filterProxy)
+{
+    if (m_filterProxy != filterProxy) {
+        // Disconnect from old filter proxy
+        if (m_filterProxy) {
+            disconnect(m_filterProxy, &ElementFilterProxy::filterChanged,
+                      this, &HitTestService::rebuildSpatialIndex);
+        }
+        
+        m_filterProxy = filterProxy;
+        m_visualsCacheValid = false;  // Invalidate cache
+        
+        // Connect to new filter proxy
+        if (m_filterProxy) {
+            connect(m_filterProxy, &ElementFilterProxy::filterChanged,
+                   this, &HitTestService::rebuildSpatialIndex,
+                   Qt::UniqueConnection);
+        }
+        
+        // Rebuild spatial index with new filter
+        rebuildSpatialIndex();
     }
 }
 
@@ -307,50 +332,26 @@ QRectF HitTestService::calculateBounds() const
     return bounds;
 }
 
-bool HitTestService::isInAnyComponentVariants(Element* element) const
-{
-    if (!element || !m_elementModel) return false;
-    
-    // Check all elements to find Components
-    // QList<Element*> allElements = m_elementModel->getAllElements();
-    // for (Element* el : allElements) {
-    //     Component* component = qobject_cast<Component*>(el);
-    //     if (component) {
-    //         // Check if element is in this component's variants
-    //         const QList<Element*>& variants = component->variants();
-    //         if (variants.contains(element)) {
-    //             return true;
-    //         }
-    //         
-    //         // Also check if element is a descendant of any variant
-    //         for (Element* variant : variants) {
-    //             QList<Element*> descendants = m_elementModel->getChildrenRecursive(variant->getId());
-    //             if (descendants.contains(element)) {
-    //                 return true;
-    //             }
-    //         }
-    //     }
-    // }
-    
-    return false;
-}
 
 bool HitTestService::shouldTestElement(Element* element) const
 {
     if (!element) return false;
+    
+    // If we have an ElementFilterProxy, use it to determine visibility
+    // This ensures hit testing is consistent with what's shown in the ElementList
+    if (m_filterProxy) {
+        // Use the public method to check if element should be shown
+        if (!m_filterProxy->shouldShowElement(element)) {
+            return false;
+        }
+    }
     
     // If we have a canvas context, let it decide
     if (m_canvasContext) {
         return m_canvasContext->shouldIncludeInHitTest(element);
     }
     
-    // Fall back to original logic if no context
-    // Special handling for Component elements - they should never be hit-testable on canvas
-    // Components only appear in the ElementList, not as visual elements on canvas
-    // if (qobject_cast<Component*>(element)) {
-    //     return false;
-    // }
-    
+    // If ElementFilterProxy is not set, fall back to basic checks
     // Check if mouse events are disabled for this element
     if (element->isVisual()) {
         CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
@@ -359,7 +360,7 @@ bool HitTestService::shouldTestElement(Element* element) const
         }
     }
     
-    // Non-visual elements (except Components which are already handled) are never hit-testable
+    // Non-visual elements are never hit-testable
     if (!element->isVisual()) {
         return false;
     }
@@ -372,95 +373,15 @@ bool HitTestService::shouldTestElement(Element* element) const
     
     // Apply view mode filtering (matching ElementFilterProxy logic)
     if (m_canvasType == CanvasType::Design) {
-        // In design mode, test:
-        // 1. Design elements (Frame, Text) that are NOT in any component's variants
-        // 2. ComponentInstance elements
-        
-        // Check if it's a ComponentInstance
-        // if (qobject_cast<FrameComponentInstanceTemplate*>(element)) {
-        //     return true;
-        // }
-        
-        // For other elements, they must be design elements
+        // In design mode, test design elements
         if (!canvasElement->isDesignElement()) {
             return false;
         }
-        
-        // Check if this element is a ComponentVariant (should not be hit-testable in design mode)
-        // if (Frame* frame = qobject_cast<Frame*>(element)) {
-        //     return false;
-        // }
-        
-        // Skip elements that are in any component's variants array
-        if (isInAnyComponentVariants(element)) {
-            return false;
-        }
-        
-        // Skip elements that are in any platform's globalElements
-        // (Only their instances should be hit-testable, not the originals)
-        if (m_elementModel) {
-            if (Project* project = qobject_cast<Project*>(m_elementModel->parent())) {
-                QList<PlatformConfig*> platforms = project->getAllPlatforms();
-                for (PlatformConfig* platform : platforms) {
-                    if (platform && platform->globalElements()) {
-                        // Check if this element exists in the platform's globalElements
-                        if (platform->globalElements()->getElementById(element->getId())) {
-                            return false; // Exclude original globalElements from design mode hit testing
-                        }
-                    }
-                }
-            }
-        }
-        
         return true;
     }
     else if (m_canvasType == CanvasType::Script) {
         // In script mode, only test script elements (nodes and edges)
         return canvasElement->isScriptElement();
-    }
-    else if (m_canvasType == CanvasType::Variant) {
-        // In variant mode, only test elements that belong to the editing component's variants
-        // or to the editing platform's globalElements
-        if (!canvasElement->isDesignElement()) {
-            return false;
-        }
-        
-        // Check if we have an editing element
-        if (m_editingElement) {
-            // Check if editing a Component
-            // Component* component = qobject_cast<Component*>(m_editingElement);
-            // if (component) {
-            //     // Test elements that are in this component's variants array or descendants of variants
-            //     const QList<Element*>& variants = component->variants();
-            //     
-            //     // Check if element is directly in variants
-            //     if (variants.contains(element)) {
-            //         return true;
-            //     }
-            //     
-            //     // Check if element is a descendant of any variant
-            //     if (m_elementModel) {
-            //         for (Element* variant : variants) {
-            //             QList<Element*> descendants = m_elementModel->getChildrenRecursive(variant->getId());
-            //             if (descendants.contains(element)) {
-            //                 return true;
-            //             }
-            //         }
-            //     }
-            // }
-            
-            // Check if editing a PlatformConfig (for globalElements mode)
-            PlatformConfig* platform = qobject_cast<PlatformConfig*>(m_editingElement);
-            if (platform) {
-                // Test elements that are in the platform's globalElements
-                if (ElementModel* globalElements = platform->globalElements()) {
-                    return globalElements->getElementById(element->getId()) != nullptr;
-                }
-            }
-        }
-        
-        // If no editing element or element not found, don't test any elements
-        return false;
     }
     
     return false;

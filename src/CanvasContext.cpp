@@ -14,8 +14,6 @@ CanvasController::CanvasType CanvasContext::getCanvasType() const
     QString type = contextType();
     if (type == "script") {
         return CanvasController::CanvasType::Script;
-    } else if (type == "variant" || type == "globalElements") {
-        return CanvasController::CanvasType::Variant;
     }
     return CanvasController::CanvasType::Design;
 }

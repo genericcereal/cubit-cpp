@@ -52,6 +52,8 @@ QString Element::getTypeName() const
             return "WebTextInput";
         case ShapeType:
             return "Shape";
+        case ComponentType:
+            return "ComponentElement";
         default:
             return "Unknown";
     }

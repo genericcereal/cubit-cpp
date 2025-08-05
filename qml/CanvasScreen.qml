@@ -85,7 +85,6 @@ Item {
                 
                 switch (root.canvas.viewMode) {
                     case "design":
-                    case "variant":
                         return designCanvasComponent
                     case "script":
                         return scriptCanvasComponent
@@ -114,8 +113,8 @@ Item {
                         item.shapeControlsController = root.shapeControlsController
                     }
                     
-                    // Restore viewport state when switching back to design/variant canvas
-                    if ((root.canvas.viewMode === "design" || root.canvas.viewMode === "variant") && 
+                    // Restore viewport state when switching back to design canvas
+                    if (root.canvas.viewMode === "design" && 
                         root.canvas.controller) {
                         var savedState = {
                             contentX: root.canvas.controller.savedContentX,
@@ -137,7 +136,7 @@ Item {
             enabled: root.canvas !== null
             
             function onViewportStateShouldBeSaved() {
-                // Save current viewport state from design/variant canvas
+                // Save current viewport state from design canvas
                 if (canvasLoader.item && canvasLoader.item.getViewportState && 
                     root.canvas.controller) {
                     var state = canvasLoader.item.getViewportState()
@@ -148,43 +147,8 @@ Item {
             }
             
             function onViewModeChanged() {
-                // Center the viewport when entering variant mode
+                // No special handling needed for view mode changes
                 if (!root.canvas) return
-                if (root.canvas.viewMode === "variant" && canvasLoader.item && canvasLoader.item.moveToPoint) {
-                    // Calculate center point based on selected component or canvas bounds
-                    var centerPoint = Qt.point(0, 0)
-                    
-                    if (root.canvas.selectionManager) {
-                        var selectedElements = root.canvas.selectionManager.selectedElements
-                        if (selectedElements.length > 0) {
-                            // Calculate the center of all selected elements
-                            var minX = Number.MAX_VALUE
-                            var minY = Number.MAX_VALUE
-                            var maxX = Number.MIN_VALUE
-                            var maxY = Number.MIN_VALUE
-                            
-                            for (var i = 0; i < selectedElements.length; i++) {
-                                var element = selectedElements[i]
-                                if (element && element.isVisual) {
-                                    minX = Math.min(minX, element.x)
-                                    minY = Math.min(minY, element.y)
-                                    maxX = Math.max(maxX, element.x + element.width)
-                                    maxY = Math.max(maxY, element.y + element.height)
-                                }
-                            }
-                            
-                            if (minX !== Number.MAX_VALUE) {
-                                centerPoint = Qt.point(
-                                    (minX + maxX) / 2,
-                                    (minY + maxY) / 2
-                                )
-                            }
-                        }
-                    }
-                    
-                    // Move to the calculated center point without animation
-                    canvasLoader.item.moveToPoint(centerPoint, false)
-                }
             }
             
             function onViewportStateShouldBeRestored() {

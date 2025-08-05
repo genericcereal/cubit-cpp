@@ -10,10 +10,11 @@ BaseCanvas {
     
     canvasType: {
         if (!root.canvas) return "design"
-        if (root.canvas.viewMode === "variant") return "variant"
-        if (root.canvas.viewMode === "globalElements") return "variant" // Treat globalElements like variant for controls
         return "design"
     }
+    
+    // Property to set the component being edited (component ID)
+    property string editingComponent: ""
     
     // Property to access the viewport overlay's controls
     property var viewportControls: null
