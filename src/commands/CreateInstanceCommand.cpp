@@ -104,8 +104,6 @@ void CreateInstanceCommand::execute()
         connect(m_createdInstance, &Element::nameChanged, variable, [variable, instance = m_createdInstance]() {
             variable->setName(instance->getName());
         });
-        
-                 << "with ID:" << variableId;
     }
 }
 

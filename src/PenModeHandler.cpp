@@ -93,8 +93,8 @@ void PenModeHandler::onPress(qreal x, qreal y)
             int hoveredIndex = m_shapeControlsController->hoveredJointIndex();
             if (hoveredIndex < m_joints.size()) {
                 // Add a joint at the position of the hovered joint to create an edge to it
-                QPointF hoveredJointPos = m_joints[hoveredIndex].position;
-                
+                // QPointF hoveredJointPos = m_joints[hoveredIndex].position;
+                // TODO: Implement edge creation to hovered joint
                 
                 // Add debug to see all current joint positions
                 for (int i = 0; i < m_joints.size(); ++i) {

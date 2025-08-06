@@ -10,10 +10,6 @@ QuadTree::QuadTree(const QRectF& bounds, int nodeCapacity)
 
 bool QuadTree::insert(Element* element)
 {
-    if (!element || !element->isVisual()) {
-        return false;
-    }
-    
     CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
     if (!canvasElement) {
         return false;
@@ -125,9 +121,8 @@ bool QuadTree::insertIntoNode(Node* node, Element* element, const QRectF& elemen
         elementsToRedistribute.swap(node->elements);
         
         for (Element* existingElement : elementsToRedistribute) {
-            if (existingElement->isVisual()) {
-                CanvasElement* canvasElem = qobject_cast<CanvasElement*>(existingElement);
-                if (canvasElem) {
+            CanvasElement* canvasElem = qobject_cast<CanvasElement*>(existingElement);
+            if (canvasElem) {
                     const QRectF& existingBounds = canvasElem->cachedBounds();
                     int quadrant = getQuadrant(node->bounds, existingBounds);
                     
@@ -147,7 +142,6 @@ bool QuadTree::insertIntoNode(Node* node, Element* element, const QRectF& elemen
                         // Element spans multiple quadrants, keep at this level
                         node->elements.push_back(existingElement);
                     }
-                }
             }
         }
     }
@@ -204,11 +198,9 @@ void QuadTree::queryNode(const Node* node, const QPointF& point, std::vector<Ele
     
     // Check elements at this node
     for (Element* element : node->elements) {
-        if (element && element->isVisual()) {
-            CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
-            if (canvasElement && canvasElement->containsPoint(point)) {
-                result.push_back(element);
-            }
+        CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+        if (canvasElement && canvasElement->containsPoint(point)) {
+            result.push_back(element);
         }
     }
     
@@ -229,11 +221,9 @@ void QuadTree::queryNode(const Node* node, const QRectF& rect, std::vector<Eleme
     
     // Check elements at this node
     for (Element* element : node->elements) {
-        if (element && element->isVisual()) {
-            CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
-            if (canvasElement && rect.intersects(canvasElement->cachedBounds())) {
-                result.push_back(element);
-            }
+        CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+        if (canvasElement && rect.intersects(canvasElement->cachedBounds())) {
+            result.push_back(element);
         }
     }
     

@@ -471,7 +471,7 @@ void Project::setEditingElement(DesignElement* element, const QString& viewMode)
             // Component system removed - skip to visual design element check
             
             // Check if it's a visual design element
-            if (selectedElement && selectedElement->isVisual()) {
+            if (selectedElement) {
                 CanvasElement* canvasElement = qobject_cast<CanvasElement*>(selectedElement);
                 if (canvasElement && canvasElement->isDesignElement()) {
                     element = qobject_cast<DesignElement*>(selectedElement);
@@ -519,6 +519,7 @@ void Project::setEditingComponent(const QString& componentId, const QString& vie
     
              << "with" << component->elements().size() << "elements";
     for (Element* elem : component->elements()) {
+        Q_UNUSED(elem)
     }
     
     // Set the component as the editing element

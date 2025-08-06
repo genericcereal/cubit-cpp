@@ -272,13 +272,10 @@ void CanvasElement::setParentElementId(const QString &parentId)
         {
             // Look for the parent element
             Element *parentElement = model->getElementById(parentId);
-            if (parentElement && parentElement->isVisual())
+            CanvasElement *canvasParent = qobject_cast<CanvasElement *>(parentElement);
+            if (canvasParent)
             {
-                CanvasElement *canvasParent = qobject_cast<CanvasElement *>(parentElement);
-                if (canvasParent)
-                {
-                    setParentElement(canvasParent);
-                }
+                setParentElement(canvasParent);
             }
         }
         else

@@ -17,9 +17,9 @@ ColumnLayout {
                 type: "spinbox",
                 from: -9999,
                 to: 9999,
-                getter: () => selectedElement && selectedElement.isVisual ? Math.round(selectedElement.x) : 0,
+                getter: () => selectedElement && selectedElement.x !== undefined ? Math.round(selectedElement.x) : 0,
                 setter: v => {
-                    if (!selectedElement || !selectedElement.isVisual) return
+                    if (!selectedElement || selectedElement.x === undefined) return
                     if (v === undefined || isNaN(v)) return
                     if (v !== Math.round(selectedElement.x)) {
                         selectedElement.x = v
@@ -31,9 +31,9 @@ ColumnLayout {
                 type: "spinbox",
                 from: -9999,
                 to: 9999,
-                getter: () => selectedElement && selectedElement.isVisual ? Math.round(selectedElement.y) : 0,
+                getter: () => selectedElement && selectedElement.y !== undefined ? Math.round(selectedElement.y) : 0,
                 setter: v => {
-                    if (!selectedElement || !selectedElement.isVisual) return
+                    if (!selectedElement || selectedElement.y === undefined) return
                     if (v === undefined || isNaN(v)) return
                     if (v !== Math.round(selectedElement.y)) {
                         selectedElement.y = v
@@ -45,9 +45,9 @@ ColumnLayout {
                 type: "spinbox_combobox",
                 from: 1,
                 to: 9999,
-                valueGetter: () => selectedElement && selectedElement.isVisual ? Math.round(selectedElement.width) : 0,
+                valueGetter: () => selectedElement && selectedElement.width !== undefined ? Math.round(selectedElement.width) : 0,
                 valueSetter: v => {
-                    if (!selectedElement || !selectedElement.isVisual) return
+                    if (!selectedElement || selectedElement.width === undefined) return
                     if (v === undefined || isNaN(v)) return
                     if (v !== Math.round(selectedElement.width)) {
                         selectedElement.width = v
@@ -80,9 +80,9 @@ ColumnLayout {
                 type: "spinbox_combobox",
                 from: 1,
                 to: 9999,
-                valueGetter: () => selectedElement && selectedElement.isVisual ? Math.round(selectedElement.height) : 0,
+                valueGetter: () => selectedElement && selectedElement.height !== undefined ? Math.round(selectedElement.height) : 0,
                 valueSetter: v => {
-                    if (!selectedElement || !selectedElement.isVisual) return
+                    if (!selectedElement || selectedElement.height === undefined) return
                     if (v === undefined || isNaN(v)) return
                     if (v !== Math.round(selectedElement.height)) {
                         selectedElement.height = v
@@ -211,7 +211,7 @@ ColumnLayout {
     // Position & Size section - for elements without a parent
     PropertyGroup {
         title: "Position & Size"
-        visible: selectedElement && selectedElement.isVisual && !(selectedElement.isDesignElement && selectedElement.parentId)
+        visible: selectedElement && selectedElement.x !== undefined && !(selectedElement.isDesignElement && selectedElement.parentId)
         
         content: [
             Repeater {

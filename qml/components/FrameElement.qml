@@ -128,9 +128,9 @@ Item {
                     
                     Component.onCompleted: {
                         if (active && root.element.elementType === "FrameComponentInstance") {
-                                       "parent elementId:", root.element.elementId,
-                                       "child type:", childElementType,
-                                       "child showInList:", childElement.showInElementList)
+                            // Debug logging for component instances
+                            //            "child type:", childElementType,
+                            //            "child showInList:", childElement.showInElementList);
                         }
                     }
                     

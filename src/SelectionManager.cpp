@@ -22,7 +22,8 @@ bool SelectionManager::hasVisualSelection() const
 {
     // Check if any selected element is visual
     for (Element* element : m_selectedElements) {
-        if (element && element->isVisual()) {
+        CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+        if (canvasElement) {
             return true;
         }
     }
@@ -85,14 +86,12 @@ void SelectionManager::selectOnly(Element *element)
     updateElementSelection(element, true);
     
     // Reset bounding box to this single element
-    if (element->isVisual()) {
-        CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
-        if (canvasElement) {
-            m_boundingX = canvasElement->x();
-            m_boundingY = canvasElement->y();
-            m_boundingWidth = canvasElement->width();
-            m_boundingHeight = canvasElement->height();
-        }
+    CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+    if (canvasElement) {
+        m_boundingX = canvasElement->x();
+        m_boundingY = canvasElement->y();
+        m_boundingWidth = canvasElement->width();
+        m_boundingHeight = canvasElement->height();
     } else {
         // Non-visual elements don't affect bounding box
         m_boundingX = 0;
@@ -120,7 +119,8 @@ void SelectionManager::selectAll(const std::vector<Element*> &elements)
             m_selectedElements.insert(element);  // O(1) with QSet
             updateElementSelection(element, true);
             
-            if (element->isVisual()) {
+            CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+            if (canvasElement) {
                 if (firstElement) {
                     // Initialize bounding box
                     CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
@@ -182,22 +182,18 @@ void SelectionManager::updateElementSelection(Element *element, bool selected)
             }
             
             // Connect to geometry changes when selected - single connection with UniqueConnection flag
-            if (element->isVisual()) {
-                CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
-                if (canvasElement) {
-                    connect(canvasElement, &CanvasElement::geometryChanged, 
-                            this, &SelectionManager::onElementGeometryChanged,
-                            Qt::UniqueConnection);
-                }
+            CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+            if (canvasElement) {
+                connect(canvasElement, &CanvasElement::geometryChanged, 
+                        this, &SelectionManager::onElementGeometryChanged,
+                        Qt::UniqueConnection);
             }
         } else {
             // Disconnect when deselected
-            if (element->isVisual()) {
-                CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
-                if (canvasElement) {
-                    disconnect(canvasElement, &CanvasElement::geometryChanged, 
-                               this, &SelectionManager::onElementGeometryChanged);
-                }
+            CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+            if (canvasElement) {
+                disconnect(canvasElement, &CanvasElement::geometryChanged, 
+                           this, &SelectionManager::onElementGeometryChanged);
             }
         }
     }
@@ -205,8 +201,6 @@ void SelectionManager::updateElementSelection(Element *element, bool selected)
 
 void SelectionManager::expandBoundingBox(Element *element)
 {
-    if (!element || !element->isVisual()) return;
-    
     CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
     if (!canvasElement) return;
     
@@ -265,9 +259,8 @@ void SelectionManager::recalculateBoundingBox()
     qreal maxY = std::numeric_limits<qreal>::lowest();
     
     for (Element *element : m_selectedElements) {
-        if (!element || !element->isVisual()) continue;
-        
         CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+        if (!canvasElement) continue;
         if (canvasElement) {
             minX = qMin(minX, canvasElement->x());
             minY = qMin(minY, canvasElement->y());

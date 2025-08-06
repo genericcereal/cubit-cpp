@@ -40,7 +40,6 @@ void FlexLayoutEngine::layoutChildren(Frame* parentFrame, ElementModel* elementM
     
     // Prevent infinite recursion
     if (m_isLayouting) {
-        qDebug() << "FlexLayoutEngine::layoutChildren - Already layouting, skipping to prevent recursion";
         return;
     }
     
@@ -51,7 +50,6 @@ void FlexLayoutEngine::layoutChildren(Frame* parentFrame, ElementModel* elementM
         ~LayoutGuard() { flag = false; }
     } guard(m_isLayouting);
     
-    qDebug() << "FlexLayoutEngine::layoutChildren - Starting layout for frame" << parentFrame->getId();
     
     // Get direct children
     QList<Element*> children = getDirectChildren(parentFrame->getId(), elementModel);
@@ -59,38 +57,32 @@ void FlexLayoutEngine::layoutChildren(Frame* parentFrame, ElementModel* elementM
     // Filter to only include visual elements with position = Relative
     QList<Element*> layoutChildren;
     for (Element* child : children) {
-        if (child->isVisual()) {
-            CanvasElement* canvasChild = qobject_cast<CanvasElement*>(child);
-            if (canvasChild) {
-                // Check if child is a Frame with position = Relative
-                Frame* childFrame = qobject_cast<Frame*>(child);
-                if (childFrame) {
-                    qDebug() << "FlexLayoutEngine - Child frame" << childFrame->getId() 
-                             << "position:" << childFrame->position();
-                    if (childFrame->position() == Frame::Relative) {
+        CanvasElement* canvasChild = qobject_cast<CanvasElement*>(child);
+        if (canvasChild) {
+            // Check if child is a Frame with position = Relative
+            Frame* childFrame = qobject_cast<Frame*>(child);
+            if (childFrame) {
+                         << "position:" << childFrame->position();
+                if (childFrame->position() == Frame::Relative) {
+                    layoutChildren.append(child);
+                }
+            } else {
+                // Check if child is a WebTextInput with position = Relative
+                WebTextInput* webTextInput = qobject_cast<WebTextInput*>(child);
+                if (webTextInput) {
+                             << "position:" << webTextInput->position();
+                    if (webTextInput->position() == WebTextInput::Relative) {
                         layoutChildren.append(child);
                     }
                 } else {
-                    // Check if child is a WebTextInput with position = Relative
-                    WebTextInput* webTextInput = qobject_cast<WebTextInput*>(child);
-                    if (webTextInput) {
-                        qDebug() << "FlexLayoutEngine - Child WebTextInput" << webTextInput->getId() 
-                                 << "position:" << webTextInput->position();
-                        if (webTextInput->position() == WebTextInput::Relative) {
+                    // Check if child is a Text with position = Relative
+                    Text* textElement = qobject_cast<Text*>(child);
+                    if (textElement) {
+                                 << "position:" << textElement->position();
+                        if (textElement->position() == Text::Relative) {
                             layoutChildren.append(child);
                         }
                     } else {
-                        // Check if child is a Text with position = Relative
-                        Text* textElement = qobject_cast<Text*>(child);
-                        if (textElement) {
-                            qDebug() << "FlexLayoutEngine - Child Text" << textElement->getId() 
-                                     << "position:" << textElement->position();
-                            if (textElement->position() == Text::Relative) {
-                                layoutChildren.append(child);
-                            }
-                        } else {
-                            qDebug() << "FlexLayoutEngine - Child" << child->getId() << "is not a Frame, WebTextInput, or Text";
-                        }
                     }
                 }
             }
@@ -98,11 +90,9 @@ void FlexLayoutEngine::layoutChildren(Frame* parentFrame, ElementModel* elementM
     }
     
     if (layoutChildren.isEmpty()) {
-        qDebug() << "FlexLayoutEngine::layoutChildren - No children to layout";
         return;  // Guard will reset flag automatically
     }
     
-    qDebug() << "FlexLayoutEngine::layoutChildren - Found" << layoutChildren.count() << "children to layout";
     
     // Calculate layout bounds (parent's inner bounds)
     QRectF containerBounds(0, 0, parentFrame->width(), parentFrame->height());
@@ -121,7 +111,6 @@ void FlexLayoutEngine::layoutChildren(Frame* parentFrame, ElementModel* elementM
     qreal roundedWidth = roundToHalf(requiredSize.width());
     qreal roundedHeight = roundToHalf(requiredSize.height());
     
-    qDebug() << "FlexLayoutEngine - Parent" << parentFrame->getId() 
              << "current size:" << parentFrame->width() << "x" << parentFrame->height()
              << "calculated size:" << requiredSize.width() << "x" << requiredSize.height()
              << "rounded size:" << roundedWidth << "x" << roundedHeight;
@@ -141,28 +130,23 @@ void FlexLayoutEngine::layoutChildren(Frame* parentFrame, ElementModel* elementM
         // Check width type - only resize width if it's set to fit content
         if (parentFrame->widthType() == Frame::SizeFitContent) {
             if (qAbs(roundedWidth - parentFrame->width()) > tolerance) {
-                qDebug() << "FlexLayoutEngine - Updating parent width from" << parentFrame->width() 
                          << "to" << roundedWidth << "(widthType is fit-content)";
                 parentFrame->setWidth(roundedWidth);
                 sizeChanged = true;
             }
         } else {
-            qDebug() << "FlexLayoutEngine - Skipping width resize because widthType is not fit-content";
         }
         
         // Check height type - only resize height if it's set to fit content
         if (parentFrame->heightType() == Frame::SizeFitContent) {
             if (qAbs(roundedHeight - parentFrame->height()) > tolerance) {
-                qDebug() << "FlexLayoutEngine - Updating parent height from" << parentFrame->height() 
                          << "to" << roundedHeight << "(heightType is fit-content)";
                 parentFrame->setHeight(roundedHeight);
                 sizeChanged = true;
             }
         } else {
-            qDebug() << "FlexLayoutEngine - Skipping height resize because heightType is not fit-content";
         }
     } else {
-        qDebug() << "FlexLayoutEngine - Skipping parent resize because parent frame is selected";
     }
     
     // If size changed, recalculate bounds
@@ -241,7 +225,6 @@ void FlexLayoutEngine::layoutRow(const QList<Element*>& children,
         // Set X position (relative to parent)
         qreal absoluteX = roundToHalf(parentFrame->x() + currentX);
         if (!qFuzzyCompare(canvasChild->x(), absoluteX)) {
-            qDebug() << "FlexLayoutEngine::layoutRow - Setting child" << canvasChild->getId() 
                      << "X from" << canvasChild->x() << "to" << absoluteX;
             canvasChild->setX(absoluteX);
         }
@@ -252,7 +235,6 @@ void FlexLayoutEngine::layoutRow(const QList<Element*>& children,
                                            parentFrame->align());
         qreal absoluteY = roundToHalf(parentFrame->y() + y);
         if (!qFuzzyCompare(canvasChild->y(), absoluteY)) {
-            qDebug() << "FlexLayoutEngine::layoutRow - Setting child" << canvasChild->getId() 
                      << "Y from" << canvasChild->y() << "to" << absoluteY;
             canvasChild->setY(absoluteY);
         }
@@ -425,9 +407,8 @@ void FlexLayoutEngine::connectChildGeometrySignals(Frame* parentFrame, ElementMo
     QList<Element*> children = getDirectChildren(parentFrame->getId(), elementModel);
     
     for (Element* child : children) {
-        if (child->isVisual()) {
-            CanvasElement* canvasChild = qobject_cast<CanvasElement*>(child);
-            if (canvasChild) {
+        CanvasElement* canvasChild = qobject_cast<CanvasElement*>(child);
+        if (canvasChild) {
                 QString childId = canvasChild->getId();
                 
                 // Disconnect any existing connections for this child
@@ -492,9 +473,7 @@ void FlexLayoutEngine::connectChildGeometrySignals(Frame* parentFrame, ElementMo
                     }
                 }
                 
-                qDebug() << "FlexLayoutEngine - Connected geometry signal for child" << childId 
                          << "of parent" << parentFrame->getId();
-            }
         }
     }
 }
@@ -549,7 +528,6 @@ void FlexLayoutEngine::captureInitialMargins(Frame* parentFrame, const QList<Ele
     margins.top = minY;
     margins.bottom = parentFrame->height() - maxY;
     
-    qDebug() << "FlexLayoutEngine::captureInitialMargins - Frame" << parentId
              << "margins: left=" << margins.left << "right=" << margins.right
              << "top=" << margins.top << "bottom=" << margins.bottom;
 }
@@ -557,7 +535,6 @@ void FlexLayoutEngine::captureInitialMargins(Frame* parentFrame, const QList<Ele
 void FlexLayoutEngine::resetMargins(const QString& frameId)
 {
     m_frameMargins.remove(frameId);
-    qDebug() << "FlexLayoutEngine::resetMargins - Reset margins for frame" << frameId;
 }
 
 QSizeF FlexLayoutEngine::calculateRequiredSize(const QList<Element*>& children, 
@@ -627,7 +604,6 @@ void FlexLayoutEngine::scheduleLayout(Frame* parentFrame, ElementModel* elementM
         return;
     }
     
-    qDebug() << "FlexLayoutEngine::scheduleLayout - Scheduling layout for frame" << parentFrame->getId() 
              << "reason:" << reason;
     
     // Add to pending layouts (update reason if more specific)
@@ -637,7 +613,6 @@ void FlexLayoutEngine::scheduleLayout(Frame* parentFrame, ElementModel* elementM
         if (reason != General) {
             m_pendingLayoutFrames[parentFrame] = pending;
         }
-        qDebug() << "FlexLayoutEngine::scheduleLayout - Frame already pending, updating reason";
     } else {
         m_pendingLayoutFrames[parentFrame] = pending;
     }
@@ -645,15 +620,12 @@ void FlexLayoutEngine::scheduleLayout(Frame* parentFrame, ElementModel* elementM
     // Start the timer if not already running
     if (!m_layoutBatchTimer->isActive()) {
         m_layoutBatchTimer->start();
-        qDebug() << "FlexLayoutEngine::scheduleLayout - Starting batch timer";
     } else {
-        qDebug() << "FlexLayoutEngine::scheduleLayout - Batch timer already active";
     }
 }
 
 void FlexLayoutEngine::processPendingLayouts()
 {
-    qDebug() << "FlexLayoutEngine::processPendingLayouts - Processing" << m_pendingLayoutFrames.size() << "pending layouts";
     
     // Process all pending layout requests
     QMap<Frame*, PendingLayout> pendingLayouts = m_pendingLayoutFrames;
@@ -664,7 +636,6 @@ void FlexLayoutEngine::processPendingLayouts()
         Frame* frame = it.key();
         PendingLayout pending = it.value();
         if (frame && frame->flex() && pending.elementModel) {
-            qDebug() << "FlexLayoutEngine::processPendingLayouts - Laying out frame" << frame->getId() << "with reason" << pending.reason;
             layoutChildren(frame, pending.elementModel, pending.reason);
         }
     }

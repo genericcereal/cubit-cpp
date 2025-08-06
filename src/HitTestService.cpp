@@ -158,11 +158,9 @@ std::vector<Element*> HitTestService::elementsInRect(const QRectF& rect) const
         }
         
         // Only visual elements can be selected by rectangle
-        if (element->isVisual()) {
-            CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
-            if (canvasElement && rect.intersects(canvasElement->cachedBounds())) {
-                result.push_back(element);
-            }
+        CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+        if (canvasElement && rect.intersects(canvasElement->cachedBounds())) {
+            result.push_back(element);
         }
     }
     
@@ -235,15 +233,13 @@ void HitTestService::updateElement(Element* element)
     if (m_quadTree) {
         bool needsRebuild = false;
         
-        if (element->isVisual()) {
-            CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
-            if (canvasElement) {
-                const QRectF& elementRect = canvasElement->cachedBounds();
-                
-                // Check if element is outside current quadtree bounds
-                if (!m_quadTree->getBounds().contains(elementRect)) {
-                    needsRebuild = true;
-                }
+        CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+        if (canvasElement) {
+            const QRectF& elementRect = canvasElement->cachedBounds();
+            
+            // Check if element is outside current quadtree bounds
+            if (!m_quadTree->getBounds().contains(elementRect)) {
+                needsRebuild = true;
             }
         }
         
@@ -352,24 +348,17 @@ bool HitTestService::shouldTestElement(Element* element) const
     }
     
     // If ElementFilterProxy is not set, fall back to basic checks
-    // Check if mouse events are disabled for this element
-    if (element->isVisual()) {
-        CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
-        if (canvasElement && !canvasElement->mouseEventsEnabled()) {
-            return false;
-        }
-    }
-    
     // Non-visual elements are never hit-testable
-    if (!element->isVisual()) {
-        return false;
-    }
-    
-    // Check if it's a canvas element
     CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
     if (!canvasElement) {
         return false;
     }
+    
+    // Check if mouse events are disabled for this element
+    if (!canvasElement->mouseEventsEnabled()) {
+        return false;
+    }
+    
     
     // Apply view mode filtering (matching ElementFilterProxy logic)
     if (m_canvasType == CanvasType::Design) {
@@ -404,9 +393,11 @@ void HitTestService::rebuildVisualsCache() const
     
     // Build cache of visual elements that should be tested
     for (Element* e : allElements) {
-        if (shouldTestElement(e) && e->isVisual()) {
-            // Since we already checked isVisual(), static_cast is safe
-            m_visualElements.push_back(static_cast<CanvasElement*>(e));
+        if (shouldTestElement(e)) {
+            CanvasElement* canvasElement = qobject_cast<CanvasElement*>(e);
+            if (canvasElement) {
+                m_visualElements.push_back(canvasElement);
+            }
         }
     }
     

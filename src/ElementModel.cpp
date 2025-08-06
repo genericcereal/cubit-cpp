@@ -51,30 +51,22 @@ QVariant ElementModel::data(const QModelIndex &index, int role) const
         return element->getTypeName();
     case NameRole:
         return element->getName();
-    case XRole:
-        if (element->isVisual()) {
-            CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
-            return canvasElement ? canvasElement->x() : 0.0;
-        }
-        return 0.0;
-    case YRole:
-        if (element->isVisual()) {
-            CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
-            return canvasElement ? canvasElement->y() : 0.0;
-        }
-        return 0.0;
-    case WidthRole:
-        if (element->isVisual()) {
-            CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
-            return canvasElement ? canvasElement->width() : 0.0;
-        }
-        return 0.0;
-    case HeightRole:
-        if (element->isVisual()) {
-            CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
-            return canvasElement ? canvasElement->height() : 0.0;
-        }
-        return 0.0;
+    case XRole: {
+        CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+        return canvasElement ? canvasElement->x() : 0.0;
+    }
+    case YRole: {
+        CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+        return canvasElement ? canvasElement->y() : 0.0;
+    }
+    case WidthRole: {
+        CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+        return canvasElement ? canvasElement->width() : 0.0;
+    }
+    case HeightRole: {
+        CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+        return canvasElement ? canvasElement->height() : 0.0;
+    }
     case ParentIdRole:
         return element->getParentElementId();
     case SelectedRole:

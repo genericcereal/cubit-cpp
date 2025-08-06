@@ -70,9 +70,8 @@ void PrototypeController::setPrototypeMode(const QString& mode) {
             // When viewable area shrinks, we need to move canvas up
             if (!m_activeOuterFrame.isEmpty()) {
                 Element* element = m_elementModel.getElementById(m_activeOuterFrame);
-                if (element && element->isVisual()) {
-                    CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
-                    if (canvasElement) {
+                CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+                if (canvasElement) {
                         // Calculate the point to center in the viewport
                         // X: Center of the frame horizontally
                         // Y: Top edge of the frame (we want to align top edges)
@@ -83,7 +82,6 @@ void PrototypeController::setPrototypeMode(const QString& mode) {
                         
                         // Request the canvas to move to this point without animation
                         emit requestCanvasMove(alignmentPoint, false);
-                    }
                 }
             }
         }
@@ -126,14 +124,12 @@ void PrototypeController::restoreElementPositionsFromSnapshot() {
         const QRectF& rect = it.value();
         
         Element* element = m_elementModel.getElementById(elementId);
-        if (element && element->isVisual()) {
-            CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
-            if (canvasElement) {
+        CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+        if (canvasElement) {
                 canvasElement->setX(rect.x());
                 canvasElement->setY(rect.y());
                 canvasElement->setWidth(rect.width());
                 canvasElement->setHeight(rect.height());
-            }
         }
     }
     
@@ -144,24 +140,22 @@ void PrototypeController::restoreElementPositionsFromSnapshot() {
         const ConstraintValues& constraints = it.value();
         
         Element* element = m_elementModel.getElementById(elementId);
-        if (element && element->isVisual()) {
-            CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
-            if (canvasElement && canvasElement->isDesignElement()) {
-                DesignElement* designElement = qobject_cast<DesignElement*>(canvasElement);
-                if (designElement) {
-                    // Restore constraint values
-                    designElement->setLeft(constraints.left);
-                    designElement->setRight(constraints.right);
-                    designElement->setTop(constraints.top);
-                    designElement->setBottom(constraints.bottom);
-                    designElement->setLeftAnchored(constraints.leftAnchored);
-                    designElement->setRightAnchored(constraints.rightAnchored);
-                    designElement->setTopAnchored(constraints.topAnchored);
-                    designElement->setBottomAnchored(constraints.bottomAnchored);
-                    
-                    // Trigger layout update
-                    designElement->updateFromParentGeometry();
-                }
+        CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+        if (canvasElement && canvasElement->isDesignElement()) {
+            DesignElement* designElement = qobject_cast<DesignElement*>(canvasElement);
+            if (designElement) {
+                // Restore constraint values
+                designElement->setLeft(constraints.left);
+                designElement->setRight(constraints.right);
+                designElement->setTop(constraints.top);
+                designElement->setBottom(constraints.bottom);
+                designElement->setLeftAnchored(constraints.leftAnchored);
+                designElement->setRightAnchored(constraints.rightAnchored);
+                designElement->setTopAnchored(constraints.topAnchored);
+                designElement->setBottomAnchored(constraints.bottomAnchored);
+                
+                // Trigger layout update
+                designElement->updateFromParentGeometry();
             }
         }
     }
@@ -191,36 +185,34 @@ void PrototypeController::startPrototyping(const QPointF& canvasCenter, qreal cu
     // Capture all element positions and constraints
     const auto elements = m_elementModel.getAllElements();
     for (Element* element : elements) {
-        if (element && element->isVisual()) {
-            CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
-            if (canvasElement) {
-                QRectF rect(canvasElement->x(), canvasElement->y(), 
-                           canvasElement->width(), canvasElement->height());
-                m_prototypingStartSnapshot->elementPositions[element->getId()] = rect;
-                
-                // If it's a design element, also capture constraint values
-                if (canvasElement->isDesignElement()) {
-                    DesignElement* designElement = qobject_cast<DesignElement*>(canvasElement);
-                    if (designElement) {
-                        ConstraintValues constraints;
-                        constraints.left = designElement->left();
-                        constraints.right = designElement->right();
-                        constraints.top = designElement->top();
-                        constraints.bottom = designElement->bottom();
-                        constraints.leftAnchored = designElement->leftAnchored();
-                        constraints.rightAnchored = designElement->rightAnchored();
-                        constraints.topAnchored = designElement->topAnchored();
-                        constraints.bottomAnchored = designElement->bottomAnchored();
-                        m_prototypingStartSnapshot->elementConstraints[element->getId()] = constraints;
-                    }
+        CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+        if (canvasElement) {
+            QRectF rect(canvasElement->x(), canvasElement->y(), 
+                       canvasElement->width(), canvasElement->height());
+            m_prototypingStartSnapshot->elementPositions[element->getId()] = rect;
+            
+            // If it's a design element, also capture constraint values
+            if (canvasElement->isDesignElement()) {
+                DesignElement* designElement = qobject_cast<DesignElement*>(canvasElement);
+                if (designElement) {
+                    ConstraintValues constraints;
+                    constraints.left = designElement->left();
+                    constraints.right = designElement->right();
+                    constraints.top = designElement->top();
+                    constraints.bottom = designElement->bottom();
+                    constraints.leftAnchored = designElement->leftAnchored();
+                    constraints.rightAnchored = designElement->rightAnchored();
+                    constraints.topAnchored = designElement->topAnchored();
+                    constraints.bottomAnchored = designElement->bottomAnchored();
+                    m_prototypingStartSnapshot->elementConstraints[element->getId()] = constraints;
                 }
-                
-                // If it's a WebTextInput, also capture its value
-                if (element->getType() == Element::WebTextInputType) {
-                    WebTextInput* webInput = qobject_cast<WebTextInput*>(element);
-                    if (webInput) {
-                        m_prototypingStartSnapshot->webTextInputValues[element->getId()] = webInput->value();
-                    }
+            }
+            
+            // If it's a WebTextInput, also capture its value
+            if (element->getType() == Element::WebTextInputType) {
+                WebTextInput* webInput = qobject_cast<WebTextInput*>(element);
+                if (webInput) {
+                    m_prototypingStartSnapshot->webTextInputValues[element->getId()] = webInput->value();
                 }
             }
         }
@@ -357,9 +349,8 @@ void PrototypeController::setActiveOuterFrame(const QString& frameId) {
         // Update selected frame position for centering
         if (!frameId.isEmpty()) {
             Element* element = m_elementModel.getElementById(frameId);
-            if (element && element->isVisual()) {
-                CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
-                if (canvasElement) {
+            CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+            if (canvasElement) {
                     m_selectedFrameX = canvasElement->x();
                     m_selectedFrameHeight = canvasElement->height();
                     emit selectedFramePositionChanged();
@@ -377,7 +368,6 @@ void PrototypeController::setActiveOuterFrame(const QString& frameId) {
                     //     // Request the canvas to move to this point with animation
                     //     emit requestCanvasMove(alignmentPoint, true);
                     // }
-                }
             }
         } else {
             m_selectedFrameX = -1;
@@ -397,8 +387,6 @@ void PrototypeController::setDeviceFrames(bool isModeChange, qreal oldViewableHe
     // Get all Frame elements
     const auto allElements = m_elementModel.getAllElements();
     for (Element* element : allElements) {
-        if (!element || !element->isVisual()) continue;
-        
         CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
         if (!canvasElement || !canvasElement->isDesignElement()) continue;
         
@@ -447,7 +435,7 @@ void PrototypeController::onSelectionChanged() {
     // Find the outermost frame among selected elements
     QString outermostFrameId;
     for (Element* element : selectedElements) {
-        if (!element || !element->isVisual()) continue;
+        if (!element) continue;
         
         // Start from the element and traverse up to find topmost frame
         Element* current = element;
@@ -455,13 +443,11 @@ void PrototypeController::onSelectionChanged() {
         
         while (current) {
             // Check if current is a Frame
-            if (current->isVisual()) {
-                CanvasElement* canvasElement = qobject_cast<CanvasElement*>(current);
-                if (canvasElement && canvasElement->isDesignElement()) {
-                    DesignElement* designElement = qobject_cast<DesignElement*>(canvasElement);
-                    if (designElement && current->getType() == Element::FrameType) {
-                        topmostFrame = current;
-                    }
+            CanvasElement* canvasElement = qobject_cast<CanvasElement*>(current);
+            if (canvasElement && canvasElement->isDesignElement()) {
+                DesignElement* designElement = qobject_cast<DesignElement*>(canvasElement);
+                if (designElement && current->getType() == Element::FrameType) {
+                    topmostFrame = current;
                 }
             }
             
@@ -491,11 +477,11 @@ void PrototypeController::updateChildLayouts(CanvasElement* parent) {
     const auto children = m_elementModel.getChildrenRecursive(parent->getId());
     
     for (Element* child : children) {
-        if (!child || !child->isVisual()) continue;
-        
-        // Cast to CanvasElement first to check if it's a design element
         CanvasElement* canvasChild = qobject_cast<CanvasElement*>(child);
-        if (canvasChild && canvasChild->isDesignElement()) {
+        if (!canvasChild) continue;
+        
+        // Check if it's a design element
+        if (canvasChild->isDesignElement()) {
             DesignElement* designElement = qobject_cast<DesignElement*>(canvasChild);
             if (designElement) {
                 // For anchored constraints, we need to update the element's position/size
@@ -602,14 +588,12 @@ void PrototypeController::resetFrameScrollPosition(const QString& frameId) {
     }
     
     Element* element = m_elementModel.getElementById(frameId);
-    if (element && element->isVisual()) {
-        CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
-        if (canvasElement) {
+    CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+    if (canvasElement) {
             // Get the original position from snapshot
             QRectF snapshotRect = m_prototypingStartSnapshot->elementPositions.value(frameId, QRectF());
             if (snapshotRect.width() > 0 && snapshotRect.height() > 0) {
                 canvasElement->setY(snapshotRect.y());
             }
-        }
     }
 }
