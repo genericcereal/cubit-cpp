@@ -5,6 +5,8 @@
 #include "CanvasElement.h"
 #include "CanvasController.h"
 #include "Config.h"
+#include "HitTestService.h"
+#include "Frame.h"
 #include "commands/CreateDesignElementCommand.h"
 #include <QRectF>
 #include <memory>
@@ -14,11 +16,13 @@ CreationModeHandler::CreationModeHandler(Config cfg,
                                          ElementModel* model,
                                          SelectionManager* selection,
                                          CommandHistory* history,
+                                         HitTestService* hitTestService,
                                          std::function<void(CanvasController::Mode)> setMode)
     : m_cfg(cfg)
     , m_elementModel(model)
     , m_selectionManager(selection)
     , m_commandHistory(history)
+    , m_hitTestService(hitTestService)
     , m_setModeFunc(setMode)
 {
 }
@@ -39,12 +43,22 @@ void CreationModeHandler::onPress(qreal x, qreal y)
     m_startPos = QPointF(x, y);
     m_isDragging = true;
     
+    // Check if we're hovering over a frame to use as parent
+    QString parentId;
+    if (m_hitTestService) {
+        Element* hoveredElement = m_hitTestService->hitTest(x, y);
+        // Check if it's a Frame (not just any element)
+        if (hoveredElement && qobject_cast<Frame*>(hoveredElement)) {
+            parentId = hoveredElement->getId();
+        }
+    }
+    
     // Create element immediately at 1x1 size
     QRectF rect(x, y, 1, 1);
     // Creating command
     auto command = std::make_unique<CreateDesignElementCommand>(
         m_elementModel, m_selectionManager, 
-        m_cfg.elementType, rect, m_cfg.defaultPayload);
+        m_cfg.elementType, rect, m_cfg.defaultPayload, parentId);
     
     // Store raw pointer before moving ownership
     m_currentCommand = command.get();

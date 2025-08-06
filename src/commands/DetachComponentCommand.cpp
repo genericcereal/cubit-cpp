@@ -49,11 +49,7 @@ void DetachComponentCommand::execute()
     if (m_selectionManager) {
         m_selectionManager->clearSelection();
         m_selectionManager->selectElement(m_element);
-    }
-    
-             << "from component" << m_originalInstanceOf
-             << "and renamed from" << m_originalName << "to" << m_newName;
-}
+    }}
 
 void DetachComponentCommand::undo()
 {
@@ -66,8 +62,4 @@ void DetachComponentCommand::undo()
     m_element->setInstanceOf(m_originalInstanceOf);
     
     // Restore the original name
-    m_element->setName(m_originalName);
-    
-             << "to component" << m_originalInstanceOf
-             << "and restored name to" << m_originalName;
-}
+    m_element->setName(m_originalName);}

@@ -101,7 +101,7 @@ void CanvasController::initializeModeHandlers()
             QVariant()  // No default payload for frames
         },
         &m_elementModel, &m_selectionManager,
-        m_commandHistory.get(), setModeFunc);
+        m_commandHistory.get(), m_hitTestService.get(), setModeFunc);
     
     // Text mode
     m_modeHandlers[Mode::Text] = std::make_unique<CreationModeHandler>(
@@ -110,7 +110,7 @@ void CanvasController::initializeModeHandlers()
             QVariant("Text")  // Default text content
         },
         &m_elementModel, &m_selectionManager,
-        m_commandHistory.get(), setModeFunc);
+        m_commandHistory.get(), m_hitTestService.get(), setModeFunc);
     
     // WebTextInput mode
     m_modeHandlers[Mode::WebTextInput] = std::make_unique<CreationModeHandler>(
@@ -119,7 +119,7 @@ void CanvasController::initializeModeHandlers()
             QVariant("Enter text...")  // Default placeholder
         },
         &m_elementModel, &m_selectionManager,
-        m_commandHistory.get(), setModeFunc);
+        m_commandHistory.get(), m_hitTestService.get(), setModeFunc);
     
     // Shape Square mode
     m_modeHandlers[Mode::ShapeSquare] = std::make_unique<CreationModeHandler>(
@@ -128,7 +128,7 @@ void CanvasController::initializeModeHandlers()
             QVariant::fromValue(static_cast<int>(Shape::Square))
         },
         &m_elementModel, &m_selectionManager,
-        m_commandHistory.get(), setModeFunc);
+        m_commandHistory.get(), m_hitTestService.get(), setModeFunc);
     
     // Shape Triangle mode
     m_modeHandlers[Mode::ShapeTriangle] = std::make_unique<CreationModeHandler>(
@@ -137,7 +137,7 @@ void CanvasController::initializeModeHandlers()
             QVariant::fromValue(static_cast<int>(Shape::Triangle))
         },
         &m_elementModel, &m_selectionManager,
-        m_commandHistory.get(), setModeFunc);
+        m_commandHistory.get(), m_hitTestService.get(), setModeFunc);
     
     // Shape Pen mode - use specialized PenModeHandler
     m_modeHandlers[Mode::ShapePen] = std::make_unique<PenModeHandler>(
@@ -172,7 +172,13 @@ void CanvasController::updateSubcontrollersCanvasType()
 void CanvasController::setMode(Mode mode)
 {
     if (m_mode != mode) {
+        Mode oldMode = m_mode;
         m_mode = mode;
+        
+        // Clear selection when switching from Select mode to any creation mode
+        if (oldMode == Mode::Select && mode != Mode::Select) {
+            m_selectionManager.clearSelection();
+        }
         
         // Update current handler
         auto it = m_modeHandlers.find(m_mode);

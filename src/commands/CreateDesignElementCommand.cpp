@@ -16,13 +16,14 @@
 
 CreateDesignElementCommand::CreateDesignElementCommand(ElementModel* model, SelectionManager* selectionManager,
                                                      const QString& elementType, const QRectF& rect,
-                                                     const QVariant& initialPayload, QObject *parent)
+                                                     const QVariant& initialPayload, const QString& parentId, QObject *parent)
     : Command(parent)
     , m_elementModel(model)
     , m_selectionManager(selectionManager)
     , m_elementType(elementType)
     , m_rect(rect)
     , m_initialPayload(initialPayload)
+    , m_parentId(parentId)
     , m_element(nullptr)
 {
     // Get display name from registry if available
@@ -92,6 +93,11 @@ void CreateDesignElementCommand::execute()
         
         // Set position and size AFTER shape type is set
         m_element->setRect(m_rect);
+        
+        // Set parent if provided
+        if (!m_parentId.isEmpty()) {
+            m_element->setParentElementId(m_parentId);
+        }
     }
 
     // Add element to model

@@ -19,6 +19,7 @@ public:
     CreateDesignElementCommand(ElementModel* model, SelectionManager* selectionManager,
                               const QString& elementType, const QRectF& rect, 
                               const QVariant& initialPayload = QVariant(),
+                              const QString& parentId = QString(),
                               QObject *parent = nullptr);
     ~CreateDesignElementCommand();
 
@@ -35,6 +36,7 @@ private:
     QString m_elementType;
     QRectF m_rect;
     QVariant m_initialPayload;
+    QString m_parentId;
     
     // Created element
     QPointer<DesignElement> m_element;
