@@ -45,6 +45,17 @@ PropertyGroup {
             getter: () => selectedElement ? selectedElement.elementType : ""
         },
         { 
+            name: "Is Variant", 
+            type: "label", 
+            getter: () => {
+                if (selectedElement && selectedElement.hasProperty && selectedElement.hasProperty("isVariant")) {
+                    var isVariant = selectedElement.getProperty("isVariant")
+                    return isVariant ? "Yes" : "No"
+                }
+                return "No"
+            }
+        },
+        { 
             name: "ID", 
             type: "label", 
             getter: () => selectedElement ? selectedElement.elementId : ""

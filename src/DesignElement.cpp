@@ -544,6 +544,8 @@ void DesignElement::registerProperties() {
     m_properties->registerProperty("isFrozen", false);
     m_properties->registerProperty("instanceOf", QString());
     m_properties->registerProperty("boxShadow", QVariant::fromValue(BoxShadow()));
+    m_properties->registerProperty("isVariant", false);
+    m_properties->registerProperty("isSelectable", true);
 }
 
 void DesignElement::onSourceElementChanged() {

@@ -69,4 +69,5 @@ private:
     void connectSourceElement(Element* sourceElement);
     void disconnectSourceElement(Element* sourceElement);
     int findElementIndex(const QString &elementId) const;
+    void createChildInstancesForSourceChild(Element* childElement, const QString& sourceParentId);
 };

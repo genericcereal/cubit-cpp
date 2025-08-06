@@ -322,6 +322,39 @@ QJsonObject Serializer::serializeElement(Element* element) const {
         }
     }
     
+    // Serialize PropertyRegistry properties
+    // These are dynamic properties stored in the PropertyRegistry system
+    QStringList propertyNames = element->propertyNames();
+    QJsonObject registryProps;
+    for (const QString& propName : propertyNames) {
+        // Skip properties that are already serialized through Q_PROPERTY
+        if (elementObj.contains(propName)) {
+            continue;
+        }
+        
+        QVariant propValue = element->getProperty(propName);
+        if (propValue.isValid()) {
+            // Convert QVariant to JSON value
+            if (propValue.type() == QVariant::Bool) {
+                registryProps[propName] = propValue.toBool();
+            } else if (propValue.type() == QVariant::Int) {
+                registryProps[propName] = propValue.toInt();
+            } else if (propValue.type() == QVariant::Double) {
+                registryProps[propName] = propValue.toDouble();
+            } else if (propValue.type() == QVariant::String) {
+                registryProps[propName] = propValue.toString();
+            } else {
+                // Try to convert to string as fallback
+                registryProps[propName] = propValue.toString();
+            }
+        }
+    }
+    
+    // Add registry properties to the element object if there are any
+    if (!registryProps.isEmpty()) {
+        elementObj["registryProperties"] = registryProps;
+    }
+    
     return elementObj;
 }
 
@@ -819,6 +852,33 @@ Element* Serializer::deserializeElement(const QJsonObject& elementData, ElementM
                 // We'll restore these connections after all elements are loaded
                 component->setPendingElementIds(elementIds);
             } else {
+            }
+        }
+        
+        // Restore PropertyRegistry properties
+        if (elementData.contains("registryProperties")) {
+            QJsonObject registryProps = elementData["registryProperties"].toObject();
+            for (auto it = registryProps.begin(); it != registryProps.end(); ++it) {
+                QString propName = it.key();
+                QJsonValue jsonValue = it.value();
+                
+                // Convert JSON value to QVariant
+                QVariant value;
+                if (jsonValue.isBool()) {
+                    value = jsonValue.toBool();
+                } else if (jsonValue.isDouble()) {
+                    value = jsonValue.toDouble();
+                } else if (jsonValue.isString()) {
+                    value = jsonValue.toString();
+                } else {
+                    // Try to convert to variant
+                    value = jsonValue.toVariant();
+                }
+                
+                // Set the property through the PropertyRegistry system
+                if (value.isValid()) {
+                    element->setProperty(propName, value);
+                }
             }
         }
         

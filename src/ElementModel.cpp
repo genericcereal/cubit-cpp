@@ -7,8 +7,11 @@
 #include "Shape.h"
 #include "platforms/web/WebTextInput.h"
 #include "UniqueIdGenerator.h"
+#include "Serializer.h"
+#include "Application.h"
 #include <QDebug>
 #include <QPointer>
+#include <QJsonObject>
 
 ElementModel::ElementModel(QObject *parent)
     : QAbstractListModel(parent)
@@ -173,6 +176,25 @@ void ElementModel::addElement(Element *element)
     
     emit elementAdded(element);
     emit elementChanged();
+    
+    // Check if this element is being added as a child of a source element
+    // If so, we need to create corresponding child instances
+    if (!element->getParentElementId().isEmpty()) {
+        QString parentId = element->getParentElementId();        // Check if the parent is a source element (has instances)
+        bool hasInstances = false;
+        int instanceCount = 0;
+        for (Element* e : m_elements) {
+            if (DesignElement* de = qobject_cast<DesignElement*>(e)) {
+                if (de->instanceOf() == parentId) {
+                    hasInstances = true;
+                    instanceCount++;                }
+            }
+        }
+        
+        if (hasInstances) {            // Create child instances for all instances of the parent
+            createChildInstancesForSourceChild(element, parentId);
+        } else {        }
+    } else {    }
 }
 
 void ElementModel::removeElement(const QString &elementId)
@@ -180,8 +202,52 @@ void ElementModel::removeElement(const QString &elementId)
     int index = findElementIndex(elementId);
     if (index < 0) return;
     
+    Element *element = m_elements.at(index);
+    
+    // Check if this is a source element with instances
+    // If so, we need to remove corresponding child instances
+    bool isSourceElement = false;
+    for (Element* e : m_elements) {
+        if (DesignElement* de = qobject_cast<DesignElement*>(e)) {
+            if (de->instanceOf() == elementId) {
+                isSourceElement = true;
+                break;
+            }
+        }
+    }
+    
+    if (isSourceElement) {
+        // Find and remove all instances of this element
+        QStringList instancesToRemove;
+        for (Element* e : m_elements) {
+            if (DesignElement* de = qobject_cast<DesignElement*>(e)) {
+                if (de->instanceOf() == elementId) {
+                    instancesToRemove.append(de->getId());
+                }
+            }
+        }
+        
+        // Remove instances (this will recursively handle their children)
+        for (const QString& instanceId : instancesToRemove) {
+            // Find and remove the instance
+            int instanceIndex = findElementIndex(instanceId);
+            if (instanceIndex >= 0) {
+                beginRemoveRows(QModelIndex(), instanceIndex, instanceIndex);
+                Element* instanceElement = m_elements.takeAt(instanceIndex);
+                disconnectElement(instanceElement);
+                endRemoveRows();
+                emit elementRemoved(instanceId);
+                instanceElement->deleteLater();
+            }
+        }
+    }
+    
+    // Now remove the element itself
+    index = findElementIndex(elementId); // Re-find index as it may have changed
+    if (index < 0) return;
+    
     beginRemoveRows(QModelIndex(), index, index);
-    Element *element = m_elements.takeAt(index);
+    element = m_elements.takeAt(index);
     disconnectElement(element);
     endRemoveRows();
     
@@ -311,6 +377,23 @@ void ElementModel::connectElement(Element *element)
 {
     connect(element, &Element::elementChanged, this, &ElementModel::onElementChanged);
     connect(element, &Element::selectedChanged, this, &ElementModel::onElementChanged);
+    
+    // Connect to handle when this element is added as a child to a source element
+    connect(element, &Element::childAddedToSourceElement,
+            this, [this](Element* child, const QString& sourceParentId) {                // Check if the parent is actually a source element (has instances)
+                bool hasInstances = false;
+                for (Element* e : m_elements) {
+                    if (DesignElement* de = qobject_cast<DesignElement*>(e)) {
+                        if (de->instanceOf() == sourceParentId) {
+                            hasInstances = true;                            break;
+                        }
+                    }
+                }
+                
+                if (hasInstances) {
+                    createChildInstancesForSourceChild(child, sourceParentId);
+                } else {                }
+            });
     
     // Check if this element is an instance (has a sourceId)
     if (DesignElement* designElement = qobject_cast<DesignElement*>(element)) {
@@ -548,3 +631,54 @@ void ElementModel::onSourceElementPropertyChanged()
         syncInstancesFromSource(sourceElement);
     }
 }
+
+void ElementModel::createChildInstancesForSourceChild(Element* childElement, const QString& sourceParentId)
+{    if (!childElement) {
+        qWarning() << "createChildInstancesForSourceChild: childElement is null";
+        return;
+    }
+    
+    Serializer* serializer = Application::instance()->serializer();
+    if (!serializer) {
+        qWarning() << "No serializer available for creating child instances";
+        return;
+    }
+    
+    // Find all instances of the parent source element
+    QList<DesignElement*> parentInstances;
+    for (Element* e : m_elements) {
+        if (DesignElement* de = qobject_cast<DesignElement*>(e)) {
+            if (de->instanceOf() == sourceParentId) {
+                parentInstances.append(de);            }
+        }
+    }    // For each parent instance, create a corresponding child instance
+    for (DesignElement* parentInstance : parentInstances) {
+        // Generate a unique ID for the child instance
+        QString childInstanceId = generateId();        // Serialize the source child element
+        QJsonObject childData = serializer->serializeElement(childElement);
+        
+        // Update the data for the instance
+        childData["elementId"] = childInstanceId;
+        childData["name"] = childElement->getName() + " Instance";
+        childData["parentId"] = parentInstance->getId(); // Set parent to the instance parent        // Deserialize to create the new child instance
+        Element* newChildInstance = serializer->deserializeElement(childData, this);
+        if (!newChildInstance) {
+            qWarning() << "Failed to create child instance for" << childElement->getName();
+            continue;
+        }        // Cast to DesignElement and set instanceOf
+        if (DesignElement* childDesignInstance = qobject_cast<DesignElement*>(newChildInstance)) {
+            childDesignInstance->setInstanceOf(childElement->getId());            // Copy the componentId from the parent instance
+            childDesignInstance->setComponentId(parentInstance->componentId());            // Add the child instance to the model
+            // Note: We don't call addElement here to avoid infinite recursion
+            // Instead, we'll insert it directly
+            beginInsertRows(QModelIndex(), m_elements.size(), m_elements.size());
+            m_elements.append(newChildInstance);
+            newChildInstance->setParent(this);
+            connectElement(newChildInstance);
+            endInsertRows();            emit elementAdded(newChildInstance);
+            emit elementChanged();
+        } else {
+            qWarning() << "    Failed to cast to DesignElement";
+            delete newChildInstance; // Clean up if it's not a DesignElement
+        }
+    }}

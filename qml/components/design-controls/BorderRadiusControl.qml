@@ -10,6 +10,7 @@ Item {
     z: 2
     
     property bool allSelectedAreComponentRelated: false
+    property var canvas: null  // Canvas/Project to check editingElement
     // Remove this property - now handled by designControls context property
     property real parentWidth: 100
     property real parentHeight: 100
@@ -57,7 +58,13 @@ Item {
     Rectangle {
         id: outerRect
         anchors.fill: parent
-        color: allSelectedAreComponentRelated ? ConfigObject.componentControlResizeJointColor : ConfigObject.controlResizeJointColor
+        color: {
+            // Use purple color when editingElement is defined
+            var isEditingElement = canvas && canvas.editingElement !== null && canvas.editingElement !== undefined
+            return (isEditingElement || allSelectedAreComponentRelated) ? 
+                   ConfigObject.componentControlResizeJointColor : 
+                   ConfigObject.controlResizeJointColor
+        }
         antialiasing: true
         
         // Decorative circle inside matching resize joints
@@ -67,7 +74,13 @@ Item {
             height: 10
             radius: 5
             color: ConfigObject.controlJointCircleFill
-            border.color: allSelectedAreComponentRelated ? ConfigObject.componentControlJointCircleBorder : ConfigObject.controlJointCircleBorder
+            border.color: {
+                // Use purple color when editingElement is defined
+                var isEditingElement = canvas && canvas.editingElement !== null && canvas.editingElement !== undefined
+                return (isEditingElement || allSelectedAreComponentRelated) ? 
+                       ConfigObject.componentControlJointCircleBorder : 
+                       ConfigObject.controlJointCircleBorder
+            }
             border.width: 1
             antialiasing: true
         }

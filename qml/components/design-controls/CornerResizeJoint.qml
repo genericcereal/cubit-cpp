@@ -11,6 +11,7 @@ Item {
     
     property int cornerIndex: 0  // 0=top-left, 1=top-right, 2=bottom-right, 3=bottom-left
     property bool allSelectedAreComponentRelated: false
+    property var canvas: null  // Canvas/Project to check editingElement
     // Remove these properties - now handled by designControls context property
     property real controlRotation: 0
     property bool showResizeJoints: true
@@ -38,7 +39,13 @@ Item {
     Rectangle {
         id: resizeJoint
         anchors.fill: parent
-        color: allSelectedAreComponentRelated ? ConfigObject.componentControlResizeJointColor : ConfigObject.controlResizeJointColor
+        color: {
+            // Use purple color when editingElement is defined
+            var isEditingElement = canvas && canvas.editingElement !== null && canvas.editingElement !== undefined
+            return (isEditingElement || allSelectedAreComponentRelated) ? 
+                   ConfigObject.componentControlResizeJointColor : 
+                   ConfigObject.controlResizeJointColor
+        }
         antialiasing: true
         visible: resizeJointContainer.showResizeJoints && !(resizeJointContainer.dragging && resizeJointContainer.dragMode.startsWith("resize-corner-"))
         
@@ -49,7 +56,13 @@ Item {
             height: 10
             radius: 5
             color: ConfigObject.controlJointCircleFill
-            border.color: allSelectedAreComponentRelated ? ConfigObject.componentControlJointCircleBorder : ConfigObject.controlJointCircleBorder
+            border.color: {
+                // Use purple color when editingElement is defined
+                var isEditingElement = canvas && canvas.editingElement !== null && canvas.editingElement !== undefined
+                return (isEditingElement || allSelectedAreComponentRelated) ? 
+                       ConfigObject.componentControlJointCircleBorder : 
+                       ConfigObject.controlJointCircleBorder
+            }
             border.width: 1
             antialiasing: true
         }

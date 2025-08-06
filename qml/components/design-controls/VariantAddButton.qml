@@ -7,7 +7,7 @@ Rectangle {
     width: 30
     height: 30
     radius: 15
-    color: ConfigObject.componentControlBarColor
+    color: ConfigObject.componentHoverBadgeBackgroundColor
     
     // Remove this property - now handled by designControls context property
     property var controller: null

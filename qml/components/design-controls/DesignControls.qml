@@ -670,6 +670,7 @@ Item {
             id: resizeJointContainer
             cornerIndex: index
             allSelectedAreComponentRelated: root.allSelectedAreComponentRelated
+            canvas: root.canvas  // Pass canvas for editingElement check
             controlRotation: root.controlRotation
             showResizeJoints: root.showResizeJoints
             dragging: root.dragging
@@ -873,6 +874,7 @@ Item {
     BorderRadiusControl {
         id: borderRadiusControl
         allSelectedAreComponentRelated: root.allSelectedAreComponentRelated
+        canvas: root.canvas  // Pass canvas for editingElement check
         parentWidth: root.width
         parentHeight: root.height
         selectedFrame: {
@@ -1253,6 +1255,41 @@ Item {
             // Trigger layout update on the parent frame
             // The Frame's own layout engine will handle the update
             parentElement.triggerLayout()
+        }
+    }
+    
+    // Add Variant Button - shown when a single element with isVariant=true is selected
+    VariantAddButton {
+        id: variantAddButton
+        visible: {
+            // Access selectedElements through root.parent (the DesignControlsOverlay)
+            if (!root.parent || !root.parent.selectedElements || root.parent.selectedElements.length !== 1) {
+                return false
+            }
+            
+            var element = root.parent.selectedElements[0]
+            if (!element) {
+                return false
+            }
+            
+            // Check if the element has isVariant property set to true
+            // Use getProperty to access the PropertyRegistry value
+            if (element.hasProperty && element.hasProperty("isVariant")) {
+                var isVariant = element.getProperty("isVariant")
+                return isVariant === true
+            }
+            
+            return false
+        }
+        
+        selectedVariant: root.parent && root.parent.selectedElements && root.parent.selectedElements.length === 1 ? 
+                        root.parent.selectedElements[0] : null
+        
+        onAddVariantClicked: {
+            // Handle adding a new variant
+            if (selectedVariant) {
+                // TODO: Implement variant creation logic
+            }
         }
     }
 }

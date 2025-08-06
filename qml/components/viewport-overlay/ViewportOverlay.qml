@@ -58,6 +58,7 @@ Item {
     SelectionBounds {
         id: selectionBounds
         selectionManager: root.selectionManager
+        canvas: root.canvas  // Pass canvas for editingElement check
         zoomLevel: root.zoomLevel
         flickable: root.flickable
         canvasMinX: root.canvasMinX
