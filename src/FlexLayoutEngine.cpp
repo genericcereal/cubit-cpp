@@ -62,7 +62,6 @@ void FlexLayoutEngine::layoutChildren(Frame* parentFrame, ElementModel* elementM
             // Check if child is a Frame with position = Relative
             Frame* childFrame = qobject_cast<Frame*>(child);
             if (childFrame) {
-                         << "position:" << childFrame->position();
                 if (childFrame->position() == Frame::Relative) {
                     layoutChildren.append(child);
                 }
@@ -70,7 +69,6 @@ void FlexLayoutEngine::layoutChildren(Frame* parentFrame, ElementModel* elementM
                 // Check if child is a WebTextInput with position = Relative
                 WebTextInput* webTextInput = qobject_cast<WebTextInput*>(child);
                 if (webTextInput) {
-                             << "position:" << webTextInput->position();
                     if (webTextInput->position() == WebTextInput::Relative) {
                         layoutChildren.append(child);
                     }
@@ -78,7 +76,6 @@ void FlexLayoutEngine::layoutChildren(Frame* parentFrame, ElementModel* elementM
                     // Check if child is a Text with position = Relative
                     Text* textElement = qobject_cast<Text*>(child);
                     if (textElement) {
-                                 << "position:" << textElement->position();
                         if (textElement->position() == Text::Relative) {
                             layoutChildren.append(child);
                         }
@@ -111,10 +108,6 @@ void FlexLayoutEngine::layoutChildren(Frame* parentFrame, ElementModel* elementM
     qreal roundedWidth = roundToHalf(requiredSize.width());
     qreal roundedHeight = roundToHalf(requiredSize.height());
     
-             << "current size:" << parentFrame->width() << "x" << parentFrame->height()
-             << "calculated size:" << requiredSize.width() << "x" << requiredSize.height()
-             << "rounded size:" << roundedWidth << "x" << roundedHeight;
-    
     // Update parent frame size if needed (allow both growing and shrinking)
     // BUT only if:
     // 1. The parent frame is not currently selected (being resized by user) OR it's a gap change
@@ -130,7 +123,6 @@ void FlexLayoutEngine::layoutChildren(Frame* parentFrame, ElementModel* elementM
         // Check width type - only resize width if it's set to fit content
         if (parentFrame->widthType() == Frame::SizeFitContent) {
             if (qAbs(roundedWidth - parentFrame->width()) > tolerance) {
-                         << "to" << roundedWidth << "(widthType is fit-content)";
                 parentFrame->setWidth(roundedWidth);
                 sizeChanged = true;
             }
@@ -140,7 +132,6 @@ void FlexLayoutEngine::layoutChildren(Frame* parentFrame, ElementModel* elementM
         // Check height type - only resize height if it's set to fit content
         if (parentFrame->heightType() == Frame::SizeFitContent) {
             if (qAbs(roundedHeight - parentFrame->height()) > tolerance) {
-                         << "to" << roundedHeight << "(heightType is fit-content)";
                 parentFrame->setHeight(roundedHeight);
                 sizeChanged = true;
             }
@@ -225,7 +216,6 @@ void FlexLayoutEngine::layoutRow(const QList<Element*>& children,
         // Set X position (relative to parent)
         qreal absoluteX = roundToHalf(parentFrame->x() + currentX);
         if (!qFuzzyCompare(canvasChild->x(), absoluteX)) {
-                     << "X from" << canvasChild->x() << "to" << absoluteX;
             canvasChild->setX(absoluteX);
         }
         
@@ -235,7 +225,6 @@ void FlexLayoutEngine::layoutRow(const QList<Element*>& children,
                                            parentFrame->align());
         qreal absoluteY = roundToHalf(parentFrame->y() + y);
         if (!qFuzzyCompare(canvasChild->y(), absoluteY)) {
-                     << "Y from" << canvasChild->y() << "to" << absoluteY;
             canvasChild->setY(absoluteY);
         }
         
@@ -472,8 +461,6 @@ void FlexLayoutEngine::connectChildGeometrySignals(Frame* parentFrame, ElementMo
                         }
                     }
                 }
-                
-                         << "of parent" << parentFrame->getId();
         }
     }
 }
@@ -527,9 +514,6 @@ void FlexLayoutEngine::captureInitialMargins(Frame* parentFrame, const QList<Ele
     margins.right = parentFrame->width() - maxX;
     margins.top = minY;
     margins.bottom = parentFrame->height() - maxY;
-    
-             << "margins: left=" << margins.left << "right=" << margins.right
-             << "top=" << margins.top << "bottom=" << margins.bottom;
 }
 
 void FlexLayoutEngine::resetMargins(const QString& frameId)
@@ -603,8 +587,6 @@ void FlexLayoutEngine::scheduleLayout(Frame* parentFrame, ElementModel* elementM
     if (!parentFrame || !parentFrame->flex() || !elementModel) {
         return;
     }
-    
-             << "reason:" << reason;
     
     // Add to pending layouts (update reason if more specific)
     PendingLayout pending = { parentFrame, reason, elementModel };

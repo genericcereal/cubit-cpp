@@ -128,6 +128,7 @@ public slots:
     
     // Component operations
     Q_INVOKABLE void createComponent(DesignElement* sourceElement);
+    Q_INVOKABLE void detachComponent(DesignElement* instanceElement);
     
     // Selection
     void selectElementsInRect(const QRectF &rect);

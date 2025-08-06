@@ -80,6 +80,7 @@ SOURCES += \
     src/commands/CloseProjectCommand.cpp \
     src/commands/CreateComponentCommand.cpp \
     src/commands/CreateInstanceCommand.cpp \
+    src/commands/DetachComponentCommand.cpp \
     src/commands/AssignVariableCommand.cpp \
     src/commands/AddPlatformCommand.cpp \
     src/ScriptCompiler.cpp \
@@ -171,6 +172,7 @@ HEADERS += \
     src/commands/CloseProjectCommand.h \
     src/commands/CreateComponentCommand.h \
     src/commands/CreateInstanceCommand.h \
+    src/commands/DetachComponentCommand.h \
     src/commands/AssignVariableCommand.h \
     src/commands/AddPlatformCommand.h \
     src/ScriptCompiler.h \

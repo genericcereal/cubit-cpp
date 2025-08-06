@@ -30,6 +30,7 @@ Item {
                  selectionBoundingHeight > 0 &&
                  !(root.shapeControlsController && root.shapeControlsController.isEditingShape) &&
                  !(root.shapeControlsController && root.shapeControlsController.isShapeControlDragging)
+        selectionManager: root.selectionManager  // Pass the selection manager directly
         canvasMinX: root.canvasMinX
         canvasMinY: root.canvasMinY
         zoomLevel: root.zoomLevel

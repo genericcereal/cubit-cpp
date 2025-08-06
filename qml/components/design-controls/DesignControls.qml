@@ -1127,7 +1127,8 @@ Item {
         if (parent && parent.selectedElements) {
             for (var j = 0; j < parent.selectedElements.length; j++) {
                 var element = parent.selectedElements[j]
-                if (element && element.elementType === "Frame") {
+                // Connect to any DesignElement (Frame, Text, etc.) to listen for instanceOf changes
+                if (element && element.isDesignElement) {
                     var conn = elementConnectionComponent.createObject(root, {target: element})
                     elementConnections.push(conn)
                 }
@@ -1147,6 +1148,9 @@ Item {
             }
             function onHeightTypeChanged() {
                 root.updateShowFlexResizeJoints()
+            }
+            function onInstanceOfChanged() {
+                root.updateComponentRelatedStatus()
             }
         }
     }

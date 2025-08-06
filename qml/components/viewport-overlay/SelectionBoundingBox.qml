@@ -5,7 +5,11 @@ import Cubit 1.0
 Rectangle {
     id: root
     
+    Component.onCompleted: {
+    }
+    
     // Properties for canvas coordinate system
+    property var selectionManager: null  // Selection manager passed from parent
     property real canvasMinX: 0
     property real canvasMinY: 0
     property real zoomLevel: 1.0
@@ -19,16 +23,27 @@ Rectangle {
     
     // Check if all selected elements are component-related
     property bool allSelectedAreComponentRelated: {
-        if (!Application || !Application.activeSelectionManager) return false
-        var selectedElements = Application.activeSelectionManager.selectedElements
-        if (selectedElements.length === 0) return false
+        if (!selectionManager) {
+            return false
+        }
+        var selectedElements = selectionManager.selectedElements
+        if (selectedElements.length === 0) {
+            return false
+        }
         
         for (var i = 0; i < selectedElements.length; i++) {
             var element = selectedElements[i]
-            if (!element) continue
+            if (!element) {
+                continue
+            }
             
-            // Check if it's a ComponentInstance or ComponentVariant
-            if (element.elementType !== "ComponentInstance" && element.elementType !== "ComponentVariant") {
+            // Debug logging
+            
+            // Check if element has instanceOf property set (component instance)
+            // instanceOf is a QString property on DesignElement
+            var hasInstanceOf = element.instanceOf !== undefined && element.instanceOf !== null && element.instanceOf !== ""
+            
+            if (!hasInstanceOf) {
                 return false
             }
         }
@@ -37,7 +52,10 @@ Rectangle {
     
     // Visual properties
     color: "transparent"
-    border.color: allSelectedAreComponentRelated ? ConfigObject.componentControlsBorderColorString : ConfigObject.controlsBorderColorString
+    border.color: {
+        var color = allSelectedAreComponentRelated ? ConfigObject.componentControlsBorderColorString : ConfigObject.controlsBorderColorString
+        return color
+    }
     border.width: 1
     
     // Convert canvas coordinates to viewport coordinates
