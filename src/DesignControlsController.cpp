@@ -303,15 +303,13 @@ void DesignControlsController::startDragOperation()
     // Store initial state of all selected elements
     auto selectedElements = selectionManager->selectedElements();
     for (Element* element : selectedElements) {
-        if (element && element->isVisual()) {
+        CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+        if (canvasElement) {
             m_dragStartSelectedElements.append(element);
             
             // Store position and size for visual elements
-            if (auto canvasElement = qobject_cast<CanvasElement*>(element)) {
-                m_dragStartElementPositions[element->getId()] = QPointF(canvasElement->x(), canvasElement->y());
-                m_dragStartElementSizes[element->getId()] = QSizeF(canvasElement->width(), canvasElement->height());
-                
-            }
+            m_dragStartElementPositions[element->getId()] = QPointF(canvasElement->x(), canvasElement->y());
+            m_dragStartElementSizes[element->getId()] = QSizeF(canvasElement->width(), canvasElement->height());
         }
     }
     
@@ -355,9 +353,7 @@ void DesignControlsController::endResizeOperation()
     
     // Fire resize command for each element that changed size
     for (Element* element : m_dragStartSelectedElements) {
-        if (!element || !element->isVisual()) continue;
-        
-        auto canvasElement = qobject_cast<CanvasElement*>(element);
+        CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
         if (!canvasElement) continue;
         
         auto oldSize = m_dragStartElementSizes.value(element->getId());

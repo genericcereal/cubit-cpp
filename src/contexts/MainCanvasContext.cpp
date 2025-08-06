@@ -65,8 +65,9 @@ bool MainCanvasContext::shouldIncludeInHitTest(Element* element) const
         // Check if this element is a component variant
         ElementModel* model = project->elementModel();
         if (model) {
-            QList<Element*> allElements = model->getAllElements();
-            for (Element* el : allElements) {
+            // TODO: Re-enable component variant checking when Component class is available
+            // QList<Element*> allElements = model->getAllElements();
+            // for (Element* el : allElements) {
                 // Component* component = qobject_cast<Component*>(el);
                 // if (component) {
                 //     const QList<Element*>& variants = component->variants();
@@ -82,7 +83,7 @@ bool MainCanvasContext::shouldIncludeInHitTest(Element* element) const
                 //         }
                 //     }
                 // }
-            }
+            // }
         }
     }
     

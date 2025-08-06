@@ -333,7 +333,7 @@ Item {
                     var children = canvasView.elementModel.getChildrenRecursive(element.elementId)
                     for (var j = 0; j < children.length; j++) {
                         var child = children[j]
-                        if (child && child.isVisual) {
+                        if (child && child.x !== undefined) {
                             states.push({
                                 element: child,
                                 x: child.x,

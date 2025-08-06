@@ -211,8 +211,6 @@ QJsonObject Serializer::serializeElement(Element* element) const {
             }
         }
         elementObj["componentElements"] = elementsArray;
-                 << "with" << elementsArray.size() << "elements"
-                 << "array contents:" << elementsArray;
     }
     
     // Use Qt's meta-object system to serialize all properties

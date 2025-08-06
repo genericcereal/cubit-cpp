@@ -59,11 +59,9 @@ Element* CreationManager::createElement(const QString& type, qreal x, qreal y, q
     
     if (element) {
         // Set position and size for visual elements
-        if (element->isVisual()) {
-            CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
-            if (canvasElement) {
-                canvasElement->setRect(QRectF(x, y, width, height));
-            }
+        CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+        if (canvasElement) {
+            canvasElement->setRect(QRectF(x, y, width, height));
         }
         
         // Add to model
@@ -204,10 +202,6 @@ Edge* CreationManager::createEdge(const QString& sourceNodeId, const QString& ta
         QString sourcePortType = srcNode->getOutputPortType(sourcePortIndex);
         QString targetPortType = tgtNode->getInputPortType(targetPortIndex);
         
-                 << "source port" << sourcePortIndex << "type:" << sourcePortType
-                 << "target node:" << tgtNode->nodeTitle() << "id:" << targetNodeId  
-                 << "target port" << targetPortIndex << "type:" << targetPortType;
-        
         // Validate that port types can connect
         if (!PortType::canConnect(sourcePortType, targetPortType)) {
             qWarning() << "Cannot connect incompatible port types:"
@@ -244,8 +238,6 @@ Edge* CreationManager::createEdge(const QString& sourceNodeId, const QString& ta
         m_elementModel->addElement(edge);
         emit elementCreated(edge);
         emit edgeCreated(edge);
-        
-                 << "to node" << targetNodeId << "port" << targetPortIndex;
     }
     
     return edge;
@@ -357,9 +349,6 @@ void CreationManager::calculateEdgePoints(Edge* edge, Element* sourceNode, Eleme
     
     edge->setSourcePoint(QPointF(sourceX, sourceY));
     edge->setTargetPoint(QPointF(targetX, targetY));
-    
-             << "Target:" << QPointF(targetX, targetY)
-             << "Size:" << edge->width() << "x" << edge->height();
 }
 
 Element* CreationManager::startDragCreation(const QString& type, const QPointF& startPos)
@@ -387,9 +376,8 @@ Element* CreationManager::startDragCreation(const QString& type, const QPointF& 
 
 void CreationManager::updateDragCreation(const QPointF& currentPos)
 {
-    if (!m_dragCreationElement || !m_dragCreationElement->isVisual()) return;
-    
     CanvasElement* canvasElement = qobject_cast<CanvasElement*>(m_dragCreationElement);
+    if (!canvasElement) return;
     if (!canvasElement) return;
     
     // Calculate dimensions based on drag
@@ -407,11 +395,6 @@ void CreationManager::updateDragCreation(const QPointF& currentPos)
 
 Element* CreationManager::finishDragCreation()
 {
-    if (!m_dragCreationElement || !m_dragCreationElement->isVisual()) {
-        m_dragCreationElement = nullptr;
-        return nullptr;
-    }
-    
     CanvasElement* canvasElement = qobject_cast<CanvasElement*>(m_dragCreationElement);
     if (!canvasElement) {
         m_dragCreationElement = nullptr;

@@ -196,9 +196,6 @@ bool ElementFilterProxy::shouldShowElementInMode(Element* element) const {
                 // Don't filter out the component itself when editing it
                 return false;
             }
-                     << "- element" << element->getId() 
-                     << "in component:" << inComponent
-                     << "component has" << component->elements().size() << "elements";
             return inComponent;
         }
     }
@@ -210,7 +207,6 @@ bool ElementFilterProxy::shouldShowElementInMode(Element* element) const {
             if (ComponentElement* comp = qobject_cast<ComponentElement*>(el)) {
                 if (comp->elements().contains(element)) {
                     // This element belongs to a component, don't show it in main view
-                             << "because it belongs to component" << comp->getId();
                     return false;
                 }
             }
@@ -246,21 +242,17 @@ bool ElementFilterProxy::shouldShowElementInMode(Element* element) const {
         return false;
     }
     
-    // Non-visual elements (except Components and Variables) are never shown
-    if (!element->isVisual()) {
-        // Handle Variables specially
-        if (Variable* var = qobject_cast<Variable*>(element)) {
-            // Element variables (scope="element") only show in script mode
-            if (var->variableScope() == "element") {
-                return m_viewMode == "script";
-            }
-            // Global variables (scope="global") show in both design and script modes
-            return m_viewMode == "design" || m_viewMode == "script";
+    // Handle Variables specially (they are non-visual)
+    if (Variable* var = qobject_cast<Variable*>(element)) {
+        // Element variables (scope="element") only show in script mode
+        if (var->variableScope() == "element") {
+            return m_viewMode == "script";
         }
-        return false;
+        // Global variables (scope="global") show in both design and script modes
+        return m_viewMode == "design" || m_viewMode == "script";
     }
     
-    // Check if it's a canvas element
+    // Non-visual elements (excluding Variables which we handled above) are never shown
     CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
     if (!canvasElement) {
         return false;

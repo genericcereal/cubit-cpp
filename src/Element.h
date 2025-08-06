@@ -16,7 +16,6 @@ class Element : public QObject {
     Q_PROPERTY(QString name READ getName WRITE setName NOTIFY nameChanged)
     Q_PROPERTY(QString parentId READ getParentElementId WRITE setParentElementId NOTIFY parentIdChanged)
     Q_PROPERTY(bool selected READ isSelected WRITE setSelected NOTIFY selectedChanged)
-    Q_PROPERTY(bool isVisual READ isVisual CONSTANT)
     Q_PROPERTY(bool showInElementList READ showInElementList CONSTANT)
     
 public:
@@ -52,9 +51,6 @@ public:
     // Selection state
     bool isSelected() const { return selected; }
     void setSelected(bool sel);
-    
-    // Check if this is a visual element that appears on canvas
-    virtual bool isVisual() const { return false; }
     
     // Check if this element should be shown in the element list
     virtual bool showInElementList() const { return m_showInElementList; }

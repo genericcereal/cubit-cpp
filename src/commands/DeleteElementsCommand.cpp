@@ -74,9 +74,8 @@ void DeleteElementsCommand::execute()
         QList<ElementInfo> variablesToDelete;
         for (const ElementInfo& info : m_deletedElements) {
             Element* element = info.element;
-            if (element && element->isVisual()) {
-                CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
-                if (canvasElement && canvasElement->isDesignElement()) {
+            CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+            if (canvasElement && canvasElement->isDesignElement()) {
                     // Find the Variable element with linkedElementId matching our element
                     QList<Element*> allElements = m_elementModel->getAllElements();
                     for (Element* elem : allElements) {
@@ -91,7 +90,6 @@ void DeleteElementsCommand::execute()
                             }
                         }
                     }
-                }
             }
         }
         // Add variables to the deletion list

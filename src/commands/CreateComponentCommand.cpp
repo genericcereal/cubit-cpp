@@ -33,14 +33,10 @@ CreateComponentCommand::~CreateComponentCommand()
 
 void CreateComponentCommand::execute()
 {
-             << "elementModel:" << m_elementModel;
-    
     if (!m_elementModel || !m_sourceElement) {
         qWarning() << "CreateComponentCommand: Invalid element model or source element";
         return;
     }
-    
-             << m_sourceElement->getName();
 
     // Step 1: Create a new Component
     if (m_componentId.isEmpty()) {
@@ -109,8 +105,6 @@ void CreateComponentCommand::execute()
         // Add the instance to the model
         m_elementModel->addElement(instance);
         m_createdInstance = instance;
-        
-                 << "and instance" << m_instanceId;
     }
 }
 

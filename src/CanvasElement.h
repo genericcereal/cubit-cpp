@@ -52,7 +52,6 @@ public:
     virtual void setRect(const QRectF &rect);
     
     // Override from Element
-    bool isVisual() const override { return true; }
     void setParentElementId(const QString &parentId) override;
     
     // Virtual methods to identify element category

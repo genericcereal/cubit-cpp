@@ -15,15 +15,13 @@ MoveElementsCommand::MoveElementsCommand(const QList<Element*>& elements, const 
 {
     // Store original positions for all visual elements
     for (Element* element : elements) {
-        if (element && element->isVisual()) {
-            CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
-            if (canvasElement) {
+        CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+        if (canvasElement) {
                 ElementMove move;
                 move.element = canvasElement;
                 move.originalPosition = QPointF(canvasElement->x(), canvasElement->y());
                 move.newPosition = move.originalPosition + delta;
                 m_moves.append(move);
-            }
         }
     }
 
@@ -39,9 +37,8 @@ MoveElementsCommand::MoveElementsCommand(const QList<Element*>& elements, const 
 {
     // Store provided original positions for all visual elements
     for (Element* element : elements) {
-        if (element && element->isVisual()) {
-            CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
-            if (canvasElement) {
+        CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+        if (canvasElement) {
                 ElementMove move;
                 move.element = canvasElement;
                 // Use the provided original position if available, otherwise use current position minus delta
@@ -53,7 +50,6 @@ MoveElementsCommand::MoveElementsCommand(const QList<Element*>& elements, const 
                 }
                 move.newPosition = move.originalPosition + delta;
                 m_moves.append(move);
-            }
         }
     }
 
