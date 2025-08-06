@@ -9,6 +9,7 @@
 #include "../Edge.h"
 #include "../CanvasElement.h"
 #include "../DesignElement.h"
+#include "../Component.h"
 #include "../Variable.h"
 #include "../Application.h"
 #include "../ProjectApiClient.h"
@@ -26,15 +27,35 @@ DeleteElementsCommand::DeleteElementsCommand(ElementModel* model, SelectionManag
     // Store information about elements to delete
     for (Element* element : elements) {
         if (element) {
+            // Check if this is a ComponentElement
+            ComponentElement* component = qobject_cast<ComponentElement*>(element);
+            if (component) {
+                // Add all elements in the component's elements array first
+                for (Element* componentChild : component->elements()) {
+                    ElementInfo childInfo;
+                    childInfo.element = componentChild;
+                    childInfo.parent = nullptr;
+                    childInfo.index = m_elementModel->getAllElements().indexOf(componentChild);
+                    m_deletedElements.append(childInfo);
+                    
+                    // Also find any children of these component elements
+                    QList<Element*> allElements = m_elementModel->getAllElements();
+                    findChildElements(componentChild->getId(), allElements);
+                }
+            }
+            
+            // Add the main element itself
             ElementInfo info;
             info.element = element;
             info.parent = nullptr;
             info.index = m_elementModel->getAllElements().indexOf(element);
             m_deletedElements.append(info);
             
-            // Find all child elements recursively
-            QList<Element*> allElements = m_elementModel->getAllElements();
-            findChildElements(element->getId(), allElements);
+            // Find all child elements recursively (for non-component elements)
+            if (!component) {
+                QList<Element*> allElements = m_elementModel->getAllElements();
+                findChildElements(element->getId(), allElements);
+            }
         }
     }
 

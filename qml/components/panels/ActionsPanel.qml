@@ -144,6 +144,10 @@ Rectangle {
             
             onClicked: {
                 if (canvas) {
+                    // Clear selections
+                    if (canvas.selectionManager) {
+                        canvas.selectionManager.clearSelection()
+                    }
                     // Clear component editing mode
                     canvas.setEditingComponent("")
                     // Also clear element editing mode

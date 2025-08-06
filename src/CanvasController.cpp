@@ -15,6 +15,7 @@
 #include "commands/ChangeParentCommand.h"
 #include "commands/CreateComponentCommand.h"
 #include "commands/CreateInstanceCommand.h"
+#include "commands/DetachComponentCommand.h"
 #include "commands/CreateScriptElementCommand.h"
 #include "commands/CreateVariableCommand.h"
 #include "commands/CompileScriptsCommand.h"
@@ -434,7 +435,25 @@ void CanvasController::createComponent(DesignElement* sourceElement)
     }
     
     // Create and execute the command
-    auto command = std::make_unique<CreateComponentCommand>(&m_elementModel, sourceElement);
+    auto command = std::make_unique<CreateComponentCommand>(&m_elementModel, &m_selectionManager, sourceElement);
+    m_commandHistory->execute(std::move(command));
+}
+
+void CanvasController::detachComponent(DesignElement* instanceElement)
+{
+    if (!instanceElement || !m_commandHistory) {
+        qWarning() << "CanvasController::detachComponent - Invalid instance element or command history";
+        return;
+    }
+    
+    // Check if the element has an instanceOf property set
+    if (instanceElement->instanceOf().isEmpty()) {
+        qWarning() << "CanvasController::detachComponent - Element is not a component instance";
+        return;
+    }
+    
+    // Create and execute the detach command
+    auto command = std::make_unique<DetachComponentCommand>(instanceElement, &m_selectionManager);
     m_commandHistory->execute(std::move(command));
 }
 

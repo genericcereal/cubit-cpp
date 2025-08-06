@@ -24,8 +24,6 @@ void ComponentElement::addElement(Element* element)
     }
     
     m_elements.append(element);
-             << "to component" << getId() 
-             << "- now has" << m_elements.size() << "elements";
     emit elementAdded(element);
     emit elementsChanged();
 }

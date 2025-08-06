@@ -52,10 +52,12 @@ GroupBox {
             }
         }
         
-        // Create component button - only for design elements that are not component instances
+        // Create/Detach component button - only for design elements that are not component instances
         Button {
             Layout.fillWidth: true
-            text: "Create component"
+            text: selectedDesignElement && selectedDesignElement.instanceOf && selectedDesignElement.instanceOf !== "" 
+                  ? "Detach component" 
+                  : "Create component"
             font.pixelSize: 14
             visible: selectedDesignElement !== null && 
                      selectedElement.elementType !== "FrameComponentInstance" && 
@@ -65,7 +67,12 @@ GroupBox {
             
             onClicked: {
                 if (selectedDesignElement && canvas && canvas.controller) {
-                    canvas.controller.createComponent(selectedDesignElement)
+                    if (selectedDesignElement.instanceOf && selectedDesignElement.instanceOf !== "") {
+                        // Detach the component instance
+                        canvas.controller.detachComponent(selectedDesignElement)
+                    } else {
+                        canvas.controller.createComponent(selectedDesignElement)
+                    }
                 }
             }
         }
@@ -108,6 +115,10 @@ GroupBox {
             
             onClicked: {
                 if (canvas && selectedElement && selectedElement.elementType === "ComponentElement") {
+                    // Clear selections before switching to edit mode
+                    if (canvas.selectionManager) {
+                        canvas.selectionManager.clearSelection()
+                    }
                     // Switch to design mode and edit the component
                     canvas.setEditingComponent(selectedElement.elementId, "design")
                 }

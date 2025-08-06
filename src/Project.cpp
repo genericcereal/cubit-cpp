@@ -517,7 +517,6 @@ void Project::setEditingComponent(const QString& componentId, const QString& vie
         return;
     }
     
-             << "with" << component->elements().size() << "elements";
     for (Element* elem : component->elements()) {
         Q_UNUSED(elem)
     }

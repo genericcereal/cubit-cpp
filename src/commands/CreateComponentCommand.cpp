@@ -1,6 +1,7 @@
 #include "CreateComponentCommand.h"
 #include "CreateInstanceCommand.h"
 #include "../ElementModel.h"
+#include "../SelectionManager.h"
 #include "../DesignElement.h"
 #include "../Frame.h"
 #include "../Text.h"
@@ -12,10 +13,11 @@
 #include <QDebug>
 #include <QJsonObject>
 
-CreateComponentCommand::CreateComponentCommand(ElementModel* elementModel, DesignElement* sourceElement,
-                                             QObject *parent)
+CreateComponentCommand::CreateComponentCommand(ElementModel* elementModel, SelectionManager* selectionManager,
+                                             DesignElement* sourceElement, QObject *parent)
     : Command(parent)
     , m_elementModel(elementModel)
+    , m_selectionManager(selectionManager)
     , m_sourceElement(sourceElement)
     , m_createdInstance(nullptr)
     , m_createdComponent(nullptr)
@@ -105,6 +107,12 @@ void CreateComponentCommand::execute()
         // Add the instance to the model
         m_elementModel->addElement(instance);
         m_createdInstance = instance;
+        
+        // Select the newly created instance
+        if (m_selectionManager) {
+            m_selectionManager->clearSelection();
+            m_selectionManager->selectElement(instance);
+        }
     }
 }
 
