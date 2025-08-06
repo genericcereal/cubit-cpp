@@ -97,7 +97,7 @@ GroupBox {
                 if (canvas && selectedElement) {
                     // Components need special handling
                     if (selectedElement.elementType === "ComponentElement") {
-                        canvas.setEditingComponent(selectedElement.elementId, "script")
+                        canvas.setEditingElement(selectedElement, "script")
                     } else {
                         canvas.setEditingElement(selectedElement, "script")
                     }
@@ -114,13 +114,18 @@ GroupBox {
             
             
             onClicked: {
+                
                 if (canvas && selectedElement && selectedElement.elementType === "ComponentElement") {
+                    // Save the element reference before clearing selection
+                    let elementToEdit = selectedElement
+                    
                     // Clear selections before switching to edit mode
                     if (canvas.selectionManager) {
                         canvas.selectionManager.clearSelection()
                     }
                     // Switch to design mode and edit the component
-                    canvas.setEditingComponent(selectedElement.elementId, "design")
+                    canvas.setEditingElement(elementToEdit, "design")
+                } else {
                 }
             }
         }

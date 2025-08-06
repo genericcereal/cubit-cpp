@@ -72,6 +72,7 @@ signals:
     void selectedChanged();
     void elementChanged();
     void propertyChanged(const QString& name, const QVariant& value);
+    void childAddedToSourceElement(Element* child, const QString& sourceParentId);
     
 protected:
     ElementType elementType;

@@ -126,6 +126,13 @@ void Element::setParentElementId(const QString &parentId)
         
         emit parentIdChanged();
         emit elementChanged();
+        
+        // If this element's new parent is a source element with instances,
+        // we need to create corresponding child instances
+        if (!parentId.isEmpty()) {            // We need to check if the parent is a source element with instances
+            // The ElementModel will handle this check when it receives the signal
+            emit childAddedToSourceElement(this, parentId);
+        }
     }
 }
 

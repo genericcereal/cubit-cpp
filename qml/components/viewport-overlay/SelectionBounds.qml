@@ -7,6 +7,7 @@ Item {
     
     // Properties passed from ViewportOverlay
     property var selectionManager
+    property var canvas: null  // Canvas/Project to check editingElement
     property real zoomLevel: 1.0
     property var flickable
     property real canvasMinX: 0
@@ -31,6 +32,7 @@ Item {
                  !(root.shapeControlsController && root.shapeControlsController.isEditingShape) &&
                  !(root.shapeControlsController && root.shapeControlsController.isShapeControlDragging)
         selectionManager: root.selectionManager  // Pass the selection manager directly
+        canvas: root.canvas  // Pass the canvas for editingElement check
         canvasMinX: root.canvasMinX
         canvasMinY: root.canvasMinY
         zoomLevel: root.zoomLevel

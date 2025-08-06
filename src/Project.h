@@ -81,8 +81,7 @@ public:
     void setViewMode(const QString& viewMode);
     void setCanvasContext(std::unique_ptr<CanvasContext> context);
     void setId(const QString& id);  // Update project ID (e.g., after API sync)
-    Q_INVOKABLE void setEditingElement(DesignElement* element, const QString& viewMode = QString());
-    Q_INVOKABLE void setEditingComponent(const QString& componentId, const QString& viewMode = QString());
+    Q_INVOKABLE void setEditingElement(QObject* element, const QString& viewMode = QString());
     Q_INVOKABLE void setEditingPlatform(PlatformConfig* platform, const QString& viewMode = QString());
     void setDraggedVariableType(const QString& type);
     void setHoveredVariableTarget(const QVariantMap& target);

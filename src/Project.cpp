@@ -1,4 +1,5 @@
 #include "Project.h"
+#include <QDebug>
 #include "CanvasController.h"
 #include "DesignCanvas.h"
 #include "SelectionManager.h"
@@ -460,29 +461,25 @@ Scripts* Project::activeScripts() const {
     return m_scripts.get();
 }
 
-void Project::setEditingElement(DesignElement* element, const QString& viewMode) {
-    // If switching to script mode and element is null, try to auto-detect from selection
+void Project::setEditingElement(QObject* element, const QString& viewMode) {    // If switching to script mode and element is null, try to auto-detect from selection
     if (viewMode == "script" && !element && m_selectionManager) {
         auto selectedElements = m_selectionManager->selectedElements();
         
         if (selectedElements.size() == 1) {
             auto selectedElement = selectedElements.first();
             
-            // Component system removed - skip to visual design element check
-            
             // Check if it's a visual design element
             if (selectedElement) {
                 CanvasElement* canvasElement = qobject_cast<CanvasElement*>(selectedElement);
                 if (canvasElement && canvasElement->isDesignElement()) {
-                    element = qobject_cast<DesignElement*>(selectedElement);
+                    element = selectedElement;
                 }
             }
         }
     }
     
     if (m_editingElement != element) {
-        m_editingElement = element;
-        emit editingElementChanged();
+        m_editingElement = element;        emit editingElementChanged();
         updateActiveScripts();
         
         // Update the canvas controller's hit test service
@@ -496,48 +493,6 @@ void Project::setEditingElement(DesignElement* element, const QString& viewMode)
         setViewMode(viewMode);
     }
 }
-
-void Project::setEditingComponent(const QString& componentId, const QString& viewMode) {
-    
-    if (componentId.isEmpty()) {
-        // Clear component editing mode
-        if (m_editingElement) {
-            m_editingElement = nullptr;
-            emit editingElementChanged();
-        }
-        return;
-    }
-    
-    // Find the component element
-    Element* element = m_elementModel->getElementById(componentId);
-    ComponentElement* component = qobject_cast<ComponentElement*>(element);
-    
-    if (!component) {
-        qWarning() << "Cannot edit component: element" << componentId << "is not a ComponentElement";
-        return;
-    }
-    
-    for (Element* elem : component->elements()) {
-        Q_UNUSED(elem)
-    }
-    
-    // Set the component as the editing element
-    if (m_editingElement != component) {
-        m_editingElement = component;
-        emit editingElementChanged();
-    }
-    
-    // If a viewMode is specified, switch to that mode
-    if (!viewMode.isEmpty() && m_viewMode != viewMode) {
-        setViewMode(viewMode);
-    }
-}
-//     
-//     // If a viewMode is specified, switch to that mode
-//     if (!viewMode.isEmpty() && m_viewMode != viewMode) {
-//         setViewMode(viewMode);
-//     }
-// }
 
 void Project::setEditingPlatform(PlatformConfig* platform, const QString& viewMode) {
     if (m_editingElement != platform) {

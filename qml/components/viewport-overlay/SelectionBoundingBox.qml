@@ -10,6 +10,7 @@ Rectangle {
     
     // Properties for canvas coordinate system
     property var selectionManager: null  // Selection manager passed from parent
+    property var canvas: null  // Canvas/Project passed from parent to check editingElement
     property real canvasMinX: 0
     property real canvasMinY: 0
     property real zoomLevel: 1.0
@@ -53,7 +54,9 @@ Rectangle {
     // Visual properties
     color: "transparent"
     border.color: {
-        var color = allSelectedAreComponentRelated ? ConfigObject.componentControlsBorderColorString : ConfigObject.controlsBorderColorString
+        // Use purple color when editingElement is defined (editing a component/variant)
+        var isEditingElement = canvas && canvas.editingElement !== null && canvas.editingElement !== undefined
+        var color = (isEditingElement || allSelectedAreComponentRelated) ? ConfigObject.componentControlsBorderColorString : ConfigObject.controlsBorderColorString
         return color
     }
     border.width: 1

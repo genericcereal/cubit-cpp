@@ -124,7 +124,15 @@ Rectangle {
         // Back to Design Canvas button
         ToolButton {
             id: backButton
-            visible: isScriptMode || isVariantMode || isGlobalElementsMode || (canvas && canvas.editingElement !== null)
+            visible: {
+                let result = isScriptMode || isVariantMode || isGlobalElementsMode || (canvas && canvas.editingElement !== null)
+                           ", isVariantMode=" + isVariantMode + 
+                           ", isGlobalElementsMode=" + isGlobalElementsMode + 
+                           ", canvas=" + canvas +
+                           ", editingElement=" + (canvas ? canvas.editingElement : "no canvas") +
+                           ", result=" + result)
+                return result
+            }
             Layout.fillHeight: true
             Layout.preferredWidth: height
             
@@ -148,9 +156,7 @@ Rectangle {
                     if (canvas.selectionManager) {
                         canvas.selectionManager.clearSelection()
                     }
-                    // Clear component editing mode
-                    canvas.setEditingComponent("")
-                    // Also clear element editing mode
+                    // Clear element editing mode
                     canvas.setEditingElement(null, "design")
                 }
             }

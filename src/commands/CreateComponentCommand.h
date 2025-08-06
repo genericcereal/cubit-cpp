@@ -34,6 +34,9 @@ private:
     QString m_sourceParentId;
     QString m_instanceId;
     QString m_componentId;
+    QList<DesignElement*> m_createdChildInstances;  // Track created child instances for undo
+    
+    void createChildInstances(DesignElement* sourceElement, DesignElement* parentInstance);
 };
 
 #endif // CREATECOMPONENTCOMMAND_H

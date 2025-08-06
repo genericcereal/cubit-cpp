@@ -6,6 +6,7 @@
 #include "SelectionManager.h"
 #include "Application.h"
 #include "Project.h"
+#include "Component.h"
 #include "ElementTypeRegistry.h"
 #include "ProjectApiClient.h"
 #include "PlatformConfig.h"
@@ -103,6 +104,13 @@ void CreateDesignElementCommand::execute()
     // Add element to model
     m_elementModel->addElement(m_element);
 
+    // If we're editing a component, add the new element to the component's elements array
+    if (project && project->editingElement()) {
+        // Check if editingElement is a ComponentElement
+        if (ComponentElement* component = qobject_cast<ComponentElement*>(project->editingElement())) {
+            component->addElement(m_element);        }
+    }
+
     // Select the newly created element
     if (m_selectionManager && m_element) {
         m_selectionManager->selectOnly(m_element);
@@ -164,6 +172,12 @@ void CreateDesignElementCommand::undo()
         return;
     }
 
+    // If we're editing a component, remove the element from the component's elements array
+    if (project && project->editingElement() && m_element) {
+        // Check if editingElement is a ComponentElement
+        if (ComponentElement* component = qobject_cast<ComponentElement*>(project->editingElement())) {
+            component->removeElement(m_element);        }
+    }
 
     // Clear selection if the created element is selected
     if (m_selectionManager && m_selectionManager->hasSelection() && m_element) {
