@@ -161,10 +161,10 @@ void PenModeHandler::createInitialPen(const QPointF& startPoint)
     // Create initial pen with minimal size at the start point
     QRectF rect(startPoint.x(), startPoint.y(), 1, 1);
     
-    // Create the pen element
+    // Create the pen element (no parent for pen shapes)
     auto command = std::make_unique<CreateDesignElementCommand>(
         m_elementModel, m_selectionManager, 
-        "shape", rect, QVariant::fromValue(static_cast<int>(Shape::Pen)));
+        "shape", rect, QVariant::fromValue(static_cast<int>(Shape::Pen)), QString());
     
     // Store raw pointer before moving ownership
     m_currentCommand = command.get();

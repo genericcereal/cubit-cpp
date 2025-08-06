@@ -12,6 +12,7 @@ class CommandHistory;
 class CanvasElement;
 class CanvasController;
 class CreateDesignElementCommand;
+class HitTestService;
 
 class CreationModeHandler : public IModeHandler {
 public:
@@ -24,6 +25,7 @@ public:
                         ElementModel* model,
                         SelectionManager* selection,
                         CommandHistory* history,
+                        HitTestService* hitTestService,
                         std::function<void(CanvasController::Mode)> setMode);
 
     void onPress(qreal x, qreal y) override;
@@ -35,6 +37,7 @@ private:
     ElementModel*         m_elementModel;
     SelectionManager*     m_selectionManager;
     CommandHistory*       m_commandHistory;
+    HitTestService*       m_hitTestService;
     std::function<void(CanvasController::Mode)> m_setModeFunc;
 
     QPointF               m_startPos;
