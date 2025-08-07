@@ -48,7 +48,8 @@ void CreateComponentCommand::execute()
     m_createdComponent = new ComponentElement(m_componentId, m_elementModel);
     m_createdComponent->setName(m_sourceElement->getName() + " Component");
     
-    // Step 2: Add the selected element AND all its children to the component's elements array    addElementAndChildrenToComponent(m_sourceElement);
+    // Step 2: Add the selected element AND all its children to the component's elements array
+    addElementAndChildrenToComponent(m_sourceElement);
     
     // Note: We keep the source element in the model but it will be filtered out
     // from the main canvas display since it's part of a component
@@ -107,7 +108,9 @@ void CreateComponentCommand::execute()
         m_elementModel->addElement(instance);
         m_createdInstance = instance;
         
-        // Create instances for any existing children of the source element        for (Element* el : m_createdComponent->elements()) {        }
+        // Create instances for any existing children of the source element
+        for (Element* el : m_createdComponent->elements()) {
+        }
         createChildInstances(m_sourceElement, instance);
         
         // Select the newly created instance
@@ -160,10 +163,15 @@ void CreateComponentCommand::createChildInstances(DesignElement* sourceElement, 
 {
     if (!sourceElement || !parentInstance || !m_elementModel || !m_createdComponent) {
         return;
-    }    // Get children from the component's elements array instead of the main model
+    }
+    
+    // Get children from the component's elements array instead of the main model
     // This ensures we create instances for all elements that are part of the component
-    QList<Element*> componentElements = m_createdComponent->elements();    for (Element* element : componentElements) {
-        if (element->getParentElementId() == sourceElement->getId()) {            // Create an instance of this child element
+    QList<Element*> componentElements = m_createdComponent->elements();
+    
+    for (Element* element : componentElements) {
+        if (element->getParentElementId() == sourceElement->getId()) {
+            // Create an instance of this child element
             DesignElement* sourceChild = qobject_cast<DesignElement*>(element);
             if (!sourceChild) {
                 continue;
@@ -195,15 +203,18 @@ void CreateComponentCommand::createChildInstances(DesignElement* sourceElement, 
                 childInstance = webTextInstance;
             }
             
-            if (childInstance) {                // Set the instanceOf property to reference the source child element ID
+            if (childInstance) {
+                // Set the instanceOf property to reference the source child element ID
                 childInstance->setInstanceOf(sourceChild->getId());
                 // Set the componentId to track which component this instance belongs to
                 childInstance->setComponentId(m_componentId);
                 childInstance->setName(sourceChild->getName() + " Instance");
                 
-                // Set parent to the parent instance                childInstance->setParentElementId(parentInstance->getId());
+                // Set parent to the parent instance
+                childInstance->setParentElementId(parentInstance->getId());
                 
-                // Add the child instance to the model                m_elementModel->addElement(childInstance);
+                // Add the child instance to the model
+                m_elementModel->addElement(childInstance);
                 m_createdChildInstances.append(childInstance);
                 
                 // Recursively create instances for children of this child
@@ -217,7 +228,9 @@ void CreateComponentCommand::addElementAndChildrenToComponent(DesignElement* ele
 {
     if (!element || !m_createdComponent) {
         return;
-    }    // Add this element to the component
+    }
+    
+    // Add this element to the component
     m_createdComponent->addElement(element);
     m_addedToComponent.append(element);
     
@@ -233,7 +246,8 @@ void CreateComponentCommand::addElementAndChildrenToComponent(DesignElement* ele
     for (Element* child : allElements) {
         if (child->getParentElementId() == element->getId()) {
             DesignElement* designChild = qobject_cast<DesignElement*>(child);
-            if (designChild) {                addElementAndChildrenToComponent(designChild);
+            if (designChild) {
+                addElementAndChildrenToComponent(designChild);
             }
         }
     }

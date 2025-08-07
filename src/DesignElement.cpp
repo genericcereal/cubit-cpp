@@ -247,11 +247,13 @@ void DesignElement::setInstanceOf(const QString& sourceId) {
                     m_sourceConnection = connect(designSource, &QObject::destroyed,
                                                this, &DesignElement::onSourceElementDestroyed);
                     
-                    // Connect to property change signal                    connect(designSource, &Element::propertyChanged,
+                    // Connect to property change signal
+                    connect(designSource, &Element::propertyChanged,
                            this, &DesignElement::onSourceElementChanged,
                            Qt::UniqueConnection);
                     
-                    // Initial sync                    onSourceElementChanged();
+                    // Initial sync
+                    onSourceElementChanged();
                 } else {
                     qWarning() << "[DesignElement::setInstanceOf]" << getId() << "Source element not found or not a DesignElement:" << sourceId;
                 }

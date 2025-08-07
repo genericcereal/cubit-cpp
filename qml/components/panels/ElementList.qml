@@ -166,7 +166,7 @@ Item {
                             
                             property string elementId: model.element ? model.element.elementId : ""
                             
-                            visible: parentExpanded && (model.element ? model.element.showInElementList : true)
+                            visible: parentExpanded && (model.element ? model.element.showInElementList : true) && (!model.element || !model.element.ancestorInstance || model.element.ancestorInstance === "")
                             
                             // Expand/collapse box positioned absolutely
                             Rectangle {
@@ -608,7 +608,7 @@ Item {
                             
                             property string elementId: model.element ? model.element.elementId : ""
                             
-                            visible: parentExpanded && (model.element ? model.element.showInElementList : true)
+                            visible: parentExpanded && (model.element ? model.element.showInElementList : true) && (!model.element || !model.element.ancestorInstance || model.element.ancestorInstance === "")
                             
                             // Expand/collapse box positioned absolutely
                             Rectangle {
