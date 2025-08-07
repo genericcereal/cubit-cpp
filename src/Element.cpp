@@ -170,7 +170,8 @@ void Element::setProperty(const QString& name, const QVariant& value)
         return;
     }
     
-    // Otherwise use registry    m_properties->set(name, value);
+    // Otherwise use registry
+    m_properties->set(name, value);
     triggerLayoutIfNeeded(name);
 }
 
