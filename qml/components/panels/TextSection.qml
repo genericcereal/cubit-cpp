@@ -323,7 +323,11 @@ PropertyGroup {
                                     updateWeightModel()
                                     
                                     // Watch for font family changes on the selected element
-                                    if (root.selectedElement) {
+                                    // Only Text elements have fontChanged signal
+                                    if (root.selectedElement && 
+                                        (root.selectedElement.elementType === "Text" || 
+                                         root.selectedElement.elementType === "TextComponentVariant") &&
+                                        root.selectedElement.fontChanged) {
                                         root.selectedElement.fontChanged.connect(updateWeightModel)
                                     }
                                     

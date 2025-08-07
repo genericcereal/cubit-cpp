@@ -715,3 +715,19 @@ void ElementModel::createChildInstancesForSourceChild(Element* childElement, con
             delete newChildInstance; // Clean up if it's not a DesignElement
         }
     }}
+
+QList<Element*> ElementModel::getDescendantsOfInstance(const QString &instanceId) const {
+    QList<Element*> descendants;
+    
+    for (Element* element : m_elements) {
+        DesignElement* designElement = qobject_cast<DesignElement*>(element);
+        if (designElement) {
+            QString ancestorInstance = designElement->ancestorInstance();
+            if (ancestorInstance == instanceId) {
+                descendants.append(element);
+            }
+        }
+    }
+    
+    return descendants;
+}

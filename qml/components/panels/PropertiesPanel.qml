@@ -24,14 +24,35 @@ ScrollView {
         return []
     }
     
+    // Get all descendants when an outermost instance is selected
+    property var descendants: {
+        if (selectedDesignElement && selectedDesignElement.isInstance && 
+            selectedDesignElement.isInstance() && 
+            (!selectedDesignElement.ancestorInstance || selectedDesignElement.ancestorInstance === "")) {
+            // This is an outermost instance (has instanceOf but no ancestorInstance)
+            var elementModel = canvas ? canvas.elementModel : null
+            if (elementModel && selectedDesignElement.instanceOf) {
+                var descendantsList = elementModel.getDescendantsOfInstance(selectedDesignElement.instanceOf)
+                // Convert to a JavaScript array to ensure proper access in QML
+                var result = []
+                for (var i = 0; i < descendantsList.length; i++) {
+                    result.push(descendantsList[i])
+                }
+                return result
+            }
+        }
+        return []
+    }
+    
     // Signal emitted when PropertyPopover is clicked
-    signal panelSelectorClicked(var selector, string type)
+    signal panelSelectorClicked(var selector, string type, var targetElement)
     
     
     ColumnLayout {
         width: root.width
         spacing: 10
         
+        // Sections for the main selected element
         ActionsSection {
             selectedElement: root.selectedElement
             canvas: root.canvas
@@ -61,7 +82,7 @@ ScrollView {
         FrameStyleSection {
             selectedElement: root.selectedElement
             onPanelSelectorClicked: function(selector, type) {
-                root.panelSelectorClicked(selector, type)
+                root.panelSelectorClicked(selector, type, root.selectedElement)
             }
         }
         
@@ -73,7 +94,7 @@ ScrollView {
         TextSection {
             selectedElement: root.selectedElement
             onPanelSelectorClicked: function(selector, type) {
-                root.panelSelectorClicked(selector, type)
+                root.panelSelectorClicked(selector, type, root.selectedElement)
             }
         }
         
@@ -81,13 +102,98 @@ ScrollView {
             selectedElement: root.selectedElement
             canvas: root.canvas
             onPanelSelectorClicked: function(selector, type) {
-                root.panelSelectorClicked(selector, type)
+                root.panelSelectorClicked(selector, type, root.selectedElement)
             }
         }
         
         VariableSection {
             selectedElement: root.selectedElement
             canvas: root.canvas
+        }
+        
+        // Render all sections for each descendant
+        Repeater {
+            model: root.descendants
+            
+            delegate: ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 10
+                
+                property var descendantElement: root.descendants[index]
+                
+                // Separator and header for this descendant
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 1
+                    color: "#e0e0e0"
+                }
+                
+                Label {
+                    text: "Instance Child: " + (descendantElement ? (descendantElement.name || descendantElement.elementId) : "Unknown")
+                    font.weight: Font.Medium
+                    font.pixelSize: 14
+                    color: "#333"
+                    padding: 10
+                    Layout.fillWidth: true
+                }
+                
+                GeneralProperties {
+                    Layout.fillWidth: true
+                    selectedElement: descendantElement
+                    editableProperties: descendantElement && descendantElement.elementType === "FrameComponentInstance" ? descendantElement.getEditableProperties() : []
+                    canvas: root.canvas
+                }
+                
+                PositionSection {
+                    Layout.fillWidth: true
+                    selectedElement: descendantElement
+                    editableProperties: descendantElement && descendantElement.elementType === "FrameComponentInstance" ? descendantElement.getEditableProperties() : []
+                }
+                
+                SizeSection {
+                    Layout.fillWidth: true
+                    selectedElement: descendantElement
+                    editableProperties: descendantElement && descendantElement.elementType === "FrameComponentInstance" ? descendantElement.getEditableProperties() : []
+                }
+                
+                FrameStyleSection {
+                    Layout.fillWidth: true
+                    selectedElement: descendantElement
+                    editableProperties: descendantElement && descendantElement.elementType === "FrameComponentInstance" ? descendantElement.getEditableProperties() : []
+                    onPanelSelectorClicked: function(selector, type) {
+                        root.panelSelectorClicked(selector, type, descendantElement)
+                    }
+                }
+                
+                FlexLayoutSection {
+                    Layout.fillWidth: true
+                    selectedElement: descendantElement
+                    editableProperties: descendantElement && descendantElement.elementType === "FrameComponentInstance" ? descendantElement.getEditableProperties() : []
+                }
+                
+                TextSection {
+                    Layout.fillWidth: true
+                    selectedElement: descendantElement
+                    onPanelSelectorClicked: function(selector, type) {
+                        root.panelSelectorClicked(selector, type, descendantElement)
+                    }
+                }
+                
+                ShapeSection {
+                    Layout.fillWidth: true
+                    selectedElement: descendantElement
+                    canvas: root.canvas
+                    onPanelSelectorClicked: function(selector, type) {
+                        root.panelSelectorClicked(selector, type, descendantElement)
+                    }
+                }
+                
+                VariableSection {
+                    Layout.fillWidth: true
+                    selectedElement: descendantElement
+                    canvas: root.canvas
+                }
+            }
         }
         
         Item {

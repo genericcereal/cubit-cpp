@@ -1138,10 +1138,13 @@ Item {
         }
     }
     
-    // Component for creating connections to frame elements
+    // Component for creating connections to design elements
     Component {
         id: elementConnectionComponent
         Connections {
+            ignoreUnknownSignals: true
+            
+            // Only Frame elements have these signals
             function onFlexChanged() {
                 root.updateShowFlexResizeJoints()
             }
@@ -1151,6 +1154,7 @@ Item {
             function onHeightTypeChanged() {
                 root.updateShowFlexResizeJoints()
             }
+            // All DesignElements have this signal
             function onInstanceOfChanged() {
                 root.updateComponentRelatedStatus()
             }

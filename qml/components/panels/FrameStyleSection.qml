@@ -242,13 +242,16 @@ PropertyGroup {
                                             selectedElement.borderColor = Qt.rgba(0, 0, 0, 1)
                                             selectedElement.borderStyle = "Solid"
                                         } else if (modelData.popoverType === "boxShadow") {
-                                            selectedElement.boxShadow = {
-                                                offsetX: 0,
-                                                offsetY: 4,
-                                                blurRadius: 8,
-                                                spreadRadius: 0,
-                                                color: Qt.rgba(0.267, 0.267, 0.267, 1),
-                                                enabled: true
+                                            if (Application.activeController) {
+                                                var shadow = {
+                                                    offsetX: 0,
+                                                    offsetY: 4,
+                                                    blurRadius: 8,
+                                                    spreadRadius: 0,
+                                                    color: Qt.rgba(0.267, 0.267, 0.267, 1),
+                                                    enabled: true
+                                                }
+                                                Application.activeController.setElementProperty(selectedElement, "boxShadow", shadow)
                                             }
                                         }
                                     }
