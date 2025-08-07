@@ -35,8 +35,10 @@ private:
     QString m_instanceId;
     QString m_componentId;
     QList<DesignElement*> m_createdChildInstances;  // Track created child instances for undo
+    QList<DesignElement*> m_addedToComponent;  // Track all elements added to component for undo
     
     void createChildInstances(DesignElement* sourceElement, DesignElement* parentInstance);
+    void addElementAndChildrenToComponent(DesignElement* element);
 };
 
 #endif // CREATECOMPONENTCOMMAND_H

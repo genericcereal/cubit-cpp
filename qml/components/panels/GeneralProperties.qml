@@ -67,6 +67,28 @@ PropertyGroup {
             visible: () => selectedElement && selectedElement.isDesignElement
         },
         {
+            name: "Instance Of",
+            type: "label",
+            getter: () => {
+                if (selectedElement && selectedElement.isDesignElement && selectedElement.instanceOf) {
+                    return selectedElement.instanceOf || "None"
+                }
+                return "None"
+            },
+            visible: () => selectedElement && selectedElement.isDesignElement
+        },
+        {
+            name: "Ancestor Instance",
+            type: "label",
+            getter: () => {
+                if (selectedElement && selectedElement.isDesignElement && selectedElement.ancestorInstance) {
+                    return selectedElement.ancestorInstance || "None"
+                }
+                return "None"
+            },
+            visible: () => selectedElement && selectedElement.isDesignElement
+        },
+        {
             name: "Variant",
             type: "combobox",
             getter: () => {

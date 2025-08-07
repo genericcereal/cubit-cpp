@@ -22,8 +22,7 @@ Element::Element(ElementType type, const QString &id, QObject *parent)
 {
     // Connect property registry changes to element's propertyChanged signal
     connect(m_properties.get(), &PropertyRegistry::propertyChanged,
-            this, [this](const QString& name, const QVariant&, const QVariant& newValue) {
-                emit propertyChanged(name, newValue);
+            this, [this](const QString& name, const QVariant& oldValue, const QVariant& newValue) {                emit propertyChanged(name, newValue);
                 emit elementChanged();
             });
     
@@ -157,8 +156,7 @@ QVariant Element::getProperty(const QString& name) const
 }
 
 void Element::setProperty(const QString& name, const QVariant& value)
-{
-    // Handle core properties
+{    // Handle core properties
     if (name == "name") {
         setName(value.toString());
         return;
@@ -172,8 +170,7 @@ void Element::setProperty(const QString& name, const QVariant& value)
         return;
     }
     
-    // Otherwise use registry
-    m_properties->set(name, value);
+    // Otherwise use registry    m_properties->set(name, value);
     triggerLayoutIfNeeded(name);
 }
 

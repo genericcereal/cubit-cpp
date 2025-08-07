@@ -187,7 +187,8 @@ void ElementModel::addElement(Element *element)
             if (DesignElement* de = qobject_cast<DesignElement*>(e)) {
                 if (de->instanceOf() == parentId) {
                     hasInstances = true;
-                    instanceCount++;                }
+                    instanceCount++;
+                }
             }
         }
         
@@ -472,8 +473,21 @@ void ElementModel::connectSourceElement(Element* sourceElement)
     QPointer<ElementModel> safeModel = this;
     
     // Connect to property changes based on element type
-    // For CanvasElement properties (width, height only - position changes handled by move command)
+    // For CanvasElement properties (including position for child elements)
     if (CanvasElement* canvasElement = qobject_cast<CanvasElement*>(sourceElement)) {
+        // For child elements, we need to sync position changes too
+        connect(canvasElement, &CanvasElement::xChanged,
+                this, [safeSource, safeModel]() {
+                    if (safeSource && safeModel) {                        safeModel->syncInstancesFromSource(safeSource);
+                    }
+                });
+                
+        connect(canvasElement, &CanvasElement::yChanged,
+                this, [safeSource, safeModel]() {
+                    if (safeSource && safeModel) {                        safeModel->syncInstancesFromSource(safeSource);
+                    }
+                });
+        
         connect(canvasElement, &CanvasElement::widthChanged,
                 this, [safeSource, safeModel]() {
                     if (safeSource && safeModel) {
@@ -592,33 +606,42 @@ void ElementModel::syncInstancesFromSource(Element* sourceElement)
 {
     if (!sourceElement) return;
     
-    QString sourceId = sourceElement->getId();
-    
-    // Find all instances with this source ID
+    QString sourceId = sourceElement->getId();    // Find all instances with this source ID
     for (Element* element : m_elements) {
         if (DesignElement* designElement = qobject_cast<DesignElement*>(element)) {
-            if (designElement->instanceOf() == sourceId) {
+            if (designElement->instanceOf() == sourceId) {                // Check if this is a child element (has a parent)
+                bool isChildElement = !sourceElement->getParentElementId().isEmpty();
+                
                 // Update properties from source
                 QStringList propNames = sourceElement->propertyNames();
                 
                 for (const QString& propName : propNames) {
-                    // Skip properties that shouldn't be synced
-                    if (propName != "elementId" && propName != "parentId" && 
-                        propName != "selected" && propName != "x" && propName != "y") {
-                        
-                        QVariant value = sourceElement->getProperty(propName);
-                        element->setProperty(propName, value);
+                    // For child elements, we sync position too
+                    // For root instances, we skip position to maintain their placement
+                    if (propName == "elementId" || propName == "parentId" || propName == "selected") {
+                        continue;
                     }
+                    
+                    // Skip x/y for root instances, but sync for child elements
+                    if ((propName == "x" || propName == "y") && !isChildElement) {
+                        continue;
+                    }
+                    
+                    QVariant value = sourceElement->getProperty(propName);
+                    element->setProperty(propName, value);
                 }
                 
-                // Update size properties if applicable
+                // Update geometry properties if applicable
                 if (CanvasElement* sourceCanvas = qobject_cast<CanvasElement*>(sourceElement)) {
                     if (CanvasElement* instanceCanvas = qobject_cast<CanvasElement*>(element)) {
+                        // For child elements, sync position too
+                        if (isChildElement) {                            instanceCanvas->setX(sourceCanvas->x());
+                            instanceCanvas->setY(sourceCanvas->y());
+                        }
                         instanceCanvas->setWidth(sourceCanvas->width());
                         instanceCanvas->setHeight(sourceCanvas->height());
                     }
-                }
-            }
+                }            }
         }
     }
 }
@@ -648,8 +671,8 @@ void ElementModel::createChildInstancesForSourceChild(Element* childElement, con
     QList<DesignElement*> parentInstances;
     for (Element* e : m_elements) {
         if (DesignElement* de = qobject_cast<DesignElement*>(e)) {
-            if (de->instanceOf() == sourceParentId) {
-                parentInstances.append(de);            }
+            if (de->instanceOf() == sourceParentId) {                parentInstances.append(de);
+            }
         }
     }    // For each parent instance, create a corresponding child instance
     for (DesignElement* parentInstance : parentInstances) {
@@ -660,24 +683,34 @@ void ElementModel::createChildInstancesForSourceChild(Element* childElement, con
         // Update the data for the instance
         childData["elementId"] = childInstanceId;
         childData["name"] = childElement->getName() + " Instance";
-        childData["parentId"] = parentInstance->getId(); // Set parent to the instance parent        // Deserialize to create the new child instance
+        childData["parentId"] = parentInstance->getId(); // Set parent to the instance parent
+        
+        // Deserialize to create the new child instance
         Element* newChildInstance = serializer->deserializeElement(childData, this);
         if (!newChildInstance) {
             qWarning() << "Failed to create child instance for" << childElement->getName();
             continue;
-        }        // Cast to DesignElement and set instanceOf
-        if (DesignElement* childDesignInstance = qobject_cast<DesignElement*>(newChildInstance)) {
-            childDesignInstance->setInstanceOf(childElement->getId());            // Copy the componentId from the parent instance
-            childDesignInstance->setComponentId(parentInstance->componentId());            // Add the child instance to the model
+        }
+        
+        // Cast to DesignElement and set instanceOf
+        if (DesignElement* childDesignInstance = qobject_cast<DesignElement*>(newChildInstance)) {            // Add the child instance to the model FIRST so it has a parent when setInstanceOf is called
             // Note: We don't call addElement here to avoid infinite recursion
             // Instead, we'll insert it directly
             beginInsertRows(QModelIndex(), m_elements.size(), m_elements.size());
             m_elements.append(newChildInstance);
-            newChildInstance->setParent(this);
-            connectElement(newChildInstance);
-            endInsertRows();            emit elementAdded(newChildInstance);
-            emit elementChanged();
-        } else {
+            newChildInstance->setParent(this);  // Set parent BEFORE calling setInstanceOf            // Now that parent is set, setInstanceOf can find the ElementModel
+            childDesignInstance->setInstanceOf(childElement->getId());
+            
+            // Copy the componentId from the parent instance
+            childDesignInstance->setComponentId(parentInstance->componentId());
+            
+            // Set ancestorInstance to the source parent ID since this is a child of an instance
+            // The source parent is the actual source element that has instances
+            childDesignInstance->setAncestorInstance(sourceParentId);            connectElement(newChildInstance);
+            endInsertRows();
+            
+            emit elementAdded(newChildInstance);
+            emit elementChanged();        } else {
             qWarning() << "    Failed to cast to DesignElement";
             delete newChildInstance; // Clean up if it's not a DesignElement
         }
