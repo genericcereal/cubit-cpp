@@ -57,6 +57,13 @@ void HitTestService::setCanvasType(CanvasType type)
     if (m_canvasType != type) {
         m_canvasType = type;
         m_visualsCacheValid = false;  // Invalidate cache
+        
+        // Clear the filter proxy when switching to script mode to avoid dangling pointers
+        // Script mode doesn't need the ElementFilterProxy anyway
+        if (type == CanvasType::Script) {
+            setElementFilterProxy(nullptr);
+        }
+        
         rebuildSpatialIndex();
     }
 }
@@ -333,21 +340,6 @@ bool HitTestService::shouldTestElement(Element* element) const
 {
     if (!element) return false;
     
-    // If we have an ElementFilterProxy, use it to determine visibility
-    // This ensures hit testing is consistent with what's shown in the ElementList
-    if (m_filterProxy) {
-        // Use the public method to check if element should be shown
-        if (!m_filterProxy->shouldShowElement(element)) {
-            return false;
-        }
-    }
-    
-    // If we have a canvas context, let it decide
-    if (m_canvasContext) {
-        return m_canvasContext->shouldIncludeInHitTest(element);
-    }
-    
-    // If ElementFilterProxy is not set, fall back to basic checks
     // Non-visual elements are never hit-testable
     CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
     if (!canvasElement) {
@@ -359,18 +351,34 @@ bool HitTestService::shouldTestElement(Element* element) const
         return false;
     }
     
+    // In script mode, only test script elements (nodes and edges)
+    // Don't use ElementFilterProxy for script mode since script elements don't appear in ElementList
+    if (m_canvasType == CanvasType::Script) {
+        return canvasElement->isScriptElement();
+    }
     
-    // Apply view mode filtering (matching ElementFilterProxy logic)
+    // In design mode, check if element is a design element
     if (m_canvasType == CanvasType::Design) {
-        // In design mode, test design elements
+        // Fall back to basic check for design elements first
         if (!canvasElement->isDesignElement()) {
             return false;
         }
+        
+        // Use ElementFilterProxy if available to ensure consistency with ElementList
+        // Note: We clear m_filterProxy when switching to script mode to avoid crashes
+        if (m_filterProxy) {
+            // Use the public method to check if element should be shown
+            if (!m_filterProxy->shouldShowElement(element)) {
+                return false;
+            }
+        }
+        
+        // If we have a canvas context, let it decide
+        if (m_canvasContext) {
+            return m_canvasContext->shouldIncludeInHitTest(element);
+        }
+        
         return true;
-    }
-    else if (m_canvasType == CanvasType::Script) {
-        // In script mode, only test script elements (nodes and edges)
-        return canvasElement->isScriptElement();
     }
     
     return false;

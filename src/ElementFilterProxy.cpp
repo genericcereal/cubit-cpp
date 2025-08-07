@@ -148,6 +148,25 @@ void ElementFilterProxy::setFilterComponentsOnly(bool filter) {
 }
 
 bool ElementFilterProxy::shouldShowElement(Element* element) const {
+    // Check if we have a valid source model before calling shouldShowElementInMode
+    // This prevents crashes during context transitions
+    if (!sourceModel()) {
+        // Without a source model, we can't properly filter
+        // Return a safe default based on basic element properties
+        if (!element) return false;
+        
+        // Non-visual elements are not shown
+        CanvasElement* canvasElement = qobject_cast<CanvasElement*>(element);
+        if (!canvasElement) return false;
+        
+        // In design mode, show design elements; in script mode show nothing
+        // (script elements are handled separately by the canvas)
+        if (m_viewMode == "design") {
+            return canvasElement->isDesignElement();
+        }
+        return false;
+    }
+    
     return shouldShowElementInMode(element);
 }
 
@@ -201,13 +220,15 @@ bool ElementFilterProxy::shouldShowElementInMode(Element* element) const {
     }
     
     // Check if this element belongs to any component (and we're not editing that component)
-    if (ElementModel* model = qobject_cast<ElementModel*>(sourceModel())) {
-        QList<Element*> allElements = model->getAllElements();
-        for (Element* el : allElements) {
-            if (ComponentElement* comp = qobject_cast<ComponentElement*>(el)) {
-                if (comp->elements().contains(element)) {
-                    // This element belongs to a component, don't show it in main view
-                    return false;
+    if (sourceModel()) {
+        if (ElementModel* model = qobject_cast<ElementModel*>(sourceModel())) {
+            QList<Element*> allElements = model->getAllElements();
+            for (Element* el : allElements) {
+                if (ComponentElement* comp = qobject_cast<ComponentElement*>(el)) {
+                    if (comp->elements().contains(element)) {
+                        // This element belongs to a component, don't show it in main view
+                        return false;
+                    }
                 }
             }
         }
@@ -289,22 +310,24 @@ bool ElementFilterProxy::shouldShowElementInMode(Element* element) const {
         // Component variants no longer exist, so no check needed
         
         // Check if this element has a ComponentVariant as an ancestor
-        if (ElementModel* model = qobject_cast<ElementModel*>(sourceModel())) {
-            Element* current = element;
-            int maxDepth = 100; // Prevent infinite loops
-            int depth = 0;
-            
-            while (current && !current->getParentElementId().isEmpty() && depth < maxDepth) {
-                // Find the parent element
-                Element* parent = model->getElementById(current->getParentElementId());
-                if (!parent) {
-                    break;
+        if (sourceModel()) {
+            if (ElementModel* model = qobject_cast<ElementModel*>(sourceModel())) {
+                Element* current = element;
+                int maxDepth = 100; // Prevent infinite loops
+                int depth = 0;
+                
+                while (current && !current->getParentElementId().isEmpty() && depth < maxDepth) {
+                    // Find the parent element
+                    Element* parent = model->getElementById(current->getParentElementId());
+                    if (!parent) {
+                        break;
+                    }
+                    
+                    // Component variants no longer exist, so no parent check needed
+                    
+                    current = parent;
+                    depth++;
                 }
-                
-                // Component variants no longer exist, so no parent check needed
-                
-                current = parent;
-                depth++;
             }
         }
         
