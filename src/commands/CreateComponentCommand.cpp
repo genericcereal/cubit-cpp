@@ -141,8 +141,8 @@ void CreateComponentCommand::undo()
         for (DesignElement* element : m_addedToComponent) {
             m_createdComponent->removeElement(element);
             
-            // Reset the isVariant property since it's no longer part of a component
-            if (element) {
+            // Only reset the isVariant property for the outermost element (source element)
+            if (element == m_sourceElement && element) {
                 element->setProperty("isVariant", false);
             }
         }
@@ -234,11 +234,14 @@ void CreateComponentCommand::addElementAndChildrenToComponent(DesignElement* ele
     m_createdComponent->addElement(element);
     m_addedToComponent.append(element);
     
-    // Mark the element as a variant since it's now part of a component
-    if (element->hasProperty("isVariant")) {
-        element->setProperty("isVariant", true);
-    } else {
-        qWarning() << "Element does not have isVariant property:" << element->getId() << element->getTypeName();
+    // Only mark the outermost element (the source element) as a variant
+    // Children should not have isVariant set to true
+    if (element == m_sourceElement) {
+        if (element->hasProperty("isVariant")) {
+            element->setProperty("isVariant", true);
+        } else {
+            qWarning() << "Element does not have isVariant property:" << element->getId() << element->getTypeName();
+        }
     }
     
     // Recursively add all children

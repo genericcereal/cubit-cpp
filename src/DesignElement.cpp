@@ -257,8 +257,6 @@ void DesignElement::setInstanceOf(const QString& sourceId) {
                 } else {
                     qWarning() << "[DesignElement::setInstanceOf]" << getId() << "Source element not found or not a DesignElement:" << sourceId;
                 }
-            } else {
-                qWarning() << "[DesignElement::setInstanceOf]" << getId() << "No ElementModel found in parent";
             }
         }
     }

@@ -265,6 +265,7 @@ Item {
             property real offsetY: 0
             property string currentType: ""
             property bool manuallyPositioned: false
+            property var targetElement: null  // The element being edited (could be descendant)
             
             // Position will be set dynamically based on where it was triggered
             x: 0
@@ -292,6 +293,7 @@ Item {
                 selectorPanel.anchorSelector = null
                 selectorPanel.currentType = ""
                 selectorPanel.manuallyPositioned = false
+                selectorPanel.targetElement = null
             }
             
             onBackRequested: {
@@ -329,22 +331,23 @@ Item {
             
             // Get the current color based on the popover type
             property var currentColor: {
-                if (!selectedElement) return Qt.rgba(0.8, 0.8, 0.8, 1)
+                var elementToCheck = selectorPanel.targetElement || selectedElement
+                if (!elementToCheck) return Qt.rgba(0.8, 0.8, 0.8, 1)
                 
                 switch (selectorPanel.currentType) {
                     case "fill":
-                        if (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance") {
-                            return selectedElement.fill || Qt.rgba(0.8, 0.8, 0.8, 1)
+                        if (elementToCheck.elementType === "Frame" || elementToCheck.elementType === "FrameComponentVariant" || elementToCheck.elementType === "FrameComponentInstance") {
+                            return elementToCheck.fill || Qt.rgba(0.8, 0.8, 0.8, 1)
                         }
                         break
                     case "edgeColor":
-                        if (selectedElement.elementType === "Shape") {
-                            return selectedElement.edgeColor || Qt.rgba(0, 0, 0, 1)
+                        if (elementToCheck.elementType === "Shape") {
+                            return elementToCheck.edgeColor || Qt.rgba(0, 0, 0, 1)
                         }
                         break
                     case "fillColor":
-                        if (selectedElement.elementType === "Shape") {
-                            return selectedElement.fillColor || Qt.rgba(1, 1, 1, 1)
+                        if (elementToCheck.elementType === "Shape") {
+                            return elementToCheck.fillColor || Qt.rgba(1, 1, 1, 1)
                         }
                         break
                 }
@@ -372,8 +375,9 @@ Item {
             }
             
             colorFormat: {
-                if (selectedElement && selectedElement.colorFormat !== undefined) {
-                    return selectedElement.colorFormat
+                var elementToCheck = selectorPanel.targetElement || selectedElement
+                if (elementToCheck && elementToCheck.colorFormat !== undefined) {
+                    return elementToCheck.colorFormat
                 }
                 return 1  // Default to HEX
             }
@@ -381,30 +385,33 @@ Item {
             fillType: 0  // Default to Solid for now
             
             onColorChanged: function(newColor) {
-                if (!selectedElement) return
+                // Use targetElement if available, otherwise fall back to selectedElement
+                var elementToModify = selectorPanel.targetElement || selectedElement
+                if (!elementToModify) return
                 
                 switch (selectorPanel.currentType) {
                     case "fill":
-                        if (selectedElement.elementType === "Frame" || selectedElement.elementType === "FrameComponentVariant" || selectedElement.elementType === "FrameComponentInstance") {
-                            selectedElement.fill = newColor
+                        if (elementToModify.elementType === "Frame" || elementToModify.elementType === "FrameComponentVariant" || elementToModify.elementType === "FrameComponentInstance") {
+                            elementToModify.fill = newColor
                         }
                         break
                     case "edgeColor":
-                        if (selectedElement.elementType === "Shape") {
-                            selectedElement.edgeColor = newColor
+                        if (elementToModify.elementType === "Shape") {
+                            elementToModify.edgeColor = newColor
                         }
                         break
                     case "fillColor":
-                        if (selectedElement.elementType === "Shape") {
-                            selectedElement.fillColor = newColor
+                        if (elementToModify.elementType === "Shape") {
+                            elementToModify.fillColor = newColor
                         }
                         break
                 }
             }
             
             onColorFormatChanged: function(newFormat) {
-                if (selectedElement && selectedElement.colorFormat !== undefined) {
-                    selectedElement.colorFormat = newFormat
+                var elementToModify = selectorPanel.targetElement || selectedElement
+                if (elementToModify && elementToModify.colorFormat !== undefined) {
+                    elementToModify.colorFormat = newFormat
                 }
             }
             
@@ -434,8 +441,8 @@ Item {
         id: fontComponent
         FontPicker {
             id: fontPickerInstance
-            property var selectedElement: root.canvas && root.canvas.selectionManager 
-                ? root.canvas.selectionManager.selectedElements[0] : null
+            property var selectedElement: selectorPanel.targetElement || (root.canvas && root.canvas.selectionManager 
+                ? root.canvas.selectionManager.selectedElements[0] : null)
             
             currentFontFamily: selectedElement && selectedElement.font ? selectedElement.font.family : ""
             
@@ -455,8 +462,8 @@ Item {
     Component {
         id: boxShadowComponent
         Item {
-            property var selectedElement: root.canvas && root.canvas.selectionManager 
-                ? root.canvas.selectionManager.selectedElements[0] : null
+            property var selectedElement: selectorPanel.targetElement || (root.canvas && root.canvas.selectionManager 
+                ? root.canvas.selectionManager.selectedElements[0] : null)
             property var controller: root.canvas ? root.canvas.controller : null
             property bool showColorPicker: false
             
@@ -768,8 +775,8 @@ Item {
     Component {
         id: borderComponent
         Item {
-            property var selectedElement: root.canvas && root.canvas.selectionManager 
-                ? root.canvas.selectionManager.selectedElements[0] : null
+            property var selectedElement: selectorPanel.targetElement || (root.canvas && root.canvas.selectionManager 
+                ? root.canvas.selectionManager.selectedElements[0] : null)
             property var controller: root.canvas ? root.canvas.controller : null
             property bool showColorPicker: false
             
@@ -998,8 +1005,11 @@ Item {
     // Connect properties panel to selector panel
     Connections {
         target: detailPanel.propertiesPanel
-        function onPanelSelectorClicked(selector, type) {
+        function onPanelSelectorClicked(selector, type, targetElement) {
             // Panel selector clicked
+            
+            // Store the target element (could be a descendant)
+            selectorPanel.targetElement = targetElement || selectedElement
             
             // Position the panel to the left of the detail panel
             var detailPanelPos = detailPanel.mapToItem(popoverOverlay, 0, 0)

@@ -50,6 +50,9 @@ public:
     // Instance synchronization
     Q_INVOKABLE void syncInstancesFromSource(Element* sourceElement);
     
+    // Get all descendants of an instance (elements with ancestorInstance = instanceId)
+    Q_INVOKABLE QList<Element*> getDescendantsOfInstance(const QString &instanceId) const;
+    
 signals:
     void elementAdded(Element *element);
     void elementRemoved(const QString &elementId);

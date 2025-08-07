@@ -151,6 +151,14 @@ QVariant Element::getProperty(const QString& name) const
     if (name == "parentId") return getParentElementId();
     if (name == "selected") return isSelected();
     
+    // Check if it's a Q_PROPERTY using Qt's meta-object system
+    const QMetaObject* metaObj = metaObject();
+    int propertyIndex = metaObj->indexOfProperty(name.toUtf8().constData());
+    if (propertyIndex >= 0) {
+        QMetaProperty metaProp = metaObj->property(propertyIndex);
+        return metaProp.read(this);
+    }
+    
     // Then check registry
     return m_properties->get(name);
 }
@@ -170,6 +178,18 @@ void Element::setProperty(const QString& name, const QVariant& value)
         return;
     }
     
+    // Check if it's a Q_PROPERTY using Qt's meta-object system
+    const QMetaObject* metaObj = metaObject();
+    int propertyIndex = metaObj->indexOfProperty(name.toUtf8().constData());
+    if (propertyIndex >= 0) {
+        QMetaProperty metaProp = metaObj->property(propertyIndex);
+        if (metaProp.isWritable()) {
+            metaProp.write(this, value);
+            triggerLayoutIfNeeded(name);
+            return;
+        }
+    }
+    
     // Otherwise use registry
     m_properties->set(name, value);
     triggerLayoutIfNeeded(name);
@@ -179,6 +199,13 @@ bool Element::hasProperty(const QString& name) const
 {
     // Check core properties
     if (name == "name" || name == "elementId" || name == "parentId" || name == "selected") {
+        return true;
+    }
+    
+    // Check if it's a Q_PROPERTY using Qt's meta-object system
+    const QMetaObject* metaObj = metaObject();
+    int propertyIndex = metaObj->indexOfProperty(name.toUtf8().constData());
+    if (propertyIndex >= 0) {
         return true;
     }
     

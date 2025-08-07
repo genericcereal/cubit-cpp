@@ -250,7 +250,8 @@ void Application::removeProject(const QString& projectId) {
         m_canvases.erase(it);
         
         emit canvasListChanged();
-        emit canvasRemoved(projectId);
+        // Don't emit canvasRemoved here - it's emitted by the CloseProjectCommand
+        // to avoid duplicate signals and potential crashes
     }
 }
 
