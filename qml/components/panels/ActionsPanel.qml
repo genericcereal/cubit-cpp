@@ -44,8 +44,7 @@ Rectangle {
         }
         return false
     }
-    
-    
+
     RowLayout {
         anchors.fill: parent
         anchors.margins: 8
@@ -126,11 +125,6 @@ Rectangle {
             id: backButton
             visible: {
                 let result = isScriptMode || isVariantMode || isGlobalElementsMode || (canvas && canvas.editingElement !== null)
-                           ", isVariantMode=" + isVariantMode + 
-                           ", isGlobalElementsMode=" + isGlobalElementsMode + 
-                           ", canvas=" + canvas +
-                           ", editingElement=" + (canvas ? canvas.editingElement : "no canvas") +
-                           ", result=" + result)
                 return result
             }
             Layout.fillHeight: true
@@ -328,8 +322,7 @@ Rectangle {
             ToolTip.visible: hovered
             ToolTip.text: "Pen Mode"
         }
-        
-        
+
         ToolButton {
             id: variableButton
             visible: !isScriptMode

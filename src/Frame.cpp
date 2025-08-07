@@ -56,10 +56,9 @@ void Frame::setElementModel(ElementModel* model)
 void Frame::setFill(const QColor &color)
 {
     // Setting fill color
-    if (m_fill != color) {
-        m_fill = color;
+    if (m_fill != color) {        m_fill = color;
         emit fillChanged();
-        emit elementChanged();
+        emit propertyChanged("fill", QVariant::fromValue(m_fill));        emit elementChanged();
     }
 }
 
@@ -77,6 +76,7 @@ void Frame::setBorderColor(const QColor &color)
     if (m_borderColor != color) {
         m_borderColor = color;
         emit borderColorChanged();
+        emit propertyChanged("borderColor", QVariant::fromValue(m_borderColor));
         emit elementChanged();
     }
 }
@@ -86,6 +86,7 @@ void Frame::setBorderWidth(int width)
     if (m_borderWidth != width) {
         m_borderWidth = width;
         emit borderWidthChanged();
+        emit propertyChanged("borderWidth", QVariant(m_borderWidth));
         emit elementChanged();
     }
 }
@@ -101,10 +102,9 @@ void Frame::setBorderStyle(const QString &style)
 
 void Frame::setBorderRadius(int radius)
 {
-    if (m_borderRadius != radius) {
-        m_borderRadius = radius;
+    if (m_borderRadius != radius) {        m_borderRadius = radius;
         emit borderRadiusChanged();
-        emit elementChanged();
+        emit propertyChanged("borderRadius", QVariant(m_borderRadius));        emit elementChanged();
     }
 }
 
@@ -113,6 +113,7 @@ void Frame::setOverflow(OverflowMode mode)
     if (m_overflow != mode) {
         m_overflow = mode;
         emit overflowChanged();
+        emit propertyChanged("overflow", QVariant(static_cast<int>(m_overflow)));
         emit elementChanged();
     }
 }
@@ -134,6 +135,7 @@ void Frame::setFlex(bool flex)
         
         m_flex = flex;
         emit flexChanged();
+        emit propertyChanged("flex", QVariant(m_flex));
         emit elementChanged();
         
         // Emit canResize signals if the state changed
@@ -173,10 +175,9 @@ void Frame::setOrientation(LayoutOrientation orientation)
 
 void Frame::setGap(qreal gap)
 {
-    if (m_gap != gap) {
-        m_gap = gap;
+    if (m_gap != gap) {        m_gap = gap;
         emit gapChanged();
-        emit elementChanged();
+        emit propertyChanged("gap", QVariant(m_gap));        emit elementChanged();
         
         if (m_flex && m_layoutEngine) {
             // Trigger layout with GapChanged reason to allow parent resize even if selected

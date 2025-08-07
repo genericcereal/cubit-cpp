@@ -34,23 +34,21 @@ CreateComponentCommand::~CreateComponentCommand()
 }
 
 void CreateComponentCommand::execute()
-{    if (!m_elementModel || !m_sourceElement) {
+{
+    if (!m_elementModel || !m_sourceElement) {
         qWarning() << "CreateComponentCommand: Invalid element model or source element";
         return;
-    }    // Step 1: Create a new Component
+    }
+    
+    // Step 1: Create a new Component
     if (m_componentId.isEmpty()) {
         m_componentId = m_elementModel->generateId();
     }
     
     m_createdComponent = new ComponentElement(m_componentId, m_elementModel);
-    m_createdComponent->setName(m_sourceElement->getName() + " Component");    // Step 2: Add the selected element to the component's elements array
-    m_createdComponent->addElement(m_sourceElement);    // Mark the source element as a variant since it's now part of a component
-    // Debug: Check if the property exists and can be set
-    if (m_sourceElement->hasProperty("isVariant")) {        m_sourceElement->setProperty("isVariant", true);
-        // Verify it was set
-        QVariant value = m_sourceElement->getProperty("isVariant");    } else {
-        qWarning() << "Element does not have isVariant property:" << m_sourceElement->getId() << m_sourceElement->getTypeName();
-    }
+    m_createdComponent->setName(m_sourceElement->getName() + " Component");
+    
+    // Step 2: Add the selected element AND all its children to the component's elements array    addElementAndChildrenToComponent(m_sourceElement);
     
     // Note: We keep the source element in the model but it will be filtered out
     // from the main canvas display since it's part of a component
@@ -109,7 +107,8 @@ void CreateComponentCommand::execute()
         m_elementModel->addElement(instance);
         m_createdInstance = instance;
         
-        // Create instances for any existing children of the source element        createChildInstances(m_sourceElement, instance);
+        // Create instances for any existing children of the source element        for (Element* el : m_createdComponent->elements()) {        }
+        createChildInstances(m_sourceElement, instance);
         
         // Select the newly created instance
         if (m_selectionManager) {
@@ -135,13 +134,16 @@ void CreateComponentCommand::undo()
     }
     
     if (m_createdComponent && m_elementModel) {
-        // Remove the element from the component's list
-        m_createdComponent->removeElement(m_sourceElement);
-        
-        // Reset the isVariant property since it's no longer part of a component
-        if (m_sourceElement) {
-            m_sourceElement->setProperty("isVariant", false);
+        // Remove all elements from the component's list
+        for (DesignElement* element : m_addedToComponent) {
+            m_createdComponent->removeElement(element);
+            
+            // Reset the isVariant property since it's no longer part of a component
+            if (element) {
+                element->setProperty("isVariant", false);
+            }
         }
+        m_addedToComponent.clear();
         
         // Remove the component
         m_elementModel->removeElement(m_createdComponent->getId());
@@ -155,17 +157,16 @@ void CreateComponentCommand::redo()
 }
 
 void CreateComponentCommand::createChildInstances(DesignElement* sourceElement, DesignElement* parentInstance)
-{    if (!sourceElement || !parentInstance || !m_elementModel) {        return;
-    }
-    
-    // Get all direct children of the source element
-    QList<Element*> allElements = m_elementModel->getAllElements();
-    int childCount = 0;
-    for (Element* element : allElements) {
-        if (element->getParentElementId() == sourceElement->getId()) {
-            childCount++;            // Create an instance of this child element
+{
+    if (!sourceElement || !parentInstance || !m_elementModel || !m_createdComponent) {
+        return;
+    }    // Get children from the component's elements array instead of the main model
+    // This ensures we create instances for all elements that are part of the component
+    QList<Element*> componentElements = m_createdComponent->elements();    for (Element* element : componentElements) {
+        if (element->getParentElementId() == sourceElement->getId()) {            // Create an instance of this child element
             DesignElement* sourceChild = qobject_cast<DesignElement*>(element);
-            if (!sourceChild) {                continue;
+            if (!sourceChild) {
+                continue;
             }
             
             QString childInstanceId = m_elementModel->generateId();
@@ -195,14 +196,45 @@ void CreateComponentCommand::createChildInstances(DesignElement* sourceElement, 
             }
             
             if (childInstance) {                // Set the instanceOf property to reference the source child element ID
-                childInstance->setInstanceOf(sourceChild->getId());                // Set the componentId to track which component this instance belongs to
-                childInstance->setComponentId(m_componentId);                childInstance->setName(sourceChild->getName() + " Instance");
+                childInstance->setInstanceOf(sourceChild->getId());
+                // Set the componentId to track which component this instance belongs to
+                childInstance->setComponentId(m_componentId);
+                childInstance->setName(sourceChild->getName() + " Instance");
                 
-                // Set parent to the parent instance
-                childInstance->setParentElementId(parentInstance->getId());                // Add the child instance to the model
-                m_elementModel->addElement(childInstance);
-                m_createdChildInstances.append(childInstance);                // Recursively create instances for children of this child
+                // Set parent to the parent instance                childInstance->setParentElementId(parentInstance->getId());
+                
+                // Add the child instance to the model                m_elementModel->addElement(childInstance);
+                m_createdChildInstances.append(childInstance);
+                
+                // Recursively create instances for children of this child
                 createChildInstances(sourceChild, childInstance);
             }
         }
-    }}
+    }
+}
+
+void CreateComponentCommand::addElementAndChildrenToComponent(DesignElement* element)
+{
+    if (!element || !m_createdComponent) {
+        return;
+    }    // Add this element to the component
+    m_createdComponent->addElement(element);
+    m_addedToComponent.append(element);
+    
+    // Mark the element as a variant since it's now part of a component
+    if (element->hasProperty("isVariant")) {
+        element->setProperty("isVariant", true);
+    } else {
+        qWarning() << "Element does not have isVariant property:" << element->getId() << element->getTypeName();
+    }
+    
+    // Recursively add all children
+    QList<Element*> allElements = m_elementModel->getAllElements();
+    for (Element* child : allElements) {
+        if (child->getParentElementId() == element->getId()) {
+            DesignElement* designChild = qobject_cast<DesignElement*>(child);
+            if (designChild) {                addElementAndChildrenToComponent(designChild);
+            }
+        }
+    }
+}
