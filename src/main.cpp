@@ -203,11 +203,12 @@ int main(int argc, char *argv[])
 
     // Also register as singleton type for consistency, but context property takes precedence
     qmlRegisterSingletonType<Application>("Cubit", 1, 0, "Application",
-                                          [appInstance](QQmlEngine *engine, QJSEngine *scriptEngine) -> QObject *
+                                          [](QQmlEngine *engine, QJSEngine *scriptEngine) -> QObject *
                                           {
                                               Q_UNUSED(engine)
                                               Q_UNUSED(scriptEngine)
-                                              return appInstance;
+                                              // Return the static instance which can be null during shutdown
+                                              return Application::instance();
                                           });
 
     // No longer creating global DesignControlsController - each window creates its own
@@ -250,10 +251,23 @@ int main(int argc, char *argv[])
     
     // IMPORTANT: Clear all QML connections before Application is destroyed
     // This prevents QML from trying to access destroyed C++ objects during shutdown
+    
+    // First, clear the root objects to stop any active QML bindings
+    engine.rootObjects().clear();
+    
+    // Clear the context property
     QQmlContext* rootContext = engine.rootContext();
     if (rootContext) {
         rootContext->setContextProperty("Application", nullptr);
+        rootContext->setContextProperty("ConsoleMessageRepository", nullptr);
     }
+    
+    // Force garbage collection to clean up any QML objects still referencing our singletons
+    engine.collectGarbage();
+    
+    // Delete the application instance before the engine is destroyed
+    delete appInstance;
+    appInstance = nullptr;
     
     return result;
 }

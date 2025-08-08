@@ -13,33 +13,58 @@ ScrollView {
     property var selectedElement: selectionManager && selectionManager.selectionCount === 1 
                                  ? selectionManager.selectedElements[0] : null
     
+    // Find the outermost instance for the selected element (or the element itself if it's outermost)
+    property var outermostInstance: {
+        if (!selectedElement || !canvas || !canvas.elementModel) {
+            return null
+        }
+        try {
+            var outermost = canvas.elementModel.findOutermostInstanceForElement(selectedElement)
+            return outermost || null
+        } catch (e) {
+            // Handle case where objects are being destroyed
+            return null
+        }
+    }
+    
+    // Use the outermost instance for display if available, otherwise use selected element
+    property var displayElement: outermostInstance || selectedElement
+    
     // Helper property to access DesignElement-specific properties
-    property var selectedDesignElement: selectedElement && selectedElement.isDesignElement ? selectedElement : null
+    property var selectedDesignElement: displayElement && displayElement.isDesignElement ? displayElement : null
     
     // Helper property to get editable properties for ComponentInstance
     property var editableProperties: {
-        if (selectedElement && selectedElement.elementType === "FrameComponentInstance") {
-            return selectedElement.getEditableProperties()
+        if (displayElement && displayElement.elementType === "FrameComponentInstance") {
+            return displayElement.getEditableProperties()
         }
         return []
     }
     
-    // Get all descendants when an outermost instance is selected
+    // Get all descendants when displaying an outermost instance configuration
     property var descendants: {
-        if (selectedDesignElement && selectedDesignElement.isInstance && 
-            selectedDesignElement.isInstance() && 
-            (!selectedDesignElement.ancestorInstance || selectedDesignElement.ancestorInstance === "")) {
-            // This is an outermost instance (has instanceOf but no ancestorInstance)
-            var elementModel = canvas ? canvas.elementModel : null
-            if (elementModel && selectedDesignElement.instanceOf) {
-                var descendantsList = elementModel.getDescendantsOfInstance(selectedDesignElement.instanceOf)
-                // Convert to a JavaScript array to ensure proper access in QML
-                var result = []
-                for (var i = 0; i < descendantsList.length; i++) {
-                    result.push(descendantsList[i])
+        if (!selectedDesignElement || !canvas || !canvas.elementModel) {
+            return []
+        }
+        
+        try {
+            if (selectedDesignElement.isInstance && 
+                selectedDesignElement.isInstance() && 
+                (!selectedDesignElement.ancestorInstance || selectedDesignElement.ancestorInstance === "")) {
+                // This is an outermost instance (has instanceOf but no ancestorInstance)
+                if (selectedDesignElement.instanceOf) {
+                    var descendantsList = canvas.elementModel.getDescendantsOfInstance(selectedDesignElement.instanceOf)
+                    // Convert to a JavaScript array to ensure proper access in QML
+                    var result = []
+                    for (var i = 0; i < descendantsList.length; i++) {
+                        result.push(descendantsList[i])
+                    }
+                    return result
                 }
-                return result
             }
+        } catch (e) {
+            // Handle case where objects are being destroyed
+            return []
         }
         return []
     }
@@ -52,62 +77,153 @@ ScrollView {
         width: root.width
         spacing: 10
         
-        // Sections for the main selected element
+        // Sections for the main display element (outermost instance or selected element)
+        
+        // Non-collapsible sections that should always be visible
         ActionsSection {
-            selectedElement: root.selectedElement
+            selectedElement: root.displayElement
             canvas: root.canvas
         }
         
         PlatformsSection {
-            selectedElement: root.selectedElement
+            selectedElement: root.displayElement
             canvas: root.canvas
         }
         
         GeneralProperties {
-            selectedElement: root.selectedElement
+            selectedElement: root.displayElement
             editableProperties: root.editableProperties
             canvas: root.canvas
         }
         
+        // Show frame properties normally when not showing an outermost instance
         PositionSection {
-            selectedElement: root.selectedElement
+            visible: root.outermostInstance === null
+            selectedElement: root.displayElement
             editableProperties: root.editableProperties
         }
         
         SizeSection {
-            selectedElement: root.selectedElement
+            visible: root.outermostInstance === null
+            selectedElement: root.displayElement
             editableProperties: root.editableProperties
         }
         
         FrameStyleSection {
-            selectedElement: root.selectedElement
+            visible: root.outermostInstance === null
+            selectedElement: root.displayElement
             onPanelSelectorClicked: function(selector, type) {
-                root.panelSelectorClicked(selector, type, root.selectedElement)
+                root.panelSelectorClicked(selector, type, root.displayElement)
             }
         }
         
         FlexLayoutSection {
-            selectedElement: root.selectedElement
+            visible: root.outermostInstance === null
+            selectedElement: root.displayElement
             editableProperties: root.editableProperties
         }
         
+        // Collapsible section for Frame-specific properties when showing outermost instance
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: 0
+            visible: root.outermostInstance !== null  // Only show when we have an outermost instance
+            
+            property bool isCollapsed: true
+            
+            // Separator
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 1
+                color: "#e0e0e0"
+            }
+            
+            // Collapsible header
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 40
+                color: frameMouseArea.containsMouse ? "#f5f5f5" : "transparent"
+                
+                MouseArea {
+                    id: frameMouseArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: parent.parent.isCollapsed = !parent.parent.isCollapsed
+                }
+                
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: 10
+                    anchors.rightMargin: 10
+                    spacing: 5
+                    
+                    // Chevron icon
+                    Text {
+                        text: parent.parent.parent.isCollapsed ? "▶" : "▼"
+                        font.pixelSize: 12
+                        color: "#666"
+                    }
+                    
+                    Label {
+                        text: "Frame Properties"
+                        font.weight: Font.Medium
+                        font.pixelSize: 14
+                        color: "#333"
+                        Layout.fillWidth: true
+                    }
+                }
+            }
+            
+            // Collapsible content
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 10
+                visible: !parent.isCollapsed
+                
+                PositionSection {
+                    selectedElement: root.displayElement
+                    editableProperties: root.editableProperties
+                }
+                
+                SizeSection {
+                    selectedElement: root.displayElement
+                    editableProperties: root.editableProperties
+                }
+                
+                FrameStyleSection {
+                    selectedElement: root.displayElement
+                    onPanelSelectorClicked: function(selector, type) {
+                        root.panelSelectorClicked(selector, type, root.displayElement)
+                    }
+                }
+                
+                FlexLayoutSection {
+                    selectedElement: root.displayElement
+                    editableProperties: root.editableProperties
+                }
+            }
+        }
+        
+        // Non-frame sections that should always be visible
+        
         TextSection {
-            selectedElement: root.selectedElement
+            selectedElement: root.displayElement
             onPanelSelectorClicked: function(selector, type) {
-                root.panelSelectorClicked(selector, type, root.selectedElement)
+                root.panelSelectorClicked(selector, type, root.displayElement)
             }
         }
         
         ShapeSection {
-            selectedElement: root.selectedElement
+            selectedElement: root.displayElement
             canvas: root.canvas
             onPanelSelectorClicked: function(selector, type) {
-                root.panelSelectorClicked(selector, type, root.selectedElement)
+                root.panelSelectorClicked(selector, type, root.displayElement)
             }
         }
         
         VariableSection {
-            selectedElement: root.selectedElement
+            selectedElement: root.displayElement
             canvas: root.canvas
         }
         
@@ -117,81 +233,117 @@ ScrollView {
             
             delegate: ColumnLayout {
                 Layout.fillWidth: true
-                spacing: 10
+                spacing: 0
                 
                 property var descendantElement: root.descendants[index]
+                property bool isCollapsed: true
                 
-                // Separator and header for this descendant
+                // Separator
                 Rectangle {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 1
                     color: "#e0e0e0"
                 }
                 
-                Label {
-                    text: "Instance Child: " + (descendantElement ? (descendantElement.name || descendantElement.elementId) : "Unknown")
-                    font.weight: Font.Medium
-                    font.pixelSize: 14
-                    color: "#333"
-                    padding: 10
+                // Collapsible header
+                Rectangle {
                     Layout.fillWidth: true
-                }
-                
-                GeneralProperties {
-                    Layout.fillWidth: true
-                    selectedElement: descendantElement
-                    editableProperties: descendantElement && descendantElement.elementType === "FrameComponentInstance" ? descendantElement.getEditableProperties() : []
-                    canvas: root.canvas
-                }
-                
-                PositionSection {
-                    Layout.fillWidth: true
-                    selectedElement: descendantElement
-                    editableProperties: descendantElement && descendantElement.elementType === "FrameComponentInstance" ? descendantElement.getEditableProperties() : []
-                }
-                
-                SizeSection {
-                    Layout.fillWidth: true
-                    selectedElement: descendantElement
-                    editableProperties: descendantElement && descendantElement.elementType === "FrameComponentInstance" ? descendantElement.getEditableProperties() : []
-                }
-                
-                FrameStyleSection {
-                    Layout.fillWidth: true
-                    selectedElement: descendantElement
-                    editableProperties: descendantElement && descendantElement.elementType === "FrameComponentInstance" ? descendantElement.getEditableProperties() : []
-                    onPanelSelectorClicked: function(selector, type) {
-                        root.panelSelectorClicked(selector, type, descendantElement)
+                    Layout.preferredHeight: 40
+                    color: mouseArea.containsMouse ? "#f5f5f5" : "transparent"
+                    
+                    MouseArea {
+                        id: mouseArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: isCollapsed = !isCollapsed
+                    }
+                    
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 10
+                        anchors.rightMargin: 10
+                        spacing: 5
+                        
+                        // Chevron icon
+                        Text {
+                            text: isCollapsed ? "▶" : "▼"
+                            font.pixelSize: 12
+                            color: "#666"
+                        }
+                        
+                        Label {
+                            text: "Instance Child: " + (descendantElement ? (descendantElement.name || descendantElement.elementId) : "Unknown")
+                            font.weight: Font.Medium
+                            font.pixelSize: 14
+                            color: "#333"
+                            Layout.fillWidth: true
+                        }
                     }
                 }
                 
-                FlexLayoutSection {
+                // Collapsible content
+                ColumnLayout {
                     Layout.fillWidth: true
-                    selectedElement: descendantElement
-                    editableProperties: descendantElement && descendantElement.elementType === "FrameComponentInstance" ? descendantElement.getEditableProperties() : []
-                }
-                
-                TextSection {
-                    Layout.fillWidth: true
-                    selectedElement: descendantElement
-                    onPanelSelectorClicked: function(selector, type) {
-                        root.panelSelectorClicked(selector, type, descendantElement)
+                    spacing: 10
+                    visible: !isCollapsed
+                    
+                    GeneralProperties {
+                        Layout.fillWidth: true
+                        selectedElement: descendantElement
+                        editableProperties: descendantElement && descendantElement.elementType === "FrameComponentInstance" ? descendantElement.getEditableProperties() : []
+                        canvas: root.canvas
                     }
-                }
-                
-                ShapeSection {
-                    Layout.fillWidth: true
-                    selectedElement: descendantElement
-                    canvas: root.canvas
-                    onPanelSelectorClicked: function(selector, type) {
-                        root.panelSelectorClicked(selector, type, descendantElement)
+                    
+                    PositionSection {
+                        Layout.fillWidth: true
+                        selectedElement: descendantElement
+                        editableProperties: descendantElement && descendantElement.elementType === "FrameComponentInstance" ? descendantElement.getEditableProperties() : []
                     }
-                }
-                
-                VariableSection {
-                    Layout.fillWidth: true
-                    selectedElement: descendantElement
-                    canvas: root.canvas
+                    
+                    SizeSection {
+                        Layout.fillWidth: true
+                        selectedElement: descendantElement
+                        editableProperties: descendantElement && descendantElement.elementType === "FrameComponentInstance" ? descendantElement.getEditableProperties() : []
+                    }
+                    
+                    FrameStyleSection {
+                        Layout.fillWidth: true
+                        selectedElement: descendantElement
+                        editableProperties: descendantElement && descendantElement.elementType === "FrameComponentInstance" ? descendantElement.getEditableProperties() : []
+                        onPanelSelectorClicked: function(selector, type) {
+                            root.panelSelectorClicked(selector, type, descendantElement)
+                        }
+                    }
+                    
+                    FlexLayoutSection {
+                        Layout.fillWidth: true
+                        selectedElement: descendantElement
+                        editableProperties: descendantElement && descendantElement.elementType === "FrameComponentInstance" ? descendantElement.getEditableProperties() : []
+                    }
+                    
+                    TextSection {
+                        Layout.fillWidth: true
+                        selectedElement: descendantElement
+                        onPanelSelectorClicked: function(selector, type) {
+                            root.panelSelectorClicked(selector, type, descendantElement)
+                        }
+                    }
+                    
+                    ShapeSection {
+                        Layout.fillWidth: true
+                        selectedElement: descendantElement
+                        canvas: root.canvas
+                        onPanelSelectorClicked: function(selector, type) {
+                            root.panelSelectorClicked(selector, type, descendantElement)
+                        }
+                    }
+                    
+                    VariableSection {
+                        Layout.fillWidth: true
+                        selectedElement: descendantElement
+                        canvas: root.canvas
+                    }
                 }
             }
         }

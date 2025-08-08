@@ -53,6 +53,9 @@ public:
     // Get all descendants of an instance (elements with ancestorInstance = instanceId)
     Q_INVOKABLE QList<Element*> getDescendantsOfInstance(const QString &instanceId) const;
     
+    // Find the outermost instance that contains this element (by checking ancestorInstance)
+    Q_INVOKABLE Element* findOutermostInstanceForElement(Element* element) const;
+    
 signals:
     void elementAdded(Element *element);
     void elementRemoved(const QString &elementId);
