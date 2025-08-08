@@ -731,3 +731,30 @@ QList<Element*> ElementModel::getDescendantsOfInstance(const QString &instanceId
     
     return descendants;
 }
+
+Element* ElementModel::findOutermostInstanceForElement(Element* element) const {
+    if (!element) return nullptr;
+    
+    DesignElement* designElement = qobject_cast<DesignElement*>(element);
+    if (!designElement) return nullptr;
+    
+    // If this element has an ancestorInstance, find the outermost instance
+    QString ancestorId = designElement->ancestorInstance();
+    if (!ancestorId.isEmpty()) {
+        // Find the element with instanceOf == ancestorId
+        for (Element* elem : m_elements) {
+            DesignElement* design = qobject_cast<DesignElement*>(elem);
+            if (design && design->instanceOf() == ancestorId) {
+                // This is the outermost instance
+                return elem;
+            }
+        }
+    }
+    
+    // If this element itself is an outermost instance (has instanceOf but no ancestorInstance)
+    if (!designElement->instanceOf().isEmpty() && ancestorId.isEmpty()) {
+        return element;
+    }
+    
+    return nullptr;
+}

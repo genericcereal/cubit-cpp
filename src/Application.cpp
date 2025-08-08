@@ -68,9 +68,11 @@ Application::Application(QObject *parent)
 }
 
 Application::~Application() {
+    // Clear static instance first to prevent any access during destruction
+    s_instance = nullptr;
+    
     // Clear all canvases before destruction to ensure proper cleanup order
     m_canvases.clear();
-    s_instance = nullptr;
 }
 
 Application* Application::instance() {
