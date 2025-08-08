@@ -73,7 +73,6 @@ void Element::setParentElementId(const QString &parentId)
         QString oldParentId = parentElementId;
         parentElementId = parentId;
         
-        
         // If we're being parented (not unparented), reorder in the element list
         if (!parentId.isEmpty()) {
             // Try to get the ElementModel (which should be our parent if we're in one)
@@ -128,7 +127,8 @@ void Element::setParentElementId(const QString &parentId)
         
         // If this element's new parent is a source element with instances,
         // we need to create corresponding child instances
-        if (!parentId.isEmpty()) {            // We need to check if the parent is a source element with instances
+        if (!parentId.isEmpty()) {
+            // We need to check if the parent is a source element with instances
             // The ElementModel will handle this check when it receives the signal
             emit childAddedToSourceElement(this, parentId);
         }
@@ -164,7 +164,8 @@ QVariant Element::getProperty(const QString& name) const
 }
 
 void Element::setProperty(const QString& name, const QVariant& value)
-{    // Handle core properties
+{
+    // Handle core properties
     if (name == "name") {
         setName(value.toString());
         return;

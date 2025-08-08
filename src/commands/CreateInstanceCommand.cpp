@@ -83,6 +83,47 @@ void CreateInstanceCommand::execute()
     // Add to element model
     m_elementModel->addElement(m_createdInstance);
     
+    // Check if the source element has children and create instance children
+    QList<Element*> sourceChildren;
+    for (Element* elem : m_elementModel->getAllElements()) {
+        if (elem->getParentElementId() == m_sourceElement->getId()) {
+            sourceChildren.append(elem);
+        }
+    }
+    
+    // Create instance children for each source child
+    for (Element* sourceChild : sourceChildren) {
+        // Generate instance ID for the child
+        QString childInstanceId = m_elementModel->generateId();
+        
+        // Serialize the source child
+        QJsonObject childData = serializer->serializeElement(sourceChild);
+        
+        // Update the data for the child instance
+        childData["elementId"] = childInstanceId;
+        childData["name"] = sourceChild->getName() + " Instance";
+        childData["parentId"] = m_instanceId;  // Parent is the created instance
+        
+        // Deserialize to create the child instance
+        Element* childInstance = serializer->deserializeElement(childData, m_elementModel);
+        if (childInstance) {
+            // Set instanceOf for the child
+            if (DesignElement* childDesignInstance = qobject_cast<DesignElement*>(childInstance)) {
+                childDesignInstance->setInstanceOf(sourceChild->getId());
+                childDesignInstance->setComponentId(m_createdInstance->componentId());
+                childDesignInstance->setAncestorInstance(m_sourceElement->getId());
+                
+                // Ensure parent element pointer is set
+                if (CanvasElement* canvasChild = qobject_cast<CanvasElement*>(childInstance)) {
+                    canvasChild->setParentElement(m_createdInstance);
+                }
+            }
+            
+            // Add the child instance to the model
+            m_elementModel->addElement(childInstance);
+        }
+    }
+    
     // Create a Variable element for this component instance
     // Get the Project from the ElementModel's parent
     if (Project* project = qobject_cast<Project*>(m_elementModel->parent())) {

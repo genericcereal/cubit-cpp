@@ -226,8 +226,16 @@ void DesignElement::setIsFrozen(bool frozen) {
 }
 
 void DesignElement::setInstanceOf(const QString& sourceId) {
-    if (m_instanceOf != sourceId) {        // Disconnect from old source
-        if (!m_instanceOf.isEmpty() && m_sourceElement) {            disconnect(m_sourceConnection);
+    if (m_instanceOf != sourceId) {
+        // Disconnect from old source
+        if (!m_instanceOf.isEmpty() && m_sourceElement) {
+            disconnect(m_sourceConnection);
+            disconnect(m_sourceElement, &Element::propertyChanged,
+                      this, &DesignElement::onSourceElementChanged);
+            if (CanvasElement* canvasSource = qobject_cast<CanvasElement*>(m_sourceElement)) {
+                disconnect(canvasSource, &CanvasElement::geometryChanged,
+                          this, &DesignElement::onSourceElementChanged);
+            }
             m_sourceElement = nullptr;
         }
         
@@ -241,7 +249,8 @@ void DesignElement::setInstanceOf(const QString& sourceId) {
             if (model) {
                 Element* sourceElement = model->getElementById(sourceId);
                 DesignElement* designSource = qobject_cast<DesignElement*>(sourceElement);
-                if (designSource) {                    m_sourceElement = designSource;
+                if (designSource) {
+                    m_sourceElement = designSource;
                     
                     // Subscribe to all property changes
                     m_sourceConnection = connect(designSource, &QObject::destroyed,
@@ -252,8 +261,17 @@ void DesignElement::setInstanceOf(const QString& sourceId) {
                            this, &DesignElement::onSourceElementChanged,
                            Qt::UniqueConnection);
                     
-                    // Initial sync
-                    onSourceElementChanged();
+                    // Connect to geometry changes if it's a CanvasElement
+                    if (CanvasElement* canvasSource = qobject_cast<CanvasElement*>(designSource)) {
+                        connect(canvasSource, &CanvasElement::geometryChanged,
+                               this, &DesignElement::onSourceElementChanged,
+                               Qt::UniqueConnection);
+                    }
+                    
+                    // Initial sync - but skip for child instances as they're already set up correctly
+                    if (getParentElementId().isEmpty()) {
+                        onSourceElementChanged();
+                    }
                 } else {
                     qWarning() << "[DesignElement::setInstanceOf]" << getId() << "Source element not found or not a DesignElement:" << sourceId;
                 }
@@ -567,8 +585,11 @@ void DesignElement::registerProperties() {
 }
 
 void DesignElement::onSourceElementChanged() {
-    if (!m_sourceElement) {        return;
-    }    // Check if this is a child element (has a parent)
+    if (!m_sourceElement) {
+        return;
+    }
+    
+    // Check if this is a child element (has a parent)
     bool isChildElement = !getParentElementId().isEmpty();    // Get the meta object for property copying
     const QMetaObject* metaObject = m_sourceElement->metaObject();
     
@@ -582,6 +603,9 @@ void DesignElement::onSourceElementChanged() {
         if (propNameStr == "objectName" || 
             propNameStr == "elementId" || 
             propNameStr == "parentId" ||
+            propNameStr == "parentElementId" ||  // Also check for parentElementId
+            propNameStr == "parentElement" ||  // Don't copy parent element pointer
+            propNameStr == "ancestorInstance" ||  // Don't copy ancestor instance
             propNameStr == "name" ||  // Don't overwrite instance's custom name
             propNameStr == "selected" ||
             propNameStr == "instanceOf" ||
@@ -601,18 +625,21 @@ void DesignElement::onSourceElementChanged() {
         
         // Copy the property value
         QVariant value = m_sourceElement->property(propName);
-        if (value.isValid()) {            setProperty(propName, value);
+        if (value.isValid()) {
+            setProperty(propName, value);
         }
     }
     
     // For child elements, also sync geometry using CanvasElement methods
     if (isChildElement) {
-        if (CanvasElement* sourceCanvas = qobject_cast<CanvasElement*>(m_sourceElement)) {            setX(sourceCanvas->x());
+        if (CanvasElement* sourceCanvas = qobject_cast<CanvasElement*>(m_sourceElement)) {
+            setX(sourceCanvas->x());
             setY(sourceCanvas->y());
             setWidth(sourceCanvas->width());
             setHeight(sourceCanvas->height());
         }
-    }}
+    }
+}
 
 void DesignElement::onSourceElementDestroyed() {
     m_sourceElement = nullptr;
