@@ -17,6 +17,7 @@ class Element : public QObject {
     Q_PROPERTY(QString parentId READ getParentElementId WRITE setParentElementId NOTIFY parentIdChanged)
     Q_PROPERTY(bool selected READ isSelected WRITE setSelected NOTIFY selectedChanged)
     Q_PROPERTY(bool showInElementList READ showInElementList CONSTANT)
+    Q_PROPERTY(bool isCanvasElement READ isCanvasElement CONSTANT)
     
 public:
     enum ElementType {
@@ -55,6 +56,9 @@ public:
     // Check if this element should be shown in the element list
     virtual bool showInElementList() const { return m_showInElementList; }
     void setShowInElementList(bool show) { m_showInElementList = show; }
+    
+    // Check if this is a CanvasElement (has visual properties)
+    virtual bool isCanvasElement() const { return false; }
     
     // Generic property access using PropertyRegistry
     Q_INVOKABLE virtual QVariant getProperty(const QString& name) const;

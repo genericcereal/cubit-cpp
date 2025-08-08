@@ -58,6 +58,9 @@ public:
     virtual bool isDesignElement() const { return false; }
     virtual bool isScriptElement() const { return false; }
     
+    // Override from Element - CanvasElements have visual properties
+    bool isCanvasElement() const override { return true; }
+    
     // Parent tracking
     virtual void setParentElement(CanvasElement* parent);
     CanvasElement* parentElement() const { return m_parentElement; }

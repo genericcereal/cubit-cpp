@@ -97,20 +97,21 @@ ScrollView {
         }
         
         // Show frame properties normally when not showing an outermost instance
+        // Only show for CanvasElements (visual elements with position/size)
         PositionSection {
-            visible: root.outermostInstance === null
+            visible: root.outermostInstance === null && root.displayElement && root.displayElement.isCanvasElement
             selectedElement: root.displayElement
             editableProperties: root.editableProperties
         }
         
         SizeSection {
-            visible: root.outermostInstance === null
+            visible: root.outermostInstance === null && root.displayElement && root.displayElement.isCanvasElement
             selectedElement: root.displayElement
             editableProperties: root.editableProperties
         }
         
         FrameStyleSection {
-            visible: root.outermostInstance === null
+            visible: root.outermostInstance === null && root.displayElement && root.displayElement.isCanvasElement
             selectedElement: root.displayElement
             onPanelSelectorClicked: function(selector, type) {
                 root.panelSelectorClicked(selector, type, root.displayElement)
@@ -118,7 +119,7 @@ ScrollView {
         }
         
         FlexLayoutSection {
-            visible: root.outermostInstance === null
+            visible: root.outermostInstance === null && root.displayElement && root.displayElement.isCanvasElement
             selectedElement: root.displayElement
             editableProperties: root.editableProperties
         }
@@ -182,16 +183,19 @@ ScrollView {
                 visible: !parent.isCollapsed
                 
                 PositionSection {
+                    visible: root.displayElement && root.displayElement.isCanvasElement
                     selectedElement: root.displayElement
                     editableProperties: root.editableProperties
                 }
                 
                 SizeSection {
+                    visible: root.displayElement && root.displayElement.isCanvasElement
                     selectedElement: root.displayElement
                     editableProperties: root.editableProperties
                 }
                 
                 FrameStyleSection {
+                    visible: root.displayElement && root.displayElement.isCanvasElement
                     selectedElement: root.displayElement
                     onPanelSelectorClicked: function(selector, type) {
                         root.panelSelectorClicked(selector, type, root.displayElement)
@@ -199,6 +203,7 @@ ScrollView {
                 }
                 
                 FlexLayoutSection {
+                    visible: root.displayElement && root.displayElement.isCanvasElement
                     selectedElement: root.displayElement
                     editableProperties: root.editableProperties
                 }
@@ -297,18 +302,21 @@ ScrollView {
                     
                     PositionSection {
                         Layout.fillWidth: true
+                        visible: descendantElement && descendantElement.isCanvasElement
                         selectedElement: descendantElement
                         editableProperties: descendantElement && descendantElement.elementType === "FrameComponentInstance" ? descendantElement.getEditableProperties() : []
                     }
                     
                     SizeSection {
                         Layout.fillWidth: true
+                        visible: descendantElement && descendantElement.isCanvasElement
                         selectedElement: descendantElement
                         editableProperties: descendantElement && descendantElement.elementType === "FrameComponentInstance" ? descendantElement.getEditableProperties() : []
                     }
                     
                     FrameStyleSection {
                         Layout.fillWidth: true
+                        visible: descendantElement && descendantElement.isCanvasElement
                         selectedElement: descendantElement
                         editableProperties: descendantElement && descendantElement.elementType === "FrameComponentInstance" ? descendantElement.getEditableProperties() : []
                         onPanelSelectorClicked: function(selector, type) {
@@ -318,6 +326,7 @@ ScrollView {
                     
                     FlexLayoutSection {
                         Layout.fillWidth: true
+                        visible: descendantElement && descendantElement.isCanvasElement
                         selectedElement: descendantElement
                         editableProperties: descendantElement && descendantElement.elementType === "FrameComponentInstance" ? descendantElement.getEditableProperties() : []
                     }

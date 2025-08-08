@@ -381,12 +381,14 @@ void ElementModel::connectElement(Element *element)
     
     // Connect to handle when this element is added as a child to a source element
     connect(element, &Element::childAddedToSourceElement,
-            this, [this](Element* child, const QString& sourceParentId) {                // Check if the parent is actually a source element (has instances)
+            this, [this](Element* child, const QString& sourceParentId) {
+                // Check if the parent is actually a source element (has instances)
                 bool hasInstances = false;
                 for (Element* e : m_elements) {
                     if (DesignElement* de = qobject_cast<DesignElement*>(e)) {
                         if (de->instanceOf() == sourceParentId) {
-                            hasInstances = true;                            break;
+                            hasInstances = true;
+                            break;
                         }
                     }
                 }
@@ -618,7 +620,7 @@ void ElementModel::syncInstancesFromSource(Element* sourceElement)
                 for (const QString& propName : propNames) {
                     // For child elements, we sync position too
                     // For root instances, we skip position to maintain their placement
-                    if (propName == "elementId" || propName == "parentId" || propName == "selected") {
+                    if (propName == "elementId" || propName == "parentId" || propName == "selected" || propName == "instanceOf") {
                         continue;
                     }
                     
@@ -656,7 +658,8 @@ void ElementModel::onSourceElementPropertyChanged()
 }
 
 void ElementModel::createChildInstancesForSourceChild(Element* childElement, const QString& sourceParentId)
-{    if (!childElement) {
+{
+    if (!childElement) {
         qWarning() << "createChildInstancesForSourceChild: childElement is null";
         return;
     }
@@ -692,6 +695,11 @@ void ElementModel::createChildInstancesForSourceChild(Element* childElement, con
             continue;
         }
         
+        // Ensure the parentId is set correctly
+        if (newChildInstance->getParentElementId() != parentInstance->getId()) {
+            newChildInstance->setParentElementId(parentInstance->getId());
+        }
+        
         // Cast to DesignElement and set instanceOf
         if (DesignElement* childDesignInstance = qobject_cast<DesignElement*>(newChildInstance)) {            // Add the child instance to the model FIRST so it has a parent when setInstanceOf is called
             // Note: We don't call addElement here to avoid infinite recursion
@@ -706,7 +714,12 @@ void ElementModel::createChildInstancesForSourceChild(Element* childElement, con
             
             // Set ancestorInstance to the source parent ID since this is a child of an instance
             // The source parent is the actual source element that has instances
-            childDesignInstance->setAncestorInstance(sourceParentId);            connectElement(newChildInstance);
+            childDesignInstance->setAncestorInstance(sourceParentId);
+            
+            // Set the parent element pointer for proper parent-child relationship
+            if (CanvasElement* canvasChild = qobject_cast<CanvasElement*>(newChildInstance)) {
+                canvasChild->setParentElement(parentInstance);
+            }            connectElement(newChildInstance);
             endInsertRows();
             
             emit elementAdded(newChildInstance);

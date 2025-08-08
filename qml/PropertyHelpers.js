@@ -41,7 +41,7 @@ function canShow(prop, el, editableProps) {
         return editableProps && editableProps.indexOf(prop) !== -1
     }
     
-    return isFrame(el) || isFrameVariant(el) || isVariable(el)
+    return isFrame(el) || isFrameVariant(el)
 }
 
 // Specific property visibility helpers
